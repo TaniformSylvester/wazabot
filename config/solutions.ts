@@ -4,32 +4,40 @@ import {
   Ellipsis,
   GraduationCap,
   Hotel,
+  Scissors,
   Shirt,
-  Sparkles,
   Store,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 
-export type Industry = {
+/** Brand-consistent icon tones — no one-off colours. */
+export const tones = {
+  bolt: "bg-bolt-100 text-bolt-800",
+  ember: "bg-ember-100 text-ember-700",
+  volt: "bg-volt-100 text-volt-700",
+  ink: "bg-ink text-bolt-400",
+  sand: "bg-sand-200 text-ink",
+} as const;
+
+export type Solution = {
   slug: string;
   name: string;
   icon: LucideIcon;
-  /** Tailwind classes for the circular icon background + icon colour. */
-  tone: string;
-  /** What WazaBot does for this business type — only things the product is being built to do. */
+  tone: keyof typeof tones;
+  /** What WazaBolt does for this business type — only things the product is being built to do. */
   useCases: string[];
   exampleQuestion: string;
   /** Show in the homepage strip. */
   featured: boolean;
 };
 
-export const industries: Industry[] = [
+export const solutions: Solution[] = [
   {
     slug: "retail",
     name: "Retail Shops",
     icon: Store,
-    tone: "bg-sky-100 text-sky-700",
+    tone: "bolt",
     useCases: ["Share products, prices and stock from your catalogue", "Capture orders with delivery details", "Answer opening-hours and location questions"],
     exampleQuestion: "Do you still have the 5L cooking oil?",
     featured: true,
@@ -38,7 +46,7 @@ export const industries: Industry[] = [
     slug: "restaurants",
     name: "Restaurants",
     icon: UtensilsCrossed,
-    tone: "bg-gold-100 text-[#8a6100]",
+    tone: "ember",
     useCases: ["Share the menu and prices", "Take pickup and delivery orders", "Answer “Are you open now?”"],
     exampleQuestion: "Is the ndolé available today?",
     featured: true,
@@ -47,7 +55,7 @@ export const industries: Industry[] = [
     slug: "hotels",
     name: "Hotels",
     icon: Hotel,
-    tone: "bg-waza-100 text-waza-800",
+    tone: "volt",
     useCases: ["Answer questions about rooms, rates and check-in times", "Collect booking requests for reception", "Share directions and hotel policies"],
     exampleQuestion: "What time is check-in?",
     featured: true,
@@ -55,8 +63,8 @@ export const industries: Industry[] = [
   {
     slug: "beauty",
     name: "Salons & Beauty",
-    icon: Sparkles,
-    tone: "bg-violet-100 text-violet-700",
+    icon: Scissors,
+    tone: "ink",
     useCases: ["Share your service menu and prices", "Collect appointment requests", "Answer questions about products you sell"],
     exampleQuestion: "How much are knotless braids?",
     featured: true,
@@ -65,7 +73,7 @@ export const industries: Industry[] = [
     slug: "real-estate",
     name: "Real Estate",
     icon: Building2,
-    tone: "bg-emerald-100 text-emerald-800",
+    tone: "bolt",
     useCases: ["Share listing details and prices", "Collect buyer and tenant details", "Pass viewing requests to your agents"],
     exampleQuestion: "Is the 2-bedroom in Bonamoussadi still available?",
     featured: true,
@@ -74,7 +82,7 @@ export const industries: Industry[] = [
     slug: "services",
     name: "Professional Services",
     icon: Briefcase,
-    tone: "bg-cyan-100 text-cyan-800",
+    tone: "ember",
     useCases: ["Explain your services and fees", "Collect client details and requests", "Hand complex questions to your team"],
     exampleQuestion: "What documents do I need for a business registration?",
     featured: true,
@@ -83,7 +91,7 @@ export const industries: Industry[] = [
     slug: "fashion",
     name: "Fashion",
     icon: Shirt,
-    tone: "bg-coral-100 text-[#b23a1d]",
+    tone: "volt",
     useCases: ["Share items with sizes and prices", "Capture orders and delivery addresses", "Answer delivery-fee questions from your own rates"],
     exampleQuestion: "Do you have this dress in size L?",
     featured: false,
@@ -92,11 +100,11 @@ export const industries: Industry[] = [
     slug: "schools",
     name: "Schools",
     icon: GraduationCap,
-    tone: "bg-amber-100 text-amber-800",
+    tone: "ink",
     useCases: ["Answer questions about fees and enrolment dates", "Share the list of required documents", "Collect parent enquiries for the office"],
     exampleQuestion: "When does registration for next year start?",
     featured: false,
   },
 ];
 
-export const moreIndustries = { name: "And More", icon: Ellipsis, tone: "bg-mint text-waza-800" };
+export const moreSolutions = { name: "And More", icon: Ellipsis, tone: "sand" as const };

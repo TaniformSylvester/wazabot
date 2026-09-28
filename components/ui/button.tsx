@@ -5,19 +5,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-all duration-200 outline-none focus-visible:ring-4 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-all duration-200 outline-none focus-visible:ring-4 focus-visible:ring-ring/35 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[0_6px_16px_-6px_rgb(12_131_84/0.55)] hover:bg-waza-800 hover:shadow-[0_10px_20px_-8px_rgb(12_131_84/0.6)] active:translate-y-px",
+          "bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_rgb(21_18_14/0.35)] hover:-translate-y-0.5 hover:bg-bolt-400 hover:shadow-glow active:translate-y-0",
         outline:
-          "border-2 border-waza-700 bg-white/70 text-waza-800 hover:bg-mint active:translate-y-px",
-        secondary: "bg-mint text-deep hover:bg-waza-100",
-        ghost: "text-deep hover:bg-mint hover:text-waza-800",
-        dark: "bg-deep text-white hover:bg-deep-800",
-        gold: "bg-gold text-deep hover:bg-[#ffd666]",
-        link: "rounded-none text-waza-700 underline-offset-4 hover:underline",
+          "border-2 border-ink/85 bg-transparent text-ink hover:-translate-y-0.5 hover:bg-ink hover:text-sand active:translate-y-0",
+        secondary: "bg-sand-100 text-ink hover:bg-sand-200",
+        ghost: "text-ink hover:bg-sand-100",
+        dark: "bg-ink text-sand hover:-translate-y-0.5 hover:bg-ink-700 active:translate-y-0",
+        "outline-light":
+          "border-2 border-sand/30 bg-transparent text-sand hover:-translate-y-0.5 hover:border-sand hover:bg-sand/10 active:translate-y-0",
+        link: "rounded-none text-ember-700 underline-offset-4 hover:underline",
       },
       size: {
         default: "h-11 px-5 text-[0.9375rem]",
@@ -32,7 +33,6 @@ const buttonVariants = cva(
     },
   },
 );
-
 function Button({
   className,
   variant,

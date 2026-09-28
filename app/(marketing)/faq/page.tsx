@@ -5,7 +5,7 @@ import { FinalCta } from "@/components/marketing/final-cta";
 
 export const metadata: Metadata = {
   title: "FAQ",
-  description: "Answers to common questions about WazaBot, WhatsApp and AI conversations.",
+  description: "Answers to common questions about WazaBolt, WhatsApp and AI conversations.",
 };
 
 export default function FaqPage() {

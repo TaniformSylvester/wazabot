@@ -4,9 +4,10 @@ import { Logo } from "@/components/brand/logo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[radial-gradient(60%_60%_at_50%_0%,#e9faf3_0%,transparent_70%)]">
+    <div className="relative flex min-h-full flex-1 flex-col">
+      <div aria-hidden className="bg-geo absolute inset-0 -z-10 [mask-image:radial-gradient(60%_60%_at_50%_30%,black,transparent)]" />
       <header className="container-page flex h-20 items-center">
-        <Link href="/" aria-label="WazaBot home" className="rounded-lg">
+        <Link href="/" aria-label="WazaBolt home" className="rounded-lg">
           <Logo />
         </Link>
       </header>

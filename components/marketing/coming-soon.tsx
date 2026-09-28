@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 export function ComingSoon({ title, note }: { title: string; note: string }) {
   return (
     <div className="container-page flex max-w-xl flex-col items-center py-24 text-center">
-      <span className="grid size-14 place-items-center rounded-2xl bg-gold-100 text-[#8a6100]">
+      <span className="grid size-14 place-items-center rounded-2xl bg-bolt-100 text-bolt-800">
         <Construction className="size-7" aria-hidden />
       </span>
-      <h1 className="mt-6 text-4xl font-extrabold">{title}</h1>
-      <p className="mt-3 text-lg text-slate-waza">{note}</p>
+      <h1 className="type-h1 mt-6">{title}</h1>
+      <p className="type-lead mt-3 text-stone">{note}</p>
       <Button asChild className="mt-8">
         <Link href="/">Back to home</Link>
       </Button>

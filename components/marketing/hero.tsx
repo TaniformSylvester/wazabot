@@ -1,55 +1,47 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, PlayCircle, ShieldCheck, ShoppingBag, Zap } from "lucide-react";
+import { ArrowRight, Check, Clock, Languages, PlayCircle, ShieldCheck, ShoppingBag, Zap } from "lucide-react";
 
-import { WhatsAppIcon } from "@/components/brand/whatsapp-icon";
-import { ChatBubble, ChatHeader } from "@/components/conversations/chat";
-import { DashboardMockCompact } from "@/components/marketing/dashboard-mock";
-import { Highlight } from "@/components/marketing/section-heading";
+import { ChannelBadge } from "@/components/brand/channel-badge";
+import { LogoMark } from "@/components/brand/logo";
+import { Eyebrow, Highlight } from "@/components/marketing/section-heading";
 import { Button } from "@/components/ui/button";
 
 const trust = [
-  { icon: Zap, title: "Quick Setup", text: "In minutes, not days", tone: "text-gold" },
-  { icon: ShieldCheck, title: "Secure & Reliable", text: "Your data stays yours", tone: "text-waza-600" },
-  { icon: WhatsAppIcon, title: "Works on WhatsApp", text: "No app for customers", tone: "text-waza-600" },
+  { icon: Clock, title: "Set up in minutes", text: "No developers needed" },
+  { icon: Languages, title: "English & French", text: "Replies in your customer's language" },
+  { icon: ShieldCheck, title: "You stay in control", text: "Take over any conversation" },
 ];
 
 export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="relative overflow-hidden">
-      {/* soft background wash */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_85%_20%,#e9faf3_0%,transparent_70%),radial-gradient(40%_40%_at_70%_85%,#fff3d1_0%,transparent_70%)]"
+        className="bg-geo pointer-events-none absolute inset-y-0 right-0 -z-10 w-2/3 [mask-image:radial-gradient(70%_70%_at_80%_30%,black,transparent)]"
       />
-      <div className="container-page grid items-center gap-12 pb-16 pt-8 sm:pt-12 xl:grid-cols-[1.12fr_1fr] xl:gap-6 xl:pb-24 xl:pt-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-40 -top-40 -z-10 size-[36rem] rounded-full bg-bolt-200/50 blur-3xl"
+      />
+      <div className="container-page grid items-center gap-12 pb-16 pt-8 sm:pt-12 xl:grid-cols-[1.08fr_1fr] xl:gap-8 xl:pb-24 xl:pt-12">
         <div className="flex flex-col items-start">
-          <span className="inline-flex items-center gap-2 rounded-full bg-mint py-1.5 pl-1.5 pr-4 text-sm font-semibold text-waza-800">
-            <span className="grid size-6 place-items-center rounded-full bg-waza-500 text-white">
-              <WhatsAppIcon className="size-4" />
-            </span>
-            Built for African Businesses
-          </span>
+          <Eyebrow>WhatsApp Business Automation for Africa</Eyebrow>
 
-          <h1
-            id="hero-title"
-            className="mt-6 text-[2.5rem] font-extrabold leading-[1.06] sm:text-6xl xl:text-[3.9rem]"
-          >
-            Your business never has to leave a <Highlight>WhatsApp</Highlight>{" "}
-            <Highlight>message unanswered.</Highlight>
+          <h1 id="hero-title" className="type-display mt-6 max-w-3xl">
+            Power <Highlight>your business</Highlight> on WhatsApp.
           </h1>
 
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-waza sm:text-xl">
-            <strong className="font-semibold text-deep">WazaBot</strong> is your AI receptionist for
-            WhatsApp. It answers customer questions, shares products and prices, captures orders and
-            hands conversations to your team when needed.
+          <p className="type-lead mt-6 max-w-xl text-stone">
+            Automate conversations, manage customers, capture orders and grow your business — all from
+            one powerful platform built for African businesses.
           </p>
 
           <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild size="lg" className="group">
               <Link href="/register">
-                Start Free
-                <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
+                Get Started
+                <Zap className="size-5 fill-current transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
@@ -60,104 +52,138 @@ export function Hero() {
             </Button>
           </div>
 
-          <ul className="mt-10 grid w-full grid-cols-1 gap-5 sm:grid-cols-3 sm:gap-4">
-            {trust.map(({ icon: Icon, title, text, tone }) => (
+          <ul className="mt-10 grid w-full gap-5 sm:grid-cols-3 sm:gap-4">
+            {trust.map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex items-start gap-3">
-                <Icon className={`mt-0.5 size-6 shrink-0 ${tone}`} aria-hidden />
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-ink text-bolt-400">
+                  <Icon className="size-4.5" aria-hidden />
+                </span>
                 <div>
-                  <p className="text-sm font-semibold text-deep">{title}</p>
-                  <p className="text-sm text-slate-waza">{text}</p>
+                  <p className="text-sm font-semibold text-ink">{title}</p>
+                  <p className="type-small text-stone">{text}</p>
                 </div>
               </li>
             ))}
           </ul>
         </div>
 
-        <HeroVisual />
+        <HeroFlow />
       </div>
     </section>
   );
 }
 
+const steps = [
+  "Product found: Robe en wax",
+  "Stock checked: size L available",
+  "Price from your catalogue",
+  "Reply sent · order started",
+];
+
 /**
- * Composition: business-owner photo, WhatsApp chat (customer's view of the
- * business) and a compact dashboard card. Stacks on mobile, overlaps from sm.
+ * UI MOCKUP — original product visual: Customer message → WazaBolt
+ * automation → Business action. Illustrative data only.
  */
-function HeroVisual() {
+function HeroFlow() {
   return (
-    <div className="relative mx-auto flex w-full max-w-md flex-col sm:h-[620px] sm:max-w-[580px] xl:mr-0">
-      {/* photo */}
-      <div className="relative w-[82%] sm:absolute sm:left-0 sm:top-8 sm:w-[350px]">
+    <div className="relative mx-auto w-full max-w-md sm:h-[600px] sm:max-w-[600px] xl:mr-0">
+      {/* business owner */}
+      <div className="relative mb-8 sm:absolute sm:left-0 sm:top-20 sm:mb-0 sm:w-[280px]">
         <div
           aria-hidden
-          className="absolute -inset-3 -z-10 rotate-[-4deg] rounded-[2.5rem] bg-gradient-to-br from-waza-200 via-mint to-gold-100"
+          className="bg-bolt-gradient absolute -inset-3 -z-10 hidden rotate-[-5deg] rounded-[2.25rem] sm:block"
         />
         <Image
           src="/images/hero-owner.webp"
-          alt="A smiling shop owner in a colourful head wrap checks WhatsApp orders on her phone"
+          alt="A smiling shop owner in a colourful head wrap checks customer orders on her phone"
           width={366}
           height={440}
           preload
-          sizes="(min-width: 640px) 350px, 80vw"
-          className="aspect-[366/440] w-full rounded-[2rem] object-cover shadow-float"
+          sizes="(min-width: 640px) 280px, 90vw"
+          className="aspect-[4/3] w-full rounded-[2rem] object-cover object-[center_25%] shadow-float sm:aspect-[366/440]"
         />
-        <div className="absolute -left-4 bottom-24 hidden items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-float sm:flex">
-          <span className="grid size-8 place-items-center rounded-full bg-gold text-deep">
-            <ShoppingBag className="size-4" aria-hidden />
-          </span>
-          <div className="leading-tight">
-            <p className="text-xs font-semibold text-deep">New order captured</p>
-            <p className="text-[0.6875rem] text-slate-waza">Robe en wax · 15,000 XAF</p>
-          </div>
-        </div>
-      </div>
-
-      {/* chat */}
-      <div className="relative z-20 -mt-40 w-[74%] self-end sm:absolute sm:right-0 sm:top-0 sm:mt-0 sm:w-[290px]">
-        <span
-          aria-hidden
-          className="absolute -right-4 -top-5 z-10 grid size-11 place-items-center rounded-full bg-waza-500 text-white shadow-float ring-4 ring-cream"
-        >
-          <WhatsAppIcon className="size-6" />
+        <span className="absolute bottom-4 left-4 rounded-full bg-ink/85 px-3 py-1.5 text-xs font-medium text-sand backdrop-blur">
+          MJ Fashion · Douala
         </span>
-        <div className="overflow-hidden rounded-3xl border-4 border-white bg-white shadow-float">
-          <ChatHeader name="MJ Fashion" />
-          <div className="wa-wallpaper space-y-2 p-3">
-            <ChatBubble side="out" time="10:24" read>
-              Hello, do you have this dress in size L?
-            </ChatBubble>
-            <ChatBubble side="in" time="10:24">
-              Yes! We have it in size L. The price is 15,000 FCFA. Would you like to place an order?
-            </ChatBubble>
-            <div className="flex">
-              <div className="flex w-[85%] gap-2.5 rounded-2xl bg-white p-2 shadow-[0_1px_1px_rgb(16_42_42/0.08)]">
-                <Image
-                  src="/images/product-robe-wax.webp"
-                  alt=""
-                  width={66}
-                  height={80}
-                  className="h-16 w-13 rounded-lg object-cover"
-                />
-                <div className="flex min-w-0 flex-1 flex-col justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-deep">Robe en wax</p>
-                    <p className="text-xs text-slate-waza">15,000 FCFA · Size L</p>
-                  </div>
-                  <span className="rounded-md bg-waza-700 py-1 text-center text-[0.6875rem] font-semibold text-white">
-                    Order
-                  </span>
-                </div>
-              </div>
-            </div>
-            <ChatBubble side="out" time="10:25" read>
-              Yes please! 🙏
-            </ChatBubble>
-          </div>
-        </div>
       </div>
 
-      {/* dashboard */}
-      <DashboardMockCompact className="hidden sm:absolute sm:bottom-0 sm:left-8 sm:z-10 sm:block sm:w-[440px]" />
+      {/* flow */}
+      <ol className="relative z-10 flex flex-col sm:absolute sm:right-0 sm:top-0 sm:w-[350px]" aria-label="How WazaBolt handles a customer message">
+        <li className="animate-bubble-in rounded-2xl border border-border bg-card p-4 shadow-float">
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-8 place-items-center rounded-full bg-volt-100 text-xs font-bold text-volt-700">SM</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink">Sarah M.</p>
+              <ChannelBadge />
+            </div>
+            <span className="text-[0.6875rem] text-stone">10:24</span>
+          </div>
+          <p className="mt-3 rounded-xl rounded-tl-sm bg-sand-100 px-3 py-2 text-sm text-ink">
+            Hi, do you have this dress in size L?
+          </p>
+        </li>
+
+        <Connector />
+
+        <li className="animate-bubble-in rounded-2xl bg-ink p-4 text-sand shadow-float [animation-delay:150ms]">
+          <div className="flex items-center gap-2.5">
+            <LogoMark variant="glyph" className="size-7" />
+            <p className="flex-1 font-display text-sm font-bold">WazaBolt automation</p>
+            <span className="flex items-center gap-1.5 text-[0.6875rem] text-bolt-400">
+              <span className="relative flex size-2">
+                <span className="absolute inset-0 animate-ping rounded-full bg-bolt-400 opacity-70" />
+                <span className="relative size-2 rounded-full bg-bolt-500" />
+              </span>
+              Running
+            </span>
+          </div>
+          <ul className="mt-3 space-y-2">
+            {steps.map((s, i) => (
+              <li
+                key={s}
+                className="flex animate-bubble-in items-center gap-2 text-[0.8125rem] text-sand/85"
+                style={{ animationDelay: `${500 + i * 350}ms` }}
+              >
+                <span className="grid size-4.5 shrink-0 place-items-center rounded-full bg-bolt-500 text-ink">
+                  <Check className="size-3" strokeWidth={3} aria-hidden />
+                </span>
+                {s}
+              </li>
+            ))}
+          </ul>
+        </li>
+
+        <Connector delay />
+
+        <li className="animate-bubble-in rounded-2xl border-l-4 border-bolt-500 bg-card p-4 shadow-float [animation-delay:1900ms]">
+          <div className="flex items-center gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-bolt-100 text-bolt-800">
+              <ShoppingBag className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink">New order #1042</p>
+              <p className="type-small truncate text-stone">Robe en wax · Size L · 15,000 XAF</p>
+            </div>
+            <span className="rounded-full bg-ember-100 px-2 py-0.5 text-[0.6875rem] font-semibold text-ember-700">New</span>
+          </div>
+          <p className="mt-3 flex items-center gap-1.5 border-t border-border pt-3 text-xs text-stone">
+            <ArrowRight className="size-3.5 text-ember-600" aria-hidden />
+            Added to <span className="font-semibold text-ink">Orders</span> — your team is notified
+          </p>
+        </li>
+      </ol>
     </div>
+  );
+}
+
+/** Vertical link between flow cards, with a small pulse travelling down it. */
+function Connector({ delay = false }: { delay?: boolean }) {
+  return (
+    <li aria-hidden className="relative mx-auto h-8 w-0.5 overflow-hidden bg-[repeating-linear-gradient(to_bottom,var(--color-sand-300)_0_4px,transparent_4px_8px)]">
+      <span
+        className="absolute left-1/2 size-1.5 -translate-x-1/2 animate-flow rounded-full bg-ember-500 shadow-[0_0_8px_var(--color-bolt-400)]"
+        style={delay ? { animationDelay: "1.2s" } : undefined}
+      />
+    </li>
   );
 }

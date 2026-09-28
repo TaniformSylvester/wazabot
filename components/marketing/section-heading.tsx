@@ -1,10 +1,26 @@
 import { cn } from "@/lib/utils";
 
+export function Eyebrow({ children, tone = "light", className }: { children: React.ReactNode; tone?: "light" | "dark"; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "type-label inline-flex items-center gap-2",
+        tone === "dark" ? "text-bolt-400" : "text-ember-700",
+        className,
+      )}
+    >
+      <span aria-hidden className="h-[3px] w-5 rounded-full bg-bolt-500" />
+      {children}
+    </span>
+  );
+}
+
 export function SectionHeading({
   eyebrow,
   title,
   description,
   align = "center",
+  tone = "light",
   className,
   id,
 }: {
@@ -12,6 +28,7 @@ export function SectionHeading({
   title: React.ReactNode;
   description?: React.ReactNode;
   align?: "center" | "left";
+  tone?: "light" | "dark";
   className?: string;
   id?: string;
 }) {
@@ -23,22 +40,26 @@ export function SectionHeading({
         className,
       )}
     >
-      {eyebrow ? (
-        <span className="rounded-full bg-mint px-3.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-waza-800">
-          {eyebrow}
-        </span>
-      ) : null}
-      <h2 id={id} className="text-3xl font-extrabold leading-[1.1] sm:text-4xl lg:text-[2.75rem]">
+      {eyebrow ? <Eyebrow tone={tone}>{eyebrow}</Eyebrow> : null}
+      <h2 id={id} className={cn("type-h2", tone === "dark" && "text-sand")}>
         {title}
       </h2>
       {description ? (
-        <p className="text-base leading-relaxed text-slate-waza sm:text-lg">{description}</p>
+        <p className={cn("type-lead", tone === "dark" ? "text-sand/70" : "text-stone")}>{description}</p>
       ) : null}
     </div>
   );
 }
 
-/** Green highlight for key phrases inside headings (large text → waza-600 for contrast). */
-export function Highlight({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn("text-waza-600", className)}>{children}</span>;
+/** Accent for key phrases in headings (Ember 600 on sand: 4.1:1, large text). */
+export function Highlight({
+  children,
+  className,
+  tone = "light",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  tone?: "light" | "dark";
+}) {
+  return <span className={cn(tone === "dark" ? "text-bolt-400" : "text-ember-600", className)}>{children}</span>;
 }

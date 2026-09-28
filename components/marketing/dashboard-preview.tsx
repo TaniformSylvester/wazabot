@@ -1,4 +1,5 @@
 import { DashboardMock } from "@/components/marketing/dashboard-mock";
+import { Reveal } from "@/components/motion/reveal";
 import { Highlight, SectionHeading } from "@/components/marketing/section-heading";
 
 export function DashboardPreview() {
@@ -10,19 +11,19 @@ export function DashboardPreview() {
           eyebrow="Your dashboard"
           title={
             <>
-              Not just a chatbot. <Highlight>A front desk you can manage.</Highlight>
+              Not just a chatbot. <Highlight>Your whole WhatsApp business.</Highlight>
             </>
           }
-          description="See every conversation, customer and order in one place — from your laptop or your phone. When WazaBot hands a chat to you, you'll know straight away."
+          description="Conversations, customers, orders and performance in one place — from your laptop or your phone. When automation hands a chat to you, you'll know straight away."
         />
-        <div className="relative mt-14">
+        <Reveal className="relative mt-14">
           <div
             aria-hidden
-            className="absolute inset-x-10 bottom-8 top-10 -z-10 rounded-[3rem] bg-gradient-to-r from-waza-200/60 via-gold-100 to-coral-100/70 blur-2xl"
+            className="bg-bolt-gradient absolute inset-x-12 bottom-10 top-12 -z-10 rounded-[3rem] opacity-40 blur-3xl"
           />
           <DashboardMock />
-          <p className="mt-4 text-center text-xs text-slate-waza">Dashboard preview with example data.</p>
-        </div>
+          <p className="mt-4 text-center text-xs text-stone">Dashboard preview with example data.</p>
+        </Reveal>
       </div>
     </section>
   );

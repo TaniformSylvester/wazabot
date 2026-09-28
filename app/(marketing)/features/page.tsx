@@ -5,11 +5,11 @@ import { Features } from "@/components/marketing/features";
 import { FinalCta } from "@/components/marketing/final-cta";
 import { PageIntro } from "@/components/marketing/page-intro";
 import { Security } from "@/components/marketing/security";
-import { Solution } from "@/components/marketing/solution";
 
 export const metadata: Metadata = {
   title: "Features",
-  description: "AI conversations, products, orders, customers and human takeover — all on WhatsApp.",
+  description:
+    "WhatsApp automation, an AI customer assistant, product catalog, orders, customer management and analytics — in one platform.",
 };
 
 export default function FeaturesPage() {
@@ -17,11 +17,10 @@ export default function FeaturesPage() {
     <>
       <PageIntro
         eyebrow="Features"
-        title="An AI employee for your WhatsApp"
-        description="WazaBot answers, sells and organises — and always hands over to you when a person is needed."
+        title="One platform for your WhatsApp business"
+        description="Automate the routine, sell in the conversation and keep every customer organised — with your team always in control."
       />
       <Features />
-      <Solution />
       <DashboardPreview />
       <Security />
       <FinalCta />

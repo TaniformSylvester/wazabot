@@ -26,7 +26,7 @@ export const plans: Plan[] = [
     monthlyPrice: 0,
     currency: "XAF",
     aiConversationsPerMonth: 50,
-    description: "Try WazaBot on your own WhatsApp number.",
+    description: "Try WazaBolt with your own business number.",
   },
   {
     id: "starter",
@@ -57,7 +57,7 @@ export const plans: Plan[] = [
 
 /** Included in every plan — keep this list to things the product will actually ship. */
 export const planInclusions = [
-  "AI replies on your WhatsApp Business number",
+  "Automated replies on your business WhatsApp",
   "Products, prices, FAQs and policies",
   "Human takeover at any time",
   "Customer and order records",

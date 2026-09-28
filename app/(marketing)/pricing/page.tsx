@@ -7,7 +7,7 @@ import { Pricing } from "@/components/marketing/pricing";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Simple WazaBot plans in XAF, from Free to Pro. AI usage is metered — no unlimited surprises.",
+  description: "Simple WazaBolt plans in XAF, from Free to Pro. AI usage is metered — no unlimited surprises.",
 };
 
 export default function PricingPage() {

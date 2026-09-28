@@ -7,8 +7,9 @@ export default function NotFound() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-4 py-24 text-center">
       <LogoMark className="size-16" />
-      <h1 className="mt-6 text-4xl font-extrabold">Page not found</h1>
-      <p className="mt-3 text-slate-waza">We couldn&apos;t find that page.</p>
+      <p className="type-label mt-8 text-ember-700">Error 404</p>
+      <h1 className="type-h1 mt-3">This page took a wrong turn</h1>
+      <p className="type-lead mt-3 text-stone">We couldn&apos;t find the page you were looking for.</p>
       <Button asChild className="mt-8">
         <Link href="/">Back to home</Link>
       </Button>

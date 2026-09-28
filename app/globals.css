@@ -2,43 +2,64 @@
 @import "tw-animate-css";
 
 /*
- * WazaBot design system.
- * Brand colours come from the brand guide. Extra green shades exist only for
- * accessible contrast: brand green (#16B878) on white is 2.6:1, so text and
- * button fills use the darker 600/700 steps while 500 is kept for fills,
- * icons and illustration.
+ * WazaBolt design system.
+ *
+ * Palette: Ink (near-black) + Bolt Amber + Ember Orange on warm Sand, with a
+ * Volt Indigo accent for trust/tech moments. Deliberately no green brand
+ * colour, so WazaBolt never reads as WhatsApp.
+ *
+ * Contrast notes: Bolt Amber is a fill colour (buttons, highlights) and
+ * always carries Ink text (10:1). Ember 600+ is safe for large text on sand,
+ * Ember 700 / Bolt 800 for small text.
  */
 @theme {
-  --color-waza-50: #e9faf3; /* Soft Mint */
-  --color-waza-100: #d2f4e5;
-  --color-waza-200: #a6e9cc;
-  --color-waza-300: #6fdaae;
-  --color-waza-400: #3cc991;
-  --color-waza-500: #16b878; /* Waza Green — brand */
-  --color-waza-600: #11a06a; /* large text on light (3.3:1) */
-  --color-waza-700: #0c8354; /* buttons, small green text (4.8:1) */
-  --color-waza-800: #0a6a45;
-  --color-waza-900: #0b4f36;
+  --color-bolt-50: #fff8e6;
+  --color-bolt-100: #ffedc2;
+  --color-bolt-200: #ffdd8a;
+  --color-bolt-300: #ffd05c;
+  --color-bolt-400: #ffc53d;
+  --color-bolt-500: #ffb020; /* Bolt Amber — brand primary */
+  --color-bolt-600: #e89400;
+  --color-bolt-700: #b36b00;
+  --color-bolt-800: #8f5500;
 
-  --color-deep: #102a2a; /* Deep Waza */
-  --color-deep-800: #173838;
-  --color-gold: #ffc83d; /* Golden Energy */
-  --color-gold-100: #fff3d1;
-  --color-coral: #ff6b4a;
-  --color-coral-100: #ffe5de;
-  --color-mint: #e9faf3;
-  --color-cream: #fffdf8; /* Warm White */
-  --color-slate-waza: #526262;
+  --color-ember-50: #fff2ec;
+  --color-ember-100: #ffdfd1;
+  --color-ember-200: #ffbfa3;
+  --color-ember-400: #ff7a45;
+  --color-ember-500: #f2551d; /* Ember Orange — brand secondary */
+  --color-ember-600: #d9430f;
+  --color-ember-700: #b8360b;
+  --color-ember-800: #8f2a08;
 
-  --color-wa-chat: #efeae2; /* WhatsApp chat wallpaper */
-  --color-wa-out: #d9fdd3; /* WhatsApp outgoing bubble */
-  --color-wa-header: #0b5c46;
+  --color-volt-50: #efedff;
+  --color-volt-100: #dedaff;
+  --color-volt-400: #7f75f0;
+  --color-volt-500: #4b3fd1; /* Volt Indigo — accent */
+  --color-volt-600: #3d32b5;
+  --color-volt-700: #2f2690;
+
+  --color-ink: #15120e; /* brand dark */
+  --color-ink-800: #221e18;
+  --color-ink-700: #332d25;
+  --color-ink-600: #4a4238;
+
+  --color-sand: #faf7f0; /* brand background */
+  --color-sand-100: #f4efe4;
+  --color-sand-200: #e9e2d3;
+  --color-sand-300: #d9d0bd;
+
+  --color-stone: #5f574c; /* secondary text */
+
+  --color-success: #1e7a45; /* order/status only — not a brand colour */
+  --color-success-bg: #e3f4ea;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sora), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-card: 0 1px 2px rgb(16 42 42 / 0.04), 0 8px 24px -6px rgb(16 42 42 / 0.08);
-  --shadow-float: 0 2px 6px rgb(16 42 42 / 0.06), 0 24px 48px -12px rgb(16 42 42 / 0.18);
+  --shadow-card: 0 1px 2px rgb(21 18 14 / 0.05), 0 8px 24px -8px rgb(21 18 14 / 0.1);
+  --shadow-float: 0 2px 6px rgb(21 18 14 / 0.06), 0 28px 56px -16px rgb(21 18 14 / 0.25);
+  --shadow-glow: 0 10px 30px -10px rgb(255 176 32 / 0.65);
 
   --animate-bubble-in: bubble-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   @keyframes bubble-in {
@@ -50,29 +71,57 @@
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
     30% { transform: translateY(-3px); opacity: 1; }
   }
+  --animate-bolt-flash: bolt-flash 0.6s ease-out;
+  @keyframes bolt-flash {
+    0% { transform: none; filter: none; }
+    30% { transform: translateY(-1px) scale(1.12) rotate(-6deg); filter: drop-shadow(0 0 4px rgb(255 197 61 / 0.9)); }
+    100% { transform: none; filter: none; }
+  }
+  --animate-flow: flow 2.4s linear infinite;
+  @keyframes flow {
+    from { top: -10%; opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    to { top: 100%; opacity: 0; }
+  }
+  --animate-gradient: gradient-shift 12s ease-in-out infinite alternate;
+  @keyframes gradient-shift {
+    from { background-position: 0% 50%; }
+    to { background-position: 100% 50%; }
+  }
 }
 
-/* shadcn/ui semantic tokens, mapped onto the brand palette. */
+/* Brand tokens (named for use outside Tailwind, e.g. emails and the OG image). */
 :root {
+  --brand-primary: var(--color-bolt-500);
+  --brand-secondary: var(--color-ember-500);
+  --brand-accent: var(--color-volt-500);
+  --brand-dark: var(--color-ink);
+  --brand-light: #ffffff;
+  --brand-background: var(--color-sand);
+  --brand-text: var(--color-ink);
+  --brand-text-muted: var(--color-stone);
+
+  /* shadcn/ui semantic tokens */
   --radius: 0.875rem;
-  --background: var(--color-cream);
-  --foreground: var(--color-deep);
-  --card: #ffffff;
-  --card-foreground: var(--color-deep);
-  --popover: #ffffff;
-  --popover-foreground: var(--color-deep);
-  --primary: var(--color-waza-700);
-  --primary-foreground: #ffffff;
-  --secondary: var(--color-mint);
-  --secondary-foreground: var(--color-deep);
-  --muted: #f3f5f2;
-  --muted-foreground: var(--color-slate-waza);
-  --accent: var(--color-mint);
-  --accent-foreground: var(--color-deep);
-  --destructive: #d93f1f;
-  --border: #e3e9e5;
-  --input: #d6dfda;
-  --ring: var(--color-waza-500);
+  --background: var(--brand-background);
+  --foreground: var(--brand-text);
+  --card: var(--brand-light);
+  --card-foreground: var(--brand-text);
+  --popover: var(--brand-light);
+  --popover-foreground: var(--brand-text);
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-dark);
+  --secondary: var(--color-sand-100);
+  --secondary-foreground: var(--brand-text);
+  --muted: var(--color-sand-100);
+  --muted-foreground: var(--brand-text-muted);
+  --accent: var(--color-bolt-50);
+  --accent-foreground: var(--brand-text);
+  --destructive: var(--color-ember-700);
+  --border: var(--color-sand-200);
+  --input: var(--color-sand-300);
+  --ring: var(--color-volt-500);
 }
 
 @theme inline {
@@ -114,12 +163,11 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
   h1, h2, h3, h4 {
-    @apply font-heading text-deep;
-    letter-spacing: -0.015em;
+    @apply font-display text-ink;
   }
-  /* Plus Jakarta Sans has a narrow word space; open it up slightly for legibility. */
-  .font-heading, h1, h2, h3, h4 {
-    word-spacing: 0.05em;
+  ::selection {
+    background: var(--color-bolt-300);
+    color: var(--color-ink);
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
@@ -131,6 +179,56 @@
   }
 }
 
+/* ---------- Type scale ---------- */
+@utility type-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.5rem, 1.2rem + 4.4vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+@utility type-h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.25rem, 1.4rem + 2.6vw, 3.4rem);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+}
+@utility type-h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.875rem, 1.2rem + 2vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+@utility type-h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+@utility type-lead {
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  line-height: 1.65;
+}
+@utility type-body {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+@utility type-small {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+@utility type-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ---------- Layout & decoration ---------- */
 @utility container-page {
   width: 100%;
   max-width: 80rem;
@@ -140,8 +238,36 @@
   @media (width >= 64rem) { padding-inline: 2rem; }
 }
 
-@utility wa-wallpaper {
-  background-color: var(--color-wa-chat);
-  background-image: radial-gradient(rgb(16 42 42 / 0.05) 1px, transparent 1px);
-  background-size: 14px 14px;
+/* Subtle geometric motif (chevrons + dots) — used sparingly, never as wallpaper. */
+@utility bg-geo {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' fill='none' stroke='rgba%2821%2C18%2C14%2C0.07%29' stroke-width='1.4'%3E%3Cpath d='M4 14l8-8 8 8M28 14l8-8 8 8'/%3E%3Cpath d='M16 38l8-8 8 8' /%3E%3Ccircle cx='4' cy='38' r='1.6' fill='rgba%2821%2C18%2C14%2C0.07%29' stroke='none'/%3E%3Ccircle cx='44' cy='38' r='1.6' fill='rgba%2821%2C18%2C14%2C0.07%29' stroke='none'/%3E%3C/svg%3E");
+  background-size: 48px 48px;
+}
+@utility bg-geo-light {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' fill='none' stroke='rgba%28250%2C247%2C240%2C0.07%29' stroke-width='1.4'%3E%3Cpath d='M4 14l8-8 8 8M28 14l8-8 8 8'/%3E%3Cpath d='M16 38l8-8 8 8' /%3E%3Ccircle cx='4' cy='38' r='1.6' fill='rgba%28250%2C247%2C240%2C0.07%29' stroke='none'/%3E%3Ccircle cx='44' cy='38' r='1.6' fill='rgba%28250%2C247%2C240%2C0.07%29' stroke='none'/%3E%3C/svg%3E");
+  background-size: 48px 48px;
+}
+
+@utility bg-bolt-gradient {
+  background-image: linear-gradient(120deg, var(--color-bolt-400), var(--color-bolt-500) 40%, var(--color-ember-500));
+}
+@utility text-bolt-gradient {
+  background-image: linear-gradient(100deg, var(--color-ember-600), var(--color-ember-500) 55%, var(--color-bolt-700));
+  background-clip: text;
+  color: transparent;
+}
+
+/* Scroll reveal — see components/motion/reveal.tsx */
+@utility reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  &[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    opacity: 1;
+    transform: none;
+  }
 }
