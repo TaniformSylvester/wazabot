@@ -88,13 +88,59 @@ app icons.
 | Hero flow, live demo, dashboard preview | **UI mockup** — scripted example data |
 | Pricing | **Functional display** from `config/plans.ts` (proposed prices) |
 | Appointments, Broadcasts | Shown as **Coming soon** — not in the first release |
-| Login / Register | **Placeholder** — Phase 2 |
-| Dashboard, database, WhatsApp webhook, AI, orders, billing | **Not started** — Phases 2–8 |
+| Auth: register, email confirmation, login, logout, password reset, protected dashboard | **Functional** (Phase 2) |
+| Database: users, businesses, business_members, audit_logs with RLS | **Functional** (Phase 2) |
+| Dashboard shell: overview, settings, change password | **Functional**; other sections show "Soon" |
+| Onboarding, catalog, WhatsApp webhook, AI, orders, billing | **Not started** — Phases 3–8 |
+
+## Supabase setup (Phase 2)
+
+1. **Create a Supabase project** and copy the Project URL and anon (public) key into
+   `.env.local` (and your host's environment): `NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` (your site's public URL).
+   The service-role key is not needed yet — never expose it to the browser.
+2. **Apply the migration** in `supabase/migrations/` — paste it into the SQL editor, or run
+   `npx supabase link` then `npx supabase db push`.
+3. **Auth → URL configuration:** Site URL = your `NEXT_PUBLIC_SITE_URL`; add
+   `<site-url>/auth/confirm` (or `<site-url>/**`) to Redirect URLs.
+4. **Auth → Providers → Email:** keep "Confirm email" on.
+5. **Auth → Email templates:** paste `supabase/templates/confirmation.html` into
+   "Confirm signup" (subject: *Confirm your WazaBolt account*) and `recovery.html` into
+   "Reset password" (subject: *Reset your WazaBolt password*). These links use
+   `token_hash`, so they work even if the email is opened on a different device.
+6. **Auth → SMTP:** set up a real email provider (e.g. Resend, Postmark). Supabase's built-in
+   email is heavily rate-limited and meant for testing only.
+
+Supabase Auth applies its own rate limits to sign-ups, logins and emails (configurable under
+Auth → Rate limits). Consider enabling CAPTCHA protection before public launch.
+
+### How auth works
+
+- `proxy.ts` (Next.js 16's replacement for middleware) refreshes the session cookie on each
+  request and redirects signed-out visitors away from `/dashboard`.
+- `lib/auth/dal.ts` re-checks the user on the server for every protected page and action;
+  the database enforces tenant isolation with Row Level Security.
+- Session cookies are `httpOnly`, `SameSite=Lax` and `Secure` in production. Only server code
+  talks to Supabase.
+- Sign-up creates the user profile, their business (from the business name entered) and an
+  owner membership in one database trigger, and writes an audit log entry.
+- Forms validate in the browser (React Hook Form + Zod) and again in Server Actions.
+
+### Tests
+
+```bash
+# Database: tenant isolation / RLS (against a local or staging DB — never production)
+DATABASE_URL=postgres://... npm run test:db
+
+# End-to-end: needs Supabase Auth + DB + Mailpit, e.g. `npx supabase start`,
+# then `npm run build && npm start` with the local Supabase URL/key in .env.local
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e
+```
 
 ## Before launch
 
 - Replace `public/images/hero-owner.webp` and `product-robe-wax.webp` (low-resolution crops from
   the design mockup) with licensed, high-resolution photos.
 - The horizontal logo SVGs use live Sora text; outline the text in a design tool for print.
-- Contact, Privacy and Terms pages are placeholders.
+- Contact, Privacy and Terms pages are placeholders (sign-up links to Terms and Privacy).
 - Set `NEXT_PUBLIC_SITE_URL` in production so canonical URLs, the sitemap and OG links are correct.

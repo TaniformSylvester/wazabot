@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Reset your password</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#FAF7F0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:#15120E;">
+    <div style="display:none;max-height:0;overflow:hidden;">Reset your WazaBolt password.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FAF7F0;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+            <tr>
+              <td style="padding:0 4px 20px 4px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="background-color:#15120E;border-radius:10px;width:36px;height:36px;text-align:center;font-size:20px;font-weight:800;color:#FFC53D;line-height:36px;">W</td>
+                    <td style="padding-left:10px;font-size:22px;font-weight:800;letter-spacing:-0.5px;">Waza<span style="color:#D9430F;">Bolt</span></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color:#FFFFFF;border:1px solid #E9E2D3;border-radius:20px;padding:36px 32px;">
+                <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.25;font-weight:800;letter-spacing:-0.5px;color:#15120E;">Reset your password</h1>
+                <p style="margin:0 0 28px 0;font-size:15px;line-height:1.6;color:#5F574C;">We received a request to reset the password for your WazaBolt account. This link works once and expires in one hour.</p>
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="background-color:#FFB020;border-radius:999px;">
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery&amp;next=/reset-password" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#15120E;text-decoration:none;">Choose a new password</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:28px 0 0 0;font-size:13px;line-height:1.6;color:#5F574C;">If you didn't ask to reset your password, you can ignore this email — your password won't change.</p>
+                <p style="margin:16px 0 0 0;font-size:12px;line-height:1.5;color:#5F574C;word-break:break-all;">Button not working? Copy this link into your browser:<br /><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery&amp;next=/reset-password" style="color:#B8360B;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery&amp;next=/reset-password</a></p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 4px 0 4px;font-size:12px;line-height:1.5;color:#5F574C;">
+                WazaBolt — Power your business on WhatsApp.<br />
+                WazaBolt is an independent product and is not affiliated with WhatsApp or Meta.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
