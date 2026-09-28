@@ -54,6 +54,16 @@
   --color-success: #1e7a45; /* order/status only — not a brand colour */
   --color-success-bg: #e3f4ea;
 
+  /*
+   * Channel depiction — used ONLY to show what a customer sees in their
+   * WhatsApp chat (hero example). Never use these for WazaBolt UI or brand.
+   */
+  --color-chat-header: #0f5b48;
+  --color-chat-wallpaper: #efe9df;
+  --color-chat-out: #dcf6d0;
+  --color-chat-in: #ffffff;
+  --color-chat-tick: #34a3e0;
+
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-sora), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
@@ -255,6 +265,12 @@
   background-image: linear-gradient(100deg, var(--color-ember-600), var(--color-ember-500) 55%, var(--color-bolt-700));
   background-clip: text;
   color: transparent;
+}
+
+@utility chat-wallpaper {
+  background-color: var(--color-chat-wallpaper);
+  background-image: radial-gradient(rgb(21 18 14 / 0.05) 1px, transparent 1px);
+  background-size: 14px 14px;
 }
 
 /* Scroll reveal — see components/motion/reveal.tsx */

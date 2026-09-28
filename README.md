@@ -66,6 +66,9 @@ All tokens live in `app/globals.css`.
 There is deliberately no green brand colour, so WazaBolt never reads as WhatsApp. `success`
 green is used only for status badges such as "Delivered".
 
+The `chat-*` colours (WhatsApp-style chat header, bubbles and wallpaper) exist only to depict
+what a customer sees in their WhatsApp chat in the hero example. Never use them for WazaBolt UI.
+
 **Typography:** Sora (display/headings, 600–800) and Inter (body/UI). Use the type utilities
 `type-display`, `type-h1`, `type-h2`, `type-h3`, `type-lead`, `type-body`, `type-small` and
 `type-label`.

@@ -211,3 +211,40 @@ export function DashboardMock({ className }: { className?: string }) {
     </div>
   );
 }
+
+/** Small dashboard card used inside the hero composition. */
+export function DashboardMockCompact({ className }: { className?: string }) {
+  return (
+    <div className={cn("overflow-hidden rounded-2xl border border-border bg-card shadow-float", className)}>
+      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+        <div>
+          <p className="font-display text-sm font-bold text-ink">Good morning, MJ</p>
+          <p className="text-[0.625rem] text-stone">Here&apos;s what&apos;s happening today.</p>
+        </div>
+        <AutomationPill />
+      </div>
+      <div className="grid grid-cols-4 gap-2 bg-sand p-3">
+        {metrics.map((m) => (
+          <div key={m.label} className="rounded-xl border border-border bg-card p-2.5">
+            <p className="truncate text-[0.625rem] text-stone">{m.label}</p>
+            <p className="font-display text-lg font-bold text-ink">
+              <CountUp value={m.value} suffix={m.suffix} />
+            </p>
+            <p className="flex items-center gap-1 text-[0.5625rem] font-medium text-success">
+              <TrendingUp className="size-2.5" aria-hidden /> {m.trend}
+            </p>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-2.5 border-t border-border px-4 py-2.5">
+        <span className="grid size-6 place-items-center rounded-full bg-ember-500 text-ink">
+          <Hand className="size-3" aria-hidden />
+        </span>
+        <p className="text-[0.6875rem] text-ink">
+          <span className="font-semibold">1 chat handed to you</span>
+          <span className="text-stone"> · refund request</span>
+        </p>
+      </div>
+    </div>
+  );
+}
