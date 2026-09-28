@@ -1,0 +1,147 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * WazaBot design system.
+ * Brand colours come from the brand guide. Extra green shades exist only for
+ * accessible contrast: brand green (#16B878) on white is 2.6:1, so text and
+ * button fills use the darker 600/700 steps while 500 is kept for fills,
+ * icons and illustration.
+ */
+@theme {
+  --color-waza-50: #e9faf3; /* Soft Mint */
+  --color-waza-100: #d2f4e5;
+  --color-waza-200: #a6e9cc;
+  --color-waza-300: #6fdaae;
+  --color-waza-400: #3cc991;
+  --color-waza-500: #16b878; /* Waza Green — brand */
+  --color-waza-600: #11a06a; /* large text on light (3.3:1) */
+  --color-waza-700: #0c8354; /* buttons, small green text (4.8:1) */
+  --color-waza-800: #0a6a45;
+  --color-waza-900: #0b4f36;
+
+  --color-deep: #102a2a; /* Deep Waza */
+  --color-deep-800: #173838;
+  --color-gold: #ffc83d; /* Golden Energy */
+  --color-gold-100: #fff3d1;
+  --color-coral: #ff6b4a;
+  --color-coral-100: #ffe5de;
+  --color-mint: #e9faf3;
+  --color-cream: #fffdf8; /* Warm White */
+  --color-slate-waza: #526262;
+
+  --color-wa-chat: #efeae2; /* WhatsApp chat wallpaper */
+  --color-wa-out: #d9fdd3; /* WhatsApp outgoing bubble */
+  --color-wa-header: #0b5c46;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(16 42 42 / 0.04), 0 8px 24px -6px rgb(16 42 42 / 0.08);
+  --shadow-float: 0 2px 6px rgb(16 42 42 / 0.06), 0 24px 48px -12px rgb(16 42 42 / 0.18);
+
+  --animate-bubble-in: bubble-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  @keyframes bubble-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+  --animate-typing: typing 1.2s infinite ease-in-out;
+  @keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-3px); opacity: 1; }
+  }
+}
+
+/* shadcn/ui semantic tokens, mapped onto the brand palette. */
+:root {
+  --radius: 0.875rem;
+  --background: var(--color-cream);
+  --foreground: var(--color-deep);
+  --card: #ffffff;
+  --card-foreground: var(--color-deep);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-deep);
+  --primary: var(--color-waza-700);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-mint);
+  --secondary-foreground: var(--color-deep);
+  --muted: #f3f5f2;
+  --muted-foreground: var(--color-slate-waza);
+  --accent: var(--color-mint);
+  --accent-foreground: var(--color-deep);
+  --destructive: #d93f1f;
+  --border: #e3e9e5;
+  --input: #d6dfda;
+  --ring: var(--color-waza-500);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 16px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-heading text-deep;
+    letter-spacing: -0.015em;
+  }
+  /* Plus Jakarta Sans has a narrow word space; open it up slightly for legibility. */
+  .font-heading, h1, h2, h3, h4 {
+    word-spacing: 0.05em;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility container-page {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= 40rem) { padding-inline: 1.5rem; }
+  @media (width >= 64rem) { padding-inline: 2rem; }
+}
+
+@utility wa-wallpaper {
+  background-color: var(--color-wa-chat);
+  background-image: radial-gradient(rgb(16 42 42 / 0.05) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
