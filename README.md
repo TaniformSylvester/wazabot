@@ -1,7 +1,8 @@
 # WazaBolt
 
-**Power your business on WhatsApp.** WazaBolt is a WhatsApp business automation platform for
-African businesses, starting in Cameroon. Businesses connect their business WhatsApp account to
+**WazaBolt — Your AI Business Assistant on WhatsApp.** Power your business on WhatsApp. Never miss
+a customer. WazaBolt is a WhatsApp business automation platform for African businesses, starting in
+Cameroon. Businesses connect their business WhatsApp account to
 WazaBolt to automate replies, share their catalog, capture orders and manage customers — with
 their team always able to take over.
 
@@ -32,62 +33,74 @@ Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 · shadcn/ui-style compon
 
 ```text
 app/
-  (marketing)/        /, /product, /features, /solutions, /pricing, /resources, /faq, /about, ...
-  (auth)/             /login, /register (placeholders until Phase 2)
-  icon.svg, apple-icon.png, opengraph-image.tsx, twitter-image.tsx
-  manifest.ts, robots.ts, sitemap.ts
+  (marketing)/        /, /features, /how-it-works, /pricing, /solutions, /faq, /resources, /about, /brand, ...
+  (auth)/             /login, /register, /forgot-password, /reset-password
+  auth/confirm/       email-link handler
+  dashboard/          protected dashboard (overview, settings)
+  brand-assets/       generated social templates (/brand-assets/*.png)
+  icon.svg, apple-icon.png, opengraph-image.tsx, twitter-image.tsx, manifest.ts, robots.ts, sitemap.ts
 components/
-  brand/              Logo, LogoMark, ChannelBadge
-  marketing/          homepage and page sections
-  conversations/      conversation UI primitives (shared with the future dashboard)
+  brand/              WazaBoltLogo, WazaBoltIcon, WazaBoltBadge, AIStatus, ChannelBadge
+  marketing/          sections + FeatureCard, IndustryCard, PricingCard, SectionHeading, CTASection,
+                      DashboardPreview (dashboard-mock.tsx)
+  conversations/      WhatsAppChatMockup (customer's view, demo) and dashboard chat primitives
+  dashboard/          sidebar, mobile nav, user card
   motion/             Reveal (scroll reveal), CountUp
-  ui/                 button, badge, card, accordion, sheet
-config/               site (name, tagline, nav), plans, solutions, FAQ
-lib/brand/            static SVG of the mark + brand hex values (icons, OG image)
-public/logo/          exported logo files
-assets/fonts/         Sora subset used only by the OG image generator
+  ui/                 Button (the WazaBolt button: default/outline/secondary/ghost/dark/gold variants),
+                      badge, card, accordion, sheet, input, label
+config/               site (name, taglines, nav), plans, solutions, FAQ, dashboard nav
+lib/brand/            mark SVG + brand hex (icons), icon tones, social image generator
+public/logo/          exported logo files (all listed on /brand)
+assets/               Plus Jakarta Sans subset + JPEG photos used only by the image generator
 ```
 
-Old routes `/how-it-works` and `/industries` redirect permanently to `/product` and `/solutions`.
+`/product` and `/industries` redirect permanently to `/how-it-works` and `/solutions`.
 
 ## Brand system
 
-All tokens live in `app/globals.css`.
+Tokens live in `app/globals.css` (`@theme` scales plus `--brand-*` variables). See it live at `/brand`.
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `bolt-500` (`--brand-primary`) | `#FFB020` | Bolt Amber — primary buttons, highlights (always with Ink text) |
-| `ember-500` (`--brand-secondary`) | `#F2551D` | Ember Orange — accents; `ember-600/700` for text |
-| `volt-500` (`--brand-accent`) | `#4B3FD1` | Volt Indigo — secondary accent |
-| `ink` (`--brand-dark`) | `#15120E` | Near-black — text, dark sections |
-| `sand` (`--brand-background`) | `#FAF7F0` | Warm off-white background |
-| `stone` | `#5F574C` | Secondary text |
+| Colour | Hex | Token | Use |
+| --- | --- | --- | --- |
+| Waza Green | `#16B878` | `waza-500` / `--brand-primary` | Primary buttons, links, active states, AI indicators |
+| Deep Teal | `#102A2A` | `deep` / `--brand-secondary` | Headings, navigation, dark sections, footer, logo text |
+| Golden | `#FFC83D` | `gold` / `--brand-accent` | The bolt, badges, small accents |
+| Coral | `#FF6B4A` | `coral-500` / `--brand-alert` | Alerts and rare highlights only |
+| Soft Mint | `#E9FAF3` | `mint` / `waza-50` | Section backgrounds, subtle cards |
+| Warm White | `#FFFDF8` | `cream` / `--brand-background` | Page background |
+| Slate | `#526262` | `slate` / `--brand-text-muted` | Secondary text |
 
-There is deliberately no green brand colour, so WazaBolt never reads as WhatsApp. `success`
-green is used only for status badges such as "Delivered".
+**Accessibility rules:** Waza Green buttons carry Deep Teal text (5.9:1 — white would be 2.6:1).
+Green headline text uses `waza-600` (#12A06A, large text); green body text and links use
+`waza-700` (#0C8354). Gold always carries Deep Teal text.
 
-The `chat-*` colours (WhatsApp-style chat header, bubbles and wallpaper) exist only to depict
-what a customer sees in their WhatsApp chat in the hero example. Never use them for WazaBolt UI.
+**Typography:** Plus Jakarta Sans (headings, 600–800) + Inter (body, 400–600) via `next/font`.
+Type utilities: `type-display`, `type-h1`, `type-h2`, `type-h3`, `type-lead`, `type-body`,
+`type-small`, `type-label`.
 
-**Typography:** Sora (display/headings, 600–800) and Inter (body/UI). Use the type utilities
-`type-display`, `type-h1`, `type-h2`, `type-h3`, `type-lead`, `type-body`, `type-small` and
-`type-label`.
+**Logo:** a rounded conversation bubble with a bold white "W" and a Golden lightning bolt breaking
+through its top-right corner. Variants: horizontal (with tagline), compact (stacked), icon only,
+dark background, monochrome. Favicon and the WhatsApp profile image use the icon only.
 
-**Logo:** a sharp, forward-leaning "W" struck through the centre by a lightning bolt, on an Ink
-tile. Files: `public/logo/wazabolt-mark.svg` (tile), `wazabolt-mark-glyph.svg` (no tile, for dark
-backgrounds), `wazabolt-logo-light.svg` / `wazabolt-logo-dark.svg` (horizontal lockups) and PNG
-app icons.
+**Messages:** descriptor "Your AI Business Assistant on WhatsApp." · primary "Power your business
+on WhatsApp." · supporting "Never miss a customer." (all in `config/site.ts`).
 
-**Tagline:** "Power your business on WhatsApp." — the single primary tagline (`siteConfig.tagline`).
+**Design rules:** moderately rounded cards (`rounded-2xl`), soft shadows, subtle borders, generous
+spacing, green actions, gold accents, one Deep Teal contrast section per page, Lucide icons only,
+restrained motion (disabled under reduced motion). Unbuilt features are always labelled
+**Coming Soon / Planned**.
+
+The `chat-*` colours exist only to depict a customer's WhatsApp chat in demo mockups. WazaBolt is
+not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used.
 
 ## Status
 
 | Area | Status |
 | --- | --- |
 | Marketing site, brand system, logo, SEO/OG/manifest, responsive layout | **Functional** (static pages) |
-| Hero flow, live demo, dashboard preview | **UI mockup** — scripted example data |
+| Hero chat, live demo, dashboard preview | **UI mockup** — demo conversation / example data |
 | Pricing | **Functional display** from `config/plans.ts` (proposed prices) |
-| Appointments, Broadcasts | Shown as **Coming soon** — not in the first release |
+| Appointments, Broadcasts, Mobile Money | Shown as **Planned** — not in the first release |
 | Auth: register, email confirmation, login, logout, password reset, protected dashboard | **Functional** (Phase 2) |
 | Database: users, businesses, business_members, audit_logs with RLS | **Functional** (Phase 2) |
 | Dashboard shell: overview, settings, change password | **Functional**; other sections show "Soon" |
@@ -140,7 +153,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e
 ## Before launch
 
 - Replace `public/images/hero-owner.webp` and `product-robe-wax.webp` (low-resolution crops from
-  the design mockup) with licensed, high-resolution photos.
-- The horizontal logo SVGs use live Sora text; outline the text in a design tool for print.
+  the design mockup) with licensed, high-resolution photos — and the JPEG copies in `assets/`
+  used by the social image generator (the Instagram story shows the low resolution most).
+- The horizontal/compact logo SVGs use live Plus Jakarta Sans text; outline the text in a design
+  tool before print use.
 - Contact, Privacy and Terms pages are placeholders (sign-up links to Terms and Privacy).
 - Set `NEXT_PUBLIC_SITE_URL` in production so canonical URLs, the sitemap and OG links are correct.

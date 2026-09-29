@@ -2,61 +2,64 @@
 @import "tw-animate-css";
 
 /*
- * WazaBolt design system.
- *
- * Palette: Ink (near-black) + Bolt Amber + Ember Orange on warm Sand, with a
- * Volt Indigo accent for trust/tech moments. Deliberately no green brand
- * colour, so WazaBolt never reads as WhatsApp.
- *
- * Contrast notes: Bolt Amber is a fill colour (buttons, highlights) and
- * always carries Ink text (10:1). Ember 600+ is safe for large text on sand,
- * Ember 700 / Bolt 800 for small text.
+ * WazaBolt design system — see README "Brand system".
+ * Waza Green #16B878 · Deep Teal #102A2A · Golden #FFC83D · Coral #FF6B4A
+ * Soft Mint #E9FAF3 · Warm White #FFFDF8 · Slate #526262
+ * Plus Jakarta Sans (headings) + Inter (body).
  */
 @theme {
-  --color-bolt-50: #fff8e6;
-  --color-bolt-100: #ffedc2;
-  --color-bolt-200: #ffdd8a;
-  --color-bolt-300: #ffd05c;
-  --color-bolt-400: #ffc53d;
-  --color-bolt-500: #ffb020; /* Bolt Amber — brand primary */
-  --color-bolt-600: #e89400;
-  --color-bolt-700: #b36b00;
-  --color-bolt-800: #8f5500;
+  /* Waza Green — primary. 500 is the brand colour (fills, buttons with Deep
+     Teal text, indicators). 600 = large green text on light (3.3:1),
+     700 = small green text / links on light (4.7:1). */
+  --color-waza-50: #e9faf3; /* Soft Mint */
+  --color-waza-100: #d2f4e5;
+  --color-waza-200: #a6e9cc;
+  --color-waza-300: #6fdaae;
+  --color-waza-400: #3cc991;
+  --color-waza-500: #16b878; /* Waza Green */
+  --color-waza-600: #12a06a;
+  --color-waza-700: #0c8354;
+  --color-waza-800: #0a6a45;
+  --color-waza-900: #0b4f36;
 
-  --color-ember-50: #fff2ec;
-  --color-ember-100: #ffdfd1;
-  --color-ember-200: #ffbfa3;
-  --color-ember-400: #ff7a45;
-  --color-ember-500: #f2551d; /* Ember Orange — brand secondary */
-  --color-ember-600: #d9430f;
-  --color-ember-700: #b8360b;
-  --color-ember-800: #8f2a08;
+  /* Deep Teal — headings, navigation, dark sections, logo text. */
+  --color-deep: #102a2a;
+  --color-deep-800: #173838;
+  --color-deep-700: #1f4545;
+  --color-deep-600: #2d5757;
 
-  --color-volt-50: #efedff;
-  --color-volt-100: #dedaff;
-  --color-volt-400: #7f75f0;
-  --color-volt-500: #4b3fd1; /* Volt Indigo — accent */
-  --color-volt-600: #3d32b5;
-  --color-volt-700: #2f2690;
+  /* Golden — the bolt, badges, small accents. Text on gold is Deep Teal. */
+  --color-gold-50: #fff9e6;
+  --color-gold-100: #fff1cc;
+  --color-gold-200: #ffe399;
+  --color-gold: #ffc83d;
+  --color-gold-600: #e8ab12;
+  --color-gold-800: #7a5a00; /* gold-toned text on light */
 
-  --color-ink: #15120e; /* brand dark */
-  --color-ink-800: #221e18;
-  --color-ink-700: #332d25;
-  --color-ink-600: #4a4238;
+  /* Coral — alerts and rare highlights only. */
+  --color-coral-50: #fff3ef;
+  --color-coral-100: #ffe3db;
+  --color-coral-200: #ffc6b6;
+  --color-coral-500: #ff6b4a; /* Coral */
+  --color-coral-600: #e8532f;
+  --color-coral-700: #c2401f; /* coral text on light (5.1:1) */
+  --color-coral-800: #93300f;
 
-  --color-sand: #faf7f0; /* brand background */
-  --color-sand-100: #f4efe4;
-  --color-sand-200: #e9e2d3;
-  --color-sand-300: #d9d0bd;
+  --color-mint: #e9faf3; /* Soft Mint */
+  --color-cream: #fffdf8; /* Warm White — page background */
+  --color-slate: #526262; /* secondary text */
 
-  --color-stone: #5f574c; /* secondary text */
+  /* Neutrals derived from the palette */
+  --color-surface: #f4f7f4; /* subtle panels */
+  --color-line: #e3e9e5; /* borders */
+  --color-line-strong: #cbd6d0;
 
-  --color-success: #1e7a45; /* order/status only — not a brand colour */
-  --color-success-bg: #e3f4ea;
+  --color-success: #0c8354;
+  --color-success-bg: #e9faf3;
 
   /*
    * Channel depiction — used ONLY to show what a customer sees in their
-   * WhatsApp chat (hero example). Never use these for WazaBolt UI or brand.
+   * WhatsApp chat (demo mockups). Not for WazaBolt UI.
    */
   --color-chat-header: #0f5b48;
   --color-chat-wallpaper: #efe9df;
@@ -65,11 +68,11 @@
   --color-chat-tick: #34a3e0;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-sora), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-card: 0 1px 2px rgb(21 18 14 / 0.05), 0 8px 24px -8px rgb(21 18 14 / 0.1);
-  --shadow-float: 0 2px 6px rgb(21 18 14 / 0.06), 0 28px 56px -16px rgb(21 18 14 / 0.25);
-  --shadow-glow: 0 10px 30px -10px rgb(255 176 32 / 0.65);
+  --shadow-card: 0 1px 2px rgb(16 42 42 / 0.05), 0 8px 24px -8px rgb(16 42 42 / 0.1);
+  --shadow-float: 0 2px 6px rgb(16 42 42 / 0.06), 0 28px 56px -16px rgb(16 42 42 / 0.22);
+  --shadow-glow: 0 10px 28px -10px rgb(22 184 120 / 0.6);
 
   --animate-bubble-in: bubble-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   @keyframes bubble-in {
@@ -84,7 +87,7 @@
   --animate-bolt-flash: bolt-flash 0.6s ease-out;
   @keyframes bolt-flash {
     0% { transform: none; filter: none; }
-    30% { transform: translateY(-1px) scale(1.12) rotate(-6deg); filter: drop-shadow(0 0 4px rgb(255 197 61 / 0.9)); }
+    30% { transform: translateY(-1px) scale(1.12) rotate(-6deg); filter: drop-shadow(0 0 4px rgb(255 200 61 / 0.9)); }
     100% { transform: none; filter: none; }
   }
   --animate-flow: flow 2.4s linear infinite;
@@ -103,14 +106,16 @@
 
 /* Brand tokens (named for use outside Tailwind, e.g. emails and the OG image). */
 :root {
-  --brand-primary: var(--color-bolt-500);
-  --brand-secondary: var(--color-ember-500);
-  --brand-accent: var(--color-volt-500);
-  --brand-dark: var(--color-ink);
+  --brand-primary: var(--color-waza-500);
+  --brand-secondary: var(--color-deep);
+  --brand-accent: var(--color-gold);
+  --brand-alert: var(--color-coral-500);
+  --brand-dark: var(--color-deep);
   --brand-light: #ffffff;
-  --brand-background: var(--color-sand);
-  --brand-text: var(--color-ink);
-  --brand-text-muted: var(--color-stone);
+  --brand-background: var(--color-cream);
+  --brand-surface: var(--color-mint);
+  --brand-text: var(--color-deep);
+  --brand-text-muted: var(--color-slate);
 
   /* shadcn/ui semantic tokens */
   --radius: 0.875rem;
@@ -122,16 +127,16 @@
   --popover-foreground: var(--brand-text);
   --primary: var(--brand-primary);
   --primary-foreground: var(--brand-dark);
-  --secondary: var(--color-sand-100);
+  --secondary: var(--color-mint);
   --secondary-foreground: var(--brand-text);
-  --muted: var(--color-sand-100);
+  --muted: var(--color-surface);
   --muted-foreground: var(--brand-text-muted);
-  --accent: var(--color-bolt-50);
+  --accent: var(--color-mint);
   --accent-foreground: var(--brand-text);
-  --destructive: var(--color-ember-700);
-  --border: var(--color-sand-200);
-  --input: var(--color-sand-300);
-  --ring: var(--color-volt-500);
+  --destructive: var(--color-coral-700);
+  --border: var(--color-line);
+  --input: var(--color-line-strong);
+  --ring: var(--color-waza-500);
 }
 
 @theme inline {
@@ -173,11 +178,15 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
   h1, h2, h3, h4 {
-    @apply font-display text-ink;
+    @apply font-display text-deep;
+  }
+  /* Plus Jakarta Sans has a narrow word space; open it slightly. */
+  .font-display, h1, h2, h3, h4 {
+    word-spacing: 0.04em;
   }
   ::selection {
-    background: var(--color-bolt-300);
-    color: var(--color-ink);
+    background: var(--color-waza-200);
+    color: var(--color-deep);
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
@@ -195,21 +204,21 @@
   font-weight: 800;
   font-size: clamp(2.5rem, 1.2rem + 4.4vw, 4.5rem);
   line-height: 1.02;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
 }
 @utility type-h1 {
   font-family: var(--font-display);
   font-weight: 800;
   font-size: clamp(2.25rem, 1.4rem + 2.6vw, 3.4rem);
-  line-height: 1.06;
-  letter-spacing: -0.035em;
+  line-height: 1.08;
+  letter-spacing: -0.028em;
 }
 @utility type-h2 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(1.875rem, 1.2rem + 2vw, 2.75rem);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  line-height: 1.12;
+  letter-spacing: -0.024em;
 }
 @utility type-h3 {
   font-family: var(--font-display);
@@ -250,21 +259,17 @@
 
 /* Subtle geometric motif (chevrons + dots) — used sparingly, never as wallpaper. */
 @utility bg-geo {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' fill='none' stroke='rgba%2821%2C18%2C14%2C0.07%29' stroke-width='1.4'%3E%3Cpath d='M4 14l8-8 8 8M28 14l8-8 8 8'/%3E%3Cpath d='M16 38l8-8 8 8' /%3E%3Ccircle cx='4' cy='38' r='1.6' fill='rgba%2821%2C18%2C14%2C0.07%29' stroke='none'/%3E%3Ccircle cx='44' cy='38' r='1.6' fill='rgba%2821%2C18%2C14%2C0.07%29' stroke='none'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' fill='none' stroke='rgba%2816%2C42%2C42%2C0.06%29' stroke-width='1.4'%3E%3Cpath d='M4 14l8-8 8 8M28 14l8-8 8 8'/%3E%3Cpath d='M16 38l8-8 8 8' /%3E%3Ccircle cx='4' cy='38' r='1.6' fill='rgba%2816%2C42%2C42%2C0.06%29' stroke='none'/%3E%3Ccircle cx='44' cy='38' r='1.6' fill='rgba%2816%2C42%2C42%2C0.06%29' stroke='none'/%3E%3C/svg%3E");
   background-size: 48px 48px;
 }
 @utility bg-geo-light {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' fill='none' stroke='rgba%28250%2C247%2C240%2C0.07%29' stroke-width='1.4'%3E%3Cpath d='M4 14l8-8 8 8M28 14l8-8 8 8'/%3E%3Cpath d='M16 38l8-8 8 8' /%3E%3Ccircle cx='4' cy='38' r='1.6' fill='rgba%28250%2C247%2C240%2C0.07%29' stroke='none'/%3E%3Ccircle cx='44' cy='38' r='1.6' fill='rgba%28250%2C247%2C240%2C0.07%29' stroke='none'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' fill='none' stroke='rgba%28255%2C253%2C248%2C0.06%29' stroke-width='1.4'%3E%3Cpath d='M4 14l8-8 8 8M28 14l8-8 8 8'/%3E%3Cpath d='M16 38l8-8 8 8' /%3E%3Ccircle cx='4' cy='38' r='1.6' fill='rgba%28255%2C253%2C248%2C0.06%29' stroke='none'/%3E%3Ccircle cx='44' cy='38' r='1.6' fill='rgba%28255%2C253%2C248%2C0.06%29' stroke='none'/%3E%3C/svg%3E");
   background-size: 48px 48px;
 }
 
-@utility bg-bolt-gradient {
-  background-image: linear-gradient(120deg, var(--color-bolt-400), var(--color-bolt-500) 40%, var(--color-ember-500));
-}
-@utility text-bolt-gradient {
-  background-image: linear-gradient(100deg, var(--color-ember-600), var(--color-ember-500) 55%, var(--color-bolt-700));
-  background-clip: text;
-  color: transparent;
+/* Green → gold, used sparingly (photo frame, top-edge accents). */
+@utility bg-brand-gradient {
+  background-image: linear-gradient(125deg, var(--color-waza-400), var(--color-waza-500) 45%, var(--color-gold) 110%);
 }
 
 @utility chat-wallpaper {

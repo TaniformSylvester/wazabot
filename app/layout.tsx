@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sora } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 
 import { siteConfig } from "@/config/site";
 import { brandHex } from "@/lib/brand/mark-svg";
@@ -11,8 +11,8 @@ const inter = Inter({
   display: "swap",
 });
 
-const sora = Sora({
-  variable: "--font-sora",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
   weight: ["600", "700", "800"],
   display: "swap",
@@ -33,6 +33,7 @@ export const metadata: Metadata = {
     "AI customer service",
     "Cameroon",
     "WazaBolt",
+    "AI business assistant",
   ],
   openGraph: {
     title: siteConfig.title,
@@ -49,12 +50,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: brandHex.sand,
+  themeColor: brandHex.cream,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${sora.variable} h-full`}>
+    <html lang="en" className={`${inter.variable} ${jakarta.variable} h-full`}>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

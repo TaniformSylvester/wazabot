@@ -18,7 +18,7 @@ function AccordionItem({
     <AccordionPrimitive.Item
       data-slot="accordion-item"
       className={cn(
-        "rounded-2xl border border-border bg-card px-5 shadow-card transition-colors data-[state=open]:border-bolt-300",
+        "rounded-2xl border border-border bg-card px-5 shadow-card transition-colors data-[state=open]:border-waza-300",
         className,
       )}
       {...props}
@@ -36,13 +36,13 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "flex flex-1 items-center justify-between gap-4 py-5 text-left font-display text-base font-semibold text-ink outline-none transition-colors hover:text-ember-700 focus-visible:text-ember-700 [&[data-state=open]>svg]:rotate-180 [&[data-state=open]>svg]:bg-bolt-500 [&[data-state=open]>svg]:text-ink",
+          "flex flex-1 items-center justify-between gap-4 py-5 text-left font-display text-base font-semibold text-deep outline-none transition-colors hover:text-waza-700 focus-visible:text-waza-700 [&[data-state=open]>svg]:rotate-180 [&[data-state=open]>svg]:bg-waza-500 [&[data-state=open]>svg]:text-deep",
           className,
         )}
         {...props}
       >
         {children}
-        <ChevronDown className="size-7 shrink-0 rounded-full bg-sand-100 p-1.5 text-ink transition-all duration-200" />
+        <ChevronDown className="size-7 shrink-0 rounded-full bg-surface p-1.5 text-deep transition-all duration-200" />
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   );

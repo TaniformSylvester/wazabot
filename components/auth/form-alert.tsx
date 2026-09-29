@@ -3,9 +3,9 @@ import { CircleAlert, CircleCheck, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const styles = {
-  error: { box: "border-ember-200 bg-ember-50 text-ember-800", icon: CircleAlert },
+  error: { box: "border-coral-200 bg-coral-50 text-coral-800", icon: CircleAlert },
   success: { box: "border-success/25 bg-success-bg text-success", icon: CircleCheck },
-  info: { box: "border-bolt-200 bg-bolt-50 text-bolt-800", icon: Info },
+  info: { box: "border-waza-200 bg-waza-50 text-waza-800", icon: Info },
 } as const;
 
 export function FormAlert({

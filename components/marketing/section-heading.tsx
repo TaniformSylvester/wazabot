@@ -4,12 +4,12 @@ export function Eyebrow({ children, tone = "light", className }: { children: Rea
   return (
     <span
       className={cn(
-        "type-label inline-flex items-center gap-2",
-        tone === "dark" ? "text-bolt-400" : "text-ember-700",
+        "type-label inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+        tone === "dark" ? "bg-white/10 text-waza-300" : "bg-mint text-waza-800",
         className,
       )}
     >
-      <span aria-hidden className="h-[3px] w-5 rounded-full bg-bolt-500" />
+      <span aria-hidden className="size-1.5 rounded-full bg-gold" />
       {children}
     </span>
   );
@@ -41,17 +41,17 @@ export function SectionHeading({
       )}
     >
       {eyebrow ? <Eyebrow tone={tone}>{eyebrow}</Eyebrow> : null}
-      <h2 id={id} className={cn("type-h2", tone === "dark" && "text-sand")}>
+      <h2 id={id} className={cn("type-h2", tone === "dark" && "text-white")}>
         {title}
       </h2>
       {description ? (
-        <p className={cn("type-lead", tone === "dark" ? "text-sand/70" : "text-stone")}>{description}</p>
+        <p className={cn("type-lead", tone === "dark" ? "text-white/70" : "text-slate")}>{description}</p>
       ) : null}
     </div>
   );
 }
 
-/** Accent for key phrases in headings (Ember 600 on sand: 4.1:1, large text). */
+/** Waza Green accent for key phrases in headings (waza-600 keeps 3:1+ for large text). */
 export function Highlight({
   children,
   className,
@@ -61,5 +61,5 @@ export function Highlight({
   className?: string;
   tone?: "light" | "dark";
 }) {
-  return <span className={cn(tone === "dark" ? "text-bolt-400" : "text-ember-600", className)}>{children}</span>;
+  return <span className={cn(tone === "dark" ? "text-waza-400" : "text-waza-600", className)}>{children}</span>;
 }

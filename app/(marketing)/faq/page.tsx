@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
+import { CTASection } from "@/components/marketing/cta-section";
 import { Faq } from "@/components/marketing/faq";
-import { FinalCta } from "@/components/marketing/final-cta";
 
 export const metadata: Metadata = {
   title: "FAQ",
@@ -12,7 +12,7 @@ export default function FaqPage() {
   return (
     <>
       <Faq />
-      <FinalCta />
+      <CTASection />
     </>
   );
 }

@@ -19,10 +19,10 @@ export function DashboardPreview() {
         <Reveal className="relative mt-14">
           <div
             aria-hidden
-            className="bg-bolt-gradient absolute inset-x-12 bottom-10 top-12 -z-10 rounded-[3rem] opacity-40 blur-3xl"
+            className="bg-brand-gradient absolute inset-x-12 bottom-10 top-12 -z-10 rounded-[3rem] opacity-40 blur-3xl"
           />
           <DashboardMock />
-          <p className="mt-4 text-center text-xs text-stone">Dashboard preview with example data.</p>
+          <p className="mt-4 text-center text-xs text-slate">Dashboard preview with example data.</p>
         </Reveal>
       </div>
     </section>

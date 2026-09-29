@@ -1,11 +1,16 @@
 export const siteConfig = {
   name: "WazaBolt",
-  /** The one primary tagline — use it consistently. */
-  tagline: "Power your business on WhatsApp.",
+  /** Brand descriptor — used under the logo and in social profiles. */
+  tagline: "Your AI Business Assistant on WhatsApp.",
+  /** Primary marketing message (hero, CTAs, social). */
+  headline: "Power your business on WhatsApp.",
+  /** Supporting message. */
+  supporting: "Never miss a customer.",
   positioning: "WhatsApp Business Automation for Africa",
-  title: "WazaBolt | WhatsApp Business Automation for Africa",
+  title: "WazaBolt — WhatsApp Business Automation for Africa",
   description:
-    "WazaBolt helps African businesses automate customer conversations, share products, capture orders and manage customers through WhatsApp — with your team in control.",
+    "WazaBolt is your AI business assistant on WhatsApp. It answers customer questions, shares products and prices, captures orders and hands conversations to your team when needed.",
+  /** Set NEXT_PUBLIC_SITE_URL per environment — never hard-code the deployment URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   /** Required wherever WhatsApp is named prominently. */
   trademarkNotice:
@@ -15,22 +20,22 @@ export const siteConfig = {
 export type NavItem = { label: string; href: string };
 
 export const mainNav: NavItem[] = [
-  { label: "Product", href: "/product" },
+  { label: "Home", href: "/" },
   { label: "Features", href: "/features" },
-  { label: "Solutions", href: "/solutions" },
+  { label: "How It Works", href: "/how-it-works" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Resources", href: "/resources" },
-  { label: "About", href: "/about" },
+  { label: "Solutions", href: "/solutions" },
+  { label: "FAQ", href: "/faq" },
 ];
 
 export const footerNav: { title: string; links: NavItem[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "How it works", href: "/product" },
       { label: "Features", href: "/features" },
-      { label: "Solutions", href: "/solutions" },
+      { label: "How It Works", href: "/how-it-works" },
       { label: "Pricing", href: "/pricing" },
+      { label: "Solutions", href: "/solutions" },
     ],
   },
   {
@@ -40,6 +45,7 @@ export const footerNav: { title: string; links: NavItem[] }[] = [
       { label: "Contact", href: "/contact" },
       { label: "Resources", href: "/resources" },
       { label: "FAQ", href: "/faq" },
+      { label: "Brand kit", href: "/brand" },
     ],
   },
   {

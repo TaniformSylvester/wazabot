@@ -9,12 +9,12 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-bolt-100 text-bolt-800",
-        ember: "bg-ember-100 text-ember-700",
-        volt: "bg-volt-100 text-volt-700",
+        default: "bg-waza-100 text-waza-800",
+        ember: "bg-coral-100 text-coral-700",
+        volt: "bg-gold-100 text-gold-800",
         success: "bg-success-bg text-success",
-        dark: "bg-ink text-sand",
-        outline: "border border-border bg-card text-ink",
+        dark: "bg-deep text-cream",
+        outline: "border border-border bg-card text-deep",
       },
       size: {
         default: "px-2.5 py-0.5 text-xs",

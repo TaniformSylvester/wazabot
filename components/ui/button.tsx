@@ -9,16 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Waza Green with Deep Teal text: 5.9:1 contrast (white on #16B878 would be 2.6:1).
         default:
-          "bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_rgb(21_18_14/0.35)] hover:-translate-y-0.5 hover:bg-bolt-400 hover:shadow-glow active:translate-y-0",
+          "bg-primary font-bold text-primary-foreground shadow-[0_6px_16px_-8px_rgb(22_184_120/0.7)] hover:-translate-y-0.5 hover:bg-waza-400 hover:shadow-glow active:translate-y-0",
         outline:
-          "border-2 border-ink/85 bg-transparent text-ink hover:-translate-y-0.5 hover:bg-ink hover:text-sand active:translate-y-0",
-        secondary: "bg-sand-100 text-ink hover:bg-sand-200",
-        ghost: "text-ink hover:bg-sand-100",
-        dark: "bg-ink text-sand hover:-translate-y-0.5 hover:bg-ink-700 active:translate-y-0",
+          "border-2 border-waza-500 bg-white/60 text-deep hover:-translate-y-0.5 hover:bg-mint active:translate-y-0",
+        secondary: "bg-mint text-deep hover:bg-waza-100",
+        ghost: "text-deep hover:bg-mint",
+        dark: "bg-deep text-white hover:-translate-y-0.5 hover:bg-deep-700 active:translate-y-0",
+        gold: "bg-gold font-bold text-deep hover:-translate-y-0.5 hover:bg-gold-200 active:translate-y-0",
         "outline-light":
-          "border-2 border-sand/30 bg-transparent text-sand hover:-translate-y-0.5 hover:border-sand hover:bg-sand/10 active:translate-y-0",
-        link: "rounded-none text-ember-700 underline-offset-4 hover:underline",
+          "border-2 border-white/30 bg-transparent text-white hover:-translate-y-0.5 hover:border-white hover:bg-white/10 active:translate-y-0",
+        link: "rounded-none text-waza-700 underline-offset-4 hover:underline",
       },
       size: {
         default: "h-11 px-5 text-[0.9375rem]",

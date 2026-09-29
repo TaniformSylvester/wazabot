@@ -8,8 +8,8 @@ export const metadata: Metadata = { title: "Settings" };
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-      <dt className="text-sm text-stone">{label}</dt>
-      <dd className="text-sm font-medium text-ink sm:text-right">{value}</dd>
+      <dt className="text-sm text-slate">{label}</dt>
+      <dd className="text-sm font-medium text-deep sm:text-right">{value}</dd>
     </div>
   );
 }
@@ -19,7 +19,7 @@ function Section({ id, title, description, children }: { id: string; title: stri
     <section aria-labelledby={id} className="grid gap-4 rounded-3xl border border-border bg-card p-6 shadow-card md:grid-cols-[14rem_1fr] md:gap-10 sm:p-8">
       <div>
         <h2 id={id} className="type-h3">{title}</h2>
-        <p className="type-small mt-1 text-stone">{description}</p>
+        <p className="type-small mt-1 text-slate">{description}</p>
       </div>
       <div className="min-w-0">{children}</div>
     </section>

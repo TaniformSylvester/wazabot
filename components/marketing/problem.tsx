@@ -32,24 +32,24 @@ export function Problem() {
 
         <div className="mt-14 grid items-center gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
           <div className="relative mx-auto w-full max-w-sm" aria-hidden>
-            <div className="bg-geo-light rounded-[2rem] bg-ink p-5 pb-8 shadow-float">
-              <div className="flex items-center justify-between text-sand/80">
+            <div className="bg-geo-light rounded-[2rem] bg-deep p-5 pb-8 shadow-float">
+              <div className="flex items-center justify-between text-cream/80">
                 <span className="flex items-center gap-1.5 text-xs"><BellRing className="size-3.5" /> Unanswered</span>
-                <span className="rounded-full bg-ember-500 px-2.5 py-0.5 text-xs font-bold text-ink">23 chats</span>
+                <span className="rounded-full bg-coral-500 px-2.5 py-0.5 text-xs font-bold text-deep">23 chats</span>
               </div>
-              <p className="mt-3 font-display text-5xl font-bold tracking-tight text-sand">22:17</p>
+              <p className="mt-3 font-display text-5xl font-bold tracking-tight text-cream">22:17</p>
               <ul className="mt-5 space-y-2.5">
                 {notifications.map((n, i) => (
-                  <li key={n.name} className="flex gap-3 rounded-2xl bg-sand/10 p-3" style={{ opacity: 1 - i * 0.15 }}>
-                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sand/15 text-sand">
+                  <li key={n.name} className="flex gap-3 rounded-2xl bg-cream/10 p-3" style={{ opacity: 1 - i * 0.15 }}>
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-cream/15 text-cream">
                       <MessageCircle className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="flex justify-between text-xs font-semibold text-sand">
+                      <p className="flex justify-between text-xs font-semibold text-cream">
                         {n.name}
-                        <span className="font-normal text-sand/60">{n.time}</span>
+                        <span className="font-normal text-cream/60">{n.time}</span>
                       </p>
-                      <p className="truncate text-xs text-sand/75">{n.text}</p>
+                      <p className="truncate text-xs text-cream/75">{n.text}</p>
                     </div>
                   </li>
                 ))}
@@ -61,12 +61,12 @@ export function Problem() {
             {problems.map(({ icon: Icon, title, text }, i) => (
               <Reveal as="li" key={title} delay={i * 60}>
                 <div className="flex h-full gap-4 rounded-2xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-float">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-ember-100 text-ember-700">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-coral-100 text-coral-700">
                     <Icon className="size-5" aria-hidden />
                   </span>
                   <div>
                     <h3 className="type-h3 text-base">{title}</h3>
-                    <p className="type-small mt-1 text-stone">{text}</p>
+                    <p className="type-small mt-1 text-slate">{text}</p>
                   </div>
                 </div>
               </Reveal>

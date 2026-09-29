@@ -19,7 +19,7 @@ export function PageIntro({
       <div className="container-page flex max-w-3xl flex-col items-center gap-5 pb-6 pt-14 text-center sm:pt-20">
         <Eyebrow>{eyebrow}</Eyebrow>
         <h1 className="type-h1">{title}</h1>
-        {description ? <p className="type-lead text-stone">{description}</p> : null}
+        {description ? <p className="type-lead text-slate">{description}</p> : null}
       </div>
     </div>
   );

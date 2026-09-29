@@ -10,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: siteConfig.description,
     start_url: "/",
     display: "standalone",
-    background_color: brandHex.sand,
-    theme_color: brandHex.ink,
+    background_color: brandHex.cream,
+    theme_color: brandHex.deep,
     icons: [
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml" },
       { src: "/logo/wazabolt-icon-192.png", sizes: "192x192", type: "image/png" },

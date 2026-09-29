@@ -1,7 +1,7 @@
+import { CTASection } from "@/components/marketing/cta-section";
 import { DashboardPreview } from "@/components/marketing/dashboard-preview";
 import { Faq } from "@/components/marketing/faq";
 import { Features } from "@/components/marketing/features";
-import { FinalCta } from "@/components/marketing/final-cta";
 import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { LiveDemo } from "@/components/marketing/live-demo";
@@ -43,15 +43,15 @@ export default function HomePage() {
       <Hero />
       <SolutionsStrip />
       <Problem />
-      <Platform />
       <HowItWorks />
       <LiveDemo />
-      <DashboardPreview />
       <Features />
+      <Platform />
+      <DashboardPreview />
       <Pricing />
       <Security />
       <Faq />
-      <FinalCta />
+      <CTASection />
     </>
   );
 }

@@ -27,7 +27,7 @@ export default async function ResetPasswordPage() {
   }
 
   return (
-    <AuthCard title="Choose a new password" description={<>For <strong className="text-ink">{user.email}</strong></>}>
+    <AuthCard title="Choose a new password" description={<>For <strong className="text-deep">{user.email}</strong></>}>
       <ResetPasswordForm />
     </AuthCard>
   );

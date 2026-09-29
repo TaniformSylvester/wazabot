@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 
-import { Logo } from "@/components/brand/logo";
+import { WazaBoltLogo } from "@/components/brand/logo";
 import { siteConfig } from "@/config/site";
 
 const points = [
@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="flex flex-col">
         <header className="container-page flex h-20 items-center lg:px-12">
           <Link href="/" aria-label="WazaBolt home" className="rounded-lg">
-            <Logo />
+            <WazaBoltLogo />
           </Link>
         </header>
         <main className="flex flex-1 items-start justify-center px-4 pb-16 pt-6 sm:px-6 sm:pt-12 lg:items-center lg:pt-0">
@@ -24,16 +24,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </main>
       </div>
 
-      <aside className="bg-geo-light relative hidden overflow-hidden bg-ink p-12 text-sand lg:flex lg:flex-col lg:justify-between">
-        <div aria-hidden className="absolute -right-32 -top-32 size-96 rounded-full bg-bolt-500/25 blur-3xl" />
-        <div aria-hidden className="absolute -bottom-40 -left-20 size-96 rounded-full bg-ember-500/20 blur-3xl" />
-        <p className="type-label relative text-bolt-400">{siteConfig.positioning}</p>
+      <aside className="bg-geo-light relative hidden overflow-hidden bg-deep p-12 text-cream lg:flex lg:flex-col lg:justify-between">
+        <div aria-hidden className="absolute -right-32 -top-32 size-96 rounded-full bg-waza-500/25 blur-3xl" />
+        <div aria-hidden className="absolute -bottom-40 -left-20 size-96 rounded-full bg-coral-500/20 blur-3xl" />
+        <p className="type-label relative text-waza-400">{siteConfig.positioning}</p>
         <div className="relative">
-          <p className="type-h1 max-w-md text-sand">{siteConfig.tagline}</p>
+          <p className="type-h1 max-w-md text-cream">{siteConfig.tagline}</p>
           <ul className="mt-8 space-y-3">
             {points.map((p) => (
-              <li key={p} className="flex items-start gap-3 text-sand/80">
-                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-bolt-500 text-ink">
+              <li key={p} className="flex items-start gap-3 text-cream/80">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-waza-500 text-deep">
                   <Check className="size-3" strokeWidth={3} aria-hidden />
                 </span>
                 {p}
@@ -41,7 +41,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             ))}
           </ul>
         </div>
-        <p className="relative text-xs text-sand/50">{siteConfig.trademarkNotice}</p>
+        <p className="relative text-xs text-cream/50">{siteConfig.trademarkNotice}</p>
       </aside>
     </div>
   );

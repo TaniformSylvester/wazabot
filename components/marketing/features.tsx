@@ -1,70 +1,67 @@
 import {
-  Bot,
+  BookOpen,
   CalendarClock,
   ChartColumn,
+  CreditCard,
+  Hand,
+  Languages,
   Megaphone,
-  MessageSquareMore,
+  MessageCircle,
   Package,
-  ShoppingBag,
+  ShoppingCart,
   Users,
 } from "lucide-react";
 
+import { WazaBoltBadge } from "@/components/brand/wazabolt-badge";
+import { FeatureCard } from "@/components/marketing/feature-card";
 import { Reveal } from "@/components/motion/reveal";
 import { SectionHeading } from "@/components/marketing/section-heading";
-import { tones } from "@/config/solutions";
-import { cn } from "@/lib/utils";
+import type { IconTone } from "@/lib/brand/tones";
 
-/**
- * `roadmap: true` marks features that are planned but not in the first
- * release — keep the "Coming soon" label until they actually ship.
- */
-const features = [
-  { icon: MessageSquareMore, title: "WhatsApp Automation", text: "Automatically handle common customer questions and conversations, day and night.", tone: "bolt" },
-  { icon: Bot, title: "AI Customer Assistant", text: "Respond faster with an AI assistant trained on your business — while you stay in control.", tone: "ink" },
-  { icon: Package, title: "Product Catalog", text: "Show products and services, with prices and availability, directly in the chat.", tone: "ember" },
-  { icon: ShoppingBag, title: "Orders", text: "Capture orders in the conversation and track them from new to delivered.", tone: "volt" },
-  { icon: CalendarClock, title: "Appointments", text: "Let customers request and book services with your team.", tone: "bolt", roadmap: true },
-  { icon: Users, title: "Customer Management", text: "Every customer's details, notes and conversation history, organised automatically.", tone: "ember" },
-  { icon: Megaphone, title: "Broadcasts", text: "Send relevant updates and promotions to customers who opted in.", tone: "volt", roadmap: true },
-  { icon: ChartColumn, title: "Analytics", text: "Understand customer activity, busy hours and how conversations turn into orders.", tone: "ink" },
-] as const;
+/** Core features — the capabilities WazaBolt is being built to deliver in its first release. */
+const features: { icon: typeof MessageCircle; title: string; text: string; tone: IconTone }[] = [
+  { icon: MessageCircle, title: "Answer Customers", text: "AI handles repetitive customer questions, any time of day.", tone: "green" },
+  { icon: Package, title: "Share Products", text: "Customers discover your products and verified prices in the chat.", tone: "gold" },
+  { icon: ShoppingCart, title: "Capture Orders", text: "Turn conversations into structured orders your team can fulfil.", tone: "coral" },
+  { icon: Users, title: "Manage Customers", text: "Keep every customer's details and history organised.", tone: "teal" },
+  { icon: Hand, title: "Human Takeover", text: "A staff member can take over any conversation at any time.", tone: "deep" },
+  { icon: BookOpen, title: "Business Knowledge", text: "Teach WazaBolt your FAQs, services and policies.", tone: "green" },
+  { icon: ChartColumn, title: "Analytics", text: "Understand conversations, customers and orders.", tone: "gold" },
+  { icon: Languages, title: "English + French", text: "Supports both major business languages used in Cameroon.", tone: "teal" },
+];
+
+/** Not in the first release — always labelled as planned. */
+const planned = [
+  { icon: CalendarClock, label: "Appointment booking" },
+  { icon: Megaphone, label: "Broadcasts to opted-in customers" },
+  { icon: CreditCard, label: "Mobile Money payments" },
+];
 
 export function Features() {
   return (
-    <section id="features" aria-labelledby="features-title" className="border-y border-border bg-card py-20 sm:py-28">
+    <section id="features" aria-labelledby="features-title" className="py-20 sm:py-28">
       <div className="container-page">
         <SectionHeading
           id="features-title"
           eyebrow="Features"
-          title="Everything your WhatsApp business needs"
+          title="A business assistant, not just a chatbot"
           description="WazaBolt handles the routine work so you and your team can focus on the customers who need a person."
         />
         <ul className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map(({ icon: Icon, title, text, tone, ...rest }, i) => (
-            <Reveal as="li" key={title} delay={(i % 4) * 70}>
-              <div className="group relative flex h-full gap-4 overflow-hidden rounded-3xl border border-border bg-sand p-5 transition-all duration-300 hover:-translate-y-1 hover:border-bolt-300 hover:shadow-float sm:block sm:p-6">
-                <span
-                  aria-hidden
-                  className="bg-bolt-gradient absolute inset-x-0 top-0 h-1 origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100"
-                />
-                <span className={cn("grid size-12 shrink-0 place-items-center rounded-2xl", tones[tone])}>
-                  <Icon className="size-6" aria-hidden />
-                </span>
-                <div>
-                  <h3 className="type-h3 flex flex-wrap items-center gap-2 sm:mt-5">
-                    {title}
-                    {"roadmap" in rest ? (
-                      <span className="rounded-full bg-sand-200 px-2 py-0.5 font-sans text-[0.625rem] font-semibold uppercase tracking-wider text-stone">
-                        Coming soon
-                      </span>
-                    ) : null}
-                  </h3>
-                  <p className="type-body mt-1 text-stone sm:mt-2">{text}</p>
-                </div>
-              </div>
+          {features.map((f, i) => (
+            <Reveal as="li" key={f.title} delay={(i % 4) * 70}>
+              <FeatureCard {...f} />
             </Reveal>
           ))}
         </ul>
+        <div className="mt-8 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line-strong bg-white/60 p-5 sm:flex-row sm:flex-wrap sm:justify-center">
+          <WazaBoltBadge tone="gold" icon={false} className="uppercase tracking-wider">Planned</WazaBoltBadge>
+          {planned.map(({ icon: Icon, label }) => (
+            <span key={label} className="inline-flex items-center gap-2 text-sm text-slate">
+              <Icon className="size-4 text-slate" aria-hidden /> {label}
+            </span>
+          ))}
+        </div>
       </div>
     </section>
   );

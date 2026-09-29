@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       footer={
         <>
           New to WazaBolt?{" "}
-          <Link href="/register" className="font-semibold text-ember-700 hover:underline">
+          <Link href="/register" className="font-semibold text-waza-700 hover:underline">
             Create an account
           </Link>
         </>

@@ -14,9 +14,9 @@ export function AuthCard({
   return (
     <div className="w-full max-w-md">
       <h1 className="type-h2">{title}</h1>
-      {description ? <p className="type-body mt-2 text-stone">{description}</p> : null}
+      {description ? <p className="type-body mt-2 text-slate">{description}</p> : null}
       <div className="mt-8">{children}</div>
-      {footer ? <div className="mt-8 border-t border-border pt-6 text-center text-sm text-stone">{footer}</div> : null}
+      {footer ? <div className="mt-8 border-t border-border pt-6 text-center text-sm text-slate">{footer}</div> : null}
     </div>
   );
 }

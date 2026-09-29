@@ -1,34 +1,20 @@
-import Link from "next/link";
-
-import { moreSolutions, solutions, tones } from "@/config/solutions";
-import { cn } from "@/lib/utils";
+import { IndustryCard } from "@/components/marketing/industry-card";
+import { solutions } from "@/config/solutions";
 
 export function SolutionsStrip() {
-  const items = [...solutions.filter((s) => s.featured), { ...moreSolutions, slug: "" }];
-
   return (
-    <section aria-labelledby="solutions-strip-title" className="border-y border-border bg-card">
-      <div className="container-page flex flex-col gap-8 py-10 lg:flex-row lg:items-center lg:gap-10">
-        <h2 id="solutions-strip-title" className="type-h3 shrink-0 text-center lg:max-w-44 lg:text-left">
-          Built for businesses across Africa
-        </h2>
-        <ul className="grid flex-1 grid-cols-4 gap-x-1 gap-y-6 sm:gap-x-3 lg:grid-cols-7">
-          {items.map(({ slug, name, icon: Icon, tone }) => (
-            <li key={name}>
-              <Link
-                href={slug ? `/solutions#${slug}` : "/solutions"}
-                className="group flex flex-col items-center gap-2.5 rounded-2xl p-1.5 text-center"
-              >
-                <span
-                  className={cn(
-                    "grid size-13 place-items-center rounded-2xl transition-transform duration-200 group-hover:-translate-y-1 group-hover:rotate-[-4deg] sm:size-14",
-                    tones[tone],
-                  )}
-                >
-                  <Icon className="size-6" aria-hidden />
-                </span>
-                <span className="text-xs font-medium text-ink sm:text-sm">{name}</span>
-              </Link>
+    <section aria-labelledby="solutions-strip-title" className="bg-mint/70">
+      <div className="container-page py-12 sm:py-14">
+        <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:justify-between sm:text-left">
+          <h2 id="solutions-strip-title" className="type-h3 text-xl sm:text-2xl">
+            Perfect for all types of businesses
+          </h2>
+          <p className="text-sm text-slate">If your customers message you on WhatsApp, WazaBolt can help.</p>
+        </div>
+        <ul className="mt-8 grid grid-cols-4 gap-1 sm:gap-3 lg:grid-cols-8">
+          {solutions.map(({ slug, name, icon, tone }) => (
+            <li key={slug}>
+              <IndustryCard href={`/solutions#${slug}`} name={name} icon={icon} tone={tone} />
             </li>
           ))}
         </ul>

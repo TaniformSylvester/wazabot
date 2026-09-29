@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Menu, Zap } from "lucide-react";
+import { ArrowRight, Menu } from "lucide-react";
 
-import { Logo } from "@/components/brand/logo";
+import { WazaBoltLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -36,14 +36,14 @@ export function SiteHeader() {
       className={cn(
         "sticky top-0 z-40 w-full transition-[background-color,box-shadow,border-color] duration-300",
         scrolled
-          ? "border-b border-border/80 bg-sand/85 shadow-[0_4px_24px_-12px_rgb(21_18_14/0.18)] backdrop-blur-md"
+          ? "border-b border-line bg-cream/90 shadow-[0_4px_24px_-12px_rgb(16_42_42/0.18)] backdrop-blur-md"
           : "border-b border-transparent bg-transparent",
       )}
     >
       <div className="container-page flex h-16 items-center justify-between gap-6 lg:h-20">
         <Link href="/" aria-label={`${siteConfig.name} home`} className="rounded-lg">
-          <Logo size="md" className="xl:hidden" />
-          <Logo size="md" withTagline className="hidden xl:inline-flex" />
+          <WazaBoltLogo size="md" className="xl:hidden" />
+          <WazaBoltLogo size="md" withTagline className="hidden xl:inline-flex" />
         </Link>
 
         <nav aria-label="Main" className="hidden lg:block">
@@ -54,9 +54,9 @@ export function SiteHeader() {
                   href={item.href}
                   aria-current={isActive(item.href) ? "page" : undefined}
                   className={cn(
-                    "relative rounded-full px-3 py-2 text-[0.9375rem] font-medium text-ink/75 transition-colors hover:text-ink xl:px-3.5",
-                    "after:absolute after:inset-x-3 after:-bottom-0.5 after:h-[3px] after:origin-left after:scale-x-0 after:rounded-full after:bg-bolt-500 after:transition-transform after:duration-300 hover:after:scale-x-100 xl:after:inset-x-3.5",
-                    isActive(item.href) && "text-ink after:scale-x-100",
+                    "relative rounded-full px-3 py-2 text-[0.9375rem] font-medium text-deep/80 transition-colors hover:text-waza-700 xl:px-3.5",
+                    "after:absolute after:inset-x-3 after:-bottom-0.5 after:h-[3px] after:origin-left after:scale-x-0 after:rounded-full after:bg-waza-500 after:transition-transform after:duration-300 hover:after:scale-x-100 xl:after:inset-x-3.5",
+                    isActive(item.href) && "text-waza-700 after:scale-x-100",
                   )}
                 >
                   {item.label}
@@ -68,13 +68,10 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" className="hidden lg:inline-flex">
-            <Link href="/login">Log In</Link>
+            <Link href="/login">Login</Link>
           </Button>
-          <Button asChild size="sm" className="group sm:h-11 sm:px-6 sm:text-[0.9375rem]">
-            <Link href="/register">
-              Get Started
-              <Zap className="hidden fill-current transition-transform group-hover:rotate-12 sm:block" />
-            </Link>
+          <Button asChild className="hidden sm:inline-flex sm:px-6">
+            <Link href="/register">Start Free</Link>
           </Button>
 
           <Sheet>
@@ -86,7 +83,7 @@ export function SiteHeader() {
             <SheetContent side="right" className="p-6">
               <SheetTitle className="sr-only">Menu</SheetTitle>
               <SheetDescription className="sr-only">Site navigation</SheetDescription>
-              <Logo size="sm" />
+              <WazaBoltLogo size="sm" />
               <nav aria-label="Mobile" className="mt-6">
                 <ul className="flex flex-col gap-1">
                   {mainNav.map((item) => (
@@ -96,8 +93,8 @@ export function SiteHeader() {
                           href={item.href}
                           aria-current={isActive(item.href) ? "page" : undefined}
                           className={cn(
-                            "flex items-center justify-between rounded-xl px-4 py-3.5 font-display text-lg font-semibold text-ink transition-colors hover:bg-sand-100",
-                            isActive(item.href) && "bg-bolt-100",
+                            "flex items-center justify-between rounded-xl px-4 py-3.5 font-display text-lg font-semibold text-deep transition-colors hover:bg-mint",
+                            isActive(item.href) && "bg-mint text-waza-700",
                           )}
                         >
                           {item.label}
@@ -110,13 +107,13 @@ export function SiteHeader() {
               <div className="mt-auto flex flex-col gap-3">
                 <SheetClose asChild>
                   <Button asChild variant="outline" size="lg">
-                    <Link href="/login">Log In</Link>
+                    <Link href="/login">Login</Link>
                   </Button>
                 </SheetClose>
                 <SheetClose asChild>
                   <Button asChild size="lg">
                     <Link href="/register">
-                      Get Started <ArrowRight />
+                      Start Free <ArrowRight />
                     </Link>
                   </Button>
                 </SheetClose>

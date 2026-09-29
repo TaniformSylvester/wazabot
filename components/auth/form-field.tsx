@@ -42,7 +42,7 @@ export function FormField({ label, error, hint, registration, labelAction, type 
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-stone transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt-500/40"
+            className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-slate transition-colors hover:text-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-waza-500/40"
             aria-label={visible ? "Hide password" : "Show password"}
             aria-pressed={visible}
           >
@@ -51,12 +51,12 @@ export function FormField({ label, error, hint, registration, labelAction, type 
         ) : null}
       </div>
       {hint && !error ? (
-        <p id={`${id}-hint`} className="text-xs text-stone">
+        <p id={`${id}-hint`} className="text-xs text-slate">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={`${id}-error`} className="text-xs font-medium text-ember-700" role="alert">
+        <p id={`${id}-error`} className="text-xs font-medium text-coral-700" role="alert">
           {error}
         </p>
       ) : null}

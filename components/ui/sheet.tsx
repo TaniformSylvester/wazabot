@@ -28,11 +28,11 @@ function SheetContent({
 }) {
   return (
     <SheetPrimitive.Portal>
-      <SheetPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+      <SheetPrimitive.Overlay className="fixed inset-0 z-50 bg-deep/50 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed z-50 flex flex-col gap-4 bg-sand shadow-float transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:animate-in data-[state=open]:duration-300",
+          "fixed z-50 flex flex-col gap-4 bg-cream shadow-float transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:animate-in data-[state=open]:duration-300",
           side === "right" &&
             "inset-y-0 right-0 h-full w-[88%] max-w-sm border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
           side === "left" &&
@@ -46,7 +46,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 grid size-10 place-items-center rounded-full text-ink transition-colors hover:bg-sand-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/40">
+        <SheetPrimitive.Close className="absolute right-4 top-4 grid size-10 place-items-center rounded-full text-deep transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/40">
           <X className="size-5" />
           <span className="sr-only">Close menu</span>
         </SheetPrimitive.Close>

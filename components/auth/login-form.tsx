@@ -37,7 +37,7 @@ export function LoginForm({ next, disabled = false }: { next?: string; disabled?
         error={errors.password?.message}
         registration={form.register("password")}
         labelAction={
-          <Link href="/forgot-password" className="text-xs font-semibold text-ember-700 hover:underline">
+          <Link href="/forgot-password" className="text-xs font-semibold text-waza-700 hover:underline">
             Forgot password?
           </Link>
         }

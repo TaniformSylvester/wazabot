@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { FinalCta } from "@/components/marketing/final-cta";
+import { CTASection } from "@/components/marketing/cta-section";
 import { PageIntro } from "@/components/marketing/page-intro";
 
 export const metadata: Metadata = {
@@ -34,15 +34,15 @@ export default function AboutPage() {
       <section className="container-page py-16">
         <ul className="grid gap-5 md:grid-cols-3">
           {principles.map((p, i) => (
-            <li key={p.title} className="rounded-3xl border border-border bg-card p-6 shadow-card">
-              <span className="font-display text-4xl font-extrabold text-bolt-500">0{i + 1}</span>
+            <li key={p.title} className="rounded-2xl border border-line bg-white p-6 shadow-card">
+              <span className="font-display text-4xl font-extrabold text-waza-500">0{i + 1}</span>
               <h2 className="type-h3 mt-4 text-lg">{p.title}</h2>
-              <p className="type-body mt-2 text-stone">{p.text}</p>
+              <p className="type-body mt-2 text-slate">{p.text}</p>
             </li>
           ))}
         </ul>
       </section>
-      <FinalCta />
+      <CTASection />
     </>
   );
 }

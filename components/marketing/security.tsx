@@ -29,13 +29,13 @@ export function Security() {
         <ul className="grid gap-4 sm:grid-cols-2">
           {points.map(({ icon: Icon, title, text }, i) => (
             <Reveal as="li" key={title} delay={i * 60} className={i === points.length - 1 ? "sm:col-span-2" : undefined}>
-              <div className="flex h-full gap-4 rounded-2xl border border-border bg-sand p-5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-ink text-bolt-400">
+              <div className="flex h-full gap-4 rounded-2xl border border-border bg-cream p-5">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-deep text-waza-400">
                   <Icon className="size-5" aria-hidden />
                 </span>
                 <div>
                   <h3 className="type-h3 text-base">{title}</h3>
-                  <p className="type-small mt-1 text-stone">{text}</p>
+                  <p className="type-small mt-1 text-slate">{text}</p>
                 </div>
               </div>
             </Reveal>

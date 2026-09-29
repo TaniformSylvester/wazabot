@@ -96,7 +96,7 @@ export function LiveDemo() {
   const done = step >= script.length - 1;
 
   return (
-    <section id="demo" aria-labelledby="demo-title" className="bg-sand-100 py-20 sm:py-28">
+    <section id="demo" aria-labelledby="demo-title" className="bg-surface py-20 sm:py-28">
       <div ref={rootRef} className="container-page grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
         <div>
           <SectionHeading
@@ -110,27 +110,27 @@ export function LiveDemo() {
             }
             description="Before WazaBolt replies, it checks your catalogue, stock and prices. Every answer comes from information you've given it — never guesswork."
           />
-          <p className="type-small mt-6 flex items-center gap-2 text-stone">
-            <Hand className="size-4 text-ember-600" aria-hidden />
+          <p className="type-small mt-6 flex items-center gap-2 text-slate">
+            <Hand className="size-4 text-waza-600" aria-hidden />
             Your team can take over this conversation at any moment.
           </p>
-          <p className="mt-2 text-xs text-stone">Example conversation for illustration.</p>
+          <p className="mt-2 text-xs text-slate">Example conversation for illustration.</p>
         </div>
 
-        <div className="grid overflow-hidden rounded-3xl border border-border bg-card shadow-float md:grid-cols-[1.35fr_1fr]">
+        <div className="grid overflow-hidden rounded-2xl border border-line bg-white shadow-float md:grid-cols-[1.35fr_1fr]">
           {/* conversation */}
           <div className="flex min-w-0 flex-col">
             <ConversationHeader name="Sarah M." initials="SM" />
             <div
               ref={scrollRef}
-              className="flex h-[400px] flex-col gap-2.5 overflow-y-auto bg-sand p-4"
+              className="flex h-[400px] flex-col gap-2.5 overflow-y-auto bg-cream p-4"
               role="log"
               aria-label="Example customer conversation"
             >
               {messages.map((m) =>
                 m.product ? (
                   <div key={m.id} className="flex animate-bubble-in justify-end">
-                    <div className="flex w-[82%] gap-3 rounded-2xl rounded-tr-sm bg-ink p-2.5 text-sand">
+                    <div className="flex w-[82%] gap-3 rounded-2xl rounded-tr-sm bg-deep p-2.5 text-cream">
                       <Image
                         src="/images/product-robe-wax.webp"
                         alt="Robe en wax dress"
@@ -141,9 +141,9 @@ export function LiveDemo() {
                       <div className="flex min-w-0 flex-1 flex-col justify-between">
                         <div>
                           <p className="text-sm font-semibold">Robe en wax</p>
-                          <p className="text-xs text-sand/65">Sizes S–XL · in stock</p>
+                          <p className="text-xs text-cream/65">Sizes S–XL · in stock</p>
                         </div>
-                        <p className="font-display text-base font-bold text-bolt-400">15,000 FCFA</p>
+                        <p className="font-display text-base font-bold text-waza-400">15,000 FCFA</p>
                       </div>
                     </div>
                   </div>
@@ -162,25 +162,25 @@ export function LiveDemo() {
               {typing ? <TypingIndicator className="animate-bubble-in" /> : null}
             </div>
             <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
-              <span className="text-xs text-stone">Automation is replying</span>
-              <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-ink">Take over</span>
+              <span className="text-xs text-slate">Automation is replying</span>
+              <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-deep">Take over</span>
             </div>
           </div>
 
           {/* automation log */}
-          <div className="border-t border-border bg-ink p-5 text-sand md:border-l md:border-t-0">
+          <div className="border-t border-border bg-deep p-5 text-cream md:border-l md:border-t-0">
             <p className="flex items-center gap-2 font-display text-sm font-bold">
-              <Zap className="size-4 fill-bolt-400 text-bolt-400" aria-hidden /> Automation log
+              <Zap className="size-4 fill-gold text-gold" aria-hidden /> Automation log
             </p>
             <ul className="mt-4 space-y-3" aria-live="polite">
               {checks.length === 0 ? (
-                <li className="flex items-center gap-2 text-sm text-sand/60">
+                <li className="flex items-center gap-2 text-sm text-cream/60">
                   <Loader2 className="size-4 animate-spin" aria-hidden /> Waiting for a message…
                 </li>
               ) : null}
               {checks.map((c) => (
-                <li key={c} className="flex animate-bubble-in items-start gap-2.5 text-sm text-sand/90">
-                  <span className="mt-0.5 grid size-4.5 shrink-0 place-items-center rounded-full bg-bolt-500 text-ink">
+                <li key={c} className="flex animate-bubble-in items-start gap-2.5 text-sm text-cream/90">
+                  <span className="mt-0.5 grid size-4.5 shrink-0 place-items-center rounded-full bg-waza-500 text-deep">
                     <Check className="size-3" strokeWidth={3} aria-hidden />
                   </span>
                   {c}

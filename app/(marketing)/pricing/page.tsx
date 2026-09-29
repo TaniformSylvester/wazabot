@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
+import { CTASection } from "@/components/marketing/cta-section";
 import { Faq } from "@/components/marketing/faq";
-import { FinalCta } from "@/components/marketing/final-cta";
 import { PageIntro } from "@/components/marketing/page-intro";
 import { Pricing } from "@/components/marketing/pricing";
 
@@ -20,7 +20,7 @@ export default function PricingPage() {
       />
       <Pricing />
       <Faq />
-      <FinalCta />
+      <CTASection />
     </>
   );
 }

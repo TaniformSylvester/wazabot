@@ -20,7 +20,7 @@ export function ChannelBadge({
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium",
-        tone === "dark" ? "bg-sand/10 text-sand/80" : "bg-sand-100 text-stone",
+        tone === "dark" ? "bg-cream/10 text-cream/80" : "bg-surface text-slate",
         className,
       )}
     >

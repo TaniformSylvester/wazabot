@@ -23,17 +23,17 @@ export function RegisterForm({ disabled = false }: { disabled?: boolean }) {
   if (result?.ok) {
     return (
       <div className="flex flex-col items-center text-center">
-        <span className="grid size-14 place-items-center rounded-2xl bg-bolt-100 text-bolt-800">
+        <span className="grid size-14 place-items-center rounded-2xl bg-waza-100 text-waza-800">
           <MailCheck className="size-7" aria-hidden />
         </span>
         <h2 className="type-h3 mt-5 text-xl">Check your email</h2>
-        <p className="mt-2 text-stone">
-          We sent a confirmation link to <strong className="text-ink">{result.message}</strong>. Open it to
+        <p className="mt-2 text-slate">
+          We sent a confirmation link to <strong className="text-deep">{result.message}</strong>. Open it to
           activate your WazaBolt account.
         </p>
-        <p className="mt-4 text-sm text-stone">
+        <p className="mt-4 text-sm text-slate">
           Didn&apos;t get it? Check your spam folder, or{" "}
-          <Link href="/login" className="font-semibold text-ember-700 hover:underline">
+          <Link href="/login" className="font-semibold text-waza-700 hover:underline">
             log in
           </Link>{" "}
           if you&apos;ve already confirmed.
@@ -73,10 +73,10 @@ export function RegisterForm({ disabled = false }: { disabled?: boolean }) {
       <Button type="submit" size="lg" disabled={pending || disabled} className="mt-1 w-full">
         {pending ? "Creating your account…" : "Create account"}
       </Button>
-      <p className="text-center text-xs text-stone">
+      <p className="text-center text-xs text-slate">
         By creating an account you agree to our{" "}
-        <Link href="/terms" className="underline hover:text-ink">Terms</Link> and{" "}
-        <Link href="/privacy" className="underline hover:text-ink">Privacy Policy</Link>.
+        <Link href="/terms" className="underline hover:text-deep">Terms</Link> and{" "}
+        <Link href="/privacy" className="underline hover:text-deep">Privacy Policy</Link>.
       </p>
     </form>
   );
