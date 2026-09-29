@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 import { safeRedirectPath } from "@/lib/auth/redirect";
+import { localizePath, splitLocale } from "@/lib/i18n/paths";
+import { getRequestLocale } from "@/lib/i18n/request-locale";
 import { logServerError } from "@/lib/log";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -18,11 +20,14 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = safeRedirectPath(searchParams.get("next") ?? (type === "recovery" ? "/reset-password" : "/dashboard"));
+  // Email links carry a locale-prefixed `next` (/fr/dashboard); older links may not.
+  const rawNext = safeRedirectPath(searchParams.get("next") ?? (type === "recovery" ? "/reset-password" : "/dashboard"));
+  const locale = splitLocale(rawNext).locale ?? (await getRequestLocale());
+  const next = localizePath(locale, rawNext);
 
   const fail = (reason: string) => {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = localizePath(locale, "/login");
     url.search = `?error=${reason}`;
     return NextResponse.redirect(url);
   };
@@ -48,6 +53,6 @@ export async function GET(request: NextRequest) {
   const url = request.nextUrl.clone();
   url.pathname = next;
   url.search = "";
-  if (next === "/dashboard" && type !== "recovery") url.searchParams.set("welcome", "1");
+  if (splitLocale(next).path === "/dashboard" && type !== "recovery") url.searchParams.set("welcome", "1");
   return NextResponse.redirect(url);
 }

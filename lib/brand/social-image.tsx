@@ -52,7 +52,28 @@ async function assets() {
 
 const dataSvg = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
-export async function renderSocialImage(format: SocialFormat) {
+/** Text on the image. Defaults to the English brand copy; the Open Graph image passes the page locale's copy. */
+export type SocialCopy = {
+  tagline: string;
+  /** Headline with the highlighted part in <hl>…</hl>. */
+  headline: string;
+  supporting: string;
+  positioning: string;
+  productMeta: string;
+  orderNow: string;
+};
+
+const defaultCopy: SocialCopy = {
+  tagline: siteConfig.tagline,
+  headline: "Power your business on <hl>WhatsApp.</hl>",
+  supporting: siteConfig.supporting,
+  positioning: siteConfig.positioning,
+  productMeta: "15,000 FCFA · Size L",
+  orderNow: "Order Now",
+};
+
+export async function renderSocialImage(format: SocialFormat, copy: SocialCopy = defaultCopy) {
+  const [before, highlight = "", after = ""] = copy.headline.split(/<\/?hl>/);
   const f: Format = socialFormats[format];
   const a = await assets();
   const dark = f.theme === "dark";
@@ -71,7 +92,7 @@ export async function renderSocialImage(format: SocialFormat) {
           <span style={{ color: text }}>Waza</span>
           <span style={{ color: dark ? brandHex.green400 : brandHex.green }}>Bolt</span>
         </div>
-        <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: muted, marginTop: 8 }}>{siteConfig.tagline}</div>
+        <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: muted, marginTop: 8 }}>{copy.tagline}</div>
       </div>
     </div>
   );
@@ -90,8 +111,9 @@ export async function renderSocialImage(format: SocialFormat) {
           maxWidth: stacked ? 920 : 620,
         }}
       >
-        <span>Power your business on&nbsp;</span>
-        <span style={{ color: dark ? brandHex.green400 : "#12A06A" }}>WhatsApp.</span>
+        <span>{before.replace(/ $/, "\u00a0")}</span>
+        <span style={{ color: dark ? brandHex.green400 : "#12A06A" }}>{highlight}</span>
+        {after ? <span>{after}</span> : null}
       </div>
       <div
         style={{
@@ -105,7 +127,7 @@ export async function renderSocialImage(format: SocialFormat) {
           borderRadius: 999,
         }}
       >
-        {siteConfig.supporting}
+        {copy.supporting}
       </div>
     </div>
   );
@@ -147,7 +169,7 @@ export async function renderSocialImage(format: SocialFormat) {
         <img src={a.product} width={56} height={68} alt="" style={{ borderRadius: 10, objectFit: "cover" }} />
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", fontSize: 18, fontWeight: 800, color: brandHex.deep }}>Robe en wax</div>
-          <div style={{ display: "flex", fontSize: 16, fontWeight: 700, color: brandHex.slate }}>15,000 FCFA · Size L</div>
+          <div style={{ display: "flex", fontSize: 16, fontWeight: 700, color: brandHex.slate }}>{copy.productMeta}</div>
           <div
             style={{
               display: "flex",
@@ -160,7 +182,7 @@ export async function renderSocialImage(format: SocialFormat) {
               padding: "5px 14px",
             }}
           >
-            Order Now
+            {copy.orderNow}
           </div>
         </div>
       </div>
@@ -192,11 +214,11 @@ export async function renderSocialImage(format: SocialFormat) {
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 40, height: stacked ? "auto" : "100%" }}>
           {logo}
           {message}
-          {!stacked ? <div style={{ display: "flex", fontSize: 20, fontWeight: 700, color: muted }}>{siteConfig.positioning}</div> : null}
+          {!stacked ? <div style={{ display: "flex", fontSize: 20, fontWeight: 700, color: muted }}>{copy.positioning}</div> : null}
         </div>
         {stacked ? <div style={{ display: "flex", justifyContent: "center" }}>{visual}</div> : visual}
         {stacked ? (
-          <div style={{ display: "flex", justifyContent: "center", fontSize: 26, fontWeight: 700, color: muted }}>{siteConfig.positioning}</div>
+          <div style={{ display: "flex", justifyContent: "center", fontSize: 26, fontWeight: 700, color: muted }}>{copy.positioning}</div>
         ) : null}
       </div>
     ),

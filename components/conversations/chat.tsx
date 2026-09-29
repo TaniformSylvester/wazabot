@@ -1,5 +1,8 @@
+"use client";
+
 import { AIStatus } from "@/components/brand/ai-status";
 import { ChannelBadge } from "@/components/brand/channel-badge";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { cn } from "@/lib/utils";
 
 /*
@@ -77,8 +80,9 @@ export function ChatBubble({
 }
 
 export function TypingIndicator({ className }: { className?: string }) {
+  const { t } = useI18n();
   return (
-    <div className={cn("flex justify-end", className)} role="status" aria-label="WazaBolt is replying">
+    <div className={cn("flex justify-end", className)} role="status" aria-label={t.common.status.replying}>
       <div className="flex items-center gap-1 rounded-2xl rounded-tr-sm bg-deep px-3.5 py-3">
         {[0, 150, 300].map((delay) => (
           <span

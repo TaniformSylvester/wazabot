@@ -5,20 +5,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MailCheck } from "lucide-react";
 
-import { signUp } from "@/app/(auth)/actions";
 import { FormAlert } from "@/components/auth/form-alert";
 import { FormField } from "@/components/auth/form-field";
+import { useAuthText } from "@/components/auth/use-auth-text";
 import { useServerForm } from "@/components/auth/use-server-form";
 import { Button } from "@/components/ui/button";
+import { signUp } from "@/lib/actions/auth";
+import { format } from "@/lib/i18n/format";
+import { rich } from "@/lib/i18n/rich";
 import { registerSchema, type RegisterInput } from "@/lib/validation/auth";
 
 export function RegisterForm({ disabled = false }: { disabled?: boolean }) {
+  const { a, locale, href, fieldError, errorText } = useAuthText();
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { fullName: "", businessName: "", email: "", password: "" },
   });
-  const { onSubmit, pending, result } = useServerForm(form, signUp);
+  const { onSubmit, pending, result } = useServerForm(form, (values) => signUp(values, locale));
   const errors = form.formState.errors;
+  const link = "font-semibold text-waza-700 hover:underline";
 
   if (result?.ok) {
     return (
@@ -26,17 +31,20 @@ export function RegisterForm({ disabled = false }: { disabled?: boolean }) {
         <span className="grid size-14 place-items-center rounded-2xl bg-waza-100 text-waza-800">
           <MailCheck className="size-7" aria-hidden />
         </span>
-        <h2 className="type-h3 mt-5 text-xl">Check your email</h2>
+        <h2 className="type-h3 mt-5 text-xl">{a.register.checkEmailTitle}</h2>
         <p className="mt-2 text-slate">
-          We sent a confirmation link to <strong className="text-deep">{result.message}</strong>. Open it to
-          activate your WazaBolt account.
+          {rich(format(a.register.checkEmailText, { email: result.email ?? "" }), {
+            b: (c) => <strong className="text-deep">{c}</strong>,
+          })}
         </p>
         <p className="mt-4 text-sm text-slate">
-          Didn&apos;t get it? Check your spam folder, or{" "}
-          <Link href="/login" className="font-semibold text-waza-700 hover:underline">
-            log in
-          </Link>{" "}
-          if you&apos;ve already confirmed.
+          {rich(a.register.checkEmailHelp, {
+            login: (c) => (
+              <Link href={href("/login")} className={link}>
+                {c}
+              </Link>
+            ),
+          })}
         </p>
       </div>
     );
@@ -44,39 +52,48 @@ export function RegisterForm({ disabled = false }: { disabled?: boolean }) {
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-      {result && !result.ok ? <FormAlert tone="error">{result.error}</FormAlert> : null}
+      {result && !result.ok ? <FormAlert tone="error">{errorText(result.error)}</FormAlert> : null}
       <div className="grid gap-5 sm:grid-cols-2">
-        <FormField label="Your name" autoComplete="name" error={errors.fullName?.message} registration={form.register("fullName")} />
+        <FormField label={a.fields.fullName} autoComplete="name" error={fieldError(errors.fullName?.message)} registration={form.register("fullName")} />
         <FormField
-          label="Business name"
+          label={a.fields.businessName}
           autoComplete="organization"
-          error={errors.businessName?.message}
+          error={fieldError(errors.businessName?.message)}
           registration={form.register("businessName")}
         />
       </div>
       <FormField
-        label="Email"
+        label={a.fields.email}
         type="email"
         autoComplete="email"
         inputMode="email"
-        error={errors.email?.message}
+        error={fieldError(errors.email?.message)}
         registration={form.register("email")}
       />
       <FormField
-        label="Password"
+        label={a.fields.password}
         type="password"
         autoComplete="new-password"
-        hint="At least 8 characters, with letters and numbers."
-        error={errors.password?.message}
+        hint={a.fields.passwordHint}
+        error={fieldError(errors.password?.message)}
         registration={form.register("password")}
       />
       <Button type="submit" size="lg" disabled={pending || disabled} className="mt-1 w-full">
-        {pending ? "Creating your account…" : "Create account"}
+        {pending ? a.register.pending : a.register.submit}
       </Button>
       <p className="text-center text-xs text-slate">
-        By creating an account you agree to our{" "}
-        <Link href="/terms" className="underline hover:text-deep">Terms</Link> and{" "}
-        <Link href="/privacy" className="underline hover:text-deep">Privacy Policy</Link>.
+        {rich(a.register.agree, {
+          terms: (c) => (
+            <Link href={href("/terms")} className="underline hover:text-deep">
+              {c}
+            </Link>
+          ),
+          privacy: (c) => (
+            <Link href={href("/privacy")} className="underline hover:text-deep">
+              {c}
+            </Link>
+          ),
+        })}
       </p>
     </form>
   );

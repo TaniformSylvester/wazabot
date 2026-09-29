@@ -88,6 +88,8 @@ type LogoProps = {
   layout?: "horizontal" | "compact" | "icon";
   size?: "sm" | "md" | "lg" | "xl";
   withTagline?: boolean;
+  /** Localized tagline; defaults to the English descriptor. */
+  tagline?: string;
 };
 
 const sizes = {
@@ -106,6 +108,7 @@ export function WazaBoltLogo({
   layout = "horizontal",
   size = "md",
   withTagline = false,
+  tagline = BRAND_TAGLINE,
 }: LogoProps) {
   const s = sizes[size];
   if (layout === "icon") return <WazaBoltIcon tone={tone} className={cn(s.icon, className)} title="WazaBolt" />;
@@ -139,7 +142,7 @@ export function WazaBoltLogo({
         </span>
         {withTagline ? (
           <span className={cn("mt-1.5 font-medium", s.tag, tone === "dark" ? "text-white/75" : "text-slate")}>
-            {BRAND_TAGLINE}
+            {tagline}
           </span>
         ) : null}
       </span>

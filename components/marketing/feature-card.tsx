@@ -17,7 +17,7 @@ export function FeatureCard({
   text: string;
   tone?: IconTone;
   /** Use for anything not built yet — never present planned work as live. */
-  status?: "Coming Soon" | "Planned";
+  status?: string;
   className?: string;
 }) {
   return (

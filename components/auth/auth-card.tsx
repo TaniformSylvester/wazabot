@@ -21,11 +21,10 @@ export function AuthCard({
   );
 }
 
-export function NotConfiguredNotice() {
+export function NotConfiguredNotice({ text }: { text: string }) {
   return (
     <FormAlert tone="info" className="mb-6">
-      Accounts aren&apos;t open yet: the authentication service hasn&apos;t been connected. Set the Supabase
-      environment variables to enable sign-up and login.
+      {text}
     </FormAlert>
   );
 }

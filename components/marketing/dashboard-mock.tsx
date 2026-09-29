@@ -22,7 +22,10 @@ import { AIStatus } from "@/components/brand/ai-status";
 import { WazaBoltLogo } from "@/components/brand/logo";
 import { CountUp } from "@/components/motion/count-up";
 import { iconTones } from "@/lib/brand/tones";
+import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { format, formatXaf } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
+import type { Messages } from "@/messages/en";
 
 /*
  * UI MOCKUP ONLY — illustrative example data for the marketing site.
@@ -30,29 +33,30 @@ import { cn } from "@/lib/utils";
  */
 
 const metrics = [
-  { label: "Conversations", value: 124, suffix: "", trend: "12%" },
-  { label: "Customers", value: 83, suffix: "", trend: "8%" },
-  { label: "Orders", value: 17, suffix: "", trend: "24%" },
-  { label: "AI Resolution", value: 78, suffix: "%", trend: "6%" },
-];
+  { key: "conversations", value: 124, suffix: "", trend: "12%" },
+  { key: "customers", value: 83, suffix: "", trend: "8%" },
+  { key: "orders", value: 17, suffix: "", trend: "24%" },
+  { key: "resolution", value: 78, suffix: "%", trend: "6%" },
+] as const;
 
+/** Example conversations — texts come from the dictionary (index-aligned). */
 const conversations = [
-  { name: "Sarah M.", message: "Do you have this dress in size L?", time: "10:24", mode: "ai", initials: "SM", tone: "green" },
-  { name: "Jean-Paul K.", message: "What are your opening hours on Sunday?", time: "10:12", mode: "ai", initials: "JK", tone: "gold" },
-  { name: "Aïcha B.", message: "I want a refund for my order", time: "09:58", mode: "human", initials: "AB", tone: "coral" },
-  { name: "Marie T.", message: "Je veux passer une commande.", time: "09:47", mode: "ai", initials: "MT", tone: "teal" },
+  { time: "10:24", mode: "ai", initials: "SM", tone: "green" },
+  { time: "10:12", mode: "ai", initials: "JK", tone: "gold" },
+  { time: "09:58", mode: "human", initials: "AB", tone: "coral" },
+  { time: "09:47", mode: "ai", initials: "MT", tone: "teal" },
 ] as const;
 
 const orders = [
-  { ref: "#1042", item: "Robe en wax · L", amount: "15,000 XAF", status: "New" },
-  { ref: "#1041", item: "Sac en cuir", amount: "22,500 XAF", status: "Confirmed" },
-  { ref: "#1040", item: "Foulard ×2", amount: "8,000 XAF", status: "Delivered" },
+  { ref: "#1042", item: "Robe en wax · L", amount: 15_000, status: "new" },
+  { ref: "#1041", item: "Sac en cuir", amount: 22_500, status: "confirmed" },
+  { ref: "#1040", item: "Foulard ×2", amount: 8_000, status: "delivered" },
 ] as const;
 
 const products = [
-  { name: "Robe en wax", price: "15,000 XAF", asked: 18 },
-  { name: "Sac en cuir", price: "22,500 XAF", asked: 11 },
-  { name: "Foulard imprimé", price: "4,000 XAF", asked: 7 },
+  { name: "Robe en wax", price: 15_000, asked: 18 },
+  { name: "Sac en cuir", price: 22_500, asked: 11 },
+  { name: "Foulard imprimé", price: 4_000, asked: 7 },
 ];
 
 const newCustomers = [
@@ -62,17 +66,18 @@ const newCustomers = [
 ];
 
 const statusStyle = {
-  New: "bg-gold-100 text-gold-800",
-  Confirmed: "bg-waza-100 text-waza-900",
-  Delivered: "bg-mint text-waza-700",
+  new: "bg-gold-100 text-gold-800",
+  confirmed: "bg-waza-100 text-waza-900",
+  delivered: "bg-mint text-waza-700",
 } as const;
 
-const navGroups = [
-  { title: "Main", items: [{ label: "Dashboard", icon: LayoutDashboard, active: true }, { label: "Conversations", icon: MessagesSquare, badge: "3" }, { label: "Customers", icon: Users }] },
-  { title: "Business", items: [{ label: "Products", icon: Package }, { label: "Orders", icon: ShoppingBag }, { label: "Knowledge", icon: BookOpen }] },
-  { title: "AI", items: [{ label: "AI Assistant", icon: Bot }, { label: "Automations", icon: Workflow }] },
-  { title: "Insights", items: [{ label: "Analytics", icon: ChartColumn }] },
-  { title: "Settings", items: [{ label: "WhatsApp", icon: Smartphone }, { label: "Team", icon: UsersRound }, { label: "Billing", icon: CreditCard }, { label: "Settings", icon: Settings }] },
+type NavItemKey = keyof Messages["dashboardMock"]["nav"]["items"];
+const navGroups: { key: keyof Messages["dashboardMock"]["nav"]["groups"]; items: { key: NavItemKey; icon: typeof Bot; active?: true; badge?: string }[] }[] = [
+  { key: "main", items: [{ key: "dashboard", icon: LayoutDashboard, active: true }, { key: "conversations", icon: MessagesSquare, badge: "3" }, { key: "customers", icon: Users }] },
+  { key: "business", items: [{ key: "products", icon: Package }, { key: "orders", icon: ShoppingBag }, { key: "knowledge", icon: BookOpen }] },
+  { key: "ai", items: [{ key: "assistant", icon: Bot }, { key: "automations", icon: Workflow }] },
+  { key: "insights", items: [{ key: "analytics", icon: ChartColumn }] },
+  { key: "settings", items: [{ key: "whatsapp", icon: Smartphone }, { key: "team", icon: UsersRound }, { key: "billing", icon: CreditCard }, { key: "settings", icon: Settings }] },
 ];
 
 function Panel({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
@@ -85,7 +90,9 @@ function Panel({ title, children, className }: { title: string; children: React.
 }
 
 /** Full dashboard preview for the "more than a chatbot" section. */
-export function DashboardMock({ className }: { className?: string }) {
+export async function DashboardMock({ className }: { className?: string }) {
+  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
+  const t = messages.dashboardMock;
   return (
     <div className={cn("overflow-hidden rounded-2xl border border-line bg-white shadow-float", className)}>
       <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-2.5">
@@ -93,7 +100,7 @@ export function DashboardMock({ className }: { className?: string }) {
         <span className="size-2.5 rounded-full bg-gold" />
         <span className="size-2.5 rounded-full bg-waza-500" />
         <span className="ml-3 hidden rounded-md bg-white px-3 py-0.5 text-[0.6875rem] text-slate sm:inline">
-          WazaBolt dashboard
+          {t.windowTitle}
         </span>
       </div>
 
@@ -102,21 +109,21 @@ export function DashboardMock({ className }: { className?: string }) {
           <WazaBoltLogo tone="dark" size="sm" className="mb-5" />
           <div className="space-y-4">
             {navGroups.map((g) => (
-              <div key={g.title}>
-                <p className="mb-1 px-2.5 text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-white/40">{g.title}</p>
+              <div key={g.key}>
+                <p className="mb-1 px-2.5 text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-white/40">{t.nav.groups[g.key]}</p>
                 <ul className="space-y-0.5">
-                  {g.items.map(({ label, icon: Icon, ...rest }) => (
+                  {g.items.map(({ key, icon: Icon, active, badge }) => (
                     <li
-                      key={label}
+                      key={key}
                       className={cn(
                         "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem]",
-                        "active" in rest ? "bg-waza-500 font-semibold text-deep" : "text-white/70",
+                        active ? "bg-waza-500 font-semibold text-deep" : "text-white/70",
                       )}
                     >
                       <Icon className="size-4" aria-hidden />
-                      {label}
-                      {"badge" in rest ? (
-                        <span className="ml-auto rounded-full bg-gold px-1.5 text-[0.625rem] font-bold text-deep">{rest.badge}</span>
+                      {t.nav.items[key]}
+                      {badge ? (
+                        <span className="ml-auto rounded-full bg-gold px-1.5 text-[0.625rem] font-bold text-deep">{badge}</span>
                       ) : null}
                     </li>
                   ))}
@@ -129,8 +136,8 @@ export function DashboardMock({ className }: { className?: string }) {
         <div className="min-w-0 flex-1 bg-cream p-4 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="font-display text-lg font-bold text-deep sm:text-xl">Good morning, MJ 👋</p>
-              <p className="text-xs text-slate sm:text-sm">Here&apos;s what&apos;s happening with MJ Fashion today.</p>
+              <p className="font-display text-lg font-bold text-deep sm:text-xl">{t.greeting}</p>
+              <p className="text-xs text-slate sm:text-sm">{t.subtitle}</p>
             </div>
             <div className="flex items-center gap-2">
               <AIStatus />
@@ -140,14 +147,14 @@ export function DashboardMock({ className }: { className?: string }) {
 
           <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {metrics.map((m) => (
-              <div key={m.label} className="rounded-xl border border-line bg-white p-4">
-                <p className="text-xs text-slate">{m.label}</p>
+              <div key={m.key} className="rounded-xl border border-line bg-white p-4">
+                <p className="text-xs text-slate">{t.metrics[m.key]}</p>
                 <p className="font-display text-2xl font-bold text-deep">
                   <CountUp value={m.value} suffix={m.suffix} />
                 </p>
                 <p className="flex items-center gap-1 text-[0.6875rem] font-medium text-waza-700">
                   <TrendingUp className="size-3" aria-hidden /> {m.trend}
-                  <span className="font-normal text-slate">from yesterday</span>
+                  <span className="font-normal text-slate">{t.fromYesterday}</span>
                 </p>
               </div>
             ))}
@@ -158,25 +165,25 @@ export function DashboardMock({ className }: { className?: string }) {
               <Hand className="size-4" aria-hidden />
             </span>
             <div className="min-w-0 text-xs sm:text-sm">
-              <p className="font-semibold text-deep">Aïcha B. is now in Human Mode</p>
-              <p className="text-slate">Refund request — WazaBolt paused and handed the chat to your team.</p>
+              <p className="font-semibold text-deep">{t.humanTitle}</p>
+              <p className="text-slate">{t.humanText}</p>
             </div>
             <span className="ml-auto hidden shrink-0 rounded-full bg-deep px-3 py-1 text-xs font-semibold text-white sm:inline">
-              Open chat
+              {t.openChat}
             </span>
           </div>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-5">
-            <Panel title="Recent conversations" className="lg:col-span-3">
+            <Panel title={t.recentConversations} className="lg:col-span-3">
               <ul className="mt-1 divide-y divide-line">
-                {conversations.map((c) => (
-                  <li key={c.name} className="flex items-center gap-3 py-2.5">
+                {conversations.map((c, i) => (
+                  <li key={c.initials} className="flex items-center gap-3 py-2.5">
                     <span className={cn("grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold", iconTones[c.tone])} aria-hidden>
                       {c.initials}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-deep">{c.name}</p>
-                      <p className="truncate text-xs text-slate">{c.message}</p>
+                      <p className="text-sm font-semibold text-deep">{t.conversations[i]?.name}</p>
+                      <p className="truncate text-xs text-slate">{t.conversations[i]?.message}</p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <span className="text-[0.6875rem] text-slate">{c.time}</span>
@@ -186,7 +193,7 @@ export function DashboardMock({ className }: { className?: string }) {
                 ))}
               </ul>
             </Panel>
-            <Panel title="Latest orders" className="lg:col-span-2">
+            <Panel title={t.latestOrders} className="lg:col-span-2">
               <ul className="mt-1 divide-y divide-line">
                 {orders.map((o) => (
                   <li key={o.ref} className="flex items-center justify-between gap-3 py-2.5">
@@ -194,16 +201,16 @@ export function DashboardMock({ className }: { className?: string }) {
                       <p className="text-sm font-semibold text-deep">
                         {o.ref} <span className="font-normal text-slate">· {o.item}</span>
                       </p>
-                      <p className="text-xs text-slate">{o.amount}</p>
+                      <p className="text-xs text-slate">{formatXaf(o.amount, locale)}</p>
                     </div>
                     <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[0.625rem] font-semibold", statusStyle[o.status])}>
-                      {o.status}
+                      {t.orderStatus[o.status]}
                     </span>
                   </li>
                 ))}
               </ul>
             </Panel>
-            <Panel title="Most-asked products" className="lg:col-span-3">
+            <Panel title={t.mostAsked} className="lg:col-span-3">
               <ul className="mt-2 grid gap-2 sm:grid-cols-3">
                 {products.map((p, i) => (
                   <li key={p.name} className="flex items-center gap-2.5 rounded-lg bg-surface p-2">
@@ -216,14 +223,14 @@ export function DashboardMock({ className }: { className?: string }) {
                     )}
                     <div className="min-w-0 leading-tight">
                       <p className="truncate text-xs font-semibold text-deep">{p.name}</p>
-                      <p className="text-[0.6875rem] text-slate">{p.price}</p>
-                      <p className="text-[0.625rem] text-waza-700">Asked {p.asked}× today</p>
+                      <p className="text-[0.6875rem] text-slate">{formatXaf(p.price, locale)}</p>
+                      <p className="text-[0.625rem] text-waza-700">{format(t.askedToday, { count: p.asked })}</p>
                     </div>
                   </li>
                 ))}
               </ul>
             </Panel>
-            <Panel title="New customers" className="lg:col-span-2">
+            <Panel title={t.newCustomers} className="lg:col-span-2">
               <ul className="mt-1 divide-y divide-line">
                 {newCustomers.map((c) => (
                   <li key={c.name} className="flex items-center gap-3 py-2">
@@ -244,23 +251,24 @@ export function DashboardMock({ className }: { className?: string }) {
 }
 
 /** Small dashboard card used inside the hero composition. */
-export function DashboardMockCompact({ className }: { className?: string }) {
+export async function DashboardMockCompact({ className }: { className?: string }) {
+  const t = (await getMessages()).dashboardMock;
   return (
     <div className={cn("overflow-hidden rounded-2xl border border-line bg-white shadow-float", className)}>
       <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
         <div className="flex items-center gap-2.5">
           <WazaBoltLogo layout="icon" size="sm" className="size-7" />
           <div>
-            <p className="font-display text-sm font-bold text-deep">Good morning, MJ 👋</p>
-            <p className="text-[0.625rem] text-slate">Here&apos;s what&apos;s happening today.</p>
+            <p className="font-display text-sm font-bold text-deep">{t.greeting}</p>
+            <p className="text-[0.625rem] text-slate">{t.subtitleShort}</p>
           </div>
         </div>
         <AIStatus size="sm" />
       </div>
       <div className="grid grid-cols-4 gap-2 bg-cream p-3">
         {metrics.map((m) => (
-          <div key={m.label} className="rounded-xl border border-line bg-white p-2.5">
-            <p className="truncate text-[0.625rem] text-slate">{m.label}</p>
+          <div key={m.key} className="rounded-xl border border-line bg-white p-2.5">
+            <p className="truncate text-[0.625rem] text-slate">{t.metrics[m.key]}</p>
             <p className="font-display text-lg font-bold text-deep">
               <CountUp value={m.value} suffix={m.suffix} />
             </p>
@@ -275,8 +283,8 @@ export function DashboardMockCompact({ className }: { className?: string }) {
           <Hand className="size-3" aria-hidden />
         </span>
         <p className="text-[0.6875rem] text-deep">
-          <span className="font-semibold">1 chat in Human Mode</span>
-          <span className="text-slate"> · refund request</span>
+          <span className="font-semibold">{t.humanCompact}</span>
+          <span className="text-slate">{t.humanCompactReason}</span>
         </p>
       </div>
     </div>

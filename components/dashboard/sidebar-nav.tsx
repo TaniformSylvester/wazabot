@@ -3,23 +3,32 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { dashboardNav } from "@/config/dashboard-nav";
+import { splitLocale } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
+import type { Messages } from "@/messages/en";
 
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
-  const pathname = usePathname();
+export function SidebarNav({ labels, onNavigate }: { labels: Messages["dashboard"]["nav"]; onNavigate?: () => void }) {
+  const { t, href } = useI18n();
+  const pathname = splitLocale(usePathname()).path;
+  // The most specific matching item is active (so /settings/languages doesn't also light up /settings).
+  const activeHref = dashboardNav
+    .flatMap((g) => g.items)
+    .filter((i) => !i.soon && (pathname === i.href || pathname.startsWith(`${i.href}/`)))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
-    <nav aria-label="Dashboard" className="flex flex-col gap-5">
+    <nav aria-label={labels.label} className="flex flex-col gap-5">
       {dashboardNav.map((group) => (
-        <div key={group.title}>
-          <p className="mb-1.5 px-3 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-white/45">{group.title}</p>
+        <div key={group.key}>
+          <p className="mb-1.5 px-3 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-white/45">{labels.groups[group.key]}</p>
           <ul className="space-y-0.5">
-            {group.items.map(({ label, href, icon: Icon, soon }) => {
-              const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+            {group.items.map(({ key, href: path, icon: Icon, soon }) => {
+              const label = labels.items[key];
               if (soon) {
                 return (
-                  <li key={href}>
+                  <li key={path}>
                     <span
                       aria-disabled="true"
                       className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/45"
@@ -27,16 +36,17 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                       <Icon className="size-4.5" aria-hidden />
                       {label}
                       <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wider text-white/55">
-                        Soon
+                        {t.common.badges.soon}
                       </span>
                     </span>
                   </li>
                 );
               }
+              const active = path === activeHref;
               return (
-                <li key={href}>
+                <li key={path}>
                   <Link
-                    href={href}
+                    href={href(path)}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(

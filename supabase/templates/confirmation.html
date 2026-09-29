@@ -1,13 +1,14 @@
-<!doctype html>
-<html lang="en">
+{{ $fr := false }}{{ if .Data.locale }}{{ if eq .Data.locale "fr" }}{{ $fr = true }}{{ end }}{{ end }}<!doctype html>
+<!-- Bilingual (en/fr): the language comes from the user's sign-up/dashboard locale (.Data.locale, set by WazaBolt). -->
+<html lang="{{ if $fr }}fr{{ else }}en{{ end }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
-    <title>Confirm your email</title>
+    <title>{{ if $fr }}Confirmez votre adresse e-mail{{ else }}Confirm your email{{ end }}</title>
   </head>
   <body style="margin:0;padding:0;background-color:#FFFDF8;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:#102A2A;">
-    <div style="display:none;max-height:0;overflow:hidden;">Confirm your email to activate your WazaBolt account.</div>
+    <div style="display:none;max-height:0;overflow:hidden;">{{ if $fr }}Confirmez votre e-mail pour activer votre compte WazaBolt.{{ else }}Confirm your email to activate your WazaBolt account.{{ end }}</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFDF8;">
       <tr>
         <td align="center" style="padding:32px 16px;">
@@ -24,23 +25,23 @@
             </tr>
             <tr>
               <td style="background-color:#FFFFFF;border:1px solid #E3E9E5;border-radius:20px;padding:36px 32px;">
-                <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.25;font-weight:800;letter-spacing:-0.5px;color:#102A2A;">Confirm your email</h1>
-                <p style="margin:0 0 28px 0;font-size:15px;line-height:1.6;color:#526262;">Welcome to WazaBolt! Confirm your email address to activate your account and start setting up your business.</p>
+                <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.25;font-weight:800;letter-spacing:-0.5px;color:#102A2A;">{{ if $fr }}Confirmez votre adresse e-mail{{ else }}Confirm your email{{ end }}</h1>
+                <p style="margin:0 0 28px 0;font-size:15px;line-height:1.6;color:#526262;">{{ if $fr }}Bienvenue sur WazaBolt ! Confirmez votre adresse e-mail pour activer votre compte et commencer à configurer votre entreprise.{{ else }}Welcome to WazaBolt! Confirm your email address to activate your account and start setting up your business.{{ end }}</p>
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="background-color:#16B878;border-radius:999px;">
-                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email&amp;next=/dashboard" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#102A2A;text-decoration:none;">Confirm my email</a>
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email&amp;next={{ if $fr }}/fr/dashboard{{ else }}/en/dashboard{{ end }}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#102A2A;text-decoration:none;">{{ if $fr }}Confirmer mon e-mail{{ else }}Confirm my email{{ end }}</a>
                     </td>
                   </tr>
                 </table>
-                <p style="margin:28px 0 0 0;font-size:13px;line-height:1.6;color:#526262;">If you didn't create a WazaBolt account, you can ignore this email.</p>
-                <p style="margin:16px 0 0 0;font-size:12px;line-height:1.5;color:#526262;word-break:break-all;">Button not working? Copy this link into your browser:<br /><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email&amp;next=/dashboard" style="color:#0C8354;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email&amp;next=/dashboard</a></p>
+                <p style="margin:28px 0 0 0;font-size:13px;line-height:1.6;color:#526262;">{{ if $fr }}Si vous n'avez pas créé de compte WazaBolt, vous pouvez ignorer cet e-mail.{{ else }}If you didn't create a WazaBolt account, you can ignore this email.{{ end }}</p>
+                <p style="margin:16px 0 0 0;font-size:12px;line-height:1.5;color:#526262;word-break:break-all;">{{ if $fr }}Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :{{ else }}Button not working? Copy this link into your browser:{{ end }}<br /><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email&amp;next={{ if $fr }}/fr/dashboard{{ else }}/en/dashboard{{ end }}" style="color:#0C8354;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email&amp;next={{ if $fr }}/fr/dashboard{{ else }}/en/dashboard{{ end }}</a></p>
               </td>
             </tr>
             <tr>
               <td style="padding:20px 4px 0 4px;font-size:12px;line-height:1.5;color:#526262;">
-                WazaBolt — Your AI Business Assistant on WhatsApp.<br />
-                WazaBolt is an independent product and is not affiliated with WhatsApp or Meta.
+                {{ if $fr }}WazaBolt — Votre assistant d'entreprise IA sur WhatsApp.{{ else }}WazaBolt — Your AI Business Assistant on WhatsApp.{{ end }}<br />
+                {{ if $fr }}WazaBolt est un produit indépendant, non affilié à WhatsApp ni à Meta.{{ else }}WazaBolt is an independent product and is not affiliated with WhatsApp or Meta.{{ end }}
               </td>
             </tr>
           </table>

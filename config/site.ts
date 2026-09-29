@@ -1,3 +1,8 @@
+/**
+ * Brand constants. The English copy here is used where no locale applies
+ * (web manifest, generated social images); pages use the dictionaries in
+ * messages/ instead.
+ */
 export const siteConfig = {
   name: "WazaBolt",
   /** Brand descriptor — used under the logo and in social profiles. */
@@ -17,42 +22,44 @@ export const siteConfig = {
     "WazaBolt is an independent product. It is not affiliated with, endorsed by or sponsored by WhatsApp or Meta. WhatsApp is a trademark of its respective owner.",
 } as const;
 
-export type NavItem = { label: string; href: string };
+/** Nav labels are keys of `common.nav` in the dictionaries; hrefs are locale-free (localized at render). */
+export type NavKey = "home" | "features" | "howItWorks" | "pricing" | "solutions" | "faq" | "about" | "contact" | "resources" | "brandKit" | "privacy" | "terms";
+export type NavItem = { key: NavKey; href: string };
 
 export const mainNav: NavItem[] = [
-  { label: "Home", href: "/" },
-  { label: "Features", href: "/features" },
-  { label: "How It Works", href: "/how-it-works" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Solutions", href: "/solutions" },
-  { label: "FAQ", href: "/faq" },
+  { key: "home", href: "/" },
+  { key: "features", href: "/features" },
+  { key: "howItWorks", href: "/how-it-works" },
+  { key: "pricing", href: "/pricing" },
+  { key: "solutions", href: "/solutions" },
+  { key: "faq", href: "/faq" },
 ];
 
-export const footerNav: { title: string; links: NavItem[] }[] = [
+export const footerNav: { key: "product" | "company" | "legal"; links: NavItem[] }[] = [
   {
-    title: "Product",
+    key: "product",
     links: [
-      { label: "Features", href: "/features" },
-      { label: "How It Works", href: "/how-it-works" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Solutions", href: "/solutions" },
+      { key: "features", href: "/features" },
+      { key: "howItWorks", href: "/how-it-works" },
+      { key: "pricing", href: "/pricing" },
+      { key: "solutions", href: "/solutions" },
     ],
   },
   {
-    title: "Company",
+    key: "company",
     links: [
-      { label: "About", href: "/about" },
-      { label: "Contact", href: "/contact" },
-      { label: "Resources", href: "/resources" },
-      { label: "FAQ", href: "/faq" },
-      { label: "Brand kit", href: "/brand" },
+      { key: "about", href: "/about" },
+      { key: "contact", href: "/contact" },
+      { key: "resources", href: "/resources" },
+      { key: "faq", href: "/faq" },
+      { key: "brandKit", href: "/brand" },
     ],
   },
   {
-    title: "Legal",
+    key: "legal",
     links: [
-      { label: "Privacy", href: "/privacy" },
-      { label: "Terms", href: "/terms" },
+      { key: "privacy", href: "/privacy" },
+      { key: "terms", href: "/terms" },
     ],
   },
 ];

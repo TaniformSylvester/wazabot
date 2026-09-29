@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,6 +16,7 @@ export function AIStatus({
   size?: "sm" | "md";
   className?: string;
 }) {
+  const { t } = useI18n();
   const ai = mode === "ai";
   return (
     <span
@@ -28,7 +32,7 @@ export function AIStatus({
         {ai ? <span className="absolute inset-0 animate-ping rounded-full bg-waza-400 opacity-60" /> : null}
         <span className={cn("relative size-2 rounded-full", ai ? "bg-waza-500" : "bg-coral-500")} />
       </span>
-      {ai ? "AI Online" : "Human Mode"}
+      {ai ? t.common.status.aiOnline : t.common.status.humanMode}
     </span>
   );
 }

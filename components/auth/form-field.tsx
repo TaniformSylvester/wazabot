@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import type { UseFormRegisterReturn } from "react-hook-form";
 
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -18,6 +19,7 @@ type FieldProps = {
 /** Accessible label + input + error message, wired to React Hook Form. */
 export function FormField({ label, error, hint, registration, labelAction, type = "text", ...props }: FieldProps) {
   const id = useId();
+  const { t } = useI18n();
   const [visible, setVisible] = useState(false);
   const isPassword = type === "password";
   const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(" ") || undefined;
@@ -43,7 +45,7 @@ export function FormField({ label, error, hint, registration, labelAction, type 
             type="button"
             onClick={() => setVisible((v) => !v)}
             className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-slate transition-colors hover:text-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-waza-500/40"
-            aria-label={visible ? "Hide password" : "Show password"}
+            aria-label={visible ? t.auth.fields.hidePassword : t.auth.fields.showPassword}
             aria-pressed={visible}
           >
             {visible ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}

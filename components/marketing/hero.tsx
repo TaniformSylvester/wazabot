@@ -7,15 +7,21 @@ import { WhatsAppChatMockup } from "@/components/conversations/whatsapp-chat-moc
 import { DashboardMockCompact } from "@/components/marketing/dashboard-mock";
 import { Highlight } from "@/components/marketing/section-heading";
 import { Button } from "@/components/ui/button";
+import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { format, formatXaf } from "@/lib/i18n/format";
+import { localizePath } from "@/lib/i18n/paths";
+import { plain, rich } from "@/lib/i18n/rich";
 
 const trust = [
-  { icon: Zap, title: "Quick Setup", text: "In minutes, not days", tone: "text-gold-600" },
-  { icon: MessageCircle, title: "Works on WhatsApp", text: "No app for customers", tone: "text-waza-600" },
-  { icon: Hand, title: "Human Takeover", text: "Step in any time", tone: "text-waza-600" },
-  { icon: Languages, title: "English + French", text: "Replies in their language", tone: "text-waza-600" },
-];
+  { key: "setup", icon: Zap, tone: "text-gold-600" },
+  { key: "whatsapp", icon: MessageCircle, tone: "text-waza-600" },
+  { key: "takeover", icon: Hand, tone: "text-waza-600" },
+  { key: "languages", icon: Languages, tone: "text-waza-600" },
+] as const;
 
-export function Hero() {
+export async function Hero() {
+  const [locale, t] = await Promise.all([getLocale(), getMessages()]);
+  const h = t.hero;
   return (
     <section aria-labelledby="hero-title" className="relative overflow-hidden">
       <div
@@ -24,51 +30,48 @@ export function Hero() {
       />
       <div className="container-page grid items-center gap-12 pb-16 pt-8 sm:pt-12 xl:grid-cols-[1.05fr_1fr] xl:gap-8 xl:pb-24 xl:pt-10">
         <div className="flex flex-col items-start">
-          <WazaBoltBadge className="py-1.5 text-sm">Built for African Businesses</WazaBoltBadge>
+          <WazaBoltBadge className="py-1.5 text-sm">{h.badge}</WazaBoltBadge>
 
           <h1 id="hero-title" className="type-display mt-6 max-w-3xl">
-            Power your business on <Highlight>WhatsApp.</Highlight>
+            {rich(h.title, { hl: (c) => <Highlight>{c}</Highlight> })}
           </h1>
           <p className="mt-4 font-display text-xl font-bold text-deep sm:text-2xl">
-            Never miss a{" "}
-            <span className="underline decoration-gold decoration-4 underline-offset-[6px]">customer.</span>
+            {rich(h.subtitle, { u: (c) => <span className="underline decoration-gold decoration-4 underline-offset-[6px]">{c}</span> })}
           </p>
 
           <p className="type-lead mt-5 max-w-xl text-slate">
-            <strong className="font-semibold text-deep">WazaBolt</strong> is your AI business assistant on
-            WhatsApp. It answers customer questions, shares products and prices, captures orders and hands
-            conversations to your team when needed.
+            {rich(h.lead, { b: (c) => <strong className="font-semibold text-deep">{c}</strong> })}
           </p>
 
           <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild size="lg" className="group">
-              <Link href="/register">
-                Start Free
+              <Link href={localizePath(locale, "/register")}>
+                {t.common.nav.startFree}
                 <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/#how-it-works">
+              <Link href={localizePath(locale, "/#how-it-works")}>
                 <PlayCircle className="size-5 text-waza-600" />
-                See How It Works
+                {t.common.nav.seeHowItWorks}
               </Link>
             </Button>
           </div>
 
           <ul className="mt-10 grid w-full grid-cols-2 gap-5 sm:grid-cols-4 sm:gap-4 xl:grid-cols-2 xl:gap-x-8">
-            {trust.map(({ icon: Icon, title, text, tone }) => (
-              <li key={title} className="flex items-start gap-2.5">
+            {trust.map(({ key, icon: Icon, tone }) => (
+              <li key={key} className="flex items-start gap-2.5">
                 <Icon className={`mt-0.5 size-5 shrink-0 ${tone}`} aria-hidden />
                 <div>
-                  <p className="text-sm font-semibold text-deep">{title}</p>
-                  <p className="text-xs text-slate">{text}</p>
+                  <p className="text-sm font-semibold text-deep">{h.trust[key].title}</p>
+                  <p className="text-xs text-slate">{h.trust[key].text}</p>
                 </div>
               </li>
             ))}
           </ul>
         </div>
 
-        <HeroVisual />
+        <HeroVisual photoAlt={plain(h.photoAlt)} orderCaptured={h.orderCaptured} orderItem={format(h.orderItem, { price: formatXaf(15_000, locale) })} />
       </div>
     </section>
   );
@@ -79,7 +82,7 @@ export function Hero() {
  * WazaBolt AI, and a compact WazaBolt dashboard. Stacks on mobile, overlaps
  * from sm. Illustrative data only.
  */
-function HeroVisual() {
+function HeroVisual({ photoAlt, orderCaptured, orderItem }: { photoAlt: string; orderCaptured: string; orderItem: string }) {
   return (
     <div className="relative mx-auto flex w-full max-w-md flex-col sm:h-[730px] sm:max-w-[590px] xl:mr-0">
       {/* business owner */}
@@ -87,7 +90,7 @@ function HeroVisual() {
         <div aria-hidden className="bg-brand-gradient absolute -inset-3 -z-10 rotate-[-4deg] rounded-[2.25rem] opacity-90" />
         <Image
           src="/images/hero-owner.webp"
-          alt="A smiling shop owner in a colourful head wrap checks customer messages on her phone"
+          alt={photoAlt}
           width={366}
           height={440}
           preload
@@ -99,8 +102,8 @@ function HeroVisual() {
             <ShoppingBag className="size-4" aria-hidden />
           </span>
           <div className="leading-tight">
-            <p className="text-xs font-semibold text-deep">New order captured</p>
-            <p className="text-[0.6875rem] text-slate">Robe en wax · 15,000 XAF</p>
+            <p className="text-xs font-semibold text-deep">{orderCaptured}</p>
+            <p className="text-[0.6875rem] text-slate">{orderItem}</p>
           </div>
         </div>
       </div>

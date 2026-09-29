@@ -1,4 +1,8 @@
+"use client";
+
 import { MessageCircle } from "lucide-react";
+
+import { useI18n } from "@/components/i18n/i18n-provider";
 
 import { cn } from "@/lib/utils";
 
@@ -10,12 +14,13 @@ import { cn } from "@/lib/utils";
 export function ChannelBadge({
   className,
   tone = "light",
-  label = "via WhatsApp",
+  label,
 }: {
   className?: string;
   tone?: "light" | "dark";
   label?: string;
 }) {
+  const { t } = useI18n();
   return (
     <span
       className={cn(
@@ -25,7 +30,7 @@ export function ChannelBadge({
       )}
     >
       <MessageCircle className="size-3" aria-hidden />
-      {label}
+      {label ?? t.common.status.viaWhatsApp}
     </span>
   );
 }

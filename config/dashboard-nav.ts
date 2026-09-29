@@ -3,6 +3,7 @@ import {
   Bot,
   ChartColumn,
   CreditCard,
+  Languages,
   LayoutDashboard,
   MessagesSquare,
   Package,
@@ -15,49 +16,56 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import type { Messages } from "@/messages/en";
+
+type Nav = Messages["dashboard"]["nav"];
+
 export type DashboardNavItem = {
-  label: string;
+  /** Label key in dashboard.nav.items. */
+  key: keyof Nav["items"];
+  /** Locale-free path; localized when rendered. */
   href: string;
   icon: LucideIcon;
   /** Not built yet — rendered as a disabled item with a "Soon" tag instead of a dead link. */
   soon?: boolean;
 };
 
-export const dashboardNav: { title: string; items: DashboardNavItem[] }[] = [
+export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[] }[] = [
   {
-    title: "Main",
+    key: "main",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Conversations", href: "/dashboard/conversations", icon: MessagesSquare, soon: true },
-      { label: "Customers", href: "/dashboard/customers", icon: Users, soon: true },
+      { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { key: "conversations", href: "/dashboard/conversations", icon: MessagesSquare, soon: true },
+      { key: "customers", href: "/dashboard/customers", icon: Users, soon: true },
     ],
   },
   {
-    title: "Business",
+    key: "business",
     items: [
-      { label: "Products", href: "/dashboard/products", icon: Package, soon: true },
-      { label: "Orders", href: "/dashboard/orders", icon: ShoppingBag, soon: true },
-      { label: "Knowledge", href: "/dashboard/knowledge", icon: BookOpen, soon: true },
+      { key: "products", href: "/dashboard/products", icon: Package, soon: true },
+      { key: "orders", href: "/dashboard/orders", icon: ShoppingBag, soon: true },
+      { key: "knowledge", href: "/dashboard/knowledge", icon: BookOpen, soon: true },
     ],
   },
   {
-    title: "AI",
+    key: "ai",
     items: [
-      { label: "AI Assistant", href: "/dashboard/ai", icon: Bot, soon: true },
-      { label: "Automations", href: "/dashboard/automations", icon: Workflow, soon: true },
+      { key: "languages", href: "/dashboard/settings/languages", icon: Languages },
+      { key: "assistant", href: "/dashboard/ai", icon: Bot, soon: true },
+      { key: "automations", href: "/dashboard/automations", icon: Workflow, soon: true },
     ],
   },
   {
-    title: "Insights",
-    items: [{ label: "Analytics", href: "/dashboard/analytics", icon: ChartColumn, soon: true }],
+    key: "insights",
+    items: [{ key: "analytics", href: "/dashboard/analytics", icon: ChartColumn, soon: true }],
   },
   {
-    title: "Settings",
+    key: "settings",
     items: [
-      { label: "WhatsApp", href: "/dashboard/whatsapp", icon: Smartphone, soon: true },
-      { label: "Team", href: "/dashboard/team", icon: UsersRound, soon: true },
-      { label: "Billing", href: "/dashboard/billing", icon: CreditCard, soon: true },
-      { label: "Settings", href: "/dashboard/settings", icon: Settings },
+      { key: "whatsapp", href: "/dashboard/whatsapp", icon: Smartphone, soon: true },
+      { key: "team", href: "/dashboard/team", icon: UsersRound, soon: true },
+      { key: "billing", href: "/dashboard/billing", icon: CreditCard, soon: true },
+      { key: "settings", href: "/dashboard/settings", icon: Settings },
     ],
   },
 ];

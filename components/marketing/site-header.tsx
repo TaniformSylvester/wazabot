@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, Menu } from "lucide-react";
 
 import { WazaBoltLogo } from "@/components/brand/logo";
+import { useI18n } from "@/components/i18n/i18n-provider";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -15,11 +17,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { mainNav, siteConfig } from "@/config/site";
+import { mainNav } from "@/config/site";
+import { splitLocale } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
-  const pathname = usePathname();
+  const { t, href } = useI18n();
+  const pathname = splitLocale(usePathname()).path;
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -29,7 +33,7 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const isActive = (path: string) => (path === "/" ? pathname === "/" : pathname.startsWith(path));
 
   return (
     <header
@@ -41,25 +45,26 @@ export function SiteHeader() {
       )}
     >
       <div className="container-page flex h-16 items-center justify-between gap-6 lg:h-20">
-        <Link href="/" aria-label={`${siteConfig.name} home`} className="rounded-lg">
-          <WazaBoltLogo size="md" className="xl:hidden" />
-          <WazaBoltLogo size="md" withTagline className="hidden xl:inline-flex" />
+        <Link href={href("/")} aria-label={t.common.brand.home} className="shrink-0 rounded-lg">
+          <WazaBoltLogo size="md" className="min-[1680px]:hidden" />
+          <WazaBoltLogo size="md" withTagline tagline={t.common.brand.tagline} className="hidden min-[1680px]:inline-flex" />
         </Link>
 
-        <nav aria-label="Main" className="hidden lg:block">
+        <nav aria-label={t.common.nav.main} className="hidden xl:block">
           <ul className="flex items-center xl:gap-1">
             {mainNav.map((item) => (
-              <li key={item.href}>
+              // The logo links home, so "Home" only appears once there is room for it.
+              <li key={item.href} className={item.href === "/" ? "hidden 2xl:block" : undefined}>
                 <Link
-                  href={item.href}
+                  href={href(item.href)}
                   aria-current={isActive(item.href) ? "page" : undefined}
                   className={cn(
-                    "relative rounded-full px-3 py-2 text-[0.9375rem] font-medium text-deep/80 transition-colors hover:text-waza-700 xl:px-3.5",
-                    "after:absolute after:inset-x-3 after:-bottom-0.5 after:h-[3px] after:origin-left after:scale-x-0 after:rounded-full after:bg-waza-500 after:transition-transform after:duration-300 hover:after:scale-x-100 xl:after:inset-x-3.5",
+                    "relative whitespace-nowrap rounded-full px-2.5 py-2 text-[0.9375rem] font-medium text-deep/80 transition-colors hover:text-waza-700 2xl:px-3.5",
+                    "after:absolute after:inset-x-2.5 after:-bottom-0.5 after:h-[3px] after:origin-left after:scale-x-0 after:rounded-full after:bg-waza-500 after:transition-transform after:duration-300 hover:after:scale-x-100 2xl:after:inset-x-3.5",
                     isActive(item.href) && "text-waza-700 after:scale-x-100",
                   )}
                 >
-                  {item.label}
+                  {t.common.nav[item.key]}
                 </Link>
               </li>
             ))}
@@ -67,37 +72,41 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" className="hidden lg:inline-flex">
-            <Link href="/login">Login</Link>
+          <LanguageSwitcher compact className="hidden md:inline-flex" />
+          <Button asChild variant="ghost" className="hidden xl:inline-flex">
+            <Link href={href("/login")}>{t.common.nav.login}</Link>
           </Button>
           <Button asChild className="hidden sm:inline-flex sm:px-6">
-            <Link href="/register">Start Free</Link>
+            <Link href={href("/register")}>
+              <span className="xl:hidden">{t.common.nav.startFreeShort}</span>
+              <span className="hidden xl:inline">{t.common.nav.startFree}</span>
+            </Link>
           </Button>
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
+              <Button variant="ghost" size="icon" className="xl:hidden" aria-label={t.common.nav.openMenu}>
                 <Menu className="size-6" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="p-6">
-              <SheetTitle className="sr-only">Menu</SheetTitle>
-              <SheetDescription className="sr-only">Site navigation</SheetDescription>
+              <SheetTitle className="sr-only">{t.common.nav.menu}</SheetTitle>
+              <SheetDescription className="sr-only">{t.common.nav.siteNavigation}</SheetDescription>
               <WazaBoltLogo size="sm" />
-              <nav aria-label="Mobile" className="mt-6">
+              <nav aria-label={t.common.nav.mobile} className="mt-6">
                 <ul className="flex flex-col gap-1">
                   {mainNav.map((item) => (
                     <li key={item.href}>
                       <SheetClose asChild>
                         <Link
-                          href={item.href}
+                          href={href(item.href)}
                           aria-current={isActive(item.href) ? "page" : undefined}
                           className={cn(
                             "flex items-center justify-between rounded-xl px-4 py-3.5 font-display text-lg font-semibold text-deep transition-colors hover:bg-mint",
                             isActive(item.href) && "bg-mint text-waza-700",
                           )}
                         >
-                          {item.label}
+                          {t.common.nav[item.key]}
                         </Link>
                       </SheetClose>
                     </li>
@@ -105,15 +114,16 @@ export function SiteHeader() {
                 </ul>
               </nav>
               <div className="mt-auto flex flex-col gap-3">
+                <LanguageSwitcher className="self-center" />
                 <SheetClose asChild>
                   <Button asChild variant="outline" size="lg">
-                    <Link href="/login">Login</Link>
+                    <Link href={href("/login")}>{t.common.nav.login}</Link>
                   </Button>
                 </SheetClose>
                 <SheetClose asChild>
                   <Button asChild size="lg">
-                    <Link href="/register">
-                      Start Free <ArrowRight />
+                    <Link href={href("/register")}>
+                      {t.common.nav.startFree} <ArrowRight />
                     </Link>
                   </Button>
                 </SheetClose>

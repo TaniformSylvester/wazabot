@@ -22,7 +22,7 @@ cp .env.example .env.local   # nothing is required yet for the marketing site
 npm run dev                  # http://localhost:3000
 ```
 
-Checks: `npm run lint` and `npm run build`.
+Checks: `npm run lint`, `npm test` (unit tests) and `npm run build`.
 
 ## Stack
 
@@ -33,12 +33,18 @@ Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 · shadcn/ui-style compon
 
 ```text
 app/
-  (marketing)/        /, /features, /how-it-works, /pricing, /solutions, /faq, /resources, /about, /brand, ...
-  (auth)/             /login, /register, /forgot-password, /reset-password
-  auth/confirm/       email-link handler
-  dashboard/          protected dashboard (overview, settings)
+  [lang]/             root layout (html lang), every page lives under /en or /fr
+    (marketing)/      /, /features, /how-it-works, /pricing, /solutions, /faq, /resources, /about, /brand, ...
+    (auth)/           /login, /register, /forgot-password, /reset-password
+    dashboard/        protected dashboard (overview, settings, settings/languages)
+    opengraph-image   localized link-preview image
+  auth/confirm/       email-link handler (not localized)
   brand-assets/       generated social templates (/brand-assets/*.png)
-  icon.svg, apple-icon.png, opengraph-image.tsx, twitter-image.tsx, manifest.ts, robots.ts, sitemap.ts
+  global-not-found.tsx, icon.svg, apple-icon.png, manifest.ts, robots.ts, sitemap.ts
+messages/             UI dictionaries: en.ts (source of truth), fr.ts
+lib/i18n/             locales, language registry, country packs, routing helpers, dictionaries
+lib/ai/               WhatsApp AI language layer: packs, detection, resolution, prompts, reply schema
+lib/actions/          Server Actions (auth, settings)
 components/
   brand/              WazaBoltLogo, WazaBoltIcon, WazaBoltBadge, AIStatus, ChannelBadge
   marketing/          sections + FeatureCard, IndustryCard, PricingCard, SectionHeading, CTASection,
@@ -104,7 +110,50 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Auth: register, email confirmation, login, logout, password reset, protected dashboard | **Functional** (Phase 2) |
 | Database: users, businesses, business_members, audit_logs with RLS | **Functional** (Phase 2) |
 | Dashboard shell: overview, settings, change password | **Functional**; other sections show "Soon" |
-| Onboarding, catalog, WhatsApp webhook, AI, orders, billing | **Not started** — Phases 3–8 |
+| Website + dashboard in English and French (URLs, metadata, hreflang, sitemap, emails) | **Functional** |
+| Languages & AI style settings (reply languages, default, mode, tone, formality, emoji, length, notes) | **Functional** — saved to the database |
+| Language detection / resolution / prompt builder (en, fr, Cameroonian Pidgin) | **Functional code + unit tests**; not yet called by a live AI (no WhatsApp webhook yet) |
+| Customers / conversations / messages tables with language fields | **Schema only** — filled by the WhatsApp webhook (Phase 5) |
+| Onboarding, catalog, WhatsApp webhook, AI replies, orders, billing | **Not started** — Phases 3–8 |
+
+## Multilingual architecture
+
+WazaBolt is multilingual from the start, on three layers:
+
+**1. UI (website, auth, dashboard) — English and French.** Every page lives under `/en` or `/fr`
+(`app/[lang]`). `proxy.ts` sends unprefixed URLs to the visitor's saved choice (`NEXT_LOCALE`
+cookie), else their browser language, else English. Strings live in `messages/en.ts` (source of
+truth) and `messages/fr.ts`; TypeScript fails the build if a key is missing. Server Components use
+`getMessages()`; Client Components use `useI18n()`. Validation and auth errors are keys, translated
+by the form. Pages have localized titles, canonical + `hreflang` alternates, and the sitemap lists
+both languages. Signed-in users' dashboard language is stored in `users.ui_locale` and in their auth
+metadata, which the bilingual email templates read (`.Data.locale`).
+
+**2. Data — languages are rows, not columns.** `languages` (BCP-47 codes; Cameroonian Pidgin is
+`wes`), `country_packs` + `country_pack_languages` (Cameroon: XAF, Africa/Douala, en/fr/wes),
+`business_languages` + `businesses.default_language`, `ai_settings` (language mode and response
+style), and per-customer `preferred_language` with its source (`explicit_request`,
+`set_by_business`, `inferred`). Messages record detected language, confidence, secondary language
+and whether the message was mixed. Sign-up applies the country pack automatically.
+
+**3. WhatsApp AI (`lib/ai/`).** For every inbound message:
+`detect.ts` scores each supported language (handles mixing, missing accents, SMS spelling, Pidgin's
+English vocabulary) → `explicit-request.ts` catches "reply in English" / "en français svp" /
+"you fit tok Pidgin?" (negations ignored) → `resolve.ts` picks the reply language
+(business fixed mode > explicit request > saved preference > confident detection > conversation
+language > default; disabled languages fall back, Pidgin → English) → `prompts/system-prompt.ts`
+builds a cache-friendly prompt (platform rules + one guide per language, then the business's
+languages and style, then a per-turn language decision) → `reply-schema.ts` defines the structured
+reply the model must return, including the language it used.
+
+**Adding a language or country:** add it to `lib/i18n/languages.ts` and the `languages` table, write
+an AI pack in `lib/ai/language/packs/` (detection words, request names, prompt guidance, formality
+rules, fixed messages), and list it in a country pack. For a new dashboard language, add a
+dictionary in `messages/` and register it in `lib/i18n/config.ts` and `lib/i18n/load.ts`.
+
+**Before launch:** the French UI copy and the French/Pidgin fixed messages and prompt guidance
+(`lib/ai/language/packs/fr.ts`, `wes.ts`, marked `needs-review`) should be reviewed by fluent
+speakers. Pidgin is labelled Beta in the dashboard.
 
 ## Supabase setup (Phase 2)
 
@@ -112,15 +161,17 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
    `.env.local` (and your host's environment): `NEXT_PUBLIC_SUPABASE_URL`,
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` (your site's public URL).
    The service-role key is not needed yet — never expose it to the browser.
-2. **Apply the migration** in `supabase/migrations/` — paste it into the SQL editor, or run
-   `npx supabase link` then `npx supabase db push`.
+2. **Apply the migrations** in `supabase/migrations/`, in filename order — paste each into the SQL
+   editor, or run `npx supabase link` then `npx supabase db push`.
 3. **Auth → URL configuration:** Site URL = your `NEXT_PUBLIC_SITE_URL`; add
    `<site-url>/auth/confirm` (or `<site-url>/**`) to Redirect URLs.
 4. **Auth → Providers → Email:** keep "Confirm email" on.
 5. **Auth → Email templates:** paste `supabase/templates/confirmation.html` into
-   "Confirm signup" (subject: *Confirm your WazaBolt account*) and `recovery.html` into
-   "Reset password" (subject: *Reset your WazaBolt password*). These links use
-   `token_hash`, so they work even if the email is opened on a different device.
+   "Confirm signup" (subject: *Confirm your WazaBolt account / Confirmez votre compte WazaBolt*) and
+   `recovery.html` into "Reset password" (subject: *Reset your WazaBolt password / Réinitialisez
+   votre mot de passe WazaBolt*). The body switches between English and French from the user's
+   locale. These links use `token_hash`, so they work even if the email is opened on a different
+   device.
 6. **Auth → SMTP:** set up a real email provider (e.g. Resend, Postmark). Supabase's built-in
    email is heavily rate-limited and meant for testing only.
 
@@ -142,7 +193,10 @@ Auth → Rate limits). Consider enabling CAPTCHA protection before public launch
 ### Tests
 
 ```bash
-# Database: tenant isolation / RLS (against a local or staging DB — never production)
+# Unit tests: language detection, explicit requests, reply-language resolution, prompts
+npm test
+
+# Database: tenant isolation, RLS and multilingual schema (local or staging DB — never production)
 DATABASE_URL=postgres://... npm run test:db
 
 # End-to-end: needs Supabase Auth + DB + Mailpit, e.g. `npx supabase start`,
