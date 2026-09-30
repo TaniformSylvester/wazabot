@@ -5,7 +5,23 @@ import { z } from "zod";
  * Errors are dictionary keys (dashboard.errors.* / auth.validation.*), so the
  * same action serves both UI languages.
  */
-export type ActionErrorKey = "forbidden" | "invalid" | "not_found" | "duplicate" | "storage_unavailable" | "image_invalid" | "unknown";
+export type ActionErrorKey =
+  | "forbidden"
+  | "invalid"
+  | "not_found"
+  | "duplicate"
+  | "storage_unavailable"
+  | "image_invalid"
+  | "unknown"
+  // WhatsApp (Stage 2)
+  | "whatsapp_not_configured"
+  | "whatsapp_number_in_use"
+  | "whatsapp_not_in_account"
+  | "whatsapp_token_invalid"
+  | "whatsapp_verify_failed"
+  | "whatsapp_not_connected"
+  | "whatsapp_window_closed"
+  | "whatsapp_send_failed";
 
 export type FormState = {
   status: "idle" | "success" | "error";

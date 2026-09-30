@@ -76,6 +76,6 @@ function rememberLocale(response: NextResponse, locale: Locale, request: NextReq
 export const config = {
   // Skip static assets and metadata files.
   matcher: [
-    "/((?!_next/static|_next/image|icon.svg|apple-icon.png|manifest.webmanifest|robots.txt|sitemap.xml|images/|logo/|.*/opengraph-image|.*/twitter-image).*)",
+    "/((?!api/|_next/static|_next/image|icon.svg|apple-icon.png|manifest.webmanifest|robots.txt|sitemap.xml|images/|logo/|.*/opengraph-image|.*/twitter-image).*)",
   ],
 };

@@ -271,7 +271,9 @@ export async function getConversation(businessId: string, id: string) {
     db.from("conversations").select("*, customers(*)").eq("business_id", businessId).eq("id", id).maybeSingle(),
     db
       .from("messages")
-      .select("id, direction, sender_type, message_type, content, caption, payload, processing_status, language, ai_generated, created_at, message_media(id, mime_type, is_voice, duration_seconds, original_filename, status), message_transcriptions(status, transcript, language)")
+      .select(
+        "id, direction, sender_type, message_type, content, caption, payload, processing_status, language, ai_generated, delivery_status, delivery_error, created_at, message_media(id, kind, mime_type, is_voice, duration_seconds, original_filename, status, storage_path), message_transcriptions(status, transcript, language)",
+      )
       .eq("business_id", businessId)
       .eq("conversation_id", id)
       .order("created_at", { ascending: true })

@@ -122,3 +122,48 @@ export function parseWebhookMessages(payload: unknown): InboundMessage[] {
   }
   return out;
 }
+
+export type DeliveryStatusUpdate = {
+  /** Business phone number id the message was sent from. */
+  phoneNumberId: string;
+  /** Outbound message id (wamid) the status is about. */
+  channelMessageId: string;
+  status: "sent" | "delivered" | "read" | "failed";
+  at: Date;
+  /** "131047 Re-engagement message" — code and title only, never content. */
+  error?: string;
+};
+
+const STATUSES = ["sent", "delivered", "read", "failed"] as const;
+
+/** Extracts delivery receipts (sent / delivered / read / failed) for outbound messages. */
+export function parseWebhookStatuses(payload: unknown): DeliveryStatusUpdate[] {
+  const out: DeliveryStatusUpdate[] = [];
+  const root = obj(payload);
+  if (root?.object !== "whatsapp_business_account") return out;
+  for (const entry of arr(root.entry)) {
+    for (const change of arr(obj(entry)?.changes)) {
+      const c = obj(change);
+      if (c?.field !== "messages") continue;
+      const value = obj(c.value);
+      const phoneNumberId = str(obj(value?.metadata)?.phone_number_id);
+      if (!value || !phoneNumberId) continue;
+      for (const s of arr(value.statuses)) {
+        const st = obj(s);
+        const channelMessageId = str(st?.id);
+        const status = str(st?.status);
+        if (!st || !channelMessageId || !status || !(STATUSES as readonly string[]).includes(status)) continue;
+        const seconds = Number(st.timestamp);
+        const err = obj(arr(st.errors)[0]);
+        out.push({
+          phoneNumberId,
+          channelMessageId,
+          status: status as DeliveryStatusUpdate["status"],
+          at: Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000) : new Date(),
+          error: err ? `${num(err.code) ?? ""} ${str(err.title) ?? str(err.message) ?? ""}`.trim().slice(0, 200) : undefined,
+        });
+      }
+    }
+  }
+  return out;
+}

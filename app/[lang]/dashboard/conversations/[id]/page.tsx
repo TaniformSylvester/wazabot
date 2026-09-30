@@ -1,14 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, FileText, Film, Image as ImageIcon, Lock, MapPin, Mic, UserRound } from "lucide-react";
+/* eslint-disable @next/next/no-img-element -- media comes from short-lived signed URLs; next/image would cache them. */
+import { Check, CheckCheck, ChevronLeft, CircleAlert, Clock, FileText, Film, Image as ImageIcon, Lock, MapPin, Mic, UserRound } from "lucide-react";
 
 import { CONVERSATION_FILTERS, ConversationList, filterToQuery, type ConversationFilterKey } from "@/components/app/conversation-list";
 import { ConversationControls } from "@/components/app/conversation-controls";
 import { DefinitionList, StatusBadge, conversationStatusTone, formatDate, param } from "@/components/app/ui";
+import { AutoRefresh } from "@/components/app/auto-refresh";
+import { Composer } from "@/components/app/composer";
 import { markConversationRead } from "@/lib/actions/conversations";
+import { markWhatsAppRead } from "@/lib/actions/whatsapp";
+import { SIGNED_URL_TTL_SECONDS } from "@/lib/messaging/media-policy";
+import { SupabaseMediaStore } from "@/lib/messaging/media-store";
+import { locationFromPayload, mapsUrl } from "@/lib/messaging/views";
+import { windowOpen } from "@/lib/whatsapp/service";
 import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getConversation, listConversations } from "@/lib/data/queries";
+import { getConversation, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { isLanguageCode, languageName } from "@/lib/i18n/languages";
@@ -31,7 +39,13 @@ export default async function ConversationPage({ params, searchParams }: PagePro
   const c = d.conversations;
   const canAct = hasRole(business.role, "agent");
 
-  if (canAct && conversation.unread_count > 0) await markConversationRead(conversation.id);
+  if (canAct && conversation.unread_count > 0) {
+    await markConversationRead(conversation.id);
+    await markWhatsAppRead(conversation.id);
+  }
+  const connection = await getWhatsAppConnection(business.id);
+  const connected = connection?.status === "connected";
+  const mediaUrls = await signMedia(messages);
 
   const filter = (CONVERSATION_FILTERS as readonly string[]).includes(param(sp.filter) ?? "") ? (param(sp.filter) as ConversationFilterKey) : "all";
   const q = param(sp.q);
@@ -125,13 +139,31 @@ export default async function ConversationPage({ params, searchParams }: PagePro
                 <p className="mt-1 text-sm text-slate">{c.noMessagesText}</p>
               </li>
             ) : (
-              messages.map((m) => <MessageBubble key={m.id} m={m} c={c} locale={locale} />)
+              messages.map((m) => <MessageBubble key={m.id} m={m} c={c} locale={locale} mediaUrls={mediaUrls} />)
             )}
           </ol>
 
-          <footer className="flex items-start gap-3 border-t border-border p-4">
-            <Lock className="mt-0.5 size-4 shrink-0 text-slate" aria-hidden />
-            <p className="text-xs text-slate">{c.composerDisabled}</p>
+          <footer className="border-t border-border p-4">
+            {!canAct ? (
+              <ComposerNote text={c.composer.readOnly} />
+            ) : !connected ? (
+              <ComposerNote text={c.composerDisabled}>
+                <Link href={localizePath(locale, "/dashboard/whatsapp")} className="font-semibold text-waza-700 hover:underline">
+                  {c.composer.connectLink}
+                </Link>
+              </ComposerNote>
+            ) : !conversation.last_customer_message_at ? (
+              <ComposerNote text={c.composer.noCustomerMessage} />
+            ) : !windowOpen(conversation.last_customer_message_at) ? (
+              <ComposerNote text={c.composer.windowClosed} />
+            ) : (
+              <Composer conversationId={conversation.id} labels={c.composer} text={{ errors: d.errors, saved: d.common.saved, saving: c.composer.sending }} />
+            )}
+            {connected ? (
+              <div className="mt-2 text-right">
+                <AutoRefresh label={c.live} />
+              </div>
+            ) : null}
           </footer>
         </section>
 
@@ -148,12 +180,54 @@ export default async function ConversationPage({ params, searchParams }: PagePro
 
 type Msg = NonNullable<Awaited<ReturnType<typeof getConversation>>>["messages"][number];
 
-/** Text is shown as written; other types show a clear placeholder until media processing ships. */
-function MessageBubble({ m, c, locale }: { m: Msg; c: Messages["dashboard"]["conversations"]; locale: "en" | "fr" }) {
+function ComposerNote({ text, children }: { text: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <Lock className="mt-0.5 size-4 shrink-0 text-slate" aria-hidden />
+      <p className="text-xs text-slate">
+        {text} {children}
+      </p>
+    </div>
+  );
+}
+
+/** Short-lived signed URLs for stored media. Membership was already proven by reading the rows under RLS. */
+async function signMedia(messages: Msg[]): Promise<Map<string, string>> {
+  const urls = new Map<string, string>();
+  const stored = messages.flatMap((m) => m.message_media).filter((f) => f.status === "stored" && f.storage_path);
+  if (!stored.length || !process.env.SUPABASE_SERVICE_ROLE_KEY) return urls;
+  const store = new SupabaseMediaStore();
+  await Promise.all(
+    stored.map(async (f) => {
+      try {
+        urls.set(f.id, await store.signedUrl(f.storage_path!, SIGNED_URL_TTL_SECONDS));
+      } catch {
+        // Missing file or storage unavailable: shown as "not available".
+      }
+    }),
+  );
+  return urls;
+}
+
+function DeliveryTick({ status, error, labels }: { status: string | null; error: string | null; labels: Messages["dashboard"]["conversations"]["delivery"] }) {
+  if (!status) return null;
+  const key = status as keyof typeof labels;
+  const Icon = status === "read" || status === "delivered" ? CheckCheck : status === "sent" ? Check : status === "failed" ? CircleAlert : Clock;
+  return (
+    <span className={cn("inline-flex items-center gap-0.5", status === "read" && "text-sky-600", status === "failed" && "font-semibold text-coral-700")} title={error ?? undefined}>
+      <Icon className="size-3" aria-hidden />
+      {labels[key] ?? status}
+    </span>
+  );
+}
+
+/** Text as written. Media: the file (private, signed URL) plus a note that it isn't processed automatically yet. */
+function MessageBubble({ m, c, locale, mediaUrls }: { m: Msg; c: Messages["dashboard"]["conversations"]; locale: "en" | "fr"; mediaUrls: Map<string, string> }) {
   const inbound = m.direction === "inbound";
   const sender = (m.sender_type in c.sender ? m.sender_type : "system") as keyof typeof c.sender;
   const type = m.message_type as keyof typeof MEDIA_ICONS | "text";
   const Icon = type !== "text" ? MEDIA_ICONS[type] : null;
+  const location = type === "location" && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) ? locationFromPayload(m.payload as Record<string, unknown>) : null;
   return (
     <li className={cn("flex", inbound ? "justify-start" : "justify-end")}>
       <div
@@ -169,13 +243,48 @@ function MessageBubble({ m, c, locale }: { m: Msg; c: Messages["dashboard"]["con
               <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>{c.futureMedia[type as keyof typeof MEDIA_ICONS]}</span>
             </p>
+            {m.message_media.map((f) => {
+              const url = mediaUrls.get(f.id);
+              if (url && f.kind === "image") {
+                return (
+                  <a key={f.id} href={url} target="_blank" rel="noreferrer" className="block">
+                    <img src={url} alt={m.caption ?? ""} className="max-h-60 rounded-xl border border-border object-contain" />
+                  </a>
+                );
+              }
+              if (url && f.kind === "audio") {
+                return (
+                  <audio key={f.id} controls preload="none" src={url} className="h-9 w-full max-w-72">
+                    <track kind="captions" />
+                  </audio>
+                );
+              }
+              if (url) {
+                return (
+                  <a key={f.id} href={url} target="_blank" rel="noreferrer" className="font-semibold text-waza-700 underline">
+                    {f.original_filename || c.media.open}
+                  </a>
+                );
+              }
+              return (
+                <span key={f.id} className="text-xs text-slate">
+                  {f.status === "pending" ? c.media.pending : f.status === "failed" ? c.media.failed : c.media.unavailable}
+                </span>
+              );
+            })}
+            {location ? (
+              <a href={mapsUrl(location)} target="_blank" rel="noreferrer" className="font-semibold text-waza-700 underline">
+                {location.name ?? location.address ?? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+              </a>
+            ) : null}
             {m.caption ? <p className="whitespace-pre-line">{m.caption}</p> : null}
           </div>
         ) : (
           <p className="whitespace-pre-line break-words">{m.content}</p>
         )}
-        <p className={cn("mt-1 text-right text-[0.625rem]", sender === "ai" && !inbound ? "text-cream/60" : "text-slate")}>
+        <p className={cn("mt-1 flex items-center justify-end gap-2 text-[0.625rem]", sender === "ai" && !inbound ? "text-cream/60" : "text-slate")}>
           <time dateTime={m.created_at}>{formatDate(m.created_at, locale, true)}</time>
+          {!inbound ? <DeliveryTick status={m.delivery_status} error={m.delivery_error} labels={c.delivery} /> : null}
         </p>
       </div>
     </li>

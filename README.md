@@ -51,7 +51,8 @@ lib/actions/          Server Actions (auth, settings, business, products, knowle
                       conversations, orders, ai) — all re-check the user's role
 lib/data/queries.ts   dashboard read models (always RLS-scoped to the user's business)
 lib/validation/       Zod schemas shared by forms and Server Actions
-lib/whatsapp/         WhatsApp service interface (no live connection in Stage 1)
+lib/whatsapp/         Cloud API client (graph.ts), token encryption, connect/disconnect, webhook ingestion
+app/api/whatsapp/     webhook endpoint (GET verification, POST messages + statuses)
 types/supabase.ts     generated database types (`npm run db:types`)
 components/
   brand/              WazaBoltLogo, WazaBoltIcon, WazaBoltBadge, AIStatus, ChannelBadge
@@ -126,8 +127,8 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Website + dashboard in English and French (URLs, metadata, hreflang, sitemap, emails) | **Functional** |
 | Languages & AI style settings (reply languages, default, mode, tone, formality, emoji, length, notes) | **Functional** — saved to the database |
 | Language detection / resolution / prompt builder (en, fr, Cameroonian Pidgin) | **Functional code + unit tests**; not yet called by a live AI (no WhatsApp webhook yet) |
-| Messages | **Read-only** in the dashboard — filled by the WhatsApp webhook (Stage 2); non-text types show a placeholder |
-| WhatsApp connection, AI replies (Anthropic), media processing, payments, broadcasts, invites | **Not started** — interfaces only (`lib/whatsapp`, `lib/ai/service.ts`, `lib/ai/tools`) |
+| WhatsApp (Stage 2): connect a number (verified with Meta, token encrypted), webhook (signature-checked, idempotent), customers + conversations created automatically, team replies from the inbox, delivery ticks, read receipts, 24-hour window, media stored privately | **Functional** — see "WhatsApp setup" below |
+| AI replies (Anthropic), voice transcription, image understanding, templates, payments, broadcasts, invites | **Not started** — interfaces only (`lib/ai/service.ts`, `lib/ai/tools`, `lib/messaging/ports.ts`) |
 
 ## Multilingual architecture
 
@@ -253,10 +254,49 @@ DATABASE_URL=postgres://... npm run test:db
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e
 # Stage 1 dashboard: onboarding, CRUD, takeover, orders, tenant isolation, mobile layout
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e:dashboard
+# Stage 2 WhatsApp, against a local fake Graph API (tests/e2e/fake-graph.mjs, port 4010).
+# Start the app with WHATSAPP_GRAPH_API_BASE_URL=http://localhost:4010 and test values for
+# WHATSAPP_APP_SECRET / WHATSAPP_VERIFY_TOKEN / WHATSAPP_TOKEN_ENCRYPTION_KEY / SUPABASE_SERVICE_ROLE_KEY.
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... npm run test:e2e:whatsapp
 
 # Regenerate database types after a migration
 DATABASE_URL=postgres://... npm run db:types
 ```
+
+## WhatsApp setup (Stage 2)
+
+WazaBolt uses Meta's official WhatsApp Business Platform (Cloud API) with **one Meta app for the
+platform**; each business connects its own number.
+
+1. **Apply** `supabase/migrations/20261002120000_whatsapp_integration.sql` (after the earlier ones).
+2. **Server environment** (Vercel → Settings → Environment Variables; never `NEXT_PUBLIC_`):
+   `SUPABASE_SERVICE_ROLE_KEY`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`,
+   `WHATSAPP_TOKEN_ENCRYPTION_KEY` (`openssl rand -base64 32`). Redeploy.
+3. **Meta app** (developers.facebook.com → your app → WhatsApp → Configuration):
+   callback URL `https://<your-site>/api/whatsapp/webhook`, verify token = `WHATSAPP_VERIFY_TOKEN`,
+   then subscribe to the **messages** webhook field. The app must be in Live mode for real customers.
+4. **Each business** (Dashboard → WhatsApp, owner/admin): Phone Number ID, WhatsApp Business Account
+   ID and a permanent System User access token with `whatsapp_business_messaging` and
+   `whatsapp_business_management`, issued for the platform's Meta app. WazaBolt checks the number
+   belongs to the account, reads its display name, subscribes the app to the account's webhooks,
+   and only then shows **Connected**. The token is encrypted (AES-256-GCM) before it is stored in
+   `whatsapp_credentials`, a table no browser role can read.
+
+How it behaves:
+
+- Incoming messages create/update the customer (WhatsApp profile name, first/last contact,
+  detected language), continue their latest conversation (a resolved one is reopened) and count as
+  unread. Meta retries are stored once. Media is downloaded after the webhook responds, into the
+  private `whatsapp-media` bucket (signed URLs, 90-day retention).
+- The team replies from Conversations. Replying switches the conversation to Human Mode. WhatsApp
+  only allows free-form replies within 24 hours of the customer's last message; after that the
+  composer explains why it's closed (template messages are not built yet).
+- Delivery receipts update the ticks (Sent → Delivered → Read, or Not delivered with Meta's error
+  code); opening a conversation sends a read receipt. The inbox refreshes every few seconds.
+- Nobody answers automatically yet: text messages are stored with `processing_status = received`
+  for the AI stage to pick up.
+- Meta's **Embedded Signup** (self-serve "Continue with Facebook") needs Tech Provider approval
+  and is a later step; until then numbers are connected with the IDs + token above.
 
 ## Before launch
 

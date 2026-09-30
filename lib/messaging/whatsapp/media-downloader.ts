@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import { isAllowedMedia } from "@/lib/messaging/media-policy";
+import { GRAPH_API_BASE_URL, GRAPH_API_VERSION } from "@/lib/whatsapp/graph";
 import { MediaRejectedError, NotConfiguredError, type DownloadedMedia, type MediaDownloader } from "@/lib/messaging/ports";
 import type { MediaRef } from "@/lib/messaging/types";
 
@@ -17,9 +18,11 @@ type Fetch = typeof fetch;
  */
 export class WhatsAppMediaDownloader implements MediaDownloader {
   constructor(
-    private readonly accessToken = process.env.WHATSAPP_ACCESS_TOKEN,
-    private readonly apiVersion = process.env.WHATSAPP_GRAPH_API_VERSION || "v21.0",
+    /** The business's own access token (decrypted server-side for this download only). */
+    private readonly accessToken: string | undefined,
+    private readonly apiVersion = GRAPH_API_VERSION,
     private readonly fetchImpl: Fetch = fetch,
+    private readonly baseUrl = GRAPH_API_BASE_URL,
   ) {}
 
   async download(ref: MediaRef): Promise<DownloadedMedia> {
@@ -27,13 +30,15 @@ export class WhatsAppMediaDownloader implements MediaDownloader {
     const auth = { Authorization: `Bearer ${this.accessToken}` };
 
     const metaRes = await this.fetchImpl(
-      `https://graph.facebook.com/${encodeURIComponent(this.apiVersion)}/${encodeURIComponent(ref.channelMediaId)}`,
+      `${this.baseUrl}/${encodeURIComponent(this.apiVersion)}/${encodeURIComponent(ref.channelMediaId)}`,
       { headers: auth, cache: "no-store" },
     );
     if (!metaRes.ok) throw new MediaRejectedError("download");
     const meta = (await metaRes.json()) as { url?: string; mime_type?: string; file_size?: number; sha256?: string };
     const mimeType = (meta.mime_type ?? ref.mimeType).split(";")[0].trim().toLowerCase();
-    if (!meta.url || !/^https:\/\//.test(meta.url)) throw new MediaRejectedError("download");
+    // Meta always serves media over https; plain http is only accepted from a local test Graph API.
+    const httpAllowed = this.baseUrl.startsWith("http://localhost") || this.baseUrl.startsWith("http://127.0.0.1");
+    if (!meta.url || !(/^https:\/\//.test(meta.url) || (httpAllowed && meta.url.startsWith(this.baseUrl)))) throw new MediaRejectedError("download");
     if (!isAllowedMedia(ref.kind, mimeType)) throw new MediaRejectedError("type");
     if (meta.file_size !== undefined && !isAllowedMedia(ref.kind, mimeType, meta.file_size)) throw new MediaRejectedError("size");
 

@@ -106,8 +106,8 @@ async function signUp(browser, user, locale) {
   await main.getByText("French", { exact: true }).click();
   await saveContinue();
   await page.waitForURL(/step=6/);
-  ok("WhatsApp step shows the next-stage placeholder, not a fake connection",
-    (await main.getByText("WhatsApp connection will be completed in the next setup stage.").count()) === 1 && (await main.getByText("Not Connected").count()) === 1);
+  ok("WhatsApp step shows the real (not connected) state, not a fake connection",
+    (await main.getByText("Connect your number on the WhatsApp page").count()) === 1 && (await main.getByText("Not Connected").count()) === 1);
   await main.getByRole("button", { name: "Finish setup" }).click();
   await page.waitForURL(/\/en\/dashboard\?onboarded=1/);
   await page.getByRole("heading", { name: /Welcome, Awa/ }).waitFor({ timeout: 15000 });
@@ -233,7 +233,7 @@ async function signUp(browser, user, locale) {
   await main.getByRole("button", { name: "Take Over" }).waitFor({ timeout: 15000 });
   const convId = page.url().match(/conversations\/([0-9a-f-]{36})/)[1];
   ok("conversation created from the customer profile", (await main.getByText("AI Online").count()) >= 1 && (await main.getByText("No messages yet.").count()) === 1);
-  ok("composer is disabled with an honest note", (await main.getByText(/Nothing is sent from here yet/).count()) === 1 && (await main.locator("textarea").count()) === 0);
+  ok("composer is disabled until WhatsApp is connected", (await main.getByText("Connect your WhatsApp number to reply from WazaBolt.").count()) === 1 && (await main.locator("textarea").count()) === 0);
   await main.getByRole("button", { name: "Take Over" }).click();
   await main.getByRole("button", { name: "Return to AI" }).waitFor({ timeout: 10000 });
   let [conv] = await (await fetch(`${SUPABASE}/rest/v1/conversations?id=eq.${convId}&select=ai_enabled,assigned_to`, { headers: rest(cTok) })).json();
@@ -295,7 +295,7 @@ async function signUp(browser, user, locale) {
   await page.goto(`${APP}/en/dashboard/analytics`);
   ok("analytics shows real counts and no invented AI figures", (await main.getByText("No data yet").count()) >= 2 && (await main.getByText("Most ordered products").count()) === 1);
   await page.goto(`${APP}/en/dashboard/whatsapp`);
-  ok("WhatsApp page: Not Connected, connect disabled", (await main.getByText("Not Connected").count()) === 1 && (await main.getByRole("button", { name: "Connect WhatsApp" }).isDisabled()));
+  ok("WhatsApp page: Not Connected, with the connect form (no fake connection)", (await main.getByText("Not Connected").count()) === 1 && (await main.getByLabel("Phone Number ID").count()) === 1);
   await page.goto(`${APP}/en/dashboard/billing`);
   ok("billing shows plans from the database, Free is current", (await main.getByText("Business", { exact: true }).count()) === 1 && (await main.getByText("25,000 XAF").count()) === 1 && (await main.getByText("Current plan").count()) >= 1);
   await page.goto(`${APP}/en/dashboard/team`);

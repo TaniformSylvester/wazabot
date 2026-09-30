@@ -1,9 +1,10 @@
 import { MessagesSquare } from "lucide-react";
 
 import { CONVERSATION_FILTERS, ConversationList, filterToQuery, type ConversationFilterKey } from "@/components/app/conversation-list";
+import { AutoRefresh } from "@/components/app/auto-refresh";
 import { EmptyState, PageHeader, param } from "@/components/app/ui";
 import { requireBusiness } from "@/lib/auth/dal";
-import { countConversations, listConversations } from "@/lib/data/queries";
+import { countConversations, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
@@ -16,11 +17,15 @@ export default async function ConversationsPage({ searchParams }: PageProps<"/[l
   const c = t.dashboard.conversations;
   const filter = (CONVERSATION_FILTERS as readonly string[]).includes(param(sp.filter) ?? "") ? (param(sp.filter) as ConversationFilterKey) : "all";
   const q = param(sp.q);
-  const [rows, total] = await Promise.all([listConversations(business.id, { ...filterToQuery(filter), q }), countConversations(business.id)]);
+  const [rows, total, connection] = await Promise.all([
+    listConversations(business.id, { ...filterToQuery(filter), q }),
+    countConversations(business.id),
+    getWhatsAppConnection(business.id),
+  ]);
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <PageHeader title={c.title} />
+      <PageHeader title={c.title} actions={connection?.status === "connected" ? <AutoRefresh label={c.live} /> : null} />
       {total === 0 ? (
         <EmptyState icon={MessagesSquare} title={c.empty.title} text={c.empty.text} />
       ) : (

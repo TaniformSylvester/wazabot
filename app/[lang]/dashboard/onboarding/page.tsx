@@ -12,7 +12,7 @@ import { saveFaq } from "@/lib/actions/knowledge";
 import { saveProduct } from "@/lib/actions/products";
 import { getBusinessAiSettings, hasRole, requireBusiness } from "@/lib/auth/dal";
 import { DEFAULT_OPENING_HOURS, hasOpeningHours } from "@/lib/business/hours";
-import { listFaqs, listProducts } from "@/lib/data/queries";
+import { getWhatsAppConnection, listFaqs, listProducts } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
@@ -122,9 +122,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
                 <p className="mt-1 text-sm text-slate">{o.whatsappText}</p>
               </div>
             </div>
-            <StatusBadge tone="neutral" dot>
-              {d.whatsapp.statuses.not_connected}
-            </StatusBadge>
+            <WhatsAppStep businessId={business.id} />
           </div>
         ) : null}
       </Panel>
@@ -198,6 +196,23 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
           </div>
         </ActionForm>
         {skip}
+      </div>
+    );
+  }
+
+  async function WhatsAppStep({ businessId }: { businessId: string }) {
+    const conn = await getWhatsAppConnection(businessId);
+    const status = conn?.status ?? "not_connected";
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <StatusBadge tone={status === "connected" ? "green" : status === "error" ? "red" : "neutral"} dot>
+          {d.whatsapp.statuses[status]}
+        </StatusBadge>
+        {status !== "connected" ? (
+          <Link href={localizePath(locale, "/dashboard/whatsapp")} className="text-sm font-semibold text-waza-700 hover:underline">
+            {o.whatsappOpen}
+          </Link>
+        ) : null}
       </div>
     );
   }

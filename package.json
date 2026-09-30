@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test:e2e": "node tests/e2e/auth.e2e.mjs",
     "test:e2e:dashboard": "node tests/e2e/dashboard.e2e.mjs",
-    "test:db": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/tenant_isolation.sql -f supabase/tests/multilingual.sql -f supabase/tests/multimodal.sql -f supabase/tests/saas_foundation.sql",
+    "test:e2e:whatsapp": "node tests/e2e/whatsapp.e2e.mjs",
+    "test:db": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/tenant_isolation.sql -f supabase/tests/multilingual.sql -f supabase/tests/multimodal.sql -f supabase/tests/saas_foundation.sql -f supabase/tests/whatsapp_integration.sql",
     "test": "vitest run",
     "db:types": "npx -y supabase@2 gen types typescript --db-url \"$DATABASE_URL\" --schema public > types/supabase.ts && npx -y oxfmt types/supabase.ts"
   },
