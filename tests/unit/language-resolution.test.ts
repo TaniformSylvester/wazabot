@@ -126,6 +126,7 @@ describe("reply schema", () => {
       reply_language: "fr",
       customer_languages: ["fr", "en"],
       language_request: null,
+      catalog_product_ids: [],
       needs_human: false,
       handoff_reason: null,
     });

@@ -5,6 +5,7 @@
  */
 import type { EmojiLevel, Formality, LanguageMode, ReplyLength, Tone } from "@/lib/ai/style";
 import type { PreferenceSource } from "@/lib/ai/language/resolve";
+import type { MediaKind, MessageType, ProcessingStatus } from "@/lib/messaging/types";
 
 export type BusinessRole = "owner" | "admin" | "agent";
 
@@ -158,7 +159,81 @@ export type Database = {
           secondary_language: string | null;
           is_mixed: boolean;
           language_reason: string | null;
+          message_type: MessageType;
+          whatsapp_message_id: string | null;
+          caption: string | null;
+          payload: Record<string, unknown>;
+          processing_status: ProcessingStatus;
+          processing_error: string | null;
           created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      message_media: {
+        Row: {
+          id: string;
+          business_id: string;
+          message_id: string;
+          kind: MediaKind;
+          whatsapp_media_id: string | null;
+          mime_type: string;
+          size_bytes: number | null;
+          sha256: string | null;
+          is_voice: boolean;
+          duration_seconds: number | null;
+          width: number | null;
+          height: number | null;
+          original_filename: string | null;
+          storage_bucket: string;
+          storage_path: string | null;
+          status: "pending" | "stored" | "failed" | "deleted";
+          delete_after: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      message_transcriptions: {
+        Row: {
+          id: string;
+          business_id: string;
+          message_id: string;
+          media_id: string;
+          status: "pending" | "completed" | "failed";
+          transcript: string | null;
+          language: string | null;
+          language_confidence: number | null;
+          confidence: number | null;
+          provider: string | null;
+          model: string | null;
+          error_code: string | null;
+          created_at: string;
+          completed_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      message_image_analyses: {
+        Row: {
+          id: string;
+          business_id: string;
+          message_id: string;
+          media_id: string;
+          status: "pending" | "completed" | "failed";
+          description: string | null;
+          extracted_text: string | null;
+          catalog_matches: { product_id: string; confidence: number; reason?: string }[];
+          outcome: "matched" | "asked_clarification" | "handed_over" | "not_product" | null;
+          provider: string | null;
+          model: string | null;
+          error_code: string | null;
+          created_at: string;
+          completed_at: string | null;
         };
         Insert: never;
         Update: never;

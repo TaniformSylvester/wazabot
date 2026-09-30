@@ -42,6 +42,12 @@ export type AiLanguagePack = {
     handoff: string;
     unavailable: string;
     languageSwitched: string;
+    /** Voice note received while transcription is off. */
+    audioNotSupported: string;
+    /** Image received while image understanding is off (the team is notified). */
+    imageNotSupported: string;
+    /** Document, video or location received (the team is notified). */
+    attachmentReceived: string;
   };
   /** Translations marked "needs-review" must be checked by a fluent speaker before launch. */
   review: "source" | "needs-review";

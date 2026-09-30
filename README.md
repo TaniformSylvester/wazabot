@@ -157,6 +157,38 @@ dictionary in `messages/` and register it in `lib/i18n/config.ts` and `lib/i18n/
 (`lib/ai/language/packs/fr.ts`, `wes.ts`, marked `needs-review`) should be reviewed by fluent
 speakers. Pidgin is labelled Beta in the dashboard.
 
+## Multimodal messages (text, voice, images)
+
+Every WhatsApp message is stored with a `message_type`: `text`, `image`, `audio`, `document`,
+`video` or `location` (migration `20260930120000_multimodal_messages.sql`).
+
+| Type | MVP status | What happens |
+| --- | --- | --- |
+| Text | **Processed** | Language pipeline → AI reply |
+| Voice note (audio) | **Architecture ready** | Stored privately; customer gets a polite "please type" reply in their language; team notified. Switch on once a speech-to-text provider is chosen (`Transcriber` in `lib/messaging/ports.ts`). |
+| Image | **Architecture ready** | Stored privately; customer told the team will look; team notified. Switch on with the catalog (Phase 3): image + caption go to the vision model with the `search_catalog` tool. |
+| Document, video, location | Stored, not processed | Team notified; shown in the dashboard. |
+
+- **Pipeline:** `lib/messaging/whatsapp/webhook.ts` (verify `X-Hub-Signature-256`, parse all types) →
+  `plan.ts` (what to do per type, from `capabilities.ts`) → `whatsapp/media-downloader.ts` (Cloud API,
+  server token, type/size/checksum checks) → `media-store.ts` (private bucket) → transcription /
+  vision → `ai-input.ts` (the customer turn the model sees).
+- **Voice:** transcripts live in `message_transcriptions`, separate from the audio file, with their
+  own detected language (English, French, Pidgin). The dashboard shows the player and the
+  transcript side by side (`components/conversations/message-content.tsx`).
+- **Images:** the prompt forbids prices, stock or product details from appearance alone. The model
+  must call `search_catalog`; `decideCatalogMatch()` only lets a single clear, confident match be
+  quoted, otherwise the assistant asks which product or hands over. Results are recorded in
+  `message_image_analyses`.
+- **Security:** WhatsApp and service-role credentials are server-only. Media sits in the private
+  Storage bucket `whatsapp-media` (created by the migration, no public access, no browser
+  policies); the dashboard gets 5-minute signed URLs after a Row Level Security membership check.
+  Storage paths are built from ids, never filenames. Logs record ids and error codes, never media
+  or message content. Media is marked for deletion after 90 days by default (`delete_after`);
+  transcripts and analyses remain.
+- **Choosing speech-to-text:** test candidates on real Cameroonian voice notes in English, French
+  and Pidgin before switching audio on — Pidgin support in commercial engines is limited.
+
 ## Supabase setup (Phase 2)
 
 1. **Create a Supabase project** and copy the Project URL and anon (public) key into

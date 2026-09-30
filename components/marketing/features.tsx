@@ -7,6 +7,7 @@ import {
   Hand,
   Megaphone,
   MessageCircle,
+  Mic,
   Package,
   ShoppingCart,
   Users,
@@ -36,6 +37,7 @@ const planned = [
   { key: "appointments", icon: CalendarClock },
   { key: "broadcasts", icon: Megaphone },
   { key: "mobileMoney", icon: CreditCard },
+  { key: "voiceImages", icon: Mic },
   { key: "morePacks", icon: Globe },
 ] as const;
 

@@ -249,6 +249,7 @@ const en = {
       broadcasts: "Broadcasts to opted-in customers",
       mobileMoney: "Mobile Money payments",
       morePacks: "More African language packs",
+      voiceImages: "Voice notes and product photos",
     },
   },
 
@@ -818,6 +819,23 @@ const en = {
       },
     },
     loading: "Loading",
+    messageContent: {
+      voiceNote: "Voice note",
+      audioFile: "Audio file",
+      image: "Image",
+      document: "Document",
+      video: "Video",
+      location: "Shared location",
+      openMap: "Open in maps",
+      download: "Open",
+      transcript: "Transcript",
+      transcriptPending: "Transcribing…",
+      transcriptFailed: "Transcription failed — listen to the voice note.",
+      transcriptUnavailable: "Transcription isn't switched on yet — listen to the voice note.",
+      mediaUnavailable: "This file is no longer available.",
+      notProcessed: "Not answered automatically — the team was notified.",
+      detectedLanguage: "Language: {language}",
+    },
   },
 };
 

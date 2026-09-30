@@ -246,6 +246,7 @@ const fr: Messages = {
       broadcasts: "Diffusions aux clients consentants",
       mobileMoney: "Paiements Mobile Money",
       morePacks: "D'autres packs de langues africaines",
+      voiceImages: "Messages vocaux et photos de produits",
     },
   },
 
@@ -816,6 +817,23 @@ const fr: Messages = {
       },
     },
     loading: "Chargement",
+    messageContent: {
+      voiceNote: "Message vocal",
+      audioFile: "Fichier audio",
+      image: "Image",
+      document: "Document",
+      video: "Vidéo",
+      location: "Position partagée",
+      openMap: "Ouvrir dans Maps",
+      download: "Ouvrir",
+      transcript: "Transcription",
+      transcriptPending: "Transcription en cours…",
+      transcriptFailed: "La transcription a échoué — écoutez le message vocal.",
+      transcriptUnavailable: "La transcription n'est pas encore activée — écoutez le message vocal.",
+      mediaUnavailable: "Ce fichier n'est plus disponible.",
+      notProcessed: "Pas de réponse automatique — l'équipe a été prévenue.",
+      detectedLanguage: "Langue : {language}",
+    },
   },
 };
 
