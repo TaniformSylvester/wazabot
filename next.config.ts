@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
       { source: "/product", destination: "/how-it-works", permanent: true },
       { source: "/:lang(en|fr)/industries", destination: "/:lang/solutions", permanent: true },
       { source: "/:lang(en|fr)/product", destination: "/:lang/how-it-works", permanent: true },
+      // The brand kit is an internal design reference, not a public page.
+      { source: "/brand", destination: "/", permanent: true },
+      { source: "/:lang(en|fr)/brand", destination: "/:lang", permanent: true },
     ];
   },
 };

@@ -1,7 +1,8 @@
 import { renderSocialImage, socialFormats, type SocialFormat } from "@/lib/brand/social-image";
 
 /**
- * Downloadable social templates, generated at build time:
+ * Internal: social templates for the team's own social profiles (not linked from the site,
+ * disallowed in robots.txt). Generated at build time:
  *   /brand-assets/facebook-cover.png   (1640×624)
  *   /brand-assets/instagram-post.png   (1080×1080)
  *   /brand-assets/instagram-story.png  (1080×1920)

@@ -34,12 +34,12 @@ Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 · shadcn/ui-style compon
 ```text
 app/
   [lang]/             root layout (html lang), every page lives under /en or /fr
-    (marketing)/      /, /features, /how-it-works, /pricing, /solutions, /faq, /resources, /about, /brand, ...
+    (marketing)/      /, /features, /how-it-works, /pricing, /solutions, /faq, /resources, /about, ...
     (auth)/           /login, /register, /forgot-password, /reset-password
     dashboard/        protected dashboard (overview, settings, settings/languages)
     opengraph-image   localized link-preview image
   auth/confirm/       email-link handler (not localized)
-  brand-assets/       generated social templates (/brand-assets/*.png)
+  brand-assets/       internal: generated social templates (/brand-assets/*.png, not linked)
   global-not-found.tsx, icon.svg, apple-icon.png, manifest.ts, robots.ts, sitemap.ts
 messages/             UI dictionaries: en.ts (source of truth), fr.ts
 lib/i18n/             locales, language registry, country packs, routing helpers, dictionaries
@@ -56,7 +56,7 @@ components/
                       badge, card, accordion, sheet, input, label
 config/               site (name, taglines, nav), plans, solutions, FAQ, dashboard nav
 lib/brand/            mark SVG + brand hex (icons), icon tones, social image generator
-public/logo/          exported logo files (all listed on /brand)
+public/logo/          exported logo files (icon, horizontal, compact, dark, mono, PNG sizes)
 assets/               Plus Jakarta Sans subset + JPEG photos used only by the image generator
 ```
 
@@ -64,7 +64,9 @@ assets/               Plus Jakarta Sans subset + JPEG photos used only by the im
 
 ## Brand system
 
-Tokens live in `app/globals.css` (`@theme` scales plus `--brand-*` variables). See it live at `/brand`.
+Tokens live in `app/globals.css` (`@theme` scales plus `--brand-*` variables). The brand
+styleboard is an internal design reference: it is applied through these tokens and the logo
+components, and is not shown as a page on the public site.
 
 | Colour | Hex | Token | Use |
 | --- | --- | --- | --- |

@@ -6,10 +6,8 @@ import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { LanguagesSection } from "@/components/marketing/languages-section";
 import { LiveDemo } from "@/components/marketing/live-demo";
-import { Platform } from "@/components/marketing/platform";
 import { Pricing } from "@/components/marketing/pricing";
 import { Problem } from "@/components/marketing/problem";
-import { Security } from "@/components/marketing/security";
 import { SolutionsStrip } from "@/components/marketing/solutions-strip";
 import { siteConfig } from "@/config/site";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -48,16 +46,14 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <Hero />
-      <SolutionsStrip />
       <Problem />
       <HowItWorks />
-      <LiveDemo />
-      <LanguagesSection />
       <Features />
-      <Platform />
+      <LiveDemo />
+      <SolutionsStrip />
       <DashboardPreview />
+      <LanguagesSection />
       <Pricing />
-      <Security />
       <Faq />
       <CTASection />
     </>

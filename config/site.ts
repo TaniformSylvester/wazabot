@@ -23,7 +23,7 @@ export const siteConfig = {
 } as const;
 
 /** Nav labels are keys of `common.nav` in the dictionaries; hrefs are locale-free (localized at render). */
-export type NavKey = "home" | "features" | "howItWorks" | "pricing" | "solutions" | "faq" | "about" | "contact" | "resources" | "brandKit" | "privacy" | "terms";
+export type NavKey = "home" | "features" | "howItWorks" | "pricing" | "solutions" | "faq" | "about" | "contact" | "resources" | "privacy" | "terms";
 export type NavItem = { key: NavKey; href: string };
 
 export const mainNav: NavItem[] = [
@@ -52,7 +52,6 @@ export const footerNav: { key: "product" | "company" | "legal"; links: NavItem[]
       { key: "contact", href: "/contact" },
       { key: "resources", href: "/resources" },
       { key: "faq", href: "/faq" },
-      { key: "brandKit", href: "/brand" },
     ],
   },
   {

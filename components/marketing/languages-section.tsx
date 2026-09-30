@@ -18,7 +18,7 @@ const exampleLang = { EN: "en", FR: "fr", Pidgin: "wes" } as const;
 export async function LanguagesSection() {
   const t = (await getMessages()).languagesSection;
   return (
-    <section id="languages" aria-labelledby="languages-title" className="bg-mint/60 py-20 sm:py-28">
+    <section id="languages" aria-labelledby="languages-title" className="border-y border-border bg-card py-20 sm:py-28">
       <div className="container-page grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
         <div>
           <SectionHeading

@@ -5,7 +5,6 @@ import {
   CreditCard,
   Globe,
   Hand,
-  Languages,
   Megaphone,
   MessageCircle,
   Package,
@@ -24,7 +23,6 @@ import type { Messages } from "@/messages/en";
 /** Core features — the capabilities WazaBolt is being built to deliver in its first release. */
 const features: { key: keyof Messages["features"]["items"]; icon: typeof MessageCircle; tone: IconTone }[] = [
   { key: "answer", icon: MessageCircle, tone: "green" },
-  { key: "languages", icon: Languages, tone: "teal" },
   { key: "share", icon: Package, tone: "gold" },
   { key: "capture", icon: ShoppingCart, tone: "coral" },
   { key: "customers", icon: Users, tone: "teal" },
@@ -52,9 +50,10 @@ export async function Features() {
           title={t.title}
           description={t.description}
         />
-        <ul className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Seven capabilities: 4 + 3, second row centred. */}
+        <ul className="mt-14 grid gap-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-center">
           {features.map(({ key, icon, tone }, i) => (
-            <Reveal as="li" key={key} delay={(i % 4) * 70}>
+            <Reveal as="li" key={key} delay={(i % 4) * 70} className="lg:w-[calc((100%-3rem)/4)]">
               <FeatureCard icon={icon} tone={tone} title={t.items[key].title} text={t.items[key].text} />
             </Reveal>
           ))}
