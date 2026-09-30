@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   experimental: {
     // The root layout lives under /[lang], so unmatched URLs need a standalone 404.
     globalNotFound: true,
+    // Product photos are uploaded through a Server Action (max 4 MB each; Vercel caps request bodies at 4.5 MB).
+    serverActions: { bodySizeLimit: "4.5mb" },
   },
   // Routes renamed in the WazaBolt rebrand — keep old links working (proxy.ts adds the locale).
   async redirects() {
@@ -15,6 +17,8 @@ const nextConfig: NextConfig = {
       // The brand kit is an internal design reference, not a public page.
       { source: "/brand", destination: "/", permanent: true },
       { source: "/:lang(en|fr)/brand", destination: "/:lang", permanent: true },
+      // Languages & AI style moved under AI Assistant.
+      { source: "/:lang(en|fr)/dashboard/settings/languages", destination: "/:lang/dashboard/ai/languages", permanent: true },
     ];
   },
 };

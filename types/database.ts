@@ -1,282 +1,48 @@
 /**
- * Database types for the tables in supabase/migrations.
- * Regenerate with `npx supabase gen types typescript` once the Supabase CLI
- * is linked to the project; until then keep this in sync by hand.
+ * Database types. `types/supabase.ts` is generated from the real schema
+ * (npm run db:types); this file adds the narrow value types the app uses for
+ * text columns that have CHECK constraints.
  */
-import type { EmojiLevel, Formality, LanguageMode, ReplyLength, Tone } from "@/lib/ai/style";
-import type { PreferenceSource } from "@/lib/ai/language/resolve";
-import type { MediaKind, MessageType, ProcessingStatus } from "@/lib/messaging/types";
+import type { Database as Generated } from "./supabase";
 
-export type BusinessRole = "owner" | "admin" | "agent";
+export type Database = Generated;
+export type Json = import("./supabase").Json;
 
-export type Database = {
-  __InternalSupabase: { PostgrestVersion: "12" };
-  public: {
-    Tables: {
-      users: {
-        Row: { id: string; full_name: string; ui_locale: string; created_at: string; updated_at: string };
-        Insert: never;
-        Update: { full_name?: string };
-        Relationships: [];
-      };
-      businesses: {
-        Row: {
-          id: string;
-          name: string;
-          country_code: string;
-          currency: string;
-          timezone: string;
-          default_language: string;
-          onboarding_completed_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: never;
-        Update: { name?: string; timezone?: string };
-        Relationships: [];
-      };
-      business_members: {
-        Row: { business_id: string; user_id: string; role: BusinessRole; created_at: string };
-        Insert: never;
-        Update: never;
-        Relationships: [
-          {
-            foreignKeyName: "business_members_business_id_fkey";
-            columns: ["business_id"];
-            isOneToOne: false;
-            referencedRelation: "businesses";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      languages: {
-        Row: {
-          code: string;
-          english_name: string;
-          native_name: string;
-          direction: "ltr" | "rtl";
-          ui_supported: boolean;
-          ai_supported: boolean;
-          fallback_language: string | null;
-          created_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      country_packs: {
-        Row: {
-          country_code: string;
-          english_name: string;
-          currency: string;
-          timezone: string;
-          default_language: string;
-          status: "active" | "planned";
-          created_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      country_pack_languages: {
-        Row: { country_code: string; language_code: string; sort_order: number };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      business_languages: {
-        Row: { business_id: string; language_code: string; sort_order: number; created_at: string };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      ai_settings: {
-        Row: {
-          business_id: string;
-          language_mode: LanguageMode;
-          tone: Tone;
-          formality: Formality;
-          emoji_level: EmojiLevel;
-          reply_length: ReplyLength;
-          mirror_code_switching: boolean;
-          style_notes: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      customers: {
-        Row: {
-          id: string;
-          business_id: string;
-          whatsapp_id: string;
-          display_name: string;
-          preferred_language: string | null;
-          preferred_language_source: PreferenceSource | null;
-          preferred_language_updated_at: string | null;
-          last_detected_language: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: never;
-        Update: {
-          display_name?: string;
-          preferred_language?: string | null;
-          preferred_language_source?: PreferenceSource | null;
-          preferred_language_updated_at?: string | null;
-        };
-        Relationships: [];
-      };
-      conversations: {
-        Row: {
-          id: string;
-          business_id: string;
-          customer_id: string;
-          channel: "whatsapp";
-          status: "open" | "closed";
-          handled_by: "ai" | "human";
-          language: string | null;
-          last_message_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      messages: {
-        Row: {
-          id: string;
-          business_id: string;
-          conversation_id: string;
-          direction: "inbound" | "outbound";
-          sender: "customer" | "ai" | "agent" | "system";
-          body: string;
-          language: string | null;
-          language_confidence: number | null;
-          secondary_language: string | null;
-          is_mixed: boolean;
-          language_reason: string | null;
-          message_type: MessageType;
-          whatsapp_message_id: string | null;
-          caption: string | null;
-          payload: Record<string, unknown>;
-          processing_status: ProcessingStatus;
-          processing_error: string | null;
-          created_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      message_media: {
-        Row: {
-          id: string;
-          business_id: string;
-          message_id: string;
-          kind: MediaKind;
-          whatsapp_media_id: string | null;
-          mime_type: string;
-          size_bytes: number | null;
-          sha256: string | null;
-          is_voice: boolean;
-          duration_seconds: number | null;
-          width: number | null;
-          height: number | null;
-          original_filename: string | null;
-          storage_bucket: string;
-          storage_path: string | null;
-          status: "pending" | "stored" | "failed" | "deleted";
-          delete_after: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      message_transcriptions: {
-        Row: {
-          id: string;
-          business_id: string;
-          message_id: string;
-          media_id: string;
-          status: "pending" | "completed" | "failed";
-          transcript: string | null;
-          language: string | null;
-          language_confidence: number | null;
-          confidence: number | null;
-          provider: string | null;
-          model: string | null;
-          error_code: string | null;
-          created_at: string;
-          completed_at: string | null;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      message_image_analyses: {
-        Row: {
-          id: string;
-          business_id: string;
-          message_id: string;
-          media_id: string;
-          status: "pending" | "completed" | "failed";
-          description: string | null;
-          extracted_text: string | null;
-          catalog_matches: { product_id: string; confidence: number; reason?: string }[];
-          outcome: "matched" | "asked_clarification" | "handed_over" | "not_product" | null;
-          provider: string | null;
-          model: string | null;
-          error_code: string | null;
-          created_at: string;
-          completed_at: string | null;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      audit_logs: {
-        Row: {
-          id: number;
-          business_id: string;
-          actor_user_id: string | null;
-          action: string;
-          entity_type: string | null;
-          entity_id: string | null;
-          metadata: Record<string, unknown>;
-          created_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-    };
-    Views: Record<string, never>;
-    Functions: {
-      is_business_member: { Args: { target_business_id: string }; Returns: boolean };
-      has_business_role: { Args: { target_business_id: string; allowed: BusinessRole[] }; Returns: boolean };
-      update_business_language_settings: {
-        Args: {
-          p_business_id: string;
-          p_default_language: string;
-          p_languages: string[];
-          p_language_mode: LanguageMode;
-          p_tone: Tone;
-          p_formality: Formality;
-          p_emoji_level: EmojiLevel;
-          p_reply_length: ReplyLength;
-          p_mirror_code_switching: boolean;
-          p_style_notes: string;
-        };
-        Returns: undefined;
-      };
-      set_ui_locale: { Args: { p_locale: string }; Returns: undefined };
-    };
-    Enums: { business_role: BusinessRole };
-    CompositeTypes: Record<string, never>;
-  };
-};
+type PublicSchema = Database["public"];
+export type Tables<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Row"];
+export type TablesInsert<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Insert"];
+export type TablesUpdate<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Update"];
+
+export type BusinessRole = PublicSchema["Enums"]["business_role"];
+
+export const ROLES = ["owner", "admin", "agent", "viewer"] as const satisfies readonly BusinessRole[];
+export const ROLE_RANK: Record<BusinessRole, number> = { owner: 4, admin: 3, agent: 2, viewer: 1 };
+
+export const CONVERSATION_STATUSES = ["open", "pending", "resolved", "archived"] as const;
+export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
+
+export const ORDER_STATUSES = ["pending", "confirmed", "processing", "ready", "out_for_delivery", "delivered", "cancelled"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export const PAYMENT_STATUSES = ["unpaid", "pending", "paid", "refunded", "failed"] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const PAYMENT_METHODS = ["cash", "mobile_money", "orange_money", "mtn_momo", "bank_transfer", "card", "other"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const INDUSTRIES = ["retail", "restaurant", "hotel", "fashion", "beauty", "real_estate", "school", "services", "other"] as const;
+export type Industry = (typeof INDUSTRIES)[number];
+
+export const DOCUMENT_TYPES = ["about", "hours", "delivery", "returns", "policy", "services", "faq", "general"] as const;
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+
+export const WHATSAPP_STATUSES = ["not_connected", "connecting", "connected", "error"] as const;
+export type WhatsAppStatus = (typeof WHATSAPP_STATUSES)[number];
+
+export const AFTER_HOURS_MODES = ["reply_normally", "after_hours_message", "handover"] as const;
+export type AfterHoursMode = (typeof AFTER_HOURS_MODES)[number];
+
+/** Narrow a CHECK-constrained text column to its union (falls back when the value is unexpected). */
+export function oneOf<T extends string>(values: readonly T[], value: unknown, fallback: T): T {
+  return (values as readonly unknown[]).includes(value) ? (value as T) : fallback;
+}

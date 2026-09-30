@@ -10,7 +10,7 @@ import { useAuthText } from "@/components/auth/use-auth-text";
 import { Button } from "@/components/ui/button";
 import { saveLanguageSettings } from "@/lib/actions/settings";
 import { analyzeInboundMessage } from "@/lib/ai/language";
-import { EMOJI_LEVELS, FORMALITY_LEVELS, REPLY_LENGTHS, STYLE_NOTES_MAX, TONES } from "@/lib/ai/style";
+import { EMOJI_LEVELS, FORMALITY_LEVELS, STYLE_NOTES_MAX } from "@/lib/ai/style";
 import { format } from "@/lib/i18n/format";
 import { aiLanguageCodes, languageName, languages, type LanguageCode } from "@/lib/i18n/languages";
 import { cn } from "@/lib/utils";
@@ -151,8 +151,6 @@ export function LanguageSettingsForm({
 
           <Card title={t.style.title} description={t.style.description}>
             <div className="grid gap-5 md:grid-cols-2">
-              <Segmented label={t.style.tone.label} name="tone" options={TONES} labels={t.style.tone} register={register} />
-              <Segmented label={t.style.length.label} name="replyLength" options={REPLY_LENGTHS} labels={t.style.length} register={register} />
               <Segmented label={t.style.emoji.label} name="emojiLevel" options={EMOJI_LEVELS} labels={t.style.emoji} register={register} />
               <div>
                 <Segmented label={t.style.formality.label} name="formality" options={FORMALITY_LEVELS} labels={t.style.formality} register={register} />
@@ -220,7 +218,7 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
-function Segmented<N extends "tone" | "replyLength" | "emojiLevel" | "formality">({
+function Segmented<N extends "emojiLevel" | "formality">({
   label,
   name,
   options,

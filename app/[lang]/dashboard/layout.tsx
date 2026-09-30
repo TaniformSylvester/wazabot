@@ -7,6 +7,7 @@ import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { UserCard, initials } from "@/components/dashboard/user-card";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { getCurrentBusiness, requireUser } from "@/lib/auth/dal";
+import { getWhatsAppConnection } from "@/lib/data/queries";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
 
@@ -22,6 +23,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const user = await requireUser(localizePath(locale, "/dashboard"));
   const business = await getCurrentBusiness();
+  const whatsapp = business ? await getWhatsAppConnection(business.id) : null;
+  const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
   const userCard = <UserCard name={user.fullName} email={user.email} locale={locale} labels={d.userCard} />;
 
@@ -44,10 +47,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <p className="truncate font-display text-base font-bold text-deep">{business?.name ?? d.header.yourBusiness}</p>
             {business ? <p className="text-xs text-slate">{d.header.roles[business.role]}</p> : null}
           </div>
-          <span className="hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-slate md:inline-flex">
-            <span className="size-2 rounded-full bg-line-strong" aria-hidden />
-            {d.header.whatsappNotConnected}
-          </span>
+          <Link
+            href={localizePath(locale, "/dashboard/whatsapp")}
+            className="hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-slate hover:bg-mint md:inline-flex"
+          >
+            <span className={connected ? "size-2 rounded-full bg-waza-500" : "size-2 rounded-full bg-line-strong"} aria-hidden />
+            {connected ? d.header.whatsappConnected : d.header.whatsappNotConnected}
+          </Link>
           <LanguageSwitcher persist />
           <Link
             href={localizePath(locale, "/dashboard/settings")}

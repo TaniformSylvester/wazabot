@@ -1,0 +1,156 @@
+import "server-only";
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import type { Database } from "@/types/database";
+import { oneOf, AFTER_HOURS_MODES } from "@/types/database";
+import { isOpenAt, parseOpeningHours, type OpeningHours } from "@/lib/business/hours";
+import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
+import { REPLY_LENGTHS, TONES, type ReplyLength, type Tone } from "@/lib/ai/style";
+
+type Db = SupabaseClient<Database>;
+
+/*
+ * Builds what the model is told about a business and a conversation. The
+ * backend reads the database (scoped to one business_id) and hands the model
+ * plain, bounded data — the model never queries the database itself.
+ */
+
+export type BusinessContext = {
+  business: {
+    id: string;
+    name: string;
+    description: string | null;
+    industry: string | null;
+    city: string | null;
+    address: string | null;
+    phone: string | null;
+    website: string | null;
+    currency: string;
+    timezone: string;
+    openingHours: OpeningHours;
+    /** null when opening hours aren't set. */
+    openNow: boolean | null;
+  };
+  settings: {
+    aiEnabled: boolean;
+    tone: Tone;
+    replyLength: ReplyLength;
+    greeting: string | null;
+    fallbackMessage: string | null;
+    afterHoursMode: (typeof AFTER_HOURS_MODES)[number];
+    afterHoursMessage: string | null;
+    humanHandoverEnabled: boolean;
+    salesMode: boolean;
+  };
+  faqs: { question: string; answer: string }[];
+  documents: { type: string; title: string; content: string }[];
+  /** Product count only; details come through the searchProducts tool so prices are always current. */
+  activeProductCount: number;
+};
+
+/** Hard caps so a large knowledge base can't blow up the prompt. */
+const MAX_FAQS = 60;
+const MAX_DOCS = 20;
+const MAX_DOC_CHARS = 4000;
+
+export async function buildBusinessContext(db: Db, businessId: string, now = new Date()): Promise<BusinessContext | null> {
+  const [biz, settings, faqs, docs, products] = await Promise.all([
+    db.from("businesses").select("*").eq("id", businessId).maybeSingle(),
+    db.from("ai_settings").select("*").eq("business_id", businessId).maybeSingle(),
+    db.from("faqs").select("question, answer").eq("business_id", businessId).eq("active", true).order("priority", { ascending: false }).limit(MAX_FAQS),
+    db.from("knowledge_documents").select("document_type, title, content").eq("business_id", businessId).eq("active", true).limit(MAX_DOCS),
+    db.from("products").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("active", true),
+  ]);
+  const b = biz.data;
+  if (!b) return null;
+  const s = settings.data;
+  const openingHours = parseOpeningHours(b.opening_hours);
+
+  return {
+    business: {
+      id: b.id,
+      name: b.name,
+      description: b.description,
+      industry: b.industry,
+      city: b.city,
+      address: b.address,
+      phone: b.phone,
+      website: b.website,
+      currency: b.currency,
+      timezone: b.timezone,
+      openingHours,
+      openNow: isOpenAt(openingHours, b.timezone, now),
+    },
+    settings: {
+      aiEnabled: s?.ai_enabled ?? true,
+      tone: oneOf(TONES, s?.tone, "friendly"),
+      replyLength: oneOf(REPLY_LENGTHS, s?.reply_length, "short"),
+      greeting: s?.greeting ?? null,
+      fallbackMessage: s?.fallback_message ?? null,
+      afterHoursMode: oneOf(AFTER_HOURS_MODES, s?.after_hours_mode, "reply_normally"),
+      afterHoursMessage: s?.after_hours_message ?? null,
+      humanHandoverEnabled: s?.human_handover_enabled ?? true,
+      salesMode: s?.sales_mode ?? false,
+    },
+    faqs: faqs.data ?? [],
+    documents: (docs.data ?? []).map((d) => ({ type: d.document_type, title: d.title, content: d.content.slice(0, MAX_DOC_CHARS) })),
+    activeProductCount: products.count ?? 0,
+  };
+}
+
+export type ConversationContext = {
+  conversationId: string;
+  aiEnabled: boolean;
+  language: LanguageCode | null;
+  customer: {
+    id: string;
+    name: string;
+    city: string | null;
+    preferredLanguage: LanguageCode | null;
+    preferredLanguageSource: string | null;
+    tags: string[];
+  };
+  /** Oldest first; only text the model may read (typed text, captions, transcripts). */
+  history: { role: "customer" | "assistant" | "agent"; text: string; at: string }[];
+};
+
+const HISTORY_LIMIT = 30;
+
+export async function buildConversationContext(db: Db, businessId: string, conversationId: string): Promise<ConversationContext | null> {
+  const [conv, msgs] = await Promise.all([
+    db.from("conversations").select("id, ai_enabled, language, customers(id, name, city, preferred_language, preferred_language_source, tags)").eq("business_id", businessId).eq("id", conversationId).maybeSingle(),
+    db
+      .from("messages")
+      .select("direction, sender_type, content, caption, created_at")
+      .eq("business_id", businessId)
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
+      .limit(HISTORY_LIMIT),
+  ]);
+  const c = conv.data;
+  if (!c || !c.customers) return null;
+  const history = (msgs.data ?? [])
+    .reverse()
+    .map((m) => ({
+      role: m.sender_type === "customer" ? ("customer" as const) : m.sender_type === "ai" ? ("assistant" as const) : ("agent" as const),
+      text: (m.content || m.caption || "").trim(),
+      at: m.created_at,
+    }))
+    .filter((m) => m.text);
+
+  return {
+    conversationId: c.id,
+    aiEnabled: c.ai_enabled,
+    language: isLanguageCode(c.language) ? c.language : null,
+    customer: {
+      id: c.customers.id,
+      name: c.customers.name,
+      city: c.customers.city,
+      preferredLanguage: isLanguageCode(c.customers.preferred_language) ? c.customers.preferred_language : null,
+      preferredLanguageSource: c.customers.preferred_language_source,
+      tags: c.customers.tags,
+    },
+    history,
+  };
+}

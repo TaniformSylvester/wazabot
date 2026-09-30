@@ -70,13 +70,13 @@ end $$;
 set constraints all deferred;
 
 -- Customer / conversation / message rows for business A (as the webhook would, via service role).
-insert into public.customers (id, business_id, whatsapp_id, display_name, preferred_language, preferred_language_source)
+insert into public.customers (id, business_id, whatsapp_phone, name, preferred_language, preferred_language_source)
 select '00000000-0000-4000-c000-00000000000a', business_id, '237670000001', 'Client A', 'wes', 'explicit_request'
 from public.business_members where user_id = '00000000-0000-4000-b000-00000000000a';
 insert into public.conversations (id, business_id, customer_id, language)
 select '00000000-0000-4000-d000-00000000000a', business_id, '00000000-0000-4000-c000-00000000000a', 'wes'
 from public.business_members where user_id = '00000000-0000-4000-b000-00000000000a';
-insert into public.messages (business_id, conversation_id, direction, sender, body, language, language_confidence, secondary_language, is_mixed)
+insert into public.messages (business_id, conversation_id, direction, sender_type, content, language, language_confidence, secondary_language, is_mixed)
 select business_id, '00000000-0000-4000-d000-00000000000a', 'inbound', 'customer', 'Abeg wuna get la robe rouge?', 'wes', 0.8, 'fr', true
 from public.business_members where user_id = '00000000-0000-4000-b000-00000000000a';
 
@@ -91,7 +91,7 @@ begin
   exception when foreign_key_violation then null;
   end;
   begin
-    insert into public.customers (business_id, whatsapp_id, preferred_language) values (b_other, '237670000002', 'fr');
+    insert into public.customers (business_id, whatsapp_phone, preferred_language) values (b_other, '237670000002', 'fr');
     raise exception 'FAIL: preference without a source accepted';
   exception when check_violation then null;
   end;
@@ -153,8 +153,8 @@ begin
   exception when insufficient_privilege then null;
   end;
   begin
-    update public.ai_settings set tone = 'warm';
-    raise exception 'FAIL: direct update of ai_settings';
+    update public.ai_settings set language_mode = 'auto';
+    raise exception 'FAIL: language mode must change only through update_business_language_settings';
   exception when insufficient_privilege then null;
   end;
 
@@ -163,8 +163,8 @@ begin
   get diagnostics n = row_count;
   if n <> 1 then raise exception 'FAIL: could not set customer language preference'; end if;
   begin
-    update public.customers set whatsapp_id = '237699999999';
-    raise exception 'FAIL: whatsapp_id should not be user-editable';
+    update public.customers set whatsapp_phone = '237699999999';
+    raise exception 'FAIL: whatsapp_phone should not be user-editable';
   exception when insufficient_privilege then null;
   end;
 

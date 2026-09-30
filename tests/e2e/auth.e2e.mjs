@@ -99,9 +99,9 @@ mkdirSync("test-results", { recursive: true });
   const conf = await latestMail(A.email, "Confirm your WazaBolt account");
   ok("English confirmation email received", !!conf && conf.HTML.includes("Confirm my email") && linkFrom(conf).includes("next=/en/dashboard"), conf?.Subject);
   await page.goto(linkFrom(conf));
-  await page.waitForURL(/\/dashboard/);
-  ok("confirmation link signs in and lands on dashboard", page.url().includes("/en/dashboard?welcome=1"), page.url());
-  ok("dashboard shows welcome + user name", (await page.getByText("Welcome, Marie").count()) === 1);
+  await page.waitForURL(/\/dashboard\/onboarding/);
+  ok("confirmation link signs in and starts onboarding", page.url().includes("/en/dashboard/onboarding?step=1&welcome=1"), page.url());
+  ok("onboarding shows welcome + setup wizard", (await page.getByText("Your email is confirmed").count()) === 1 && (await page.getByRole("heading", { name: "Set up your business" }).count()) === 1);
   ok("dashboard header shows business from DB", (await page.locator("header").getByText("MJ Fashion").count()) >= 1);
   const cookies = await ctx.cookies();
   const authCookies = cookies.filter((c) => c.name.startsWith("sb-"));
@@ -110,7 +110,7 @@ mkdirSync("test-results", { recursive: true });
 
   // 6. guest-only redirect
   await page.goto(`${APP}/en/login`);
-  ok("signed-in user visiting /login goes to dashboard", page.url().endsWith("/en/dashboard"), page.url());
+  ok("signed-in user visiting /login goes to dashboard", page.url().includes("/en/dashboard"), page.url());
 
   // reused confirmation link
   await page.goto(linkFrom(conf));
@@ -134,14 +134,14 @@ mkdirSync("test-results", { recursive: true });
   await page.goto(`${APP}/en/login?next=${encodeURIComponent("//evil.example")}`);
   await login(A.email, A.password);
   await page.waitForURL(/localhost:3000\/en\/dashboard/);
-  ok("open redirect ?next=//evil.example ignored", page.url() === `${APP}/en/dashboard`, page.url());
+  ok("open redirect ?next=//evil.example ignored", page.url().startsWith(`${APP}/en/dashboard`), page.url());
   await page.goto(`${APP}/en/dashboard/settings`);
-  ok("settings shows business defaults", (await page.getByText("Africa/Douala").count()) === 1 && (await page.getByText("XAF").count()) >= 1);
+  ok("settings shows business defaults", (await page.getByText("Africa/Douala").count()) >= 1 && (await page.getByText("XAF").count()) >= 1);
   ok("settings shows the Cameroon language pack", (await page.getByText("English, French, Cameroonian Pidgin English").count()) === 1);
   await page.screenshot({ path: "test-results/e2e-settings.png", fullPage: true });
 
   // Languages & AI style (functional)
-  await page.goto(`${APP}/en/dashboard/settings/languages`);
+  await page.goto(`${APP}/en/dashboard/ai/languages`);
   const preview = page.locator("aside").filter({ hasText: "Try language detection" });
   await preview.getByRole("textbox").fill("Weti be di price for dis shoe?");
   ok("detection preview recognises Pidgin", (await preview.innerText()).includes("Would reply in\nCameroonian Pidgin English"), (await preview.innerText()).replace(/\n/g, " / "));
@@ -237,8 +237,8 @@ mkdirSync("test-results", { recursive: true });
   const confB = await latestMail(B.email, "Confirmez votre compte WazaBolt");
   ok("French confirmation email", !!confB && confB.HTML.includes("Confirmer mon e-mail") && confB.HTML.includes('lang="fr"') && linkFrom(confB).includes("next=/fr/dashboard"), confB?.Subject);
   await pb.goto(linkFrom(confB));
-  await pb.waitForURL(/\/fr\/dashboard/);
-  ok("French user lands on the French dashboard", (await pb.getByText("Bienvenue, Paul").count()) === 1, pb.url());
+  await pb.waitForURL(/\/fr\/dashboard\/onboarding/);
+  ok("French user lands on the French onboarding", pb.url().includes("/fr/dashboard/onboarding") && (await pb.getByRole("heading", { name: "Configurez votre entreprise" }).count()) === 1, pb.url());
   ok("tenant B sees only Chez Paul", (await pb.locator("header").getByText("Chez Paul").count()) >= 1 && (await pb.getByText("MJ Fashion").count()) === 0);
   await pb.goto(`${APP}/fr/dashboard/settings`);
   ok("French sign-up sets French as the business default language", (await pb.getByText("Langue par défaut").locator("..").innerText()).includes("Français"));

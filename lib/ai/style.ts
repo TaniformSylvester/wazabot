@@ -4,7 +4,8 @@ import type { LanguageCode } from "@/lib/i18n/languages";
  * How a business wants its WhatsApp assistant to sound. Stored per business in
  * the `ai_settings` table; the option lists below match its check constraints.
  */
-export const TONES = ["friendly", "professional", "warm"] as const;
+/** "Personality" in the dashboard. */
+export const TONES = ["professional", "friendly", "casual"] as const;
 export const FORMALITY_LEVELS = ["informal", "neutral", "formal"] as const;
 export const EMOJI_LEVELS = ["none", "light", "expressive"] as const;
 export const REPLY_LENGTHS = ["short", "medium", "detailed"] as const;
@@ -53,7 +54,7 @@ export const styleGuidance = {
   tone: {
     friendly: "Friendly and approachable, like a helpful shop assistant.",
     professional: "Professional and efficient: courteous, precise, no chit-chat.",
-    warm: "Warm and caring: make the customer feel welcome and looked after.",
+    casual: "Relaxed and casual, like chatting with a regular customer — still polite and clear.",
   },
   emojiLevel: {
     none: "Do not use emoji.",

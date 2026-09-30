@@ -19,10 +19,10 @@ select
 grant select on ids to authenticated;
 
 -- As the webhook would (service role / owner): one conversation with each message type.
-insert into public.customers (id, business_id, whatsapp_id) select '00000000-0000-4000-e100-00000000000a', biz_a, '237670000111' from ids;
+insert into public.customers (id, business_id, whatsapp_phone) select '00000000-0000-4000-e100-00000000000a', biz_a, '237670000111' from ids;
 insert into public.conversations (id, business_id, customer_id) select '00000000-0000-4000-e200-00000000000a', biz_a, '00000000-0000-4000-e100-00000000000a' from ids;
 
-insert into public.messages (id, business_id, conversation_id, direction, sender, message_type, whatsapp_message_id, body, caption, payload, processing_status)
+insert into public.messages (id, business_id, conversation_id, direction, sender_type, message_type, whatsapp_message_id, content, caption, payload, processing_status)
 select v.id::uuid, ids.biz_a, '00000000-0000-4000-e200-00000000000a', 'inbound', 'customer', v.t, v.wamid, v.body, v.caption, v.payload::jsonb, v.status
 from ids, (values
   ('00000000-0000-4000-e300-000000000001', 'text', 'wamid.1', 'Bonjour', null, '{}', 'processed'),
@@ -50,14 +50,14 @@ begin
   end if;
 
   begin
-    insert into public.messages (business_id, conversation_id, direction, sender, message_type)
+    insert into public.messages (business_id, conversation_id, direction, sender_type, message_type)
     values (b_a, '00000000-0000-4000-e200-00000000000a', 'inbound', 'customer', 'sticker');
     raise exception 'FAIL: unknown message type accepted';
   exception when check_violation then null;
   end;
 
   begin
-    insert into public.messages (business_id, conversation_id, direction, sender, whatsapp_message_id)
+    insert into public.messages (business_id, conversation_id, direction, sender_type, whatsapp_message_id)
     values (b_a, '00000000-0000-4000-e200-00000000000a', 'inbound', 'customer', 'wamid.1');
     raise exception 'FAIL: duplicate WhatsApp message id accepted (webhook retries must be idempotent)';
   exception when unique_violation then null;

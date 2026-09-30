@@ -36,21 +36,31 @@ app/
   [lang]/             root layout (html lang), every page lives under /en or /fr
     (marketing)/      /, /features, /how-it-works, /pricing, /solutions, /faq, /resources, /about, ...
     (auth)/           /login, /register, /forgot-password, /reset-password
-    dashboard/        protected dashboard (overview, settings, settings/languages)
+    dashboard/        protected SaaS dashboard: home, onboarding, conversations, customers,
+                      products, orders, knowledge, ai (+ ai/languages), automations,
+                      analytics, whatsapp, team, billing, settings
     opengraph-image   localized link-preview image
   auth/confirm/       email-link handler (not localized)
   brand-assets/       internal: generated social templates (/brand-assets/*.png, not linked)
   global-not-found.tsx, icon.svg, apple-icon.png, manifest.ts, robots.ts, sitemap.ts
 messages/             UI dictionaries: en.ts (source of truth), fr.ts
 lib/i18n/             locales, language registry, country packs, routing helpers, dictionaries
-lib/ai/               WhatsApp AI language layer: packs, detection, resolution, prompts, reply schema
-lib/actions/          Server Actions (auth, settings)
+lib/ai/               WhatsApp AI language layer: packs, detection, resolution, prompts, reply schema;
+                      service.ts (generateResponse, validateAIResponse…), context.ts, tools/registry.ts
+lib/actions/          Server Actions (auth, settings, business, products, knowledge, customers,
+                      conversations, orders, ai) — all re-check the user's role
+lib/data/queries.ts   dashboard read models (always RLS-scoped to the user's business)
+lib/validation/       Zod schemas shared by forms and Server Actions
+lib/whatsapp/         WhatsApp service interface (no live connection in Stage 1)
+types/supabase.ts     generated database types (`npm run db:types`)
 components/
   brand/              WazaBoltLogo, WazaBoltIcon, WazaBoltBadge, AIStatus, ChannelBadge
   marketing/          sections + FeatureCard, IndustryCard, PricingCard, SectionHeading, CTASection,
                       DashboardPreview (dashboard-mock.tsx)
   conversations/      WhatsAppChatMockup (customer's view, demo) and dashboard chat primitives
-  dashboard/          sidebar, mobile nav, user card
+  dashboard/          sidebar, mobile nav, user card, language settings form
+  app/                dashboard building blocks: page header, panels, empty states, stat cards,
+                      badges, tables, action forms (useActionState), product/customer/order forms
   motion/             Reveal (scroll reveal), CountUp
   ui/                 Button (the WazaBolt button: default/outline/secondary/ghost/dark/gold variants),
                       badge, card, accordion, sheet, input, label
@@ -111,12 +121,13 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Appointments, Broadcasts, Mobile Money | Shown as **Planned** — not in the first release |
 | Auth: register, email confirmation, login, logout, password reset, protected dashboard | **Functional** (Phase 2) |
 | Database: users, businesses, business_members, audit_logs with RLS | **Functional** (Phase 2) |
-| Dashboard shell: overview, settings, change password | **Functional**; other sections show "Soon" |
+| Dashboard (Stage 1): home with real metrics, 6-step onboarding, products (variants, images, stock), knowledge (FAQs + documents), customers, conversations (Take Over / Return to AI), orders, AI settings, analytics, WhatsApp status, team, billing, settings | **Functional** — real data only; empty states say "No data yet" |
+| Roles owner / admin / agent / viewer | **Enforced** in Server Actions and by RLS |
 | Website + dashboard in English and French (URLs, metadata, hreflang, sitemap, emails) | **Functional** |
 | Languages & AI style settings (reply languages, default, mode, tone, formality, emoji, length, notes) | **Functional** — saved to the database |
 | Language detection / resolution / prompt builder (en, fr, Cameroonian Pidgin) | **Functional code + unit tests**; not yet called by a live AI (no WhatsApp webhook yet) |
-| Customers / conversations / messages tables with language fields | **Schema only** — filled by the WhatsApp webhook (Phase 5) |
-| Onboarding, catalog, WhatsApp webhook, AI replies, orders, billing | **Not started** — Phases 3–8 |
+| Messages | **Read-only** in the dashboard — filled by the WhatsApp webhook (Stage 2); non-text types show a placeholder |
+| WhatsApp connection, AI replies (Anthropic), media processing, payments, broadcasts, invites | **Not started** — interfaces only (`lib/whatsapp`, `lib/ai/service.ts`, `lib/ai/tools`) |
 
 ## Multilingual architecture
 
@@ -194,12 +205,15 @@ Every WhatsApp message is stored with a `message_type`: `text`, `image`, `audio`
 1. **Create a Supabase project** and copy the Project URL and anon (public) key into
    `.env.local` (and your host's environment): `NEXT_PUBLIC_SUPABASE_URL`,
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` (your site's public URL).
-   The service-role key is not needed yet — never expose it to the browser.
+   The service-role key is only needed for webhooks/media later — never expose it to the browser.
 2. **Apply the migrations** in `supabase/migrations/`, in filename order — paste each into the SQL
    editor, or run `npx supabase link` then `npx supabase db push`.
 3. **Auth → URL configuration:** Site URL = your `NEXT_PUBLIC_SITE_URL`; add
    `<site-url>/auth/confirm` (or `<site-url>/**`) to Redirect URLs.
 4. **Auth → Providers → Email:** keep "Confirm email" on.
+   Storage buckets `whatsapp-media` (private) and `product-images` (public read, owner/admin
+   upload into their own business folder) are created by the migrations — check they exist under
+   Storage after applying them.
 5. **Auth → Email templates:** paste `supabase/templates/confirmation.html` into
    "Confirm signup" (subject: *Confirm your WazaBolt account / Confirmez votre compte WazaBolt*) and
    `recovery.html` into "Reset password" (subject: *Reset your WazaBolt password / Réinitialisez
@@ -230,12 +244,18 @@ Auth → Rate limits). Consider enabling CAPTCHA protection before public launch
 # Unit tests: language detection, explicit requests, reply-language resolution, prompts
 npm test
 
-# Database: tenant isolation, RLS and multilingual schema (local or staging DB — never production)
+# Database: tenant isolation, RLS, multilingual, multimodal and SaaS-foundation schema
+# (local or staging DB — never production)
 DATABASE_URL=postgres://... npm run test:db
 
 # End-to-end: needs Supabase Auth + DB + Mailpit, e.g. `npx supabase start`,
 # then `npm run build && npm start` with the local Supabase URL/key in .env.local
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e
+# Stage 1 dashboard: onboarding, CRUD, takeover, orders, tenant isolation, mobile layout
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e:dashboard
+
+# Regenerate database types after a migration
+DATABASE_URL=postgres://... npm run db:types
 ```
 
 ## Before launch
