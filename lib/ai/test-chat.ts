@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 import { z } from "zod";
 
@@ -18,6 +18,9 @@ import { createClient } from "@/lib/supabase/server";
  * knowledge, tools, language rules), but nothing is sent and nothing is
  * written: lookups are real, orders / customer details / handovers are
  * simulated. The transcript lives in the browser only.
+ *
+ * Called from the route handler app/api/ai/test-chat (a plain fetch, not a
+ * Server Action, so a slow or failed answer can never take the page down).
  */
 
 /** Test messages per business per hour — keeps a forgotten tab or a loop from running up the API bill. */
@@ -45,7 +48,9 @@ export type TestChatResult =
       /** Outside opening hours with an after-hours setting other than "answer as usual". */
       afterHours: boolean;
     }
-  | { ok: false; error: "forbidden" | "not_configured" | "invalid" | "rate_limited" | "refusal" | "failed" };
+  | { ok: false; error: TestChatError };
+
+export type TestChatError = "forbidden" | "not_configured" | "invalid" | "rate_limited" | "refusal" | "failed" | "network" | "timeout";
 
 export async function sendTestMessage(input: unknown): Promise<TestChatResult> {
   try {

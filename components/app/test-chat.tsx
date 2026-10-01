@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlaskConical, Hand, Loader2, RotateCcw, Send, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { sendTestMessage, type TestChatResult } from "@/lib/actions/ai-test";
+import type { TestChatError, TestChatResult } from "@/lib/ai/test-chat";
 import { format } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
 import type { Messages } from "@/messages/en";
@@ -14,12 +14,33 @@ type Turn =
   | { role: "customer"; text: string }
   | { role: "assistant"; text: string; meta: Extract<TestChatResult, { ok: true }> };
 
-/** The transcript lives only in this browser tab; each message is answered by the server action. */
+/** Calls the test-chat endpoint. Never throws: every failure becomes an error code shown in the chat. */
+async function ask(payload: unknown): Promise<TestChatResult> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 75_000);
+  try {
+    const res = await fetch("/api/ai/test-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    if (res.status === 504) return { ok: false, error: "timeout" };
+    const data = (await res.json().catch(() => null)) as TestChatResult | null;
+    return data && typeof data === "object" && "ok" in data ? data : { ok: false, error: "failed" satisfies TestChatError };
+  } catch (e) {
+    return { ok: false, error: e instanceof DOMException && e.name === "AbortError" ? "timeout" : "network" };
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+/** The transcript lives only in this browser tab; each message is answered by /api/ai/test-chat. */
 export function TestChat({ t, languageNames }: { t: T; languageNames: Record<string, string> }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
+  const [pending, setPending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => endRef.current?.scrollIntoView({ block: "end" }), [turns, pending]);
@@ -32,16 +53,12 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
     const history = turns.map((turn) => ({ role: turn.role, text: turn.text }));
     const lastLanguage = [...turns].reverse().find((turn): turn is Extract<Turn, { role: "assistant" }> => turn.role === "assistant")?.meta.language ?? null;
     setTurns((prev) => [...prev, { role: "customer", text: message }]);
-    start(async () => {
-      let res: TestChatResult | null = null;
-      try {
-        res = await sendTestMessage({ message, history, language: lastLanguage });
-      } catch {
-        // Network error or the server timed out: keep the page, let the user retry.
-      }
-      if (res?.ok) setTurns((prev) => [...prev, { role: "assistant", text: res.reply, meta: res }]);
+    setPending(true);
+    void ask({ message, history, language: lastLanguage }).then((res) => {
+      setPending(false);
+      if (res.ok) setTurns((prev) => [...prev, { role: "assistant", text: res.reply, meta: res }]);
       else {
-        setError(res ? t.errors[res.error] : t.errors.network);
+        setError(t.errors[res.error] ?? t.errors.failed);
         setTurns((prev) => prev.slice(0, -1));
         setDraft(message);
       }

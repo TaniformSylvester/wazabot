@@ -1151,7 +1151,8 @@ const en = {
         failed: "The assistant couldn't answer. Please try again.",
         invalid: "Message too long or empty.",
         forbidden: "Your role can't use the test chat.",
-        network: "The answer didn't come back (the connection dropped or it took too long). Please try again.",
+        network: "The connection dropped before the answer came back. Please try again.",
+        timeout: "The assistant took too long to answer. Please try again.",
       },
     },
     automations: {

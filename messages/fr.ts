@@ -1149,7 +1149,8 @@ const fr: Messages = {
         failed: "L'assistant n'a pas pu répondre. Réessayez.",
         invalid: "Message trop long ou vide.",
         forbidden: "Votre rôle ne permet pas d'utiliser le chat de test.",
-        network: "La réponse n'est pas arrivée (connexion coupée ou délai trop long). Réessayez.",
+        network: "La connexion a été coupée avant la réponse. Réessayez.",
+        timeout: "L'assistant a mis trop de temps à répondre. Réessayez.",
       },
     },
     automations: {
