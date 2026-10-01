@@ -12,22 +12,23 @@ import { WhatsAppMediaDownloader } from "@/lib/messaging/whatsapp/media-download
 import { parseWebhookMessages, parseWebhookStatuses } from "@/lib/messaging/whatsapp/webhook";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret } from "@/lib/whatsapp/crypto";
+import type { AiJob } from "@/lib/ai/pipeline";
 
 /*
  * Webhook → database. Each inbound message is stored in one atomic,
  * idempotent database call (ingest_whatsapp_message); media files are
  * downloaded afterwards (after the 200 response) into private storage.
  *
- * Stage 2 stores and shows messages; nobody answers automatically yet.
- * Text messages are left as processing_status "received" for the AI stage
- * to pick up; other types follow the processing plan (stored, flagged).
+ * Text messages are stored as processing_status "received"; the AI pipeline
+ * (lib/ai/pipeline.ts) answers them after the webhook has responded. Other
+ * types follow the processing plan (stored, flagged).
  * Logs contain ids and error codes only — never message content.
  */
 
 type Admin = NonNullable<ReturnType<typeof createAdminClient>>;
 
 export type MediaJob = { businessId: string; messageId: string; media: MediaRef };
-export type WebhookResult = { stored: number; duplicates: number; ignored: number; statuses: number; mediaJobs: MediaJob[] };
+export type WebhookResult = { stored: number; duplicates: number; ignored: number; statuses: number; mediaJobs: MediaJob[]; aiJobs: AiJob[] };
 
 /** Reasons recorded when a type isn't processed automatically yet. */
 const NOT_PROCESSED_REASON: Record<string, string> = {
@@ -56,7 +57,7 @@ function contentOf(message: InboundMessage) {
 }
 
 export async function handleWebhookPayload(payload: unknown, admin: Admin): Promise<WebhookResult> {
-  const result: WebhookResult = { stored: 0, duplicates: 0, ignored: 0, statuses: 0, mediaJobs: [] };
+  const result: WebhookResult = { stored: 0, duplicates: 0, ignored: 0, statuses: 0, mediaJobs: [], aiJobs: [] };
 
   for (const message of parseWebhookMessages(payload)) {
     const plan = planInbound(message, MVP_CAPABILITIES);
@@ -103,6 +104,7 @@ export async function handleWebhookPayload(payload: unknown, admin: Admin): Prom
       continue;
     }
     result.stored++;
+    result.aiJobs.push({ businessId: row.business_id, conversationId: row.conversation_id, messageId: row.message_id });
     if ("media" in message && plan.steps.includes("store_media")) {
       result.mediaJobs.push({ businessId: row.business_id, messageId: row.message_id, media: message.media });
     }

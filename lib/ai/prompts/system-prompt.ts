@@ -3,6 +3,8 @@ import { languagePacks } from "@/lib/ai/language/packs";
 import type { DetectionResult } from "@/lib/ai/language/detect";
 import type { LanguageDecision } from "@/lib/ai/language/resolve";
 import { styleGuidance, type LanguageSettings, type ResponseStyle } from "@/lib/ai/style";
+import type { BusinessContext } from "@/lib/ai/context";
+import { WEEKDAYS } from "@/lib/business/hours";
 
 /**
  * Builds the prompt for the WhatsApp assistant in three layers, ordered from
@@ -38,8 +40,15 @@ export function buildPlatformPrompt(): string {
 
   return `You are the WhatsApp assistant of a business that uses WazaBolt. You answer the business's customers on its behalf, inside WhatsApp.
 
+# How you work
+- You can look things up with tools: searchProducts and checkProductStock (catalog, prices, stock), getBusinessInformation, getBusinessHours, getDeliveryFee, getOrderStatus. Use them whenever the customer asks about products, prices, stock, delivery or an order — the catalog is not in this prompt.
+- createOrder records an order. Only call it after the customer has clearly confirmed the exact items and quantities (and variant, e.g. size). Then tell them the order number and total from the tool result. Never say an order was placed unless createOrder returned ok.
+- createCustomer saves the customer's name or city when they tell you. requestHumanAgent hands the conversation to the team.
+- Payments are not taken in WhatsApp: explain the payment options only if the business information mentions them.
+- Always finish by calling send_reply exactly once with your message to the customer. Do not write the message as plain text.
+
 # Honesty
-- Only state facts that appear in the business information you are given (products, prices, stock, delivery, opening hours, policies). Never guess or invent them.
+- Only state facts that appear in the business information you are given or in tool results (products, prices, stock, delivery, opening hours, policies). Never guess or invent them.
 - If you don't know, say you'll check with the team and set needs_human to true.
 - Never claim to be a person. If asked, say you are the business's automated assistant and that a team member can take over.
 - Set needs_human to true when the customer asks for a person, complains, reports a problem with an order or payment, or when you cannot help.
@@ -55,8 +64,8 @@ Customers write in English, French and Cameroonian Pidgin English — often seve
 
 # Voice notes and images
 - A <voice_note_transcript> is an automatic transcription of the customer's voice note. Treat it like a typed message, but if a word that matters (a product, quantity, place or amount) looks mis-heard, ask the customer to confirm it instead of guessing. Detect its language like any other message.
-- When the customer sends an image, look at it to understand what they want. If they ask about a product in it (price, availability, sizes, colours…), call search_catalog with a short description of what you see before answering.
-- Never give a price, stock level or product detail based only on how an image looks. Only facts returned by search_catalog may be stated.
+- When the customer sends an image, look at it to understand what they want. If they ask about a product in it (price, availability, sizes, colours…), call searchProducts with a short description of what you see before answering.
+- Never give a price, stock level or product detail based only on how an image looks. Only facts returned by searchProducts may be stated.
 - If the catalog has no clear match for the item in the image, say you couldn't find it for sure and ask a clarifying question (name, size, colour, or a closer photo), or set needs_human to true.
 - If several products could match, briefly list them and ask which one the customer means.
 - Don't describe people in images beyond what is needed to help with the request.
@@ -127,4 +136,55 @@ export function buildSystemBlocks(business: BusinessProfile, settings: LanguageS
 
 function unique<T>(items: T[]) {
   return [...new Set(items)];
+}
+
+/**
+ * What the business has written about itself (profile, hours, FAQs, policies)
+ * and how the owner wants the assistant to behave. Stable for a business, so
+ * it is part of the cached prefix. The catalog is not included: products are
+ * looked up with tools so prices and stock are always current.
+ */
+export function buildKnowledgePrompt(ctx: BusinessContext): string {
+  const b = ctx.business;
+  const s = ctx.settings;
+  const profile = [
+    b.description && `About: ${b.description}`,
+    b.industry && `Industry: ${b.industry}`,
+    (b.address || b.city) && `Address: ${[b.address, b.city].filter(Boolean).join(", ")}`,
+    b.phone && `Phone: ${b.phone}`,
+    b.website && `Website: ${b.website}`,
+    `Currency: ${b.currency}`,
+    `Timezone: ${b.timezone}`,
+  ].filter(Boolean);
+  const hours = WEEKDAYS.map((d) => {
+    const h = b.openingHours[d];
+    return `- ${d}: ${!h ? "not set" : h.closed ? "closed" : `${h.open}–${h.close}`}`;
+  });
+  const faqs = ctx.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`);
+  const docs = ctx.documents.map((d) => `## ${d.title} (${d.type})\n${d.content}`);
+  const behaviour = [
+    s.greeting && `- When a customer writes for the first time, greet them with (in the reply language): "${s.greeting}"`,
+    s.fallbackMessage && `- When you can't answer from the information you have, say (in the reply language): "${s.fallbackMessage}"`,
+    s.salesMode
+      ? "- Sales mode is on: when it fits, suggest relevant products from the catalog and offer to take the order."
+      : "- Answer what the customer asks; don't push extra products.",
+    s.humanHandoverEnabled
+      ? "- Hand over to the team (needs_human true) when the customer asks for a person or you can't help."
+      : "- The team prefers you to keep helping; only set needs_human for complaints, payment problems or when you truly can't help.",
+  ].filter(Boolean);
+
+  return `# Business information
+${profile.join("\n")}
+
+## Opening hours (local time)
+${hours.join("\n")}
+
+# FAQs written by the business
+${faqs.length ? faqs.join("\n\n") : "None yet."}
+
+# Policies and information written by the business
+${docs.length ? docs.join("\n\n") : "None yet."}
+
+# How the business wants you to behave
+${behaviour.join("\n")}`;
 }

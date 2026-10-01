@@ -395,3 +395,15 @@ export async function getAnalytics(businessId: string, currency: string): Promis
     messageLanguages: Object.entries(msgLang).map(([language, count]) => ({ language: language as LanguageCode, count })).sort((a, b) => b.count - a.count),
   };
 }
+
+/** This month's AI outcomes (owners/admins only — RLS hides ai_usage from other roles). */
+export async function getAiUsageSummary(businessId: string) {
+  const db = await createClient();
+  const { data } = await db.from("ai_usage").select("outcome").eq("business_id", businessId).gte("created_at", monthStart()).limit(20000);
+  const rows = data ?? [];
+  return {
+    replies: rows.filter((r) => r.outcome === "replied").length,
+    handovers: rows.filter((r) => r.outcome === "handed_over").length,
+    failed: rows.filter((r) => r.outcome === "failed").length,
+  };
+}

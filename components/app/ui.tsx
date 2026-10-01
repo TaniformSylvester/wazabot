@@ -134,9 +134,15 @@ const TONES = {
 } as const;
 export type BadgeTone = keyof typeof TONES;
 
-export function StatusBadge({ tone = "neutral", children, dot }: { tone?: BadgeTone; children: React.ReactNode; dot?: boolean }) {
+export function StatusBadge({ tone = "neutral", children, dot, wrap }: { tone?: BadgeTone; children: React.ReactNode; dot?: boolean; wrap?: boolean }) {
   return (
-    <span className={cn("inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold", TONES[tone])}>
+    <span
+      className={cn(
+        "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold",
+        wrap ? "max-w-full" : "shrink-0 whitespace-nowrap",
+        TONES[tone],
+      )}
+    >
       {dot ? <span className="size-1.5 rounded-full bg-current" aria-hidden /> : null}
       {children}
     </span>

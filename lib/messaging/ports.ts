@@ -56,7 +56,7 @@ export type CatalogMatch = {
   inStock: boolean | null;
 };
 
-/** Business catalog lookup (products arrive in Phase 3). Used by the AI's search_catalog tool. */
+/** Business catalog lookup (products arrive in Phase 3). Used by the AI's searchProducts tool. */
 export interface CatalogSearch {
   search(businessId: string, query: { text?: string; limit?: number }): Promise<CatalogMatch[]>;
 }

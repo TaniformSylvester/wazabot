@@ -20,7 +20,7 @@ export const assistantReplySchema = z.object({
     .describe("Language the customer explicitly asked you to use in their latest message, or null."),
   catalog_product_ids: z
     .array(z.string())
-    .describe("Ids of catalog products (from search_catalog) whose details the reply states. Empty if none."),
+    .describe("Ids of catalog products (from searchProducts / checkProductStock) whose details the reply states. Empty if none."),
   needs_human: z.boolean().describe("True when a person from the business must take over."),
   handoff_reason: z.string().nullable().describe("Short internal reason for the handoff, or null."),
 });

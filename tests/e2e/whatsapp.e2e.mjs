@@ -154,8 +154,9 @@ async function signUp(browser, user) {
   await deliver(statusUpdate(sent.wamid, "delivered"));
   await deliver(statusUpdate(sent.wamid, "read"));
   await deliver(statusUpdate(sent.wamid, "delivered")); // out of order: must not go back
-  await page.reload();
-  ok("delivery receipts: Read (never back to Delivered)", (await main.getByText("Read", { exact: true }).count()) === 1);
+  // Receipts are applied as they arrive; the page refreshes itself every few seconds.
+  const readShown = await main.getByText("Read", { exact: true }).waitFor({ timeout: 20000 }).then(() => true, () => false);
+  ok("delivery receipts: Read (never back to Delivered)", readShown && (await main.getByText("Read", { exact: true }).count()) === 1);
 
   // ---------------------------------------------------------------- media + auto refresh
   await deliver(inbound("237670000123", "Chantal", { id: "wamid.IN2", type: "image", image: { id: "media-1", mime_type: "image/jpeg", caption: "Celle-ci en taille L ?" } }));

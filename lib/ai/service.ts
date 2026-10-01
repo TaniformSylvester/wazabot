@@ -1,44 +1,47 @@
 import "server-only";
 
 import type { BusinessContext, ConversationContext } from "@/lib/ai/context";
-import { detectLanguage as detect, type DetectionResult } from "@/lib/ai/language";
+import { detectLanguage as detect, type DetectionResult, type LanguageDecision } from "@/lib/ai/language";
 import { assistantReplySchema, replyLanguageMismatch, type AssistantReply } from "@/lib/ai/reply-schema";
-import { NotConfiguredError } from "@/lib/messaging/ports";
+import type { ToolContext } from "@/lib/ai/tools/registry";
 
 export { buildBusinessContext, buildConversationContext } from "@/lib/ai/context";
 export type { BusinessContext, ConversationContext } from "@/lib/ai/context";
 
 /*
- * The AI service boundary. Stage 3 plugs a Claude implementation into
- * `AiResponder`; the rest of the app (webhook, dashboard) depends only on
- * these functions. Server-only: the API key never reaches the browser.
+ * The AI service boundary. The webhook pipeline (lib/ai/pipeline.ts) depends
+ * only on these types; lib/ai/claude.ts implements AiResponder with Claude.
+ * Server-only: the API key never reaches the browser.
  */
 
 export type GenerateInput = {
   business: BusinessContext;
   conversation: ConversationContext;
-  /** The customer's latest message, as text the model can read. */
-  latestMessage: string;
+  /** Reply language chosen by lib/ai/language for the latest customer message. */
+  decision: LanguageDecision;
+  detection: DetectionResult;
+  /** Business-scoped context the tools run with. */
+  tools: ToolContext;
+  now: Date;
 };
 
-export type GenerateResult = { reply: AssistantReply; model: string };
+export type AiUsage = { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number };
+
+export type GenerateResult = {
+  reply: AssistantReply;
+  model: string;
+  usage: AiUsage;
+  toolCalls: number;
+  /** Product ids returned by catalog tools this turn — the only ones the reply may quote. */
+  productIds: Set<string>;
+};
 
 export interface AiResponder {
   generate(input: GenerateInput): Promise<GenerateResult>;
 }
 
-/** Placeholder until Stage 3: refuses clearly instead of pretending to answer. */
-export const notConfiguredResponder: AiResponder = {
-  async generate() {
-    throw new NotConfiguredError("ai_responder");
-  },
-};
-
-/**
- * Generates a reply — only when the business and the conversation allow it.
- * Returns null when the AI must stay silent (AI switched off, Human Mode).
- */
-export async function generateResponse(input: GenerateInput, responder: AiResponder = notConfiguredResponder): Promise<GenerateResult | null> {
+/** Generates a reply — only when the business and the conversation allow it (null = stay silent). */
+export async function generateResponse(input: GenerateInput, responder: AiResponder): Promise<GenerateResult | null> {
   if (!input.business.settings.aiEnabled || !input.conversation.aiEnabled) return null;
   return responder.generate(input);
 }
@@ -48,6 +51,9 @@ export function detectLanguage(text: string): DetectionResult {
 }
 
 export type ValidationIssue = "schema" | "language_mismatch" | "unknown_product" | "too_long" | "empty";
+
+/** WhatsApp's limit for a text message body. */
+export const WHATSAPP_TEXT_LIMIT = 4096;
 
 /**
  * Checks a model reply before anything is sent: valid structure, the

@@ -4,6 +4,7 @@ import { timingSafeEqual } from "node:crypto";
 import { logServerError } from "@/lib/log";
 import { verifyWebhookSignature } from "@/lib/messaging/whatsapp/webhook";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { defaultDeps, replyToInbound } from "@/lib/ai/pipeline";
 import { handleWebhookPayload, storeMedia } from "@/lib/whatsapp/inbound";
 
 /*
@@ -17,7 +18,8 @@ import { handleWebhookPayload, storeMedia } from "@/lib/whatsapp/inbound";
  */
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Media downloads and AI replies run after the response (see after() below).
+export const maxDuration = 300;
 
 function sameSecret(a: string, b: string) {
   const x = Buffer.from(a);
@@ -55,9 +57,19 @@ export async function POST(request: Request) {
     const result = await handleWebhookPayload(payload, admin);
     // One line per delivery: counts only, never message content or phone numbers.
     console.info(`[whatsapp.webhook] stored=${result.stored} duplicates=${result.duplicates} ignored=${result.ignored} statuses=${result.statuses}`);
-    if (result.mediaJobs.length) {
+    if (result.mediaJobs.length || result.aiJobs.length) {
       after(async () => {
-        for (const job of result.mediaJobs) await storeMedia(job, admin);
+        const deps = defaultDeps(admin);
+        await Promise.all([
+          (async () => {
+            for (const job of result.mediaJobs) await storeMedia(job, admin);
+          })(),
+          ...result.aiJobs.map((job) =>
+            replyToInbound(job, deps)
+              .then((r) => console.info(`[ai.reply] ${r.outcome}${r.reason ? ` (${r.reason})` : ""}`))
+              .catch((e) => logServerError("ai.reply", e)),
+          ),
+        ]);
       });
     }
     return Response.json({ ok: true, stored: result.stored, duplicates: result.duplicates, statuses: result.statuses });

@@ -16,7 +16,8 @@ import { locationFromPayload, mapsUrl } from "@/lib/messaging/views";
 import { windowOpen } from "@/lib/whatsapp/service";
 import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getConversation, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
+import { getAiSettingsRow, getConversation, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
+import { aiConfigured } from "@/lib/ai/claude";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { isLanguageCode, languageName } from "@/lib/i18n/languages";
@@ -46,6 +47,8 @@ export default async function ConversationPage({ params, searchParams }: PagePro
   const connection = await getWhatsAppConnection(business.id);
   const connected = connection?.status === "connected";
   const mediaUrls = await signMedia(messages);
+  const aiSettings = await getAiSettingsRow(business.id);
+  const assistantLive = aiConfigured() && connected && aiSettings?.ai_enabled !== false;
 
   const filter = (CONVERSATION_FILTERS as readonly string[]).includes(param(sp.filter) ?? "") ? (param(sp.filter) as ConversationFilterKey) : "all";
   const q = param(sp.q);
@@ -106,7 +109,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
               <StatusBadge tone={conversationStatusTone[conversation.status]}>{statusLabel}</StatusBadge>
               {conversation.human_requested ? <StatusBadge tone="red">{c.humanRequested}</StatusBadge> : null}
             </div>
-            <p className="text-xs text-slate">{conversation.ai_enabled ? c.aiOnlineText : c.humanModeText}</p>
+            <p className="text-xs text-slate">{conversation.ai_enabled ? (assistantLive ? c.aiOnlineText : c.aiNotLiveText) : c.humanModeText}</p>
             {canAct ? (
               <ConversationControls
                 id={conversation.id}

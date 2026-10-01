@@ -1,30 +1,10 @@
 import type { CatalogMatch } from "@/lib/messaging/ports";
 
-/**
- * The `search_catalog` tool the assistant must use before stating any price,
- * stock level or product detail — for typed questions and for images alike.
- * Definition is provider-neutral JSON Schema; the Claude call passes it as a
- * custom tool. Implemented against the catalog in Phase 3.
+/*
+ * Guard for image questions: products are looked up with the searchProducts
+ * tool (lib/ai/tools/registry.ts); these rules decide whether a match from a
+ * photo is clear enough to quote.
  */
-export const searchCatalogTool = {
-  name: "search_catalog",
-  description:
-    "Search this business's product catalog. Call it before giving any price, stock, size, colour or product detail. " +
-    "For an image, describe the item in words (type, colour, pattern, visible text or brand) and search with that. " +
-    "Only facts returned by this tool may be told to the customer.",
-  input_schema: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "Words to search for: product name, type, colour, pattern, visible label text.",
-      },
-      limit: { type: "integer", minimum: 1, maximum: 10, description: "Maximum results (default 5)." },
-    },
-    required: ["query"],
-    additionalProperties: false,
-  },
-} as const;
 
 /** A match must be at least this confident before its price/stock can be quoted. */
 export const CONFIDENT_MATCH = 0.8;

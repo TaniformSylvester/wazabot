@@ -15,7 +15,7 @@ export type ProcessingStep =
   | "store_media" //       download from WhatsApp → private bucket
   | "transcribe" //        audio → message_transcriptions → detect language
   | "ai_reply" //          text (typed, transcribed or caption) → language pipeline → model
-  | "ai_vision_reply"; //  image + caption → vision model with search_catalog tool
+  | "ai_vision_reply"; //  image + caption → vision model with the searchProducts tool
 
 export type FixedReplyKey = keyof Pick<AiLanguagePack["messages"], "audioNotSupported" | "imageNotSupported" | "attachmentReceived">;
 

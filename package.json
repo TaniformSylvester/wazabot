@@ -10,11 +10,13 @@
     "test:e2e": "node tests/e2e/auth.e2e.mjs",
     "test:e2e:dashboard": "node tests/e2e/dashboard.e2e.mjs",
     "test:e2e:whatsapp": "node tests/e2e/whatsapp.e2e.mjs",
-    "test:db": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/tenant_isolation.sql -f supabase/tests/multilingual.sql -f supabase/tests/multimodal.sql -f supabase/tests/saas_foundation.sql -f supabase/tests/whatsapp_integration.sql",
+    "test:e2e:ai": "node tests/e2e/ai.e2e.mjs",
+    "test:db": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/tenant_isolation.sql -f supabase/tests/multilingual.sql -f supabase/tests/multimodal.sql -f supabase/tests/saas_foundation.sql -f supabase/tests/whatsapp_integration.sql -f supabase/tests/ai_replies.sql",
     "test": "vitest run",
     "db:types": "npx -y supabase@2 gen types typescript --db-url \"$DATABASE_URL\" --schema public > types/supabase.ts && npx -y oxfmt types/supabase.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@hookform/resolvers": "^5.9.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",

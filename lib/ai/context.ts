@@ -6,7 +6,17 @@ import type { Database } from "@/types/database";
 import { oneOf, AFTER_HOURS_MODES } from "@/types/database";
 import { isOpenAt, parseOpeningHours, type OpeningHours } from "@/lib/business/hours";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
-import { REPLY_LENGTHS, TONES, type ReplyLength, type Tone } from "@/lib/ai/style";
+import {
+  EMOJI_LEVELS,
+  FORMALITY_LEVELS,
+  LANGUAGE_MODES,
+  REPLY_LENGTHS,
+  TONES,
+  type LanguageSettings,
+  type ReplyLength,
+  type ResponseStyle,
+  type Tone,
+} from "@/lib/ai/style";
 
 type Db = SupabaseClient<Database>;
 
@@ -26,6 +36,7 @@ export type BusinessContext = {
     address: string | null;
     phone: string | null;
     website: string | null;
+    countryCode: string;
     currency: string;
     timezone: string;
     openingHours: OpeningHours;
@@ -43,6 +54,10 @@ export type BusinessContext = {
     humanHandoverEnabled: boolean;
     salesMode: boolean;
   };
+  /** Reply languages and mode (Languages & style page). */
+  language: LanguageSettings;
+  /** Full response style, including formality, emoji and owner notes. */
+  style: ResponseStyle;
   faqs: { question: string; answer: string }[];
   documents: { type: string; title: string; content: string }[];
   /** Product count only; details come through the searchProducts tool so prices are always current. */
@@ -55,17 +70,20 @@ const MAX_DOCS = 20;
 const MAX_DOC_CHARS = 4000;
 
 export async function buildBusinessContext(db: Db, businessId: string, now = new Date()): Promise<BusinessContext | null> {
-  const [biz, settings, faqs, docs, products] = await Promise.all([
+  const [biz, settings, faqs, docs, products, langs] = await Promise.all([
     db.from("businesses").select("*").eq("id", businessId).maybeSingle(),
     db.from("ai_settings").select("*").eq("business_id", businessId).maybeSingle(),
     db.from("faqs").select("question, answer").eq("business_id", businessId).eq("active", true).order("priority", { ascending: false }).limit(MAX_FAQS),
     db.from("knowledge_documents").select("document_type, title, content").eq("business_id", businessId).eq("active", true).limit(MAX_DOCS),
     db.from("products").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("active", true),
+    db.from("business_languages").select("language_code").eq("business_id", businessId).order("sort_order", { ascending: true }),
   ]);
   const b = biz.data;
   if (!b) return null;
   const s = settings.data;
   const openingHours = parseOpeningHours(b.opening_hours);
+  const defaultLanguage = isLanguageCode(b.default_language) ? b.default_language : "en";
+  const enabled = (langs.data ?? []).map((l) => l.language_code).filter(isLanguageCode);
 
   return {
     business: {
@@ -77,6 +95,7 @@ export async function buildBusinessContext(db: Db, businessId: string, now = new
       address: b.address,
       phone: b.phone,
       website: b.website,
+      countryCode: b.country_code,
       currency: b.currency,
       timezone: b.timezone,
       openingHours,
@@ -93,6 +112,19 @@ export async function buildBusinessContext(db: Db, businessId: string, now = new
       humanHandoverEnabled: s?.human_handover_enabled ?? true,
       salesMode: s?.sales_mode ?? false,
     },
+    language: {
+      mode: oneOf(LANGUAGE_MODES, s?.language_mode, "auto"),
+      defaultLanguage,
+      enabledLanguages: enabled.length ? enabled : [defaultLanguage],
+    },
+    style: {
+      tone: oneOf(TONES, s?.tone, "friendly"),
+      formality: oneOf(FORMALITY_LEVELS, s?.formality, "neutral"),
+      emojiLevel: oneOf(EMOJI_LEVELS, s?.emoji_level, "light"),
+      replyLength: oneOf(REPLY_LENGTHS, s?.reply_length, "short"),
+      mirrorCodeSwitching: s?.mirror_code_switching ?? false,
+      styleNotes: s?.style_notes ?? "",
+    },
     faqs: faqs.data ?? [],
     documents: (docs.data ?? []).map((d) => ({ type: d.document_type, title: d.title, content: d.content.slice(0, MAX_DOC_CHARS) })),
     activeProductCount: products.count ?? 0,
@@ -105,6 +137,7 @@ export type ConversationContext = {
   language: LanguageCode | null;
   customer: {
     id: string;
+    whatsappPhone: string;
     name: string;
     city: string | null;
     preferredLanguage: LanguageCode | null;
@@ -119,7 +152,7 @@ const HISTORY_LIMIT = 30;
 
 export async function buildConversationContext(db: Db, businessId: string, conversationId: string): Promise<ConversationContext | null> {
   const [conv, msgs] = await Promise.all([
-    db.from("conversations").select("id, ai_enabled, language, customers(id, name, city, preferred_language, preferred_language_source, tags)").eq("business_id", businessId).eq("id", conversationId).maybeSingle(),
+    db.from("conversations").select("id, ai_enabled, language, customers(id, whatsapp_phone, name, city, preferred_language, preferred_language_source, tags)").eq("business_id", businessId).eq("id", conversationId).maybeSingle(),
     db
       .from("messages")
       .select("direction, sender_type, content, caption, created_at")
@@ -145,6 +178,7 @@ export async function buildConversationContext(db: Db, businessId: string, conve
     language: isLanguageCode(c.language) ? c.language : null,
     customer: {
       id: c.customers.id,
+      whatsappPhone: c.customers.whatsapp_phone,
       name: c.customers.name,
       city: c.customers.city,
       preferredLanguage: isLanguageCode(c.customers.preferred_language) ? c.customers.preferred_language : null,

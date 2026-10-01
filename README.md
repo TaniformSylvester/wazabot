@@ -45,8 +45,9 @@ app/
   global-not-found.tsx, icon.svg, apple-icon.png, manifest.ts, robots.ts, sitemap.ts
 messages/             UI dictionaries: en.ts (source of truth), fr.ts
 lib/i18n/             locales, language registry, country packs, routing helpers, dictionaries
-lib/ai/               WhatsApp AI language layer: packs, detection, resolution, prompts, reply schema;
-                      service.ts (generateResponse, validateAIResponse…), context.ts, tools/registry.ts
+lib/ai/               WhatsApp AI: language layer (packs, detection, resolution), prompts, reply schema,
+                      claude.ts (Claude tool loop), pipeline.ts (when/how to answer), context.ts,
+                      service.ts (validation), tools/registry.ts (business-scoped tools)
 lib/actions/          Server Actions (auth, settings, business, products, knowledge, customers,
                       conversations, orders, ai) — all re-check the user's role
 lib/data/queries.ts   dashboard read models (always RLS-scoped to the user's business)
@@ -128,7 +129,8 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Languages & AI style settings (reply languages, default, mode, tone, formality, emoji, length, notes) | **Functional** — saved to the database |
 | Language detection / resolution / prompt builder (en, fr, Cameroonian Pidgin) | **Functional code + unit tests**; not yet called by a live AI (no WhatsApp webhook yet) |
 | WhatsApp (Stage 2): connect a number (verified with Meta, token encrypted), webhook (signature-checked, idempotent), customers + conversations created automatically, team replies from the inbox, delivery ticks, read receipts, 24-hour window, media stored privately | **Functional** — see "WhatsApp setup" below |
-| AI replies (Anthropic), voice transcription, image understanding, templates, payments, broadcasts, invites | **Not started** — interfaces only (`lib/ai/service.ts`, `lib/ai/tools`, `lib/messaging/ports.ts`) |
+| AI replies (Stage 3): Claude answers WhatsApp customers from the catalog, FAQs, policies and hours; looks up products/stock, records orders, hands over to the team; respects Human Mode, after-hours settings and the plan's monthly allowance; usage logged | **Functional** — needs `ANTHROPIC_API_KEY`; see "AI replies" below |
+| Voice transcription, image understanding, template messages, payments, broadcasts, invites | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes and images get a short notice and are flagged for the team |
 
 ## Multilingual architecture
 
@@ -258,6 +260,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e:dashboard
 # Start the app with WHATSAPP_GRAPH_API_BASE_URL=http://localhost:4010 and test values for
 # WHATSAPP_APP_SECRET / WHATSAPP_VERIFY_TOKEN / WHATSAPP_TOKEN_ENCRYPTION_KEY / SUPABASE_SERVICE_ROLE_KEY.
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... npm run test:e2e:whatsapp
+# Stage 3 AI replies, against a scripted fake Anthropic API (tests/e2e/fake-anthropic.mjs, port 4020).
+# Start the app with ANTHROPIC_API_KEY=test-key ANTHROPIC_BASE_URL=http://localhost:4020 AI_DEBOUNCE_MS=1500 too.
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... npm run test:e2e:ai
 
 # Regenerate database types after a migration
 DATABASE_URL=postgres://... npm run db:types
@@ -297,6 +302,34 @@ How it behaves:
   for the AI stage to pick up.
 - Meta's **Embedded Signup** (self-serve "Continue with Facebook") needs Tech Provider approval
   and is a later step; until then numbers are connected with the IDs + token above.
+
+## AI replies (Stage 3)
+
+When a customer writes, the webhook stores the message and answers after responding to Meta
+(`lib/ai/pipeline.ts`):
+
+1. Waits briefly (`AI_DEBOUNCE_MS`, default 3 s) so a burst of messages gets one answer, to the newest.
+2. Stays silent if AI is switched off for the business, the conversation is in **Human Mode**, the
+   24-hour window is closed, or WhatsApp isn't connected.
+3. Over the plan's monthly AI-conversation allowance, a new conversation is flagged for the team instead.
+4. Outside opening hours, follows the AI Assistant setting: answer normally, send the owner's
+   after-hours message (once per 12 h), or hand over.
+5. Voice notes, images and files get a short notice in the customer's language and are flagged for
+   the team (understanding them is a later stage).
+6. Otherwise: detects the language (English / French / Cameroonian Pidgin, mixed), picks the reply
+   language, and asks Claude (`lib/ai/claude.ts`). The model uses tools scoped to the business —
+   searchProducts, checkProductStock, getBusinessHours, getDeliveryFee, getOrderStatus, createOrder,
+   createCustomer, requestHumanAgent — and finishes with `send_reply` (structured reply).
+7. The reply is checked before sending: it may only quote products the tools returned, must not be
+   empty or too long; otherwise a handoff notice is sent instead. `needs_human` switches the
+   conversation to Human Mode and flags it.
+8. Every attempt is logged in `ai_usage` (model, tokens, tool calls, outcome — never content), shown on
+   the AI Assistant page.
+
+Model: `claude-opus-5-5` at `low` effort by default (`AI_MODEL`, `AI_EFFORT`), prompt caching on the
+platform rules + business knowledge, and Anthropic's server-side fallback for safety declines. Set
+`ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
+once the key is set, WhatsApp is connected and AI is switched on.
 
 ## Before launch
 

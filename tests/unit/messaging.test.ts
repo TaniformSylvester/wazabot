@@ -137,7 +137,7 @@ describe("AI input", () => {
 
   it("tells the model never to price from appearance alone", () => {
     const prompt = buildPlatformPrompt();
-    expect(prompt).toContain("search_catalog");
+    expect(prompt).toContain("searchProducts");
     expect(prompt).toContain("Never give a price, stock level or product detail based only on how an image looks");
   });
 });

@@ -6,7 +6,8 @@ import { ActionForm, CheckboxField, RadioCards, SubmitButton, TextArea } from "@
 import { LinkTabs, PageHeader, Panel, StatusBadge } from "@/components/app/ui";
 import { saveAiSettings } from "@/lib/actions/ai";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
-import { getAiSettingsRow } from "@/lib/data/queries";
+import { getAiSettingsRow, getAiUsageSummary, getWhatsAppConnection } from "@/lib/data/queries";
+import { aiConfigured } from "@/lib/ai/claude";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { languageName } from "@/lib/i18n/languages";
@@ -19,11 +20,12 @@ export const generateMetadata = dashboardMetadata((d) => d.ai.title);
 export default async function AiAssistantPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/ai"));
-  const settings = await getAiSettingsRow(business.id);
+  const [settings, connection, usage] = await Promise.all([getAiSettingsRow(business.id), getWhatsAppConnection(business.id), getAiUsageSummary(business.id)]);
   const d = t.dashboard;
   const a = d.ai;
   const canEdit = canManageBusiness(business.role);
   const text = { errors: d.errors, saved: a.saved, saving: d.common.saving };
+  const liveState = !aiConfigured() ? "noKey" : connection?.status !== "connected" ? "noWhatsapp" : settings?.ai_enabled === false ? "off" : "live";
   const mode = settings?.language_mode === "fixed" ? languageName(business.defaultLanguage, locale) : a.language.automatic;
 
   return (
@@ -36,7 +38,28 @@ export default async function AiAssistantPage() {
           { key: "languages", label: a.tabs.languages, href: localizePath(locale, "/dashboard/ai/languages") },
         ]}
       />
-      <FormAlert tone="info">{a.notLive}</FormAlert>
+      <Panel title={a.status.title}>
+        <div className="flex flex-col gap-4">
+          <StatusBadge tone={liveState === "live" ? "green" : liveState === "off" ? "neutral" : "amber"} dot wrap>
+            {a.status[liveState]}
+          </StatusBadge>
+          <p className="text-xs text-slate">{a.status.humanNote}</p>
+          {canEdit ? (
+            usage.replies + usage.handovers + usage.failed ? (
+              <dl className="grid grid-cols-3 gap-3 border-t border-border pt-4">
+                {(["replies", "handovers", "failed"] as const).map((k) => (
+                  <div key={k}>
+                    <dt className="text-xs text-slate">{a.usage[k]}</dt>
+                    <dd className="font-display text-xl font-bold text-deep">{usage[k]}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="border-t border-border pt-4 text-sm text-slate">{a.usage.none}</p>
+            )
+          ) : null}
+        </div>
+      </Panel>
       {!canEdit ? <FormAlert tone="info">{d.common.readOnly}</FormAlert> : null}
 
       {settings ? (

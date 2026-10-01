@@ -71,6 +71,75 @@ export type Database = {
           },
         ];
       };
+      ai_usage: {
+        Row: {
+          business_id: string;
+          cache_read_tokens: number;
+          cache_write_tokens: number;
+          conversation_id: string | null;
+          created_at: string;
+          duration_ms: number;
+          id: string;
+          inbound_message_id: string | null;
+          input_tokens: number;
+          model: string;
+          outcome: string;
+          output_tokens: number;
+          reason: string | null;
+          reply_message_id: string | null;
+          tool_calls: number;
+        };
+        Insert: {
+          business_id: string;
+          cache_read_tokens?: number;
+          cache_write_tokens?: number;
+          conversation_id?: string | null;
+          created_at?: string;
+          duration_ms?: number;
+          id?: string;
+          inbound_message_id?: string | null;
+          input_tokens?: number;
+          model: string;
+          outcome: string;
+          output_tokens?: number;
+          reason?: string | null;
+          reply_message_id?: string | null;
+          tool_calls?: number;
+        };
+        Update: {
+          business_id?: string;
+          cache_read_tokens?: number;
+          cache_write_tokens?: number;
+          conversation_id?: string | null;
+          created_at?: string;
+          duration_ms?: number;
+          id?: string;
+          inbound_message_id?: string | null;
+          input_tokens?: number;
+          model?: string;
+          outcome?: string;
+          output_tokens?: number;
+          reason?: string | null;
+          reply_message_id?: string | null;
+          tool_calls?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_business_id_conversation_id_fkey";
+            columns: ["business_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "ai_usage_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       audit_logs: {
         Row: {
           action: string;

@@ -5,10 +5,9 @@ import { z } from "zod";
 
 import type { Database } from "@/types/database";
 import { isOpenAt, parseOpeningHours } from "@/lib/business/hours";
-import { normalizeWhatsAppNumber } from "@/lib/validation/app";
 
 /*
- * Controlled tools the model may call (Stage 3). Each tool:
+ * Controlled tools the model may call. Each tool:
  *   - has a JSON-schema-compatible Zod input the model's arguments are validated against,
  *   - is scoped to ONE business: every query filters by ctx.businessId,
  *   - returns small, plain data — never raw rows, credentials or other tenants' data.
@@ -134,24 +133,16 @@ export const getDeliveryFee = tool({
 
 export const createCustomer = tool({
   name: "createCustomer",
-  description: "Save the customer's name or city when they share it. The WhatsApp number comes from the conversation.",
-  input: z.object({ whatsappPhone: z.string().min(6).max(24), name: z.string().trim().max(120).optional(), city: z.string().trim().max(120).optional() }),
-  async run(ctx, { whatsappPhone, name, city }) {
-    const phone = normalizeWhatsAppNumber(whatsappPhone);
+  description:
+    "Save details the customer shares about themselves (name, city) on their customer record. Their WhatsApp number is already known. Only save what the customer actually said.",
+  input: z.object({ name: z.string().trim().min(1).max(120).optional(), city: z.string().trim().min(1).max(120).optional() }),
+  async run(ctx, { name, city }) {
+    if (!ctx.customerId) return { ok: false as const };
     const updates = { ...(name ? { name } : {}), ...(city ? { city } : {}) };
-    const { data: existing } = await ctx.db.from("customers").select("id").eq("business_id", ctx.businessId).eq("whatsapp_phone", phone).maybeSingle();
-    if (existing) {
-      // Only fill in what the customer just shared; never blank out saved details.
-      if (Object.keys(updates).length) await ctx.db.from("customers").update(updates).eq("id", existing.id).eq("business_id", ctx.businessId);
-      return { ok: true as const, customerId: existing.id };
-    }
-    const { data, error } = await ctx.db
-      .from("customers")
-      .insert({ business_id: ctx.businessId, whatsapp_phone: phone, name: name ?? "", city: city ?? null })
-      .select("id")
-      .single();
-    if (error || !data) return { ok: false as const };
-    return { ok: true as const, customerId: data.id };
+    if (!Object.keys(updates).length) return { ok: true as const };
+    // Only fill in what the customer just shared; never blank out saved details.
+    const { error } = await ctx.db.from("customers").update(updates).eq("id", ctx.customerId).eq("business_id", ctx.businessId);
+    return { ok: !error };
   },
 });
 
@@ -231,7 +222,13 @@ export async function runTool(name: string, rawInput: unknown, ctx: ToolContext)
   return { result: await def.run(ctx, parsed.data) };
 }
 
-/** JSON Schema definitions to hand to the model (Stage 3). */
+/** JSON Schema definitions to hand to the model, sorted by name so the prompt prefix stays cacheable. */
 export function toolSchemas() {
-  return Object.values(TOOLS).map((t) => ({ name: t.name, description: t.description, input_schema: z.toJSONSchema(t.input) }));
+  return Object.values(TOOLS)
+    .map((t) => {
+      const { $schema: _ignored, ...schema } = z.toJSONSchema(t.input) as Record<string, unknown>;
+      void _ignored;
+      return { name: t.name, description: t.description, input_schema: { type: "object" as const, ...schema } };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
