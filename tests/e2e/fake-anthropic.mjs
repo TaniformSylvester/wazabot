@@ -73,6 +73,12 @@ export function startFakeAnthropic(port = 4020) {
       }
       const body = JSON.parse(raw);
       requests.push({ headers: req.headers, body });
+      // Simulate an API rejection (e.g. bad parameter) to test error handling.
+      if (lastCustomerText(body.messages).includes("FORCE_ERROR")) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: "simulated failure" } }));
+        return;
+      }
       const content = respond(body);
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ id: `msg_${requests.length}`, type: "message", role: "assistant", model: body.model, content, stop_reason: "tool_use", stop_sequence: null, usage }));

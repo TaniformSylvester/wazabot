@@ -12,6 +12,9 @@ import { localizePath } from "@/lib/i18n/paths";
 
 export const generateMetadata = dashboardMetadata((d) => d.aiTest.title);
 
+// The Server Action below runs on this route: give Claude time for a lookup + reply (Vercel's default can be 10 s).
+export const maxDuration = 60;
+
 /** AI Assistant → Test chat: try the assistant without WhatsApp (nothing sent, nothing saved). */
 export default async function AiTestChatPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);

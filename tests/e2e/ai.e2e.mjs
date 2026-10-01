@@ -132,6 +132,10 @@ mkdirSync("test-results", { recursive: true });
   ok("test chat: shows when it would hand over", true);
   ok("test chat: nothing sent on WhatsApp, no conversation created", graph.sent().sent.length === 0 && (await get(tok, "conversations?select=id")).length === 0);
   await page.screenshot({ path: "test-results/stage3-test-chat.png", fullPage: true });
+  await chatInput.fill("FORCE_ERROR please");
+  await chatInput.press("Enter");
+  await main.getByText("The assistant couldn't answer. Please try again.").waitFor({ timeout: 20000 });
+  ok("test chat: an API error shows a message, the page keeps working", (await main.getByText("We couldn't load this page").count()) === 0 && (await chatInput.inputValue()) === "FORCE_ERROR please");
   await main.getByRole("button", { name: "Start over" }).click();
   ok("test chat: start over clears the transcript", (await main.getByText("La Robe Ankara coûte 15000 XAF.").count()) === 0);
 

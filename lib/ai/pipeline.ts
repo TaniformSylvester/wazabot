@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured } from "@/lib/ai/claude";
+import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage } from "@/lib/ai/service";
@@ -165,7 +165,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
     return { outcome: sent ? (handOver ? "handed_over" : "replied") : "failed", reason: sent ? undefined : "send_failed" };
   } catch (e) {
     const reason = e instanceof AiRefusalError ? `refusal_${e.category ?? "unknown"}` : e instanceof AiNoReplyError ? e.reason : "api_error";
-    logServerError("ai.generate", { code: reason, message: e instanceof Error ? e.name : "error" });
+    logServerError("ai.generate", describeAiError(e));
     await flagForTeam(admin, job);
     await markProcessed(admin, job, reason);
     await logUsage(admin, job, { outcome: "failed", reason, durationMs: Date.now() - started });

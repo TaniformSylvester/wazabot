@@ -47,6 +47,20 @@ export class AiRefusalError extends Error {
   }
 }
 
+/**
+ * Safe summary of an AI failure for logs: HTTP status + Anthropic error type
+ * and message (about the request, e.g. "invalid model"), never customer text.
+ */
+export function describeAiError(e: unknown): { code: string; message: string } {
+  if (e instanceof AiRefusalError) return { code: "refusal", message: e.category ?? "unknown" };
+  if (e instanceof AiNoReplyError) return { code: e.reason, message: "" };
+  if (e instanceof Anthropic.APIError) {
+    const body = e.error as { error?: { type?: string; message?: string } } | undefined;
+    return { code: `api_${e.status ?? "network"}`, message: `${body?.error?.type ?? e.name}: ${body?.error?.message ?? ""}`.slice(0, 300) };
+  }
+  return { code: "error", message: e instanceof Error ? e.name : "unknown" };
+}
+
 /** The loop ended without a usable reply (no send_reply, truncated, too many steps). */
 export class AiNoReplyError extends Error {
   constructor(readonly reason: "max_tokens" | "max_steps" | "no_reply") {

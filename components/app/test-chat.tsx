@@ -33,10 +33,15 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
     const lastLanguage = [...turns].reverse().find((turn): turn is Extract<Turn, { role: "assistant" }> => turn.role === "assistant")?.meta.language ?? null;
     setTurns((prev) => [...prev, { role: "customer", text: message }]);
     start(async () => {
-      const res = await sendTestMessage({ message, history, language: lastLanguage });
-      if (res.ok) setTurns((prev) => [...prev, { role: "assistant", text: res.reply, meta: res }]);
+      let res: TestChatResult | null = null;
+      try {
+        res = await sendTestMessage({ message, history, language: lastLanguage });
+      } catch {
+        // Network error or the server timed out: keep the page, let the user retry.
+      }
+      if (res?.ok) setTurns((prev) => [...prev, { role: "assistant", text: res.reply, meta: res }]);
       else {
-        setError(t.errors[res.error]);
+        setError(res ? t.errors[res.error] : t.errors.network);
         setTurns((prev) => prev.slice(0, -1));
         setDraft(message);
       }

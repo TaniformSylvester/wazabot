@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured } from "@/lib/ai/claude";
+import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, type ConversationContext } from "@/lib/ai/context";
 import { analyzeInboundMessage } from "@/lib/ai/language";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
@@ -48,6 +48,15 @@ export type TestChatResult =
   | { ok: false; error: "forbidden" | "not_configured" | "invalid" | "rate_limited" | "refusal" | "failed" };
 
 export async function sendTestMessage(input: unknown): Promise<TestChatResult> {
+  try {
+    return await runTestMessage(input);
+  } catch (e) {
+    logServerError("ai.testChat", { code: "unexpected", message: e instanceof Error ? e.name : "error" });
+    return { ok: false, error: "failed" };
+  }
+}
+
+async function runTestMessage(input: unknown): Promise<TestChatResult> {
   const ctx = await authorize("agent");
   if (!ctx) return { ok: false, error: "forbidden" };
   if (!aiConfigured()) return { ok: false, error: "not_configured" };
@@ -119,7 +128,7 @@ export async function sendTestMessage(input: unknown): Promise<TestChatResult> {
     };
   } catch (e) {
     const reason = e instanceof AiRefusalError ? "refusal" : e instanceof AiNoReplyError ? e.reason : "api_error";
-    logServerError("ai.testChat", { code: reason, message: e instanceof Error ? e.name : "error" });
+    logServerError("ai.testChat", describeAiError(e));
     await admin?.from("ai_usage").insert({ business_id: businessId, model: "none", outcome: "failed", reason: "test_chat", duration_ms: Date.now() - started });
     return { ok: false, error: reason === "refusal" ? "refusal" : "failed" };
   }
