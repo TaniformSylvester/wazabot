@@ -111,6 +111,7 @@ const en = {
       title: "We couldn't load this page",
       text: "Please try again. If it keeps happening, log out and back in.",
       retry: "Try again",
+      reference: "Error reference",
     },
     language: {
       label: "Language",

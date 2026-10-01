@@ -107,6 +107,7 @@ const fr: Messages = {
       title: "Impossible de charger cette page",
       text: "Veuillez réessayer. Si le problème persiste, déconnectez-vous puis reconnectez-vous.",
       retry: "Réessayer",
+      reference: "Référence de l'erreur",
     },
     language: {
       label: "Langue",

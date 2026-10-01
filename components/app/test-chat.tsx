@@ -134,7 +134,7 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
         )}
         {pending ? (
           <p className="flex items-center justify-end gap-2 text-xs text-slate">
-            <Loader2 className="size-3.5 animate-spin" aria-hidden /> {t.typing}
+            <Loader2 className="size-3.5 animate-spin" aria-hidden /> <span>{t.typing}</span>
           </p>
         ) : null}
         <div ref={endRef} />
@@ -172,7 +172,11 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
           className="max-h-32 min-h-11 min-w-0 flex-1 resize-y rounded-2xl border border-input bg-card px-3.5 py-2.5 text-[0.9375rem] text-deep outline-none focus-visible:border-waza-500 focus-visible:ring-4 focus-visible:ring-waza-500/15"
         />
         <Button type="submit" disabled={pending || !draft.trim()} className="h-11 shrink-0">
-          {pending ? <Loader2 className="animate-spin" aria-hidden /> : <Send aria-hidden />} {t.send}
+          {/* Both icons stay mounted and text sits in its own span: translation/extension tools that rewrite
+              text nodes then can't break React's DOM updates when the button switches state. */}
+          <Loader2 className={cn("animate-spin", !pending && "hidden")} aria-hidden />
+          <Send className={cn(pending && "hidden")} aria-hidden />
+          <span>{t.send}</span>
         </Button>
         {turns.length ? (
           <Button type="button" variant="ghost" size="icon" aria-label={t.reset} title={t.reset} disabled={pending} onClick={() => { setTurns([]); setError(null); }}>
