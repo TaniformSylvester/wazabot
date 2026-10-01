@@ -43,7 +43,11 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
   const [pending, setPending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => endRef.current?.scrollIntoView({ block: "end" }), [turns, pending]);
+  // Block body on purpose: newer browsers return a Promise from scrollIntoView, and an effect
+  // must not return anything but a cleanup function.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [turns, pending]);
 
   const send = (text: string) => {
     const message = text.trim();
