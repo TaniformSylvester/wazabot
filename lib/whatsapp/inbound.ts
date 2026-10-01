@@ -95,6 +95,7 @@ export async function handleWebhookPayload(payload: unknown, admin: Admin): Prom
     const row = data?.[0];
     if (!row) {
       result.ignored++; // number not connected to any business
+      console.warn(`[whatsapp.webhook] message for phone_number_id ${message.toPhoneNumberId} ignored: no connected business`);
       continue;
     }
     if (!row.inserted) {
@@ -108,6 +109,8 @@ export async function handleWebhookPayload(payload: unknown, admin: Admin): Prom
   }
 
   for (const s of parseWebhookStatuses(payload)) {
+    // Delivery failures explain why a customer didn't get a message (code + title only, no content).
+    if (s.status === "failed") console.warn(`[whatsapp.webhook] delivery failed for ${s.channelMessageId}: ${s.error ?? "no error details"}`);
     const { data, error } = await admin.rpc("record_whatsapp_status", {
       p_phone_number_id: s.phoneNumberId,
       p_whatsapp_message_id: s.channelMessageId,

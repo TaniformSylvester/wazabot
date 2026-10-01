@@ -53,6 +53,8 @@ export async function POST(request: Request) {
 
   try {
     const result = await handleWebhookPayload(payload, admin);
+    // One line per delivery: counts only, never message content or phone numbers.
+    console.info(`[whatsapp.webhook] stored=${result.stored} duplicates=${result.duplicates} ignored=${result.ignored} statuses=${result.statuses}`);
     if (result.mediaJobs.length) {
       after(async () => {
         for (const job of result.mediaJobs) await storeMedia(job, admin);
