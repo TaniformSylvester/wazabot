@@ -5,7 +5,7 @@ import { FormAlert } from "@/components/auth/form-alert";
 import { ActionForm, CheckboxField, RadioCards, SubmitButton, TextArea } from "@/components/app/form";
 import { LinkTabs, PageHeader, Panel, StatusBadge } from "@/components/app/ui";
 import { saveAiSettings } from "@/lib/actions/ai";
-import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
+import { canManageBusiness, hasRole, requireBusiness } from "@/lib/auth/dal";
 import { getAiSettingsRow, getAiUsageSummary, getWhatsAppConnection } from "@/lib/data/queries";
 import { aiConfigured } from "@/lib/ai/claude";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
@@ -36,6 +36,7 @@ export default async function AiAssistantPage() {
         tabs={[
           { key: "general", label: a.tabs.general, href: localizePath(locale, "/dashboard/ai") },
           { key: "languages", label: a.tabs.languages, href: localizePath(locale, "/dashboard/ai/languages") },
+          ...(hasRole(business.role, "agent") ? [{ key: "test", label: a.tabs.test, href: localizePath(locale, "/dashboard/ai/test") }] : []),
         ]}
       />
       <Panel title={a.status.title}>

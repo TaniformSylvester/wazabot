@@ -148,6 +148,7 @@ export class ClaudeResponder implements AiResponder {
 
     const usage: AiUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
     const productIds = new Set<string>();
+    const toolLog: string[] = [];
     let toolCalls = 0;
     let model = this.model;
 
@@ -186,6 +187,7 @@ export class ClaudeResponder implements AiResponder {
           model,
           usage,
           toolCalls,
+          toolLog,
           productIds,
         };
       }
@@ -197,7 +199,7 @@ export class ClaudeResponder implements AiResponder {
 
       if (replyCall && !lookups.length) {
         const parsed = assistantReplySchema.safeParse(replyCall.input);
-        if (parsed.success) return { reply: parsed.data as AssistantReply, model, usage, toolCalls, productIds };
+        if (parsed.success) return { reply: parsed.data as AssistantReply, model, usage, toolCalls, toolLog, productIds };
         messages.push({
           role: "user",
           content: [{ type: "tool_result", tool_use_id: replyCall.id, is_error: true, content: `Invalid send_reply input: ${z.prettifyError(parsed.error).slice(0, 1000)}. Call send_reply again with every field.` }],
@@ -209,6 +211,7 @@ export class ClaudeResponder implements AiResponder {
       const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
       for (const call of lookups) {
         toolCalls++;
+        toolLog.push(call.name);
         const outcome = await runTool(call.name, call.input, input.tools).catch(() => ({ error: "tool_failed" as const }));
         if ("error" in outcome) {
           results.push({ type: "tool_result", tool_use_id: call.id, is_error: true, content: JSON.stringify({ error: outcome.error }) });

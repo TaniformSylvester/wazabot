@@ -32,6 +32,8 @@ export type GenerateResult = {
   model: string;
   usage: AiUsage;
   toolCalls: number;
+  /** Names of the tools called, in order (shown in the test chat). */
+  toolLog: string[];
   /** Product ids returned by catalog tools this turn — the only ones the reply may quote. */
   productIds: Set<string>;
 };

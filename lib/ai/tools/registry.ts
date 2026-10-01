@@ -19,6 +19,8 @@ export type ToolContext = {
   businessId: string;
   conversationId: string | null;
   customerId: string | null;
+  /** Test chat: lookups are real, but nothing is written (orders, customer details, handovers are simulated). */
+  dryRun?: boolean;
 };
 
 export type ToolDefinition<I extends z.ZodType, O> = {
@@ -137,6 +139,7 @@ export const createCustomer = tool({
     "Save details the customer shares about themselves (name, city) on their customer record. Their WhatsApp number is already known. Only save what the customer actually said.",
   input: z.object({ name: z.string().trim().min(1).max(120).optional(), city: z.string().trim().min(1).max(120).optional() }),
   async run(ctx, { name, city }) {
+    if (ctx.dryRun) return { ok: true as const, testMode: "not saved" };
     if (!ctx.customerId) return { ok: false as const };
     const updates = { ...(name ? { name } : {}), ...(city ? { city } : {}) };
     if (!Object.keys(updates).length) return { ok: true as const };
@@ -155,6 +158,7 @@ export const createOrder = tool({
     notes: z.string().trim().max(1000).optional(),
   }),
   async run(ctx, { items, deliveryAddress, notes }) {
+    if (ctx.dryRun) return estimateOrder(ctx, items);
     if (!ctx.customerId) return { ok: false as const, reason: "no_customer" };
     const { data, error } = await ctx.db.rpc("create_order", {
       p_business_id: ctx.businessId,
@@ -188,6 +192,7 @@ export const requestHumanAgent = tool({
   description: "Hand the conversation to a person on the team (the AI stops replying until they return it).",
   input: z.object({ reason: z.string().trim().max(200) }),
   async run(ctx) {
+    if (ctx.dryRun) return { ok: true as const, testMode: "not handed over" };
     if (!ctx.conversationId) return { ok: false as const };
     const { error } = await ctx.db
       .from("conversations")
@@ -197,6 +202,27 @@ export const requestHumanAgent = tool({
     return { ok: !error };
   },
 });
+
+/** Test chat: what createOrder would record, priced from the catalog, without saving anything. */
+async function estimateOrder(ctx: ToolContext, items: { productId: string; variantId?: string; quantity: number }[]) {
+  const { data } = await ctx.db
+    .from("products")
+    .select("id, price, currency, active, product_variants(id, price_modifier)")
+    .eq("business_id", ctx.businessId)
+    .in("id", items.map((i) => i.productId));
+  const byId = new Map((data ?? []).map((p) => [p.id, p]));
+  let total = 0;
+  let currency = "XAF";
+  for (const item of items) {
+    const p = byId.get(item.productId);
+    if (!p || !p.active) return { ok: false as const, reason: "rejected" };
+    const variant = item.variantId ? p.product_variants.find((v) => v.id === item.variantId) : null;
+    if (item.variantId && !variant) return { ok: false as const, reason: "rejected" };
+    total += Math.max(0, Number(p.price) + Number(variant?.price_modifier ?? 0)) * item.quantity;
+    currency = p.currency;
+  }
+  return { ok: true as const, orderNumber: "TEST-00001", total, currency, testMode: "not saved" };
+}
 
 /** Everything the assistant may call, by name. */
 export const TOOLS = {

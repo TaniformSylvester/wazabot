@@ -66,6 +66,16 @@ begin
   select count(*) into n from public.ingest_whatsapp_message('9999', 'wamid.X', '237670000009', null, 'text', 'x', null, '{}', now(), 'received');
   if n <> 0 then raise exception 'FAIL: message stored for an unknown number'; end if;
 
+  -- Two messages stamped in the same second keep their arrival order.
+  select * into r from public.ingest_whatsapp_message('1001', 'wamid.S1', '237670000002', 'Same', 'text', 'Super', null, '{}', date_trunc('second', now()), 'received');
+  select * into r2 from public.ingest_whatsapp_message('1001', 'wamid.S2', '237670000002', 'Same', 'text', 'Je prends 2', null, '{}', date_trunc('second', now()), 'received');
+  if (select created_at from public.messages where id = r2.message_id) <= (select created_at from public.messages where id = r.message_id) then
+    raise exception 'FAIL: same-second messages out of order';
+  end if;
+  delete from public.messages where conversation_id = r.conversation_id;
+  delete from public.conversations where id = r.conversation_id;
+  delete from public.customers where whatsapp_phone = '237670000002';
+
   raise notice 'PASS inbound messages: customer upsert, one conversation, idempotent retries, reopen rules';
 end $$;
 

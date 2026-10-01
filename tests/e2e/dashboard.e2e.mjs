@@ -345,7 +345,7 @@ async function signUp(browser, user, locale) {
   await mp.getByLabel("Password", { exact: true }).fill(C.password);
   await mp.getByRole("button", { name: "Log in" }).click();
   await mp.waitForURL(/\/en\/dashboard/);
-  const pages = ["/dashboard", "/dashboard/conversations", `/dashboard/conversations/${convId}`, "/dashboard/customers", `/dashboard/customers/${customerId}`, "/dashboard/products", `/dashboard/products/${productId}`, "/dashboard/orders", "/dashboard/orders/new", "/dashboard/knowledge", "/dashboard/ai", "/dashboard/ai/languages", "/dashboard/analytics", "/dashboard/whatsapp", "/dashboard/team", "/dashboard/billing", "/dashboard/settings", "/dashboard/onboarding?step=2"];
+  const pages = ["/dashboard", "/dashboard/conversations", `/dashboard/conversations/${convId}`, "/dashboard/customers", `/dashboard/customers/${customerId}`, "/dashboard/products", `/dashboard/products/${productId}`, "/dashboard/orders", "/dashboard/orders/new", "/dashboard/knowledge", "/dashboard/ai", "/dashboard/ai/languages", "/dashboard/ai/test", "/dashboard/analytics", "/dashboard/whatsapp", "/dashboard/team", "/dashboard/billing", "/dashboard/settings", "/dashboard/onboarding?step=2"];
   for (const width of [390, 768, 1024, 1440]) {
     await mp.setViewportSize({ width, height: 900 });
     const overflow = [];

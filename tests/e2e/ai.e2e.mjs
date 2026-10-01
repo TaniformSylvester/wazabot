@@ -114,6 +114,27 @@ mkdirSync("test-results", { recursive: true });
   await post(tok, "products", { business_id: biz.id, name: "Robe Ankara", price: 15000, stock_quantity: 5 });
   await post(tok, "faqs", { business_id: biz.id, question: "Livrez-vous à Buea ?", answer: "Oui, la livraison à Buea coûte 2 500 XAF." });
 
+  // Test chat works without WhatsApp: real lookups, nothing sent or saved.
+  await page.goto(`${APP}/en/dashboard/ai/test`);
+  ok("test chat page shows the test-mode notice", (await main.getByText(/Test mode: nothing is sent on WhatsApp/).count()) === 1);
+  const chatInput = main.getByLabel("Write as a customer would…");
+  await chatInput.fill("Bonjour, c'est combien la robe Ankara ?");
+  await chatInput.press("Enter");
+  await main.getByText("La Robe Ankara coûte 15000 XAF.").waitFor({ timeout: 20000 });
+  ok("test chat: assistant answers from the catalog", (await main.getByText("Looked up: catalog").count()) === 1 && (await main.getByText("Reply language: French").count()) >= 1);
+  await chatInput.fill("Je prends 2");
+  await main.getByRole("button", { name: "Send" }).click();
+  await main.getByText(/TEST-00001/).waitFor({ timeout: 20000 });
+  ok("test chat: orders are simulated, not saved", (await get(tok, "orders?select=id")).length === 0 && (await main.getByText(/order \(simulated\)/).count()) === 1);
+  await chatInput.fill("Je veux parler à quelqu'un");
+  await chatInput.press("Enter");
+  await main.getByText("Would hand this conversation to your team", { exact: false }).waitFor({ timeout: 20000 });
+  ok("test chat: shows when it would hand over", true);
+  ok("test chat: nothing sent on WhatsApp, no conversation created", graph.sent().sent.length === 0 && (await get(tok, "conversations?select=id")).length === 0);
+  await page.screenshot({ path: "test-results/stage3-test-chat.png", fullPage: true });
+  await main.getByRole("button", { name: "Start over" }).click();
+  ok("test chat: start over clears the transcript", (await main.getByText("La Robe Ankara coûte 15000 XAF.").count()) === 0);
+
   // Before WhatsApp is connected the assistant isn't live.
   await page.goto(`${APP}/en/dashboard/ai`);
   ok("AI page: waiting for WhatsApp before connecting", (await main.getByText("Waiting for WhatsApp").count()) === 1);

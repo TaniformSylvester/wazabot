@@ -326,6 +326,12 @@ When a customer writes, the webhook stores the message and answers after respond
 8. Every attempt is logged in `ai_usage` (model, tokens, tool calls, outcome — never content), shown on
    the AI Assistant page.
 
+**Test chat** (AI Assistant → Test chat, agents and above): talk to the assistant as a customer
+without WhatsApp. Same prompt, knowledge, tools and language rules; catalog lookups are real, but
+orders, customer details and handovers are simulated (`dryRun`), nothing is sent and the transcript
+stays in the browser. Limited to 40 messages per business per hour; runs are logged in `ai_usage`
+with reason `test_chat` and left out of the monthly figures.
+
 Model: `claude-opus-5-5` at `low` effort by default (`AI_MODEL`, `AI_EFFORT`), prompt caching on the
 platform rules + business knowledge, and Anthropic's server-side fallback for safety declines. Set
 `ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
