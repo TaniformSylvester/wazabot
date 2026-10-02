@@ -27,7 +27,9 @@ export type ActionErrorKey =
   | "already_member"
   | "invite_invalid"
   | "invite_wrong_email"
-  | "already_on_plan";
+  | "already_on_plan"
+  // Stage 6
+  | "slot_unavailable";
 
 export type FormState = {
   status: "idle" | "success" | "error";

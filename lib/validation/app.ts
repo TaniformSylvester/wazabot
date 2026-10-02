@@ -193,3 +193,40 @@ export const aiSettingsSchema = z.object({
   sales_mode: checkbox,
   photo_understanding: checkbox,
 });
+
+// ---------------------------------------------------------------------------
+// Appointments (Stage 6)
+// ---------------------------------------------------------------------------
+const intIn = (min: number, max: number) =>
+  z.preprocess((v) => (typeof v === "string" ? Number(v.replace(/\s/g, "")) : v), z.number({ error: "invalid_integer" }).int("invalid_integer").min(min, "invalid_integer").max(max, "invalid_integer"));
+
+export const SLOT_MINUTES = [10, 15, 20, 30, 45, 60, 90, 120] as const;
+
+export const bookingSettingsSchema = z.object({
+  enabled: checkbox,
+  slot_minutes: z.preprocess((v) => Number(v), z.union(SLOT_MINUTES.map((m) => z.literal(m)), { error: "invalid_option" })),
+  capacity: intIn(1, 50),
+  /** Typed in hours in the form, stored in minutes. */
+  min_notice_hours: intIn(0, 168),
+  max_days_ahead: intIn(1, 180),
+});
+
+export const serviceSchema = z.object({
+  name: requiredText(160),
+  description: optionalText(2000),
+  duration_minutes: intIn(5, 720),
+  /** Blank = price on request. */
+  price: z.preprocess((v) => (v === "" || v === undefined ? null : v), money.nullable()),
+  active: checkbox,
+});
+
+export const appointmentSchema = z.object({
+  customer_id: z.uuid({ error: "required" }),
+  service_id: z.uuid({ error: "required" }),
+  /** Local "YYYY-MM-DDTHH:mm", one of the free slots. */
+  starts_at: z.string({ error: "required" }).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "required"),
+  conversation_id: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
+  notes: optionalText(1000),
+});
+
+export const APPOINTMENT_STATUSES = ["booked", "confirmed", "completed", "cancelled", "no_show"] as const;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MessagesSquare, Plus, ShoppingBag } from "lucide-react";
+import { CalendarPlus, MessagesSquare, Plus, ShoppingBag } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, DeleteButton } from "@/components/app/form";
@@ -20,7 +20,7 @@ import { startConversation } from "@/lib/actions/conversations";
 import { deleteCustomer } from "@/lib/actions/customers";
 import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getCustomer } from "@/lib/data/queries";
+import { getBookingSetup, getCustomer } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { isLanguageCode, languageName } from "@/lib/i18n/languages";
@@ -31,7 +31,8 @@ export const generateMetadata = dashboardMetadata((d) => d.customers.title);
 export default async function CustomerPage({ params, searchParams }: PageProps<"/[lang]/dashboard/customers/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/customers/${id}`));
-  const data = isUuid(id) ? await getCustomer(business.id, id) : null;
+  const [data, booking] = await Promise.all([isUuid(id) ? getCustomer(business.id, id) : null, getBookingSetup(business.id)]);
+  const bookingOpen = Boolean(booking.settings?.enabled) && booking.services.some((s) => s.active);
   if (!data) notFound();
   const { customer, conversations, orders } = data;
   const d = t.dashboard;
@@ -57,6 +58,11 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               <Link href={href(`/dashboard/orders/new?customer=${customer.id}`)} className={secondaryLink}>
                 <Plus aria-hidden /> {c.profile.newOrder}
               </Link>
+              {bookingOpen ? (
+                <Link href={href(`/dashboard/appointments/new?customer=${customer.id}`)} className={secondaryLink}>
+                  <CalendarPlus aria-hidden /> {d.appointments.new}
+                </Link>
+              ) : null}
             </>
           ) : null
         }

@@ -143,6 +143,89 @@ export type Database = {
           },
         ];
       };
+      appointments: {
+        Row: {
+          business_id: string;
+          conversation_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_id: string;
+          ends_at: string;
+          id: string;
+          notes: string | null;
+          price: number | null;
+          service_id: string | null;
+          service_name: string;
+          starts_at: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          customer_id: string;
+          ends_at: string;
+          id?: string;
+          notes?: string | null;
+          price?: number | null;
+          service_id?: string | null;
+          service_name: string;
+          starts_at: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          customer_id?: string;
+          ends_at?: string;
+          id?: string;
+          notes?: string | null;
+          price?: number | null;
+          service_id?: string | null;
+          service_name?: string;
+          starts_at?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "appointments_business_id_conversation_id_fkey";
+            columns: ["business_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "appointments_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "appointments_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_business_id_service_id_fkey";
+            columns: ["business_id", "service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
       audit_logs: {
         Row: {
           action: string;
@@ -179,6 +262,44 @@ export type Database = {
             foreignKeyName: "audit_logs_business_id_fkey";
             columns: ["business_id"];
             isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      booking_settings: {
+        Row: {
+          business_id: string;
+          capacity: number;
+          enabled: boolean;
+          max_days_ahead: number;
+          min_notice_minutes: number;
+          slot_minutes: number;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          capacity?: number;
+          enabled?: boolean;
+          max_days_ahead?: number;
+          min_notice_minutes?: number;
+          slot_minutes?: number;
+          updated_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          capacity?: number;
+          enabled?: boolean;
+          max_days_ahead?: number;
+          min_notice_minutes?: number;
+          slot_minutes?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "booking_settings_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: true;
             referencedRelation: "businesses";
             referencedColumns: ["id"];
           },
@@ -1432,6 +1553,56 @@ export type Database = {
           },
         ];
       };
+      services: {
+        Row: {
+          active: boolean;
+          business_id: string;
+          created_at: string;
+          currency: string;
+          description: string | null;
+          duration_minutes: number;
+          id: string;
+          name: string;
+          price: number | null;
+          sort_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          business_id: string;
+          created_at?: string;
+          currency?: string;
+          description?: string | null;
+          duration_minutes: number;
+          id?: string;
+          name: string;
+          price?: number | null;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          business_id?: string;
+          created_at?: string;
+          currency?: string;
+          description?: string | null;
+          duration_minutes?: number;
+          id?: string;
+          name?: string;
+          price?: number | null;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "services_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       subscriptions: {
         Row: {
           business_id: string;
@@ -1613,6 +1784,24 @@ export type Database = {
       apply_order_stock: { Args: { p_direction: number; p_order_id: string }; Returns: undefined };
       approve_plan_change: { Args: { p_request_id: string }; Returns: undefined };
       assert_business_default_language: { Args: { target: string }; Returns: undefined };
+      available_slots: {
+        Args: { p_business_id: string; p_days?: number; p_from?: string; p_service_id: string };
+        Returns: {
+          ends_at: string;
+          starts_at: string;
+        }[];
+      };
+      book_appointment: {
+        Args: {
+          p_business_id: string;
+          p_conversation_id?: string;
+          p_customer_id: string;
+          p_notes?: string;
+          p_service_id: string;
+          p_starts_at: string;
+        };
+        Returns: string;
+      };
       business_slug: { Args: { p_id: string; p_name: string }; Returns: string };
       cancel_plan_change: { Args: { p_request_id: string }; Returns: undefined };
       create_invitation: {

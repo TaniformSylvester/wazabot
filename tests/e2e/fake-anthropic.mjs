@@ -8,6 +8,7 @@
  *   "je prends N"             → searchProducts, createOrder, then confirms the order
  *   "parler à quelqu'un"      → send_reply with needs_human
  *   a photo                   → searchProducts, viewProductPhotos, then "we have it"
+ *   "rendez-vous"             → findAvailableSlots, bookAppointment (first free time), confirmation
  *   anything else             → a greeting
  */
 import { createServer } from "node:http";
@@ -62,6 +63,18 @@ function respond(body) {
     if (product.hasPhoto && !results.viewProductPhotos) return [call("viewProductPhotos", { productIds: [product.productId] })];
     const seen = results.viewProductPhotos?.images ? " (même modèle que sur notre photo)" : "";
     return [sendReply({ reply: `Oui, nous avons cette ${product.name}${seen} : ${product.price} ${product.currency}.`, catalog_product_ids: [product.productId] })];
+  }
+  // Appointments: free times for the first bookable service → book the first one → confirm.
+  if (/rendez-vous|rdv/.test(text)) {
+    const serviceId = body.system.map((b) => b.text).join("\n").match(/serviceId: ([0-9a-f-]{36})/)?.[1];
+    if (!serviceId) return [sendReply({ reply: "Nous ne prenons pas de rendez-vous en ligne." })];
+    const slots = results.findAvailableSlots;
+    if (!slots) return [call("findAvailableSlots", { serviceId, days: 7 })];
+    const first = slots.days[0];
+    if (!first) return [sendReply({ reply: "Désolé, aucun créneau libre cette semaine." })];
+    const booking = results.bookAppointment;
+    if (!booking) return [call("bookAppointment", { serviceId, startsAt: `${first.date}T${first.times[0]}` })];
+    return [sendReply({ reply: booking.ok ? `Rendez-vous confirmé : ${booking.service} le ${booking.startsAt}.` : "Désolé, ce créneau n'est plus libre." })];
   }
   if (/parler à quelqu'un|un humain/.test(text)) {
     return [sendReply({ reply: "Bien sûr, je transmets votre demande à l'équipe.", needs_human: true, handoff_reason: "customer asked for a person" })];

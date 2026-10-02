@@ -64,21 +64,28 @@ export type BusinessContext = {
   documents: { type: string; title: string; content: string }[];
   /** Product count only; details come through the searchProducts tool so prices are always current. */
   activeProductCount: number;
+  /** Appointments (Stage 6): bookable services when booking is switched on. */
+  booking: { enabled: boolean; services: BookableService[] };
 };
+
+export type BookableService = { id: string; name: string; description: string | null; durationMinutes: number; price: number | null; currency: string };
 
 /** Hard caps so a large knowledge base can't blow up the prompt. */
 const MAX_FAQS = 60;
 const MAX_DOCS = 20;
 const MAX_DOC_CHARS = 4000;
+const MAX_SERVICES = 50;
 
 export async function buildBusinessContext(db: Db, businessId: string, now = new Date()): Promise<BusinessContext | null> {
-  const [biz, settings, faqs, docs, products, langs] = await Promise.all([
+  const [biz, settings, faqs, docs, products, langs, booking, services] = await Promise.all([
     db.from("businesses").select("*").eq("id", businessId).maybeSingle(),
     db.from("ai_settings").select("*").eq("business_id", businessId).maybeSingle(),
     db.from("faqs").select("question, answer").eq("business_id", businessId).eq("active", true).order("priority", { ascending: false }).limit(MAX_FAQS),
     db.from("knowledge_documents").select("document_type, title, content").eq("business_id", businessId).eq("active", true).limit(MAX_DOCS),
     db.from("products").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("active", true),
     db.from("business_languages").select("language_code").eq("business_id", businessId).order("sort_order", { ascending: true }),
+    db.from("booking_settings").select("enabled").eq("business_id", businessId).maybeSingle(),
+    db.from("services").select("id, name, description, duration_minutes, price, currency").eq("business_id", businessId).eq("active", true).order("sort_order").order("name").limit(MAX_SERVICES),
   ]);
   const b = biz.data;
   if (!b) return null;
@@ -131,6 +138,17 @@ export async function buildBusinessContext(db: Db, businessId: string, now = new
     faqs: faqs.data ?? [],
     documents: (docs.data ?? []).map((d) => ({ type: d.document_type, title: d.title, content: d.content.slice(0, MAX_DOC_CHARS) })),
     activeProductCount: products.count ?? 0,
+    booking: {
+      enabled: Boolean(booking.data?.enabled) && (services.data ?? []).length > 0,
+      services: (services.data ?? []).map((sv) => ({
+        id: sv.id,
+        name: sv.name,
+        description: sv.description,
+        durationMinutes: sv.duration_minutes,
+        price: sv.price === null ? null : Number(sv.price),
+        currency: sv.currency,
+      })),
+    },
   };
 }
 

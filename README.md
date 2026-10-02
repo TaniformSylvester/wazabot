@@ -120,7 +120,7 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Marketing site, brand system, logo, SEO/OG/manifest, responsive layout | **Functional** (static pages) |
 | Hero chat, live demo, dashboard preview | **UI mockup** — demo conversation / example data |
 | Pricing | **Functional display** from `config/plans.ts` (proposed prices) |
-| Appointments, Broadcasts, Mobile Money | Shown as **Planned** — not in the first release |
+| Broadcasts, Mobile Money, voice notes | Shown as **Planned** — not in the first release |
 | Auth: register, email confirmation, login, logout, password reset, protected dashboard | **Functional** (Phase 2) |
 | Database: users, businesses, business_members, audit_logs with RLS | **Functional** (Phase 2) |
 | Dashboard (Stage 1): home with real metrics, 6-step onboarding, products (variants, images, stock), knowledge (FAQs + documents), customers, conversations (Take Over / Return to AI), orders, AI settings, analytics, WhatsApp status, team, billing, settings | **Functional** — real data only; empty states say "No data yet" |
@@ -132,6 +132,7 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | AI replies (Stage 3): Claude answers WhatsApp customers from the catalog, FAQs, policies and hours; looks up products/stock, records orders, hands over to the team; respects Human Mode, after-hours settings and the plan's monthly allowance; usage logged | **Functional** — needs `ANTHROPIC_API_KEY`; see "AI replies" below |
 | Business operations (Stage 4): orders take stock automatically (back on cancel/delete, never oversold — the AI included), low-stock alerts; team invitation links, roles, removing/leaving, switching businesses; AI-allowance warnings at 80 % / 100 %; plan-change requests approved by the WazaBolt team | **Functional** — see "Business operations" below |
 | Product photos (Stage 5): customers' photos on WhatsApp (and in the test chat) are looked at by the assistant and matched to the catalog, comparing with the catalog's own product photos | **Functional** — see "AI replies" below |
+| Appointments (Stage 6): services with duration and price, bookable in opening hours (slot step, capacity, notice, horizon); the assistant finds free times and books on WhatsApp; Calendar with confirm / done / no-show / cancel; booking from the dashboard | **Functional** — see "Appointments" below |
 | Voice transcription, template messages, payments, broadcasts | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes get a short notice and are flagged for the team |
 
 ## Multilingual architecture
@@ -267,6 +268,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=
 # Start the app with ANTHROPIC_API_KEY=test-key ANTHROPIC_BASE_URL=http://localhost:4020 AI_DEBOUNCE_MS=1500 too.
 # The photo checks need Supabase Storage (included in `npx supabase start`).
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... npm run test:e2e:ai
+# Stage 6 appointments (fake Graph + fake Anthropic, like the AI suite)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:appointments
 # Stage 4 business operations (stock, usage banner, plan requests, invitations, roles).
 # Uses DATABASE_URL directly to play the WazaBolt operator (approving a plan) and simulate AI usage.
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... npm run test:e2e:operations
@@ -391,6 +394,22 @@ where r.status = 'pending' order by r.created_at;
 select public.approve_plan_change('<request id>');  -- switches the plan, new one-month period from now
 select public.reject_plan_change('<request id>');
 ```
+
+## Appointments (Stage 6)
+
+Apply `supabase/migrations/20261007120000_appointments.sql`. Then, in **Appointments → Services &
+settings**, switch on **Take bookings**, set the start-time step, how many appointments can happen
+at once (chairs/staff), the minimum notice and how far ahead, and add services (duration, price or
+"price on request"). Bookable hours are the business's opening hours, in its timezone.
+
+- `available_slots()` lists free start times; `book_appointment()` books under a per-business lock
+  and re-checks the slot, so the team and the assistant can never take the same last place.
+- The assistant gets the services in its (cached) business information and four tools —
+  findAvailableSlots, bookAppointment, getMyAppointments, cancelAppointment — only when booking is on.
+  Times go to and from the model as local `YYYY-MM-DDTHH:mm` and are matched against real slots.
+- **Calendar**: next 30 days (or the past 30) by day; confirm, cancel, mark done or no-show. Bookings
+  made on WhatsApp are marked. "New appointment" (also from a customer's page) only offers free times.
+- Reminders to customers on WhatsApp need approved template messages (not built yet).
 
 ## Before launch
 

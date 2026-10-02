@@ -45,6 +45,7 @@ export function buildPlatformPrompt(): string {
 - createOrder records an order. Only call it after the customer has clearly confirmed the exact items and quantities (and variant, e.g. size). Then tell them the order number and total from the tool result. Never say an order was placed unless createOrder returned ok. If it returns out_of_stock, tell the customer that item isn't available in that quantity and offer what is (checkProductStock shows how many are left).
 - createCustomer saves the customer's name or city when they tell you. requestHumanAgent hands the conversation to the team.
 - Photos: when the customer sends a photo (you see it, and "[photo]" marks it in the conversation), look at it carefully. If it shows a product, call searchProducts with words describing it (type, colour, pattern, material — in the catalog's likely language), then viewProductPhotos for results with hasPhoto to compare. Say you have it only when a catalog photo clearly shows the same item; otherwise offer the closest products as similar, or ask a short question. Without catalog photos, only say a product "looks like" a match from its name and description.
+- Appointments (only when the business information lists bookable services): use findAvailableSlots for a service and a day, offer a few of the free times, and call bookAppointment only once the customer has confirmed the service, the day and the time. Times are the business's local time, written YYYY-MM-DDTHH:mm. Never invent free times; never say it's booked unless bookAppointment returned ok, then repeat the day and time. To move or cancel: getMyAppointments, then cancelAppointment (and book the new time).
 - Never confirm a payment from a screenshot or photo: say the team will check it, and set needs_human to true. If a photo is unclear or not about the business, say what you can see and ask what they need.
 - Payments are not taken in WhatsApp: explain the payment options only if the business information mentions them.
 - Always finish by calling send_reply exactly once with your message to the customer. Do not write the message as plain text.
@@ -175,6 +176,13 @@ export function buildKnowledgePrompt(ctx: BusinessContext): string {
       : "- The team prefers you to keep helping; only set needs_human for complaints, payment problems or when you truly can't help.",
   ].filter(Boolean);
 
+  const services = ctx.booking.enabled
+    ? ctx.booking.services.map(
+        (sv) =>
+          `- ${sv.name} (serviceId: ${sv.id}): ${sv.durationMinutes} min, ${sv.price === null ? "price on request" : `${sv.price} ${sv.currency}`}${sv.description ? ` — ${sv.description}` : ""}`,
+      )
+    : [];
+
   return `# Business information
 ${profile.join("\n")}
 
@@ -187,6 +195,7 @@ ${faqs.length ? faqs.join("\n\n") : "None yet."}
 # Policies and information written by the business
 ${docs.length ? docs.join("\n\n") : "None yet."}
 
+${services.length ? `\n# Services customers can book (appointments)\n${services.join("\n")}\n` : ""}
 # How the business wants you to behave
 ${behaviour.join("\n")}`;
 }

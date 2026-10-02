@@ -58,6 +58,7 @@ const business: BusinessContext = {
   faqs: [{ question: "Livrez-vous à Buea ?", answer: "Oui, 2 500 XAF." }],
   documents: [],
   activeProductCount: 1,
+  booking: { enabled: false, services: [] },
 };
 
 const conversation: ConversationContext = {

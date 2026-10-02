@@ -1,6 +1,5 @@
 import {
   BookOpen,
-  CalendarClock,
   ChartColumn,
   CreditCard,
   Globe,
@@ -34,7 +33,6 @@ const features: { key: keyof Messages["features"]["items"]; icon: typeof Message
 
 /** Not in the first release — always labelled as planned. */
 const planned = [
-  { key: "appointments", icon: CalendarClock },
   { key: "broadcasts", icon: Megaphone },
   { key: "mobileMoney", icon: CreditCard },
   { key: "voiceImages", icon: Mic },

@@ -85,14 +85,17 @@ const SEND_REPLY: Anthropic.Beta.BetaTool = {
   input_schema: replyInputSchema as Anthropic.Beta.BetaTool.InputSchema,
 };
 
+const BOOKING_TOOLS = new Set(["findAvailableSlots", "bookAppointment", "getMyAppointments", "cancelAppointment"]);
+
 /**
  * Every tool the assistant may call, in a fixed order (tools render first in the prompt; a stable order keeps the cache valid).
- * Without photo understanding, the catalog-photo tool is left out.
+ * Without photo understanding, the catalog-photo tool is left out; appointment tools only when booking is on.
  */
-export function assistantTools(photos = true): Anthropic.Beta.BetaTool[] {
+export function assistantTools(photos = true, booking = false): Anthropic.Beta.BetaTool[] {
   return [
     ...toolSchemas()
       .filter((t) => photos || t.name !== "viewProductPhotos")
+      .filter((t) => booking || !BOOKING_TOOLS.has(t.name))
       .map((t) => ({ ...t, input_schema: t.input_schema as Anthropic.Beta.BetaTool.InputSchema })),
     SEND_REPLY,
   ];
@@ -163,7 +166,7 @@ export class ClaudeResponder implements AiResponder {
         cache_control: { type: "ephemeral" },
       },
     ];
-    const tools = assistantTools(business.settings.photoUnderstanding);
+    const tools = assistantTools(business.settings.photoUnderstanding, business.booking.enabled);
     const messages: Anthropic.Beta.BetaMessageParam[] = [
       ...withImages(historyToMessages(input.conversation), input.images ?? []),
       { role: "system", content: buildTurnMessage(input) },

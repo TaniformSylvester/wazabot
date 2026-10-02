@@ -460,3 +460,55 @@ export async function getStockAlerts(businessId: string, max = 8): Promise<{ ale
   alerts.sort((a, b) => a.quantity - b.quantity || a.name.localeCompare(b.name));
   return { alerts: alerts.slice(0, max), total: alerts.length };
 }
+
+// ---------------------------------------------------------------------------
+// Appointments (Stage 6)
+// ---------------------------------------------------------------------------
+export async function getBookingSetup(businessId: string) {
+  const db = await createClient();
+  const [settings, services] = await Promise.all([
+    db.from("booking_settings").select("*").eq("business_id", businessId).maybeSingle(),
+    db.from("services").select("*").eq("business_id", businessId).order("sort_order").order("name"),
+  ]);
+  return { settings: settings.data, services: services.data ?? [] };
+}
+
+/** Appointments starting in [from, to), with the customer's name, earliest first. */
+export async function listAppointments(businessId: string, fromIso: string, toIso: string, limit = 500) {
+  const db = await createClient();
+  const { data } = await db
+    .from("appointments")
+    .select("id, service_name, price, currency, starts_at, ends_at, status, notes, customer_id, conversation_id, customers(name, whatsapp_phone)")
+    .eq("business_id", businessId)
+    .gte("starts_at", fromIso)
+    .lt("starts_at", toIso)
+    .order("starts_at")
+    .limit(limit);
+  return data ?? [];
+}
+
+/** Calendar windows: the next 30 days, or the past 30 days (most recent first). */
+export async function listAppointmentWindow(businessId: string, view: "upcoming" | "past") {
+  const now = Date.now();
+  const day = 86_400_000;
+  const rows =
+    view === "past"
+      ? (await listAppointments(businessId, new Date(now - 30 * day).toISOString(), new Date(now).toISOString())).reverse()
+      : // Include the last day too: earlier appointments still to be marked done / no-show.
+        await listAppointments(businessId, new Date(now - day).toISOString(), new Date(now + 30 * day).toISOString());
+  return rows.map((r) => ({ ...r, ended: new Date(r.ends_at).getTime() <= now }));
+}
+
+/** The next few active appointments (dashboard home). */
+export async function listNextAppointments(businessId: string, max = 5) {
+  const db = await createClient();
+  const { data } = await db
+    .from("appointments")
+    .select("id, service_name, starts_at, status, customers(name, whatsapp_phone)")
+    .eq("business_id", businessId)
+    .in("status", ["booked", "confirmed"])
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at")
+    .limit(max);
+  return data ?? [];
+}

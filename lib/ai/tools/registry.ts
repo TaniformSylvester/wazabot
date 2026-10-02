@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { Database } from "@/types/database";
 import { CATALOG_PHOTO_EDGE, MAX_IMAGE_INPUT_BYTES, prepareImage, type InputImage } from "@/lib/ai/images";
 import { isOpenAt, parseOpeningHours } from "@/lib/business/hours";
+import { LOCAL_DATE, LOCAL_STAMP, localDate, localStamp, localTime, localWeekday } from "@/lib/business/time";
 
 /*
  * Controlled tools the model may call. Each tool:
@@ -270,6 +271,107 @@ export const requestHumanAgent = tool({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Appointments (Stage 6). Times go to and from the model as local
+// "YYYY-MM-DDTHH:mm"; a booking must match one of the real free slots.
+// ---------------------------------------------------------------------------
+async function businessTimezone(ctx: ToolContext) {
+  const { data } = await ctx.db.from("businesses").select("timezone").eq("id", ctx.businessId).maybeSingle();
+  return data?.timezone ?? "Africa/Douala";
+}
+
+async function freeSlots(ctx: ToolContext, serviceId: string, from: string | undefined, days: number) {
+  const { data, error } = await ctx.db.rpc("available_slots", { p_business_id: ctx.businessId, p_service_id: serviceId, p_from: from, p_days: days });
+  return error ? [] : (data ?? []);
+}
+
+export const findAvailableSlots = tool({
+  name: "findAvailableSlots",
+  description:
+    "Free appointment times for a service (serviceId from the business information), from a day (YYYY-MM-DD, business local date; default today) for 1–7 days. " +
+    "Times are local, grouped by day. An empty list means nothing is free in that period.",
+  input: z.object({ serviceId: z.uuid(), date: z.string().regex(LOCAL_DATE).optional(), days: z.number().int().min(1).max(7).default(3) }),
+  async run(ctx, { serviceId, date, days }) {
+    const tz = await businessTimezone(ctx);
+    const slots = await freeSlots(ctx, serviceId, date, days);
+    const byDay = new Map<string, { date: string; weekday: string; times: string[] }>();
+    for (const s of slots) {
+      const at = new Date(s.starts_at);
+      const day = localDate(at, tz);
+      if (!byDay.has(day)) byDay.set(day, { date: day, weekday: localWeekday(at, tz), times: [] });
+      byDay.get(day)!.times.push(localTime(at, tz));
+    }
+    return { timezone: tz, days: [...byDay.values()] };
+  },
+});
+
+export const bookAppointment = tool({
+  name: "bookAppointment",
+  description:
+    "Book an appointment for the current customer: a service and one of the free times from findAvailableSlots (startsAt local YYYY-MM-DDTHH:mm). " +
+    "Only after the customer confirmed the service, day and time. Fails with not_available if that time was taken meanwhile.",
+  input: z.object({ serviceId: z.uuid(), startsAt: z.string().regex(LOCAL_STAMP), notes: z.string().trim().max(500).optional() }),
+  async run(ctx, { serviceId, startsAt, notes }) {
+    const tz = await businessTimezone(ctx);
+    const slot = (await freeSlots(ctx, serviceId, startsAt.slice(0, 10), 1)).find((s) => localStamp(new Date(s.starts_at), tz) === startsAt);
+    if (!slot) return { ok: false as const, reason: "not_available" };
+    const { data: service } = await ctx.db.from("services").select("name").eq("id", serviceId).eq("business_id", ctx.businessId).maybeSingle();
+    if (ctx.dryRun) return { ok: true as const, service: service?.name, startsAt, testMode: "not saved" };
+    if (!ctx.customerId) return { ok: false as const, reason: "no_customer" };
+    const { data, error } = await ctx.db.rpc("book_appointment", {
+      p_business_id: ctx.businessId,
+      p_customer_id: ctx.customerId,
+      p_service_id: serviceId,
+      p_starts_at: slot.starts_at,
+      p_conversation_id: ctx.conversationId ?? undefined,
+      p_notes: notes,
+    });
+    if (error?.code === "WB410") return { ok: false as const, reason: "not_available" };
+    if (error || !data) return { ok: false as const, reason: "rejected" };
+    return { ok: true as const, appointmentId: data, service: service?.name, startsAt };
+  },
+});
+
+export const getMyAppointments = tool({
+  name: "getMyAppointments",
+  description: "THIS customer's upcoming appointments (service, local start time, status).",
+  input: z.object({}),
+  async run(ctx) {
+    if (!ctx.customerId) return { appointments: [] };
+    const tz = await businessTimezone(ctx);
+    const { data } = await ctx.db
+      .from("appointments")
+      .select("id, service_name, starts_at, status")
+      .eq("business_id", ctx.businessId)
+      .eq("customer_id", ctx.customerId)
+      .in("status", ["booked", "confirmed"])
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at")
+      .limit(10);
+    return { appointments: (data ?? []).map((a) => ({ appointmentId: a.id, service: a.service_name, startsAt: localStamp(new Date(a.starts_at), tz), status: a.status })) };
+  },
+});
+
+export const cancelAppointment = tool({
+  name: "cancelAppointment",
+  description: "Cancel one of THIS customer's upcoming appointments (appointmentId from getMyAppointments), when they ask to cancel or move it.",
+  input: z.object({ appointmentId: z.uuid() }),
+  async run(ctx, { appointmentId }) {
+    if (ctx.dryRun) return { ok: true as const, testMode: "not saved" };
+    if (!ctx.customerId) return { ok: false as const };
+    const { data } = await ctx.db
+      .from("appointments")
+      .update({ status: "cancelled" })
+      .eq("id", appointmentId)
+      .eq("business_id", ctx.businessId)
+      .eq("customer_id", ctx.customerId)
+      .in("status", ["booked", "confirmed"])
+      .gte("starts_at", new Date().toISOString())
+      .select("id");
+    return { ok: Boolean(data?.length) };
+  },
+});
+
 /** Test chat: what createOrder would record, priced from the catalog, without saving anything. */
 async function estimateOrder(ctx: ToolContext, items: { productId: string; variantId?: string; quantity: number }[]) {
   const { data } = await ctx.db
@@ -311,6 +413,10 @@ export const TOOLS = {
   createOrder,
   getOrderStatus,
   requestHumanAgent,
+  findAvailableSlots,
+  bookAppointment,
+  getMyAppointments,
+  cancelAppointment,
 } as const;
 
 export type ToolName = keyof typeof TOOLS;

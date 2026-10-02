@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Bot,
+  CalendarDays,
   BookOpen,
   Building2,
   CircleCheck,
@@ -22,7 +23,7 @@ import { FormAlert } from "@/components/auth/form-alert";
 import { EmptyState, Panel, StatCard, StatusBadge, conversationStatusTone, formatDate, formatMoney, formatPercent, orderStatusTone } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { hasOpeningHours } from "@/lib/business/hours";
-import { getDashboardMetrics, getSetupProgress, getStockAlerts, listConversations, listOrders } from "@/lib/data/queries";
+import { getDashboardMetrics, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -50,13 +51,15 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     redirect(localizePath(locale, `/dashboard/onboarding?step=1${params.welcome ? "&welcome=1" : ""}`));
   }
 
-  const [metrics, progress, conversations, orders, stock] = await Promise.all([
+  const [metrics, progress, conversations, orders, stock, appointments] = await Promise.all([
     getDashboardMetrics(business.id),
     getSetupProgress(business.id, !!(business.description || business.industry || business.city), hasOpeningHours(business.openingHours)),
     listConversations(business.id),
     listOrders(business.id),
     getStockAlerts(business.id),
+    listNextAppointments(business.id),
   ]);
+  const apptTime = new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { timeZone: business.timezone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const done = setupSteps.filter((s) => progress[s.key === "ai" ? "aiConfigured" : s.key]).length;
   const firstName = user.fullName.split(" ")[0] || h.there;
   const n = (v: number) => formatNumber(v, locale);
@@ -125,6 +128,33 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
               );
             })}
           </ol>
+        </Panel>
+      ) : null}
+
+      {appointments.length ? (
+        <Panel
+          id="next-appointments"
+          title={d.appointments.home.title}
+          actions={
+            <Link href={href("/dashboard/appointments")} className="text-sm font-semibold text-waza-700 hover:underline">
+              {d.appointments.home.viewAll}
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-border">
+            {appointments.map((appt) => (
+              <li key={appt.id} className="flex items-center gap-3 py-3">
+                <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-surface text-deep">
+                  <CalendarDays className="size-4" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-deep">{appt.service_name}</span>
+                  <span className="block truncate text-xs text-slate">{appt.customers?.name || appt.customers?.whatsapp_phone}</span>
+                </span>
+                <span className="shrink-0 text-sm font-semibold text-deep">{apptTime.format(new Date(appt.starts_at))}</span>
+              </li>
+            ))}
+          </ul>
         </Panel>
       ) : null}
 
