@@ -138,7 +138,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
                       ) : r.stock_quantity === 0 ? (
                         <StatusBadge tone="red">{p.stock.out}</StatusBadge>
                       ) : (
-                        <StatusBadge tone={r.stock_quantity <= 5 ? "amber" : "neutral"}>{format(p.stock.units, { count: formatNumber(r.stock_quantity, locale) })}</StatusBadge>
+                        <StatusBadge tone={r.stock_quantity <= r.low_stock_threshold ? "amber" : "neutral"}>{format(p.stock.units, { count: formatNumber(r.stock_quantity, locale) })}</StatusBadge>
                       )}
                     </td>
                     <td className={td}>

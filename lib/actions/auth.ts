@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
   forgotPasswordSchema,
+  inviteSignUpSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
@@ -53,6 +54,39 @@ export async function signUp(input: unknown, localeInput?: string): Promise<Acti
   }
   // Same response whether or not the email was already registered.
   return { ok: true, email };
+}
+
+const inviteSignUpWithToken = inviteSignUpSchema.extend({ token: z.string().min(16).max(128) });
+
+/**
+ * Sign-up from an invitation link: the email is the invited one (never typed),
+ * and the sign-up trigger adds the person to the inviting business instead of
+ * creating a new one.
+ */
+export async function signUpWithInvite(input: unknown, localeInput?: string): Promise<ActionResult> {
+  if (!isSupabaseConfigured()) return NOT_CONFIGURED;
+  const parsed = inviteSignUpWithToken.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+  const { fullName, password, token } = parsed.data;
+  const locale = await getRequestLocale(localeInput);
+
+  const supabase = await createClient();
+  const { data: invite } = await supabase.rpc("get_invitation", { p_token: token }).maybeSingle();
+  if (!invite || invite.state !== "pending") return { ok: false, error: "invite_invalid" };
+
+  const { error } = await supabase.auth.signUp({
+    email: invite.email,
+    password,
+    options: {
+      emailRedirectTo: confirmUrl(localizePath(locale, "/dashboard")),
+      data: { full_name: fullName, invite_token: token, locale, country_code: DEFAULT_COUNTRY },
+    },
+  });
+  if (error) {
+    logServerError("auth.signUpWithInvite", error);
+    return { ok: false, error: authErrorKey(error) };
+  }
+  return { ok: true, email: invite.email };
 }
 
 export async function signIn(input: unknown, next?: string, localeInput?: string): Promise<ActionResult> {

@@ -79,7 +79,9 @@ export function ActionForm({
               value === null || value === undefined ? null : <input key={name} type="hidden" name={name} value={String(value)} />,
             )
           : null}
-        {state.status === "error" && state.error ? <FormAlert tone="error">{text.errors[state.error] ?? text.errors.unknown}</FormAlert> : null}
+        {state.status === "error" && state.error ? (
+          <FormAlert tone="error">{(text.errors[state.error] ?? text.errors.unknown).replace("{item}", state.detail ?? "")}</FormAlert>
+        ) : null}
         {state.status === "success" && successMessage !== null ? <FormAlert tone="success">{successMessage ?? text.saved}</FormAlert> : null}
         <fieldset disabled={disabled || pending} className="flex min-w-0 flex-col gap-5">
           {children}

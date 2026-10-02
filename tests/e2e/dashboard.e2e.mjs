@@ -297,7 +297,7 @@ async function signUp(browser, user, locale) {
   await page.goto(`${APP}/en/dashboard/whatsapp`);
   ok("WhatsApp page: Not Connected, with the connect form (no fake connection)", (await main.getByText("Not Connected").count()) === 1 && (await main.getByLabel("Phone Number ID").count()) === 1);
   await page.goto(`${APP}/en/dashboard/billing`);
-  ok("billing shows plans from the database, Free is current", (await main.getByText("Business", { exact: true }).count()) === 1 && (await main.getByText("25,000 XAF").count()) === 1 && (await main.getByText("Current plan").count()) >= 1);
+  ok("billing shows plans from the database, Free is current", (await main.locator("li").getByText("Business", { exact: true }).count()) === 1 && (await main.locator("li").getByText("25,000 XAF").count()) === 1 && (await main.getByText("Current plan").count()) >= 1);
   await page.goto(`${APP}/en/dashboard/team`);
   ok("team lists the owner", (await main.getByText("You", { exact: true }).count()) === 1 && (await main.getByText("Owner").count()) >= 1);
   await page.goto(`${APP}/en/dashboard/automations`);

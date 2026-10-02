@@ -11,6 +11,7 @@ import {
   Inbox,
   MessagesSquare,
   Package,
+  PackageX,
   ShoppingBag,
   Smartphone,
   UserPlus,
@@ -21,7 +22,7 @@ import { FormAlert } from "@/components/auth/form-alert";
 import { EmptyState, Panel, StatCard, StatusBadge, conversationStatusTone, formatDate, formatMoney, formatPercent, orderStatusTone } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { hasOpeningHours } from "@/lib/business/hours";
-import { getDashboardMetrics, getSetupProgress, listConversations, listOrders } from "@/lib/data/queries";
+import { getDashboardMetrics, getSetupProgress, getStockAlerts, listConversations, listOrders } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -49,11 +50,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     redirect(localizePath(locale, `/dashboard/onboarding?step=1${params.welcome ? "&welcome=1" : ""}`));
   }
 
-  const [metrics, progress, conversations, orders] = await Promise.all([
+  const [metrics, progress, conversations, orders, stock] = await Promise.all([
     getDashboardMetrics(business.id),
     getSetupProgress(business.id, !!(business.description || business.industry || business.city), hasOpeningHours(business.openingHours)),
     listConversations(business.id),
     listOrders(business.id),
+    getStockAlerts(business.id),
   ]);
   const done = setupSteps.filter((s) => progress[s.key === "ai" ? "aiConfigured" : s.key]).length;
   const firstName = user.fullName.split(" ")[0] || h.there;
@@ -73,6 +75,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     <div className="mx-auto flex max-w-6xl flex-col gap-8">
       {params.welcome ? <FormAlert tone="success">{h.welcomeConfirmed}</FormAlert> : null}
       {params.onboarded ? <FormAlert tone="success">{h.onboarded}</FormAlert> : null}
+      {params.joined ? <FormAlert tone="success">{format(h.joined, { business: business.name })}</FormAlert> : null}
 
       <div>
         <h1 className="type-h2">{format(h.welcome, { name: firstName })}</h1>
@@ -122,6 +125,36 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
               );
             })}
           </ol>
+        </Panel>
+      ) : null}
+
+      {stock.total ? (
+        <Panel
+          id="stock-alerts"
+          title={h.stockAlerts.title}
+          description={h.stockAlerts.text}
+          actions={
+            <Link href={href("/dashboard/products")} className="text-sm font-semibold text-waza-700 hover:underline">
+              {h.stockAlerts.viewAll}
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-border">
+            {stock.alerts.map((a) => (
+              <li key={`${a.productId}-${a.variant ?? ""}`}>
+                <Link href={href(`/dashboard/products/${a.productId}`)} className="flex items-center gap-3 py-3 hover:bg-surface/60">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-surface text-deep">
+                    <PackageX className="size-4" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-deep">{a.name}</span>
+                    {a.variant ? <span className="block truncate text-xs text-slate">{a.variant}</span> : null}
+                  </span>
+                  <StatusBadge tone={a.out ? "red" : "amber"}>{a.out ? h.stockAlerts.out : format(h.stockAlerts.left, { count: n(a.quantity) })}</StatusBadge>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </Panel>
       ) : null}
 

@@ -42,7 +42,7 @@ export function buildPlatformPrompt(): string {
 
 # How you work
 - You can look things up with tools: searchProducts and checkProductStock (catalog, prices, stock), getBusinessInformation, getBusinessHours, getDeliveryFee, getOrderStatus. Use them whenever the customer asks about products, prices, stock, delivery or an order — the catalog is not in this prompt.
-- createOrder records an order. Only call it after the customer has clearly confirmed the exact items and quantities (and variant, e.g. size). Then tell them the order number and total from the tool result. Never say an order was placed unless createOrder returned ok.
+- createOrder records an order. Only call it after the customer has clearly confirmed the exact items and quantities (and variant, e.g. size). Then tell them the order number and total from the tool result. Never say an order was placed unless createOrder returned ok. If it returns out_of_stock, tell the customer that item isn't available in that quantity and offer what is (checkProductStock shows how many are left).
 - createCustomer saves the customer's name or city when they tell you. requestHumanAgent hands the conversation to the team.
 - Payments are not taken in WhatsApp: explain the payment options only if the business information mentions them.
 - Always finish by calling send_reply exactly once with your message to the customer. Do not write the message as plain text.

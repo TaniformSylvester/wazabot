@@ -151,7 +151,9 @@ export const createCustomer = tool({
 
 export const createOrder = tool({
   name: "createOrder",
-  description: "Create an order for the current customer from catalog products. Prices come from the catalog. Only after the customer confirmed items and quantities.",
+  description:
+    "Create an order for the current customer from catalog products. Prices come from the catalog. Only after the customer confirmed items and quantities. " +
+    "Fails with reason out_of_stock (and the item) when there isn't enough stock: tell the customer and offer what is available.",
   input: z.object({
     items: z.array(z.object({ productId: z.uuid(), variantId: z.uuid().optional(), quantity: z.number().int().min(1).max(1000) })).min(1).max(30),
     deliveryAddress: z.string().trim().max(500).optional(),
@@ -168,6 +170,9 @@ export const createOrder = tool({
       p_delivery_address: deliveryAddress,
       p_notes: notes,
     });
+    if (error?.code === "WB409") {
+      return { ok: false as const, reason: "out_of_stock", item: error.message.replace(/^insufficient stock:\s*/, "").slice(0, 200) };
+    }
     if (error || !data) return { ok: false as const, reason: "rejected" };
     const { data: order } = await ctx.db.from("orders").select("order_number, total, currency").eq("id", data).eq("business_id", ctx.businessId).single();
     return { ok: true as const, orderNumber: order?.order_number, total: Number(order?.total ?? 0), currency: order?.currency };
@@ -207,17 +212,25 @@ export const requestHumanAgent = tool({
 async function estimateOrder(ctx: ToolContext, items: { productId: string; variantId?: string; quantity: number }[]) {
   const { data } = await ctx.db
     .from("products")
-    .select("id, price, currency, active, product_variants(id, price_modifier)")
+    .select("id, name, price, currency, active, stock_quantity, product_variants(id, name, value, price_modifier, stock_quantity)")
     .eq("business_id", ctx.businessId)
     .in("id", items.map((i) => i.productId));
   const byId = new Map((data ?? []).map((p) => [p.id, p]));
   let total = 0;
   let currency = "XAF";
+  // Same stock rule as create_order(): a tracked variant's stock, otherwise the product's.
+  const wanted = new Map<string, number>();
   for (const item of items) {
     const p = byId.get(item.productId);
     if (!p || !p.active) return { ok: false as const, reason: "rejected" };
     const variant = item.variantId ? p.product_variants.find((v) => v.id === item.variantId) : null;
     if (item.variantId && !variant) return { ok: false as const, reason: "rejected" };
+    const tracked = variant && variant.stock_quantity !== null ? { key: `v:${variant.id}`, stock: variant.stock_quantity } : p.stock_quantity !== null ? { key: `p:${p.id}`, stock: p.stock_quantity } : null;
+    if (tracked) {
+      const qty = (wanted.get(tracked.key) ?? 0) + item.quantity;
+      wanted.set(tracked.key, qty);
+      if (qty > tracked.stock) return { ok: false as const, reason: "out_of_stock", item: variant ? `${p.name} (${variant.name}: ${variant.value})` : p.name };
+    }
     total += Math.max(0, Number(p.price) + Number(variant?.price_modifier ?? 0)) * item.quantity;
     currency = p.currency;
   }

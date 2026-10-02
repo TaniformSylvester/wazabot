@@ -1,8 +1,10 @@
 import { Check } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
+import { ActionButton, ActionForm, SelectField, SubmitButton, TextField } from "@/components/app/form";
 import { PageHeader, Panel, StatusBadge, formatDate, formatMoney } from "@/components/app/ui";
-import { requireBusiness } from "@/lib/auth/dal";
+import { cancelPlanChange, requestPlanChange } from "@/lib/actions/billing";
+import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { getBilling } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -12,15 +14,23 @@ import { cn } from "@/lib/utils";
 
 export const generateMetadata = dashboardMetadata((d) => d.billing.title);
 
-/** Plans come from the `plans` table (configurable). No payment is processed in this stage. */
+/**
+ * Plans come from the `plans` table (configurable). No payment is processed:
+ * owners/admins request a plan; the WazaBolt team approves it once paid.
+ */
 export default async function BillingPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/billing"));
-  const { plans, subscription, aiConversationsUsed } = await getBilling(business.id);
+  const { plans, subscription, usage, pendingRequest } = await getBilling(business.id);
   const b = t.dashboard.billing;
+  const d = t.dashboard;
+  const canRequest = hasRole(business.role, "admin");
   const current = subscription?.plans ?? null;
-  const limit = current?.ai_conversations_per_month ?? 0;
+  const limit = usage?.limit ?? current?.ai_conversations_per_month ?? 0;
+  const aiConversationsUsed = usage?.used ?? 0;
   const usedPct = limit ? Math.min(100, (aiConversationsUsed / limit) * 100) : 0;
+  const requestedPlan = pendingRequest ? plans.find((p) => p.id === pendingRequest.to_plan_id) : null;
+  const formText = { errors: d.errors, saved: b.change.sent, saving: b.change.sending };
   const statusLabel = subscription ? (b.status[subscription.status as keyof typeof b.status] ?? subscription.status) : null;
 
   return (
@@ -49,7 +59,10 @@ export default async function BillingPage() {
         <Panel title={b.usage}>
           <p className="font-display text-2xl font-bold text-deep">{format(b.usageOf, { used: formatNumber(aiConversationsUsed, locale), limit: formatNumber(limit, locale) })}</p>
           <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuemin={0} aria-valuemax={limit} aria-valuenow={aiConversationsUsed} aria-label={b.usage}>
-            <div className="h-full rounded-full bg-waza-500" style={{ width: `${usedPct}%` }} />
+            <div
+              className={cn("h-full rounded-full", usage?.level === "reached" ? "bg-coral-600" : usage?.level === "warning" ? "bg-gold" : "bg-waza-500")}
+              style={{ width: `${usedPct}%` }}
+            />
           </div>
           <p className="mt-2 text-xs text-slate">{b.usageNote}</p>
         </Panel>
@@ -77,9 +90,44 @@ export default async function BillingPage() {
           );
         })}
       </ul>
-      <FormAlert tone="info">
-        {b.changeSoon} {b.noPayments}
-      </FormAlert>
+      {pendingRequest ? (
+        <Panel title={b.pending.title}>
+          <p className="text-sm text-slate">
+            {format(b.pending.text, { plan: requestedPlan?.name ?? pendingRequest.to_plan_id, date: formatDate(pendingRequest.created_at, locale) })}
+          </p>
+          {canRequest ? (
+            <div className="mt-4">
+              <ActionButton action={cancelPlanChange.bind(null, pendingRequest.id)} pendingLabel={b.pending.cancelling} errors={d.errors}>
+                {b.pending.cancel}
+              </ActionButton>
+            </div>
+          ) : null}
+        </Panel>
+      ) : null}
+
+      <Panel title={b.change.title} description={b.change.description}>
+        {canRequest ? (
+          <ActionForm action={requestPlanChange} text={formText} successMessage={b.change.sent} className="max-w-xl">
+            <SelectField
+              name="plan_id"
+              label={b.change.plan}
+              defaultValue={pendingRequest?.to_plan_id ?? plans.find((p) => p.id !== subscription?.plan_id && p.monthly_price > (current?.monthly_price ?? 0))?.id}
+              options={plans
+                .filter((p) => p.id !== subscription?.plan_id)
+                .map((p) => ({ value: p.id, label: `${p.name} — ${formatMoney(p.monthly_price, p.currency, locale)}${b.perMonth}` }))}
+            />
+            <TextField name="contact_phone" label={b.change.phone} type="tel" inputMode="tel" autoComplete="tel" maxLength={40} defaultValue={business.phone ?? ""} />
+            <TextField name="note" label={b.change.note} maxLength={500} />
+            <div>
+              <SubmitButton>{b.change.submit}</SubmitButton>
+            </div>
+          </ActionForm>
+        ) : (
+          <p className="text-sm text-slate">{b.change.ownersOnly}</p>
+        )}
+      </Panel>
+
+      <FormAlert tone="info">{b.noPayments}</FormAlert>
     </div>
   );
 }

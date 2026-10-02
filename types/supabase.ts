@@ -204,6 +204,56 @@ export type Database = {
           },
         ];
       };
+      business_invitations: {
+        Row: {
+          accepted_at: string | null;
+          accepted_by: string | null;
+          business_id: string;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string | null;
+          revoked_at: string | null;
+          role: string;
+          token_hash: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          business_id: string;
+          created_at?: string;
+          email: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          revoked_at?: string | null;
+          role: string;
+          token_hash: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          business_id?: string;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          revoked_at?: string | null;
+          role?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "business_invitations_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       business_languages: {
         Row: {
           business_id: string;
@@ -1035,6 +1085,7 @@ export type Database = {
           total: number;
           unit_price: number;
           variant: string | null;
+          variant_id: string | null;
         };
         Insert: {
           business_id: string;
@@ -1046,6 +1097,7 @@ export type Database = {
           total: number;
           unit_price: number;
           variant?: string | null;
+          variant_id?: string | null;
         };
         Update: {
           business_id?: string;
@@ -1057,6 +1109,7 @@ export type Database = {
           total?: number;
           unit_price?: number;
           variant?: string | null;
+          variant_id?: string | null;
         };
         Relationships: [
           {
@@ -1071,6 +1124,13 @@ export type Database = {
             columns: ["product_id"];
             isOneToOne: false;
             referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey";
+            columns: ["variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
             referencedColumns: ["id"];
           },
         ];
@@ -1092,6 +1152,8 @@ export type Database = {
           payment_method: string | null;
           payment_status: string;
           status: string;
+          stock_applied: boolean;
+          stock_managed: boolean;
           subtotal: number;
           total: number;
           updated_at: string;
@@ -1112,6 +1174,8 @@ export type Database = {
           payment_method?: string | null;
           payment_status?: string;
           status?: string;
+          stock_applied?: boolean;
+          stock_managed?: boolean;
           subtotal?: number;
           total?: number;
           updated_at?: string;
@@ -1132,6 +1196,8 @@ export type Database = {
           payment_method?: string | null;
           payment_status?: string;
           status?: string;
+          stock_applied?: boolean;
+          stock_managed?: boolean;
           subtotal?: number;
           total?: number;
           updated_at?: string;
@@ -1156,6 +1222,67 @@ export type Database = {
             columns: ["business_id"];
             isOneToOne: false;
             referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      plan_change_requests: {
+        Row: {
+          business_id: string;
+          contact_phone: string | null;
+          created_at: string;
+          decided_at: string | null;
+          from_plan_id: string | null;
+          id: string;
+          note: string | null;
+          requested_by: string | null;
+          status: string;
+          to_plan_id: string;
+        };
+        Insert: {
+          business_id: string;
+          contact_phone?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          from_plan_id?: string | null;
+          id?: string;
+          note?: string | null;
+          requested_by?: string | null;
+          status?: string;
+          to_plan_id: string;
+        };
+        Update: {
+          business_id?: string;
+          contact_phone?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          from_plan_id?: string | null;
+          id?: string;
+          note?: string | null;
+          requested_by?: string | null;
+          status?: string;
+          to_plan_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "plan_change_requests_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "plan_change_requests_from_plan_id_fkey";
+            columns: ["from_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "plan_change_requests_to_plan_id_fkey";
+            columns: ["to_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "plans";
             referencedColumns: ["id"];
           },
         ];
@@ -1250,9 +1377,11 @@ export type Database = {
           description: string | null;
           id: string;
           image_url: string | null;
+          low_stock_threshold: number;
           name: string;
           price: number;
           sku: string | null;
+          stock_low: boolean | null;
           stock_quantity: number | null;
           updated_at: string;
         };
@@ -1265,9 +1394,11 @@ export type Database = {
           description?: string | null;
           id?: string;
           image_url?: string | null;
+          low_stock_threshold?: number;
           name: string;
           price?: number;
           sku?: string | null;
+          stock_low?: never;
           stock_quantity?: number | null;
           updated_at?: string;
         };
@@ -1280,9 +1411,11 @@ export type Database = {
           description?: string | null;
           id?: string;
           image_url?: string | null;
+          low_stock_threshold?: number;
           name?: string;
           price?: number;
           sku?: string | null;
+          stock_low?: never;
           stock_quantity?: number | null;
           updated_at?: string;
         };
@@ -1463,8 +1596,26 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      accept_invitation: { Args: { p_token: string }; Returns: string };
+      ai_usage_status: {
+        Args: { p_business_id: string };
+        Returns: {
+          conversation_limit: number;
+          conversations_used: number;
+          period_start: string;
+          plan_id: string;
+          plan_name: string;
+        }[];
+      };
+      apply_order_stock: { Args: { p_direction: number; p_order_id: string }; Returns: undefined };
+      approve_plan_change: { Args: { p_request_id: string }; Returns: undefined };
       assert_business_default_language: { Args: { target: string }; Returns: undefined };
       business_slug: { Args: { p_id: string; p_name: string }; Returns: string };
+      cancel_plan_change: { Args: { p_request_id: string }; Returns: undefined };
+      create_invitation: {
+        Args: { p_business_id: string; p_email: string; p_role: string; p_token_hash: string };
+        Returns: string;
+      };
       create_order: {
         Args: {
           p_business_id: string;
@@ -1480,6 +1631,16 @@ export type Database = {
         Returns: string;
       };
       delivery_status_rank: { Args: { s: string }; Returns: number };
+      get_invitation: {
+        Args: { p_token: string };
+        Returns: {
+          business_name: string;
+          email: string;
+          inviter_name: string;
+          role: string;
+          state: string;
+        }[];
+      };
       has_business_role: {
         Args: {
           allowed: Database["public"]["Enums"]["business_role"][];
@@ -1525,9 +1686,26 @@ export type Database = {
         };
         Returns: boolean;
       };
+      reject_plan_change: { Args: { p_request_id: string }; Returns: undefined };
+      remove_member: { Args: { p_business_id: string; p_user_id: string }; Returns: undefined };
+      renew_invitation: {
+        Args: { p_invitation_id: string; p_token_hash: string };
+        Returns: undefined;
+      };
+      request_plan_change: {
+        Args: {
+          p_business_id: string;
+          p_contact_phone?: string;
+          p_note?: string;
+          p_plan_id: string;
+        };
+        Returns: string;
+      };
+      revoke_invitation: { Args: { p_invitation_id: string }; Returns: undefined };
       role_rank: { Args: { r: string }; Returns: number };
       set_ui_locale: { Args: { p_locale: string }; Returns: undefined };
       shares_business_with: { Args: { other_user: string }; Returns: boolean };
+      token_sha256: { Args: { p_token: string }; Returns: string };
       update_business_language_settings: {
         Args: {
           p_business_id: string;
@@ -1541,6 +1719,10 @@ export type Database = {
           p_style_notes: string;
           p_tone: string;
         };
+        Returns: undefined;
+      };
+      update_member_role: {
+        Args: { p_business_id: string; p_role: string; p_user_id: string };
         Returns: undefined;
       };
     };

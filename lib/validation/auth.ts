@@ -22,6 +22,10 @@ export const registerSchema = z.object({
   password: newPassword,
 });
 
+/** Sign-up from an invitation link: the email comes from the invitation. */
+export const inviteSignUpSchema = registerSchema.pick({ fullName: true, password: true });
+export type InviteSignUpInput = z.infer<typeof inviteSignUpSchema>;
+
 export const loginSchema = z.object({
   email,
   password: z.string().min(1, "password_required"),
@@ -47,6 +51,7 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 /** Keys of `auth.errors` in the dictionaries. */
 export type AuthErrorKey =
   | "not_configured"
+  | "invite_invalid"
   | "invalid_form"
   | "invalid_credentials"
   | "email_not_confirmed"

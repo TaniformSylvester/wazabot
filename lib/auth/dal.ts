@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
@@ -20,6 +21,8 @@ import { DEFAULT_LOCALE, isLocale, type Locale } from "@/lib/i18n/config";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type CurrentUser = {
   id: string;
@@ -82,23 +85,39 @@ export async function requireUser(next = "/dashboard") {
   return user;
 }
 
+/** Cookie holding the business the user last switched to (only a preference: membership is checked on every read). */
+export const ACTIVE_BUSINESS_COOKIE = "wb_business";
+
+/** Every business the user belongs to, oldest membership first. */
+export const listMyBusinesses = cache(async (): Promise<{ id: string; name: string; role: BusinessRole }[]> => {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("business_members")
+    .select("role, created_at, businesses(id, name)")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
+  return (data ?? []).flatMap((m) => (m.businesses ? [{ id: m.businesses.id, name: m.businesses.name, role: m.role }] : []));
+});
+
 /**
- * The business the user belongs to. Row Level Security guarantees only the
- * user's own memberships are returned. Assumes one business per user for now.
+ * The business the user is working in: the one chosen with the business
+ * switcher (cookie) if they still belong to it, otherwise their first.
+ * Row Level Security guarantees only the user's own memberships are returned.
  */
 export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null> => {
   const user = await getCurrentUser();
   if (!user) return null;
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("business_members")
-    .select(
-      "role, businesses(id, name, slug, status, description, industry, country_code, city, address, phone, email, website, logo_url, currency, timezone, opening_hours, default_language, onboarding_step, onboarding_completed_at)",
-    )
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const preferred = (await cookies()).get(ACTIVE_BUSINESS_COOKIE)?.value;
+  const select =
+    "role, businesses(id, name, slug, status, description, industry, country_code, city, address, phone, email, website, logo_url, currency, timezone, opening_hours, default_language, onboarding_step, onboarding_completed_at)";
+  const first = () => supabase.from("business_members").select(select).eq("user_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+  let { data } = preferred && UUID_RE.test(preferred)
+    ? await supabase.from("business_members").select(select).eq("user_id", user.id).eq("business_id", preferred).maybeSingle()
+    : await first();
+  if (!data) ({ data } = await first());
 
   const b = data?.businesses;
   if (!data || !b) return null;
@@ -146,7 +165,8 @@ export type BusinessContext = { user: CurrentUser; business: CurrentBusiness };
 export async function requireBusiness(next = "/dashboard"): Promise<BusinessContext> {
   const user = await requireUser(next);
   const business = await getCurrentBusiness();
-  if (!business) redirect(`/login?next=${encodeURIComponent(next)}`);
+  // Signed in but not in any business (left it or was removed): explain instead of looping through login.
+  if (!business) redirect(next.startsWith("/fr") ? "/fr/dashboard/no-business" : "/en/dashboard/no-business");
   return { user, business };
 }
 

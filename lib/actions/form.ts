@@ -21,7 +21,13 @@ export type ActionErrorKey =
   | "whatsapp_verify_failed"
   | "whatsapp_not_connected"
   | "whatsapp_window_closed"
-  | "whatsapp_send_failed";
+  | "whatsapp_send_failed"
+  // Stage 4
+  | "out_of_stock"
+  | "already_member"
+  | "invite_invalid"
+  | "invite_wrong_email"
+  | "already_on_plan";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -29,6 +35,10 @@ export type FormState = {
   fieldErrors?: Record<string, string[] | undefined>;
   /** Id of the row created/updated. */
   id?: string;
+  /** Extra detail for the error message, e.g. the item that is out of stock ({item} in the text). */
+  detail?: string;
+  /** A value the form shows after success, e.g. an invitation link. */
+  value?: string;
   /** Bumped on each success so forms can reset or show a toast. */
   at?: number;
 };
@@ -36,7 +46,7 @@ export type FormState = {
 export const initialFormState: FormState = { status: "idle" };
 
 export const ok = (id?: string): FormState => ({ status: "success", id, at: Date.now() });
-export const fail = (error: ActionErrorKey, fieldErrors?: FormState["fieldErrors"]): FormState => ({ status: "error", error, fieldErrors });
+export const fail = (error: ActionErrorKey, fieldErrors?: FormState["fieldErrors"], detail?: string): FormState => ({ status: "error", error, fieldErrors, detail });
 export const invalid = (error: z.ZodError): FormState => fail("invalid", z.flattenError(error).fieldErrors as FormState["fieldErrors"]);
 
 /** Maps a PostgREST/Postgres error to an action error key. */
@@ -44,6 +54,8 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
   switch (error?.code) {
     case "42501":
       return "forbidden";
+    case "WB409":
+      return "out_of_stock";
     case "23505":
       return "duplicate";
     case "22023":
@@ -53,6 +65,12 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
     default:
       return "unknown";
   }
+}
+
+/** Like dbError, keeping the item name of an out-of-stock error ("insufficient stock: Robe Ankara"). */
+export function dbFail(error: { code?: string; message?: string } | null | undefined): FormState {
+  const key = dbError(error);
+  return fail(key, undefined, key === "out_of_stock" ? error?.message?.replace(/^insufficient stock:\s*/, "").slice(0, 200) : undefined);
 }
 
 /** FormData → plain object; checkbox-style fields become booleans via the schema. */

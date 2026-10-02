@@ -10,7 +10,7 @@ import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 import { orderSchema, orderUpdateSchema } from "@/lib/validation/app";
 
-import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { dbError, dbFail, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
 
 /**
  * Records an order (e.g. taken by phone or in a chat). Prices, names and
@@ -39,6 +39,7 @@ export async function createOrder(_prev: FormState, formData: FormData): Promise
   if (error || !data) {
     logServerError("orders.create", error);
     const key = dbError(error);
+    if (key === "out_of_stock") return dbFail(error);
     return fail(key, key === "invalid" && error?.message?.includes("discount") ? { discount: ["discount_too_large"] } : undefined);
   }
   revalidatePath("/[lang]/dashboard", "layout");
@@ -59,7 +60,7 @@ export async function updateOrder(_prev: FormState, formData: FormData): Promise
   const { data, error } = await supabase.from("orders").update(parsed.data).eq("id", id).eq("business_id", ctx.business.id).select("id");
   if (error) {
     logServerError("orders.update", error);
-    return fail(dbError(error));
+    return dbFail(error);
   }
   if (!data?.length) return fail("not_found");
   revalidatePath("/[lang]/dashboard", "layout");

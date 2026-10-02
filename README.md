@@ -130,7 +130,8 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Language detection / resolution / prompt builder (en, fr, Cameroonian Pidgin) | **Functional code + unit tests**; not yet called by a live AI (no WhatsApp webhook yet) |
 | WhatsApp (Stage 2): connect a number (verified with Meta, token encrypted), webhook (signature-checked, idempotent), customers + conversations created automatically, team replies from the inbox, delivery ticks, read receipts, 24-hour window, media stored privately | **Functional** — see "WhatsApp setup" below |
 | AI replies (Stage 3): Claude answers WhatsApp customers from the catalog, FAQs, policies and hours; looks up products/stock, records orders, hands over to the team; respects Human Mode, after-hours settings and the plan's monthly allowance; usage logged | **Functional** — needs `ANTHROPIC_API_KEY`; see "AI replies" below |
-| Voice transcription, image understanding, template messages, payments, broadcasts, invites | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes and images get a short notice and are flagged for the team |
+| Business operations (Stage 4): orders take stock automatically (back on cancel/delete, never oversold — the AI included), low-stock alerts; team invitation links, roles, removing/leaving, switching businesses; AI-allowance warnings at 80 % / 100 %; plan-change requests approved by the WazaBolt team | **Functional** — see "Business operations" below |
+| Voice transcription, image understanding, template messages, payments, broadcasts | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes and images get a short notice and are flagged for the team |
 
 ## Multilingual architecture
 
@@ -247,7 +248,8 @@ Auth → Rate limits). Consider enabling CAPTCHA protection before public launch
 # Unit tests: language detection, explicit requests, reply-language resolution, prompts
 npm test
 
-# Database: tenant isolation, RLS, multilingual, multimodal and SaaS-foundation schema
+# Database: tenant isolation, RLS, multilingual, multimodal, SaaS foundation, WhatsApp, AI and
+# business-operations schema
 # (local or staging DB — never production)
 DATABASE_URL=postgres://... npm run test:db
 
@@ -263,6 +265,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=
 # Stage 3 AI replies, against a scripted fake Anthropic API (tests/e2e/fake-anthropic.mjs, port 4020).
 # Start the app with ANTHROPIC_API_KEY=test-key ANTHROPIC_BASE_URL=http://localhost:4020 AI_DEBOUNCE_MS=1500 too.
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... npm run test:e2e:ai
+# Stage 4 business operations (stock, usage banner, plan requests, invitations, roles).
+# Uses DATABASE_URL directly to play the WazaBolt operator (approving a plan) and simulate AI usage.
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... npm run test:e2e:operations
 
 # Regenerate database types after a migration
 DATABASE_URL=postgres://... npm run db:types
@@ -336,6 +341,47 @@ Model: `claude-opus-5-5` at `low` effort by default (`AI_MODEL`, `AI_EFFORT`), p
 platform rules + business knowledge, and Anthropic's server-side fallback for safety declines. Set
 `ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
 once the key is set, WhatsApp is connected and AI is switched on.
+
+## Business operations (Stage 4)
+
+Apply `supabase/migrations/20261005120000_business_operations.sql` (after the earlier ones).
+
+**Stock.** Orders created from now on take their items out of stock — the variant's stock when the
+variant tracks it, otherwise the product's (empty stock = not tracked, never touched). An order for
+more than is in stock is refused with the item's name, from the dashboard and from the AI assistant
+(which then tells the customer what's available). Cancelling an order gives the stock back; deleting
+one that still holds stock too; un-cancelling takes it again (refused if it's been sold meanwhile).
+Each product has a **low-stock alert** level (default 5): the dashboard home lists products and
+variants at or below it, and Products → Stock "Low" filters by each product's own level. Orders
+created before this migration never took stock, so cancelling them doesn't add any.
+
+**Team.** Owners and admins invite people from **Team**: enter their email and role, then share the
+link (copy, or "Share on WhatsApp") — WazaBolt doesn't email it. The link works once, for that
+email only, for 7 days; only its hash is stored, so it's shown once ("New link" makes a fresh one and
+the old one stops working). A new person creates their account from the link (no business of their
+own); someone who already has a WazaBolt account logs in and clicks **Join**, then switches between
+businesses from the name at the top of the dashboard. Admins manage agents and viewers; only the
+owner invites or manages admins; the owner can't be removed. Anyone else can leave a business.
+
+**AI allowance.** `ai_usage_status()` counts the conversations the assistant answered in since the
+1st of the month (UTC) against the plan; the AI pipeline, the billing page and the dashboard banner
+all use it. Owners and admins see a warning from 80 % and a notice once it's used up (conversations
+already answered this month continue; new ones go to the team).
+
+**Plan changes (no payments yet).** On **Billing**, an owner or admin requests a plan with a phone
+number to reach them. The request is logged on the server (`[billing.planRequest] …` in the Vercel
+logs) and listed in the `plan_change_requests` table. Arrange payment (e.g. Mobile Money), then in the
+Supabase SQL editor:
+
+```sql
+-- pending requests
+select r.id, b.name, r.from_plan_id, r.to_plan_id, r.contact_phone, r.note, r.created_at
+from plan_change_requests r join businesses b on b.id = r.business_id
+where r.status = 'pending' order by r.created_at;
+
+select public.approve_plan_change('<request id>');  -- switches the plan, new one-month period from now
+select public.reject_plan_change('<request id>');
+```
 
 ## Before launch
 

@@ -6,7 +6,13 @@ import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { UserCard, initials } from "@/components/dashboard/user-card";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { getCurrentBusiness, requireUser } from "@/lib/auth/dal";
+import { TriangleAlert } from "lucide-react";
+
+import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
+import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/lib/auth/dal";
+import { getUsageStatus } from "@/lib/billing/usage";
+import { format, formatNumber } from "@/lib/i18n/format";
+import { createClient } from "@/lib/supabase/server";
 import { getWhatsAppConnection } from "@/lib/data/queries";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
@@ -23,7 +29,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const user = await requireUser(localizePath(locale, "/dashboard"));
   const business = await getCurrentBusiness();
-  const whatsapp = business ? await getWhatsAppConnection(business.id) : null;
+  const [whatsapp, usage, businesses] = await Promise.all([
+    business ? getWhatsAppConnection(business.id) : null,
+    // Owners and admins are warned before the monthly AI allowance runs out.
+    business && hasRole(business.role, "admin") ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
+    listMyBusinesses(),
+  ]);
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
   const userCard = <UserCard name={user.fullName} email={user.email} locale={locale} labels={d.userCard} />;
@@ -44,7 +55,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-cream/90 px-4 backdrop-blur-md sm:px-6">
           <MobileNav footer={userCard} labels={d.nav} />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-base font-bold text-deep">{business?.name ?? d.header.yourBusiness}</p>
+            {business && businesses.length > 1 ? (
+              <BusinessSwitcher
+                current={business.id}
+                businesses={businesses.map((b) => ({ id: b.id, name: b.name }))}
+                locale={locale}
+                label={d.header.switchBusiness}
+              />
+            ) : (
+              <p className="truncate font-display text-base font-bold text-deep">{business?.name ?? d.header.yourBusiness}</p>
+            )}
             {business ? <p className="text-xs text-slate">{d.header.roles[business.role]}</p> : null}
           </div>
           <Link
@@ -63,6 +83,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {initials(user.fullName, user.email)}
           </Link>
         </header>
+        {usage && usage.level !== "ok" ? (
+          <div
+            role="status"
+            className={
+              usage.level === "reached"
+                ? "flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-coral-200 bg-coral-50 px-4 py-2.5 text-sm text-coral-800 sm:px-6"
+                : "flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-gold-200 bg-gold-50 px-4 py-2.5 text-sm text-gold-800 sm:px-6"
+            }
+          >
+            <TriangleAlert className="size-4 shrink-0" aria-hidden />
+            <p className="min-w-0 flex-1">
+              {format(usage.level === "reached" ? d.usageBanner.reached : d.usageBanner.warning, {
+                used: formatNumber(usage.used, locale),
+                limit: formatNumber(usage.limit, locale),
+                plan: usage.planName,
+              })}
+            </p>
+            <Link href={localizePath(locale, "/dashboard/billing")} className="font-semibold underline underline-offset-2">
+              {d.usageBanner.cta}
+            </Link>
+          </div>
+        ) : null}
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
       </div>
     </div>

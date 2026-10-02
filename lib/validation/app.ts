@@ -100,6 +100,11 @@ export const productSchema = z.object({
   sku: optionalText(64),
   price: money,
   stock_quantity: optionalCount,
+  /** "Low stock" at or below this many (empty = 5). */
+  low_stock_threshold: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? 5 : typeof v === "string" ? Number(v.replace(/\s/g, "")) : v),
+    z.number({ error: "invalid_integer" }).int("invalid_integer").min(0, "invalid_integer").max(100_000, "invalid_integer"),
+  ),
   active: checkbox,
   variants: z.preprocess((v) => {
     if (typeof v !== "string" || v.trim() === "") return [];

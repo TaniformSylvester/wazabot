@@ -40,6 +40,7 @@ export function ProductForm({
         <TextField name="name" label={f.name} defaultValue={product?.name ?? ""} required maxLength={160} className="sm:col-span-2" />
         <TextField name="price" label={format(f.price, { currency })} defaultValue={product ? String(Number(product.price)) : ""} inputMode="decimal" required />
         <TextField name="stock_quantity" label={f.stock} hint={f.stockHint} defaultValue={product?.stock_quantity ?? ""} inputMode="numeric" />
+        <TextField name="low_stock_threshold" label={f.lowStock} hint={f.lowStockHint} defaultValue={product?.low_stock_threshold ?? 5} inputMode="numeric" />
         <TextField name="category" label={f.category} defaultValue={product?.category ?? ""} maxLength={80} />
         <TextField name="sku" label={f.sku} defaultValue={product?.sku ?? ""} maxLength={64} />
         <TextArea name="description" label={f.description} defaultValue={product?.description ?? ""} maxLength={4000} className="sm:col-span-2" />

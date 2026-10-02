@@ -4,6 +4,7 @@ import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describe
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage } from "@/lib/ai/service";
+import { getUsageStatus } from "@/lib/billing/usage";
 import { isOpenAt } from "@/lib/business/hours";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
 import { logServerError } from "@/lib/log";
@@ -88,7 +89,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   const conversationLanguage = replyLanguage(conversation.language ?? conversation.customer.preferredLanguage);
 
   // Monthly AI allowance (plans table): a new conversation over the limit goes to the team.
-  if (!(await withinPlanLimit(admin, job, deps.now()))) {
+  if (!(await withinPlanLimit(admin, job))) {
     await flagForTeam(admin, job);
     await logUsage(admin, job, { outcome: "skipped", reason: "plan_limit" });
     return { outcome: "skipped", reason: "plan_limit" };
@@ -248,16 +249,19 @@ async function noticeRecentlySent(admin: Admin, job: AiJob, now: Date) {
 }
 
 /** AI conversations this month vs. the plan's allowance. An ongoing AI conversation always continues. */
-async function withinPlanLimit(admin: Admin, job: AiJob, now: Date) {
-  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const [{ data: sub }, { data: used }] = await Promise.all([
-    admin.from("subscriptions").select("plans(ai_conversations_per_month)").eq("business_id", job.businessId).maybeSingle(),
-    admin.from("messages").select("conversation_id").eq("business_id", job.businessId).eq("ai_generated", true).gte("created_at", monthStart).limit(20000),
-  ]);
-  const limit = sub?.plans?.ai_conversations_per_month;
-  if (limit === undefined || limit === null) return true;
-  const conversations = new Set((used ?? []).map((m) => m.conversation_id));
-  return conversations.has(job.conversationId) || conversations.size < limit;
+async function withinPlanLimit(admin: Admin, job: AiJob) {
+  const status = await getUsageStatus(admin, job.businessId);
+  if (!status || status.used < status.limit) return true;
+  // Over the allowance: conversations already answered this month keep their assistant.
+  const { data } = await admin
+    .from("messages")
+    .select("id")
+    .eq("business_id", job.businessId)
+    .eq("conversation_id", job.conversationId)
+    .eq("ai_generated", true)
+    .gte("created_at", status.periodStart)
+    .limit(1);
+  return Boolean(data?.length);
 }
 
 async function logUsage(

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getUsageStatus } from "@/lib/billing/usage";
 import { oneOf, CONVERSATION_STATUSES, ORDER_STATUSES, PAYMENT_STATUSES, WHATSAPP_STATUSES } from "@/types/database";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
 import { createClient } from "@/lib/supabase/server";
@@ -106,7 +107,7 @@ export async function listProducts(businessId: string, f: ProductFilter = {}) {
   const db = await createClient();
   let q = db
     .from("products")
-    .select("id, name, category, sku, price, currency, stock_quantity, image_url, active, updated_at, product_variants(count)", { count: "exact" })
+    .select("id, name, category, sku, price, currency, stock_quantity, low_stock_threshold, image_url, active, updated_at, product_variants(count)", { count: "exact" })
     .eq("business_id", businessId);
   const pattern = searchPattern(f.q);
   if (pattern) q = q.or(`name.ilike.${pattern},sku.ilike.${pattern},category.ilike.${pattern}`);
@@ -114,7 +115,7 @@ export async function listProducts(businessId: string, f: ProductFilter = {}) {
   if (f.status === "active") q = q.eq("active", true);
   if (f.status === "inactive") q = q.eq("active", false);
   if (f.stock === "out") q = q.eq("stock_quantity", 0);
-  if (f.stock === "low") q = q.gt("stock_quantity", 0).lte("stock_quantity", 5);
+  if (f.stock === "low") q = q.eq("stock_low", true);
   const page = Math.max(1, f.page ?? 1);
   const { data, count } = await q.order("name").range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   return { rows: data ?? [], total: count ?? 0, page };
@@ -329,16 +330,18 @@ export async function getWhatsAppConnection(businessId: string) {
 
 export async function getBilling(businessId: string) {
   const db = await createClient();
-  const [plans, subscription, aiUsage] = await Promise.all([
+  const [plans, subscription, usage, request] = await Promise.all([
     db.from("plans").select("*").eq("active", true).order("sort_order"),
     db.from("subscriptions").select("*, plans(*)").eq("business_id", businessId).maybeSingle(),
-    // Conversations the AI replied in this month — counts from real AI messages only (none until Stage 3).
-    db.from("messages").select("conversation_id").eq("business_id", businessId).eq("ai_generated", true).gte("created_at", monthStart()).limit(10000),
+    getUsageStatus(db, businessId),
+    // Owners/admins only (RLS): the plan change waiting for the WazaBolt team.
+    db.from("plan_change_requests").select("id, to_plan_id, created_at, contact_phone").eq("business_id", businessId).eq("status", "pending").maybeSingle(),
   ]);
   return {
     plans: plans.data ?? [],
     subscription: subscription.data,
-    aiConversationsUsed: new Set((aiUsage.data ?? []).map((m) => m.conversation_id)).size,
+    usage,
+    pendingRequest: request.data,
   };
 }
 
@@ -349,6 +352,20 @@ export async function listTeam(businessId: string) {
   const { data: profiles } = ids.length ? await db.from("users").select("id, full_name, email, avatar_url").in("id", ids) : { data: [] };
   const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
   return (members ?? []).map((m) => ({ ...m, profile: byId.get(m.user_id) ?? null }));
+}
+
+/** Pending invitations (owners/admins only — RLS returns nothing to other roles). */
+export async function listPendingInvitations(businessId: string) {
+  const db = await createClient();
+  const { data } = await db
+    .from("business_invitations")
+    .select("id, email, role, created_at, expires_at")
+    .eq("business_id", businessId)
+    .is("accepted_at", null)
+    .is("revoked_at", null)
+    .order("created_at", { ascending: false });
+  const now = Date.now();
+  return (data ?? []).map((i) => ({ ...i, expired: new Date(i.expires_at).getTime() < now }));
 }
 
 // ---------------------------------------------------------------------------
@@ -412,4 +429,34 @@ export async function getAiUsageSummary(businessId: string) {
     handovers: rows.filter((r) => r.outcome === "handed_over").length,
     failed: rows.filter((r) => r.outcome === "failed").length,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Stock alerts (Stage 4)
+// ---------------------------------------------------------------------------
+export type StockAlert = { productId: string; name: string; variant: string | null; quantity: number; out: boolean };
+
+/** Active products (or tracked variants) out of stock or at/below their low-stock threshold, most urgent first. */
+export async function getStockAlerts(businessId: string, max = 8): Promise<{ alerts: StockAlert[]; total: number }> {
+  const db = await createClient();
+  const { data } = await db
+    .from("products")
+    .select("id, name, stock_quantity, low_stock_threshold, product_variants(name, value, stock_quantity)")
+    .eq("business_id", businessId)
+    .eq("active", true)
+    .limit(2000);
+  const alerts: StockAlert[] = [];
+  for (const p of data ?? []) {
+    const tracked = p.product_variants.filter((v) => v.stock_quantity !== null);
+    for (const v of tracked) {
+      if (v.stock_quantity! <= p.low_stock_threshold) {
+        alerts.push({ productId: p.id, name: p.name, variant: `${v.name}: ${v.value}`, quantity: v.stock_quantity!, out: v.stock_quantity === 0 });
+      }
+    }
+    if (p.stock_quantity !== null && p.stock_quantity <= p.low_stock_threshold) {
+      alerts.push({ productId: p.id, name: p.name, variant: null, quantity: p.stock_quantity, out: p.stock_quantity === 0 });
+    }
+  }
+  alerts.sort((a, b) => a.quantity - b.quantity || a.name.localeCompare(b.name));
+  return { alerts: alerts.slice(0, max), total: alerts.length };
 }
