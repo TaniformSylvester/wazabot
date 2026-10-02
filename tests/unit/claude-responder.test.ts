@@ -137,6 +137,22 @@ describe("Claude responder", () => {
     expect(String((second.messages.at(-1)?.content as Anthropic.Beta.BetaToolResultBlockParam[])[0].content)).toContain(PRODUCT);
   });
 
+  it("on Haiku: no effort, no fallback, turn context inside the customer's turn", async () => {
+    const api = scripted([message([{ type: "tool_use", id: "t1", name: "send_reply", input: reply({ catalog_product_ids: [] }) }], "tool_use")]);
+    await new ClaudeResponder(api.create, "claude-haiku-4-5").generate(input());
+    const [first] = api.requests;
+    expect(first.model).toBe("claude-haiku-4-5");
+    expect(first.output_config).toBeUndefined();
+    expect(first.fallbacks).toBeUndefined();
+    expect(first.betas).toBeUndefined();
+    expect(first.messages.some((m) => (m.role as string) === "system")).toBe(false);
+    const last = first.messages.at(-1)!;
+    expect(last.role).toBe("user");
+    const blocks = last.content as Anthropic.Beta.BetaTextBlockParam[];
+    expect(blocks[0].text).toBe("Bonjour, c'est combien la robe Ankara ?");
+    expect(blocks.at(-1)?.text).toContain("reply_language: French (fr)");
+  });
+
   it("asks again when send_reply is malformed", async () => {
     const api = scripted([
       message([{ type: "tool_use", id: "t1", name: "send_reply", input: { reply: "Bonjour" } }], "tool_use"),

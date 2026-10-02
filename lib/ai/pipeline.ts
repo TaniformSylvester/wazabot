@@ -1,5 +1,6 @@
 import "server-only";
 
+import { REPLY_DEBOUNCE_MS } from "@/config/economics";
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
 import { loadMessageImage, type InputImage } from "@/lib/ai/images";
@@ -30,7 +31,7 @@ export type AiJob = { businessId: string; conversationId: string; messageId: str
 export type AiOutcome = { outcome: "replied" | "handed_over" | "skipped" | "failed"; reason?: string };
 
 /** Customers often send several short messages in a row; wait briefly and answer the newest. */
-const DEBOUNCE_MS = Number(process.env.AI_DEBOUNCE_MS ?? 3000);
+const DEBOUNCE_MS = Number(process.env.AI_DEBOUNCE_MS ?? REPLY_DEBOUNCE_MS);
 /** Fixed notices (after-hours, handover) are sent at most once per conversation in this window. */
 const NOTICE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 

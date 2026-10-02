@@ -198,10 +198,12 @@ mkdirSync("test-results", { recursive: true });
   ok("AI page: assistant is Live once WhatsApp is connected", (await main.getByText("Live — answering customers on WhatsApp.").count()) === 1);
 
   // 1. A price question: catalog lookup, quoted from the catalog, in French.
+  const testChatRequests = claude.requests.length;
+  ok("test chat runs on Haiku 4.5 (no effort, turn context in the customer's turn)", testChatRequests > 0 && claude.requests.slice(0, testChatRequests).every((r) => r.body.model === "claude-haiku-4-5" && !r.body.output_config && !r.body.messages.some((m) => m.role === "system")));
   await deliver(text("Bonjour, c'est combien la robe Ankara ?"));
   const priceReply = await waitFor(() => sentTexts().find((t) => t.includes("15000")));
   ok("assistant answers a price question from the catalog", priceReply === "La Robe Ankara coûte 15000 XAF.", JSON.stringify(sentTexts()));
-  const req = claude.requests[0];
+  const req = claude.requests[testChatRequests];
   ok("Claude request: Opus 5.5, low effort, server-side fallback", req?.body.model === "claude-opus-5-5" && req.body.output_config?.effort === "low" && req.body.fallbacks === "default" && String(req.headers["anthropic-beta"]).includes("server-side-fallback-2026-07-01"));
   ok("Claude request: cached system prompt with the FAQ, tools end with send_reply", req.body.system.every((b) => b.cache_control) && req.body.system[1].text.includes("Livrez-vous à Buea ?") && req.body.tools.at(-1).name === "send_reply");
   ok("Claude request: turn context as a system message after the customer's message", req.body.messages.at(-1).role === "system" && req.body.messages.at(-1).content.includes("reply_language: French (fr)"));

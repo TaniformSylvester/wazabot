@@ -324,7 +324,7 @@ How it behaves:
 When a customer writes, the webhook stores the message and answers after responding to Meta
 (`lib/ai/pipeline.ts`):
 
-1. Waits briefly (`AI_DEBOUNCE_MS`, default 3 s) so a burst of messages gets one answer, to the newest.
+1. Waits briefly (`REPLY_DEBOUNCE_MS` in `config/economics.ts`, 6 s; `AI_DEBOUNCE_MS` overrides in tests) so a burst of messages gets one answer, to the newest.
 2. Stays silent if AI is switched off for the business, the conversation is in **Human Mode**, the
    24-hour window is closed, or WhatsApp isn't connected.
 3. Over the plan's monthly AI-conversation allowance, a new conversation is flagged for the team instead.
@@ -352,10 +352,13 @@ When a customer writes, the webhook stores the message and answers after respond
 **Test chat** (AI Assistant → Test chat, agents and above): talk to the assistant as a customer
 without WhatsApp, including sending a product photo. Same prompt, knowledge, tools and language rules; catalog lookups are real, but
 orders, customer details and handovers are simulated (`dryRun`), nothing is sent and the transcript
-stays in the browser. Limited to 40 messages per business per hour; runs are logged in `ai_usage`
+stays in the browser. Runs on Claude Haiku 4.5 and is limited to 10 messages per business per hour (`config/economics.ts`); runs are logged in `ai_usage`
 with reason `test_chat` and left out of the monthly figures.
 
-Model: `claude-opus-5-5` at `low` effort by default (`AI_MODEL`, `AI_EFFORT`), prompt caching on the
+Prices, rates, limits and budgets (Claude and Meta rates, FCFA rate, Mobile Money fee, plan prices,
+margin target, model choice) all live in `config/economics.ts` (server-only).
+
+Model: `claude-opus-5-5` at `low` effort by default (`REPLY_MODEL`; env `AI_MODEL`, `AI_EFFORT` override), prompt caching on the
 platform rules + business knowledge, and Anthropic's server-side fallback for safety declines. Set
 `ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
 once the key is set, WhatsApp is connected and AI is switched on.

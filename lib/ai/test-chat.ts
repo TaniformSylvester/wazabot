@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { TEST_CHAT_MODEL, TEST_CHAT_PER_HOUR } from "@/config/economics";
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, type ConversationContext } from "@/lib/ai/context";
 import { prepareImage, type InputImage } from "@/lib/ai/images";
@@ -24,8 +25,6 @@ import { createClient } from "@/lib/supabase/server";
  * Server Action, so a slow or failed answer can never take the page down).
  */
 
-/** Test messages per business per hour — keeps a forgotten tab or a loop from running up the API bill. */
-const TEST_LIMIT_PER_HOUR = 40;
 
 const inputSchema = z.object({
   message: z.string().trim().max(1000),
@@ -90,7 +89,7 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       .eq("business_id", businessId)
       .eq("reason", "test_chat")
       .gte("created_at", new Date(Date.now() - 3_600_000).toISOString());
-    if ((count ?? 0) >= TEST_LIMIT_PER_HOUR) return { ok: false, error: "rate_limited" };
+    if ((count ?? 0) >= TEST_CHAT_PER_HOUR) return { ok: false, error: "rate_limited" };
   }
 
   // Read with the user's own session: RLS limits everything to their business.
@@ -117,7 +116,7 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
 
   const started = Date.now();
   try {
-    const result = await new ClaudeResponder().generate({
+    const result = await new ClaudeResponder(undefined, TEST_CHAT_MODEL).generate({
       business,
       conversation,
       decision: analysis.decision,

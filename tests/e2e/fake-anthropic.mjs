@@ -16,13 +16,14 @@ import { createServer } from "node:http";
 const usage = { input_tokens: 1200, output_tokens: 60, cache_read_input_tokens: 900, cache_creation_input_tokens: 0 };
 
 // The latest customer turn: plain text, or [image…, text] when they sent a photo (tool results don't count).
+// Models without system messages (Haiku) get the turn context as a last text block: not the customer's words.
 const lastCustomerTurn = (messages) => {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
     if (m.role !== "user") continue;
     if (typeof m.content === "string") return { text: m.content.split("\n\n").at(-1), images: [] };
     if (m.content.some((b) => b.type === "tool_result")) continue;
-    return { text: m.content.filter((b) => b.type === "text").map((b) => b.text).join(" "), images: m.content.filter((b) => b.type === "image") };
+    return { text: m.content.filter((b) => b.type === "text" && !b.text.startsWith("<turn_context>")).map((b) => b.text).join(" "), images: m.content.filter((b) => b.type === "image") };
   }
   return { text: "", images: [] };
 };

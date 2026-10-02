@@ -3,6 +3,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+import { REPLY_MODEL } from "@/config/economics";
 import type { ConversationContext } from "@/lib/ai/context";
 import { buildBusinessPrompt, buildKnowledgePrompt, buildPlatformPrompt, buildTurnContext } from "@/lib/ai/prompts/system-prompt";
 import { assistantReplySchema, type AssistantReply } from "@/lib/ai/reply-schema";
@@ -19,15 +20,16 @@ import { languages } from "@/lib/i18n/languages";
  *   system  [platform rules · cached] [business + knowledge · cached]
  *   tools   catalog/order/handover tools + send_reply (sorted, stable → cached)
  *   messages  conversation history … latest customer message,
- *             then a mid-conversation system message with this turn's
- *             language decision, local time and customer profile.
+ *             then this turn's language decision, local time and customer
+ *             profile — a mid-conversation system message where the model
+ *             supports it, else a text block in the customer's turn (Haiku).
  *
  * The model looks things up with tools and must finish by calling send_reply
  * with the structured reply. Tools only ever touch the current business
  * (lib/ai/tools/registry.ts); the model never sees the database.
  */
 
-export const AI_MODEL = process.env.AI_MODEL || "claude-opus-5-5";
+export const AI_MODEL = process.env.AI_MODEL || REPLY_MODEL;
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
 /** WhatsApp chat is latency-sensitive and short; raise with AI_EFFORT if answers need more care. */
 export const AI_EFFORT: (typeof EFFORTS)[number] = (EFFORTS as readonly string[]).includes(process.env.AI_EFFORT ?? "")
@@ -35,6 +37,16 @@ export const AI_EFFORT: (typeof EFFORTS)[number] = (EFFORTS as readonly string[]
   : "low";
 const MAX_STEPS = 8;
 const MAX_TOOL_RESULT_CHARS = 8000;
+
+/**
+ * What a model's request may carry. Haiku 4.5 takes no effort setting, no
+ * mid-conversation system messages and no server-side fallback; it runs
+ * without extended thinking.
+ */
+export function modelFeatures(model: string) {
+  const current = /^claude-(opus|sonnet)-5-5/.test(model);
+  return { effort: current, systemMessages: current, fallback: current };
+}
 
 export function aiConfigured() {
   return Boolean(process.env.ANTHROPIC_API_KEY);
@@ -167,10 +179,11 @@ export class ClaudeResponder implements AiResponder {
       },
     ];
     const tools = assistantTools(business.settings.photoUnderstanding, business.booking.enabled);
-    const messages: Anthropic.Beta.BetaMessageParam[] = [
-      ...withImages(historyToMessages(input.conversation), input.images ?? []),
-      { role: "system", content: buildTurnMessage(input) },
-    ];
+    const features = modelFeatures(this.model);
+    const turns = withImages(historyToMessages(input.conversation), input.images ?? []);
+    const messages: Anthropic.Beta.BetaMessageParam[] = features.systemMessages
+      ? [...turns, { role: "system", content: buildTurnMessage(input) }]
+      : withTurnContext(turns, buildTurnMessage(input));
 
     const usage: AiUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
     const productIds = new Set<string>();
@@ -182,10 +195,9 @@ export class ClaudeResponder implements AiResponder {
       const response = await this.create({
         model: this.model,
         max_tokens: 8000,
-        output_config: { effort: this.effort },
+        ...(features.effort ? { output_config: { effort: this.effort } } : {}),
         // Opt-in server-side fallback: a safety decline is retried on Anthropic's recommended model in the same call.
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
+        ...(features.fallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
         system,
         tools,
         messages,
@@ -263,6 +275,15 @@ export function withImages(turns: Anthropic.Beta.BetaMessageParam[], images: Inp
   if (!last || last.role !== "user") return [...turns, { role: "user", content: [...blocks, { type: "text", text: "[photo]" }] }];
   const text = typeof last.content === "string" ? last.content : "";
   return [...turns.slice(0, -1), { role: "user", content: [...blocks, { type: "text", text: text || "[photo]" }] }];
+}
+
+/** For models without mid-conversation system messages: the turn context closes the customer's latest turn. */
+export function withTurnContext(turns: Anthropic.Beta.BetaMessageParam[], context: string): Anthropic.Beta.BetaMessageParam[] {
+  const block: Anthropic.Beta.BetaTextBlockParam = { type: "text", text: context };
+  const last = turns.at(-1);
+  if (!last || last.role !== "user") return [...turns, { role: "user", content: [block] }];
+  const content = typeof last.content === "string" ? [{ type: "text" as const, text: last.content }] : last.content;
+  return [...turns.slice(0, -1), { role: "user", content: [...content, block] }];
 }
 
 /** Tool results go back as JSON text — except catalog photos, which the model sees as images. */
