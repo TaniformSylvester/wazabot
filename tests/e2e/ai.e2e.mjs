@@ -12,6 +12,7 @@
 import { createHmac } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
+import sharp from "sharp";
 
 import { startFakeAnthropic } from "./fake-anthropic.mjs";
 import { FAKE, startFakeGraph } from "./fake-graph.mjs";
@@ -111,7 +112,12 @@ mkdirSync("test-results", { recursive: true });
   await page.waitForURL(/\/dashboard\/onboarding/);
   const tok = (await (await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, { method: "POST", headers: { "content-type": "application/json", apikey: ANON }, body: JSON.stringify({ email: U.email, password: U.password }) })).json()).access_token;
   const [biz] = await get(tok, "businesses?select=id");
-  await post(tok, "products", { business_id: biz.id, name: "Robe Ankara", price: 15000, stock_quantity: 5 });
+  const [dress] = await (await post(tok, "products", { business_id: biz.id, name: "Robe Ankara", category: "Robes", description: "Robe en wax rouge", price: 15000, stock_quantity: 5 })).json();
+  // Catalog photo in the public product-images bucket (what the dashboard's upload does).
+  const photoPath = `${biz.id}/${dress.id}/photo.jpg`;
+  const redJpeg = await sharp({ create: { width: 600, height: 900, channels: 3, background: "#c0392b" } }).jpeg().toBuffer();
+  await fetch(`${SUPABASE}/storage/v1/object/product-images/${photoPath}`, { method: "POST", headers: { apikey: ANON, authorization: `Bearer ${tok}`, "content-type": "image/jpeg" }, body: redJpeg });
+  await patch(tok, `products?id=eq.${dress.id}`, { image_url: `${SUPABASE}/storage/v1/object/public/product-images/${photoPath}` });
   await post(tok, "faqs", { business_id: biz.id, question: "Livrez-vous à Buea ?", answer: "Oui, la livraison à Buea coûte 2 500 XAF." });
 
   // Test chat works without WhatsApp: real lookups, nothing sent or saved.
@@ -138,6 +144,23 @@ mkdirSync("test-results", { recursive: true });
   ok("test chat: an API error shows a message, the page keeps working", (await main.getByText("We couldn't load this page").count()) === 0 && (await chatInput.inputValue()) === "FORCE_ERROR please");
   await main.getByRole("button", { name: "Start over" }).click();
   ok("test chat: start over clears the transcript", (await main.getByText("La Robe Ankara coûte 15000 XAF.").count()) === 0);
+
+  // A customer photo in the test chat: shrunk in the browser, compared with the catalog photo.
+  const customerPhoto = await sharp({ create: { width: 3000, height: 4000, channels: 3, background: "#b03a2e" } }).png().toBuffer();
+  await main.locator('input[type="file"]').setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: customerPhoto });
+  await main.getByRole("button", { name: "Remove the photo" }).waitFor({ timeout: 10000 });
+  await chatInput.fill("Vous avez ça ?");
+  await chatInput.press("Enter");
+  await main.getByText("Oui, nous avons cette Robe Ankara (même modèle que sur notre photo) : 15000 XAF.").waitFor({ timeout: 20000 });
+  const photoReq = claude.requests.findLast((r) => r.body.messages.some((m) => Array.isArray(m.content) && m.content.some((b) => b.type === "image")));
+  const userImage = photoReq?.body.messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).find((b) => b.type === "image");
+  const imgMeta = userImage ? await sharp(Buffer.from(userImage.source.data, "base64")).metadata() : null;
+  ok("test chat photo: sent to Claude as a JPEG of at most 1568 px", userImage?.source.media_type === "image/jpeg" && imgMeta && Math.max(imgMeta.width, imgMeta.height) <= 1568, JSON.stringify(imgMeta && { w: imgMeta.width, h: imgMeta.height }));
+  const catalogPhoto = photoReq?.body.messages.some((m) => Array.isArray(m.content) && m.content.some((b) => b.type === "tool_result" && Array.isArray(b.content) && b.content.some((c) => c.type === "image")));
+  ok("test chat photo: the catalog photo is shown to Claude for comparison", catalogPhoto && (await main.getByText("Looked up: catalog, product photos").count()) === 1);
+  ok("test chat photo: shown in the transcript", (await main.getByRole("img", { name: "Photo sent by the customer" }).count()) === 1);
+  await page.screenshot({ path: "test-results/stage5-test-chat-photo.png", fullPage: true });
+  await main.getByRole("button", { name: "Start over" }).click();
 
   // Before WhatsApp is connected the assistant isn't live.
   await page.goto(`${APP}/en/dashboard/ai`);
@@ -182,6 +205,14 @@ mkdirSync("test-results", { recursive: true });
   ok("assistant records the order and confirms it", orderReply === "C'est noté ! Votre commande ORD-00001 est enregistrée : 30000 XAF.", orderReply ?? "");
   const [order] = await get(tok, "orders?select=order_number,total,conversation_id,order_items(product_name,quantity,unit_price)");
   ok("order saved with catalog prices and linked to the conversation", order?.order_number === "ORD-00001" && Number(order.total) === 30000 && !!order.conversation_id && order.order_items[0].quantity === 2, JSON.stringify(order));
+
+  // 2b. A photo on WhatsApp (new customer): stored, then looked at and matched to the catalog.
+  const beforePhoto = sentTexts().length;
+  await deliver({ type: "image", image: { id: "media-1", mime_type: "image/jpeg", caption: "Vous avez ça ?" } }, "237670000777", "Joël");
+  const photoReply = await waitFor(() => sentTexts().slice(beforePhoto).find((t) => t.startsWith("Oui, nous avons cette Robe Ankara")), 40000);
+  ok("WhatsApp photo: the assistant recognises the product from the catalog", photoReply === "Oui, nous avons cette Robe Ankara (même modèle que sur notre photo) : 15000 XAF.", JSON.stringify(sentTexts().slice(beforePhoto)));
+  const waPhotoReq = claude.requests.at(-1);
+  ok("WhatsApp photo: Claude received the customer's photo with its caption", waPhotoReq?.body.messages.some((m) => Array.isArray(m.content) && m.content.some((b) => b.type === "image") && m.content.some((b) => b.type === "text" && b.text.includes("[photo] Vous avez ça ?"))));
 
   // 3. Human Mode: the assistant stays silent.
   await page.reload();

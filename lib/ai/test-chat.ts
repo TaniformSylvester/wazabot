@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, type ConversationContext } from "@/lib/ai/context";
+import { prepareImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage } from "@/lib/ai/language";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
 import { authorize } from "@/lib/auth/dal";
@@ -27,7 +28,9 @@ import { createClient } from "@/lib/supabase/server";
 const TEST_LIMIT_PER_HOUR = 40;
 
 const inputSchema = z.object({
-  message: z.string().trim().min(1).max(1000),
+  message: z.string().trim().max(1000),
+  /** A photo "sent by the customer": base64 (the browser already shrinks it to ~1568 px JPEG). */
+  image: z.string().max(6_000_000).regex(/^[A-Za-z0-9+/]+={0,2}$/).nullish(),
   history: z
     .array(z.object({ role: z.enum(["customer", "assistant"]), text: z.string().max(WHATSAPP_TEXT_LIMIT) }))
     .max(30),
@@ -50,7 +53,7 @@ export type TestChatResult =
     }
   | { ok: false; error: TestChatError };
 
-export type TestChatError = "forbidden" | "not_configured" | "invalid" | "rate_limited" | "refusal" | "failed" | "network" | "timeout";
+export type TestChatError = "forbidden" | "not_configured" | "invalid" | "image_invalid" | "rate_limited" | "refusal" | "failed" | "network" | "timeout";
 
 export async function sendTestMessage(input: unknown): Promise<TestChatResult> {
   try {
@@ -67,7 +70,16 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
   if (!aiConfigured()) return { ok: false, error: "not_configured" };
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { message, history, language } = parsed.data;
+  const { message, history, language, image } = parsed.data;
+  if (!message && !image) return { ok: false, error: "invalid" };
+  let images: InputImage[] = [];
+  if (image) {
+    try {
+      images = [await prepareImage(Buffer.from(image, "base64"))];
+    } catch {
+      return { ok: false, error: "image_invalid" };
+    }
+  }
   const businessId = ctx.business.id;
 
   const admin = createAdminClient();
@@ -93,7 +105,7 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
     aiEnabled: true,
     language: conversationLanguage,
     customer: { id: "test", whatsappPhone: "000000000", name: "", city: null, preferredLanguage: null, preferredLanguageSource: null, tags: [] },
-    history: [...history.map((h) => ({ role: h.role, text: h.text, at: now.toISOString() })), { role: "customer" as const, text: message, at: now.toISOString() }],
+    history: [...history.map((h) => ({ role: h.role, text: h.text, at: now.toISOString() })), { role: "customer" as const, text: images.length ? `[photo] ${message}`.trim() : message, at: now.toISOString() }],
   };
   const analysis = analyzeInboundMessage(message, { settings: business.language, conversationLanguage });
 
@@ -106,6 +118,7 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       detection: analysis.detection,
       now,
       tools: { db, businessId, conversationId: null, customerId: null, dryRun: true },
+      images,
     });
     const check = validateAIResponse(result.reply, { language: analysis.decision.language, allowedProductIds: result.productIds, maxChars: WHATSAPP_TEXT_LIMIT });
     await admin?.from("ai_usage").insert({

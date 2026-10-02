@@ -28,7 +28,7 @@ export const en: AiLanguagePack = {
     unavailable: "Sorry, we can't reply automatically right now. The {business} team will get back to you soon.",
     languageSwitched: "Sure — I'll continue in English.",
     audioNotSupported: "Sorry, I can't listen to voice notes yet. Could you type your message? The {business} team can also listen to it.",
-    imageNotSupported: "Thanks for the picture! I can't look at images yet, so I've passed it to the {business} team — they'll reply here soon.",
+    imageNotSupported: "Thanks for the picture! I couldn't open it, so I've passed it to the {business} team — they'll reply here soon.",
     attachmentReceived: "Thanks, we've received it. The {business} team will check it and reply here soon.",
   },
   review: "source",

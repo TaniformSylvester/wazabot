@@ -3,6 +3,7 @@ import "server-only";
 import type { BusinessContext, ConversationContext } from "@/lib/ai/context";
 import { detectLanguage as detect, type DetectionResult, type LanguageDecision } from "@/lib/ai/language";
 import { assistantReplySchema, replyLanguageMismatch, type AssistantReply } from "@/lib/ai/reply-schema";
+import type { InputImage } from "@/lib/ai/images";
 import type { ToolContext } from "@/lib/ai/tools/registry";
 
 export { buildBusinessContext, buildConversationContext } from "@/lib/ai/context";
@@ -22,6 +23,8 @@ export type GenerateInput = {
   detection: DetectionResult;
   /** Business-scoped context the tools run with. */
   tools: ToolContext;
+  /** Photos sent with the latest customer message (already normalised by lib/ai/images). */
+  images?: InputImage[];
   now: Date;
 };
 

@@ -148,10 +148,10 @@ async function signUp(browser, user, locale) {
   await main.getByText("Product saved.").waitFor({ timeout: 10000 });
   const [prod] = await (await fetch(`${SUPABASE}/rest/v1/products?id=eq.${productId}&select=price,sku,product_variants(value,price_modifier)`, { headers: rest(cTok) })).json();
   ok("product edit persisted (price 9000, variants kept)", Number(prod.price) === 9000 && prod.product_variants.length === 2, JSON.stringify(prod));
-  // Image upload: the local stack has no Storage service → clear, honest error; product still saved.
+  // Image upload: saved with the photo, or — when the stack has no Storage service — a clear, honest error; the product is saved either way.
   await main.locator('input[type="file"]').setInputFiles({ name: "shirt.png", mimeType: "image/png", buffer: Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex") });
   await main.getByRole("button", { name: "Save" }).click();
-  await main.getByRole("alert").first().waitFor({ timeout: 10000 });
+  await main.getByText(/image couldn't be uploaded|wasn't accepted|Product saved/).first().waitFor({ timeout: 10000 });
   ok("image upload failure is reported, not hidden", (await main.getByText(/image couldn't be uploaded|Product saved/).count()) >= 1);
   // Duplicate SKU
   await page.goto(`${APP}/en/dashboard/products/new`);

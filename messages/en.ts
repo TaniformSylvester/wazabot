@@ -250,7 +250,7 @@ const en = {
       broadcasts: "Broadcasts to opted-in customers",
       mobileMoney: "Mobile Money payments",
       morePacks: "More African language packs",
-      voiceImages: "Voice notes and product photos",
+      voiceImages: "Voice notes",
     },
   },
 
@@ -919,7 +919,7 @@ const en = {
         lowStockHint: "You're alerted when stock falls to this many or fewer. Orders take stock automatically; cancelling gives it back.",
         active: "Active — the assistant can offer this product",
         image: "Product photo",
-        imageHint: "JPG, PNG or WebP, up to 4 MB.",
+        imageHint: "JPG, PNG or WebP, up to 4 MB. The assistant compares customers' photos with it.",
         currentImage: "Current photo",
       },
       stock: { untracked: "Not tracked", out: "Out of stock", units: "{count} in stock" },
@@ -1057,7 +1057,7 @@ const en = {
       sender: { customer: "Customer", ai: "WazaBolt AI", agent: "Team", system: "System" },
       futureMedia: {
         audio: "Audio message — media processing will be available in a future release.",
-        image: "Image — media processing will be available in a future release.",
+        image: "Photo — the assistant looks at photos and matches them to your catalog.",
         document: "Document — media processing will be available in a future release.",
         video: "Video — media processing will be available in a future release.",
         location: "Location shared — shown to your team; not processed automatically yet.",
@@ -1169,6 +1169,10 @@ const en = {
       testMode: "Test mode: nothing is sent on WhatsApp. Orders, customer details and handovers are only simulated, never saved.",
       placeholder: "Write as a customer would…",
       send: "Send",
+      attach: "Add a photo",
+      removePhoto: "Remove the photo",
+      photo: "Photo sent by the customer",
+      photoHint: "Send a product photo as a customer would (\"do you have this?\"). It is checked against your catalog photos.",
       typing: "The assistant is typing…",
       reset: "Start over",
       you: "You (as a customer)",
@@ -1184,6 +1188,7 @@ const en = {
       suggestions: ["Bonjour, c'est combien ?", "Do you deliver to Buea?", "Una dey open for Sunday?", "Je veux parler à quelqu'un"],
       toolNames: {
         searchProducts: "catalog",
+        viewProductPhotos: "product photos",
         checkProductStock: "stock",
         getBusinessInformation: "business info",
         getBusinessHours: "opening hours",
@@ -1202,6 +1207,7 @@ const en = {
         forbidden: "Your role can't use the test chat.",
         network: "The connection dropped before the answer came back. Please try again.",
         timeout: "The assistant took too long to answer. Please try again.",
+        image_invalid: "That photo couldn't be opened. Try a JPG or PNG under 8 MB.",
       },
     },
     automations: {

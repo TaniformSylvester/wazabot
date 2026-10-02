@@ -131,7 +131,8 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | WhatsApp (Stage 2): connect a number (verified with Meta, token encrypted), webhook (signature-checked, idempotent), customers + conversations created automatically, team replies from the inbox, delivery ticks, read receipts, 24-hour window, media stored privately | **Functional** — see "WhatsApp setup" below |
 | AI replies (Stage 3): Claude answers WhatsApp customers from the catalog, FAQs, policies and hours; looks up products/stock, records orders, hands over to the team; respects Human Mode, after-hours settings and the plan's monthly allowance; usage logged | **Functional** — needs `ANTHROPIC_API_KEY`; see "AI replies" below |
 | Business operations (Stage 4): orders take stock automatically (back on cancel/delete, never oversold — the AI included), low-stock alerts; team invitation links, roles, removing/leaving, switching businesses; AI-allowance warnings at 80 % / 100 %; plan-change requests approved by the WazaBolt team | **Functional** — see "Business operations" below |
-| Voice transcription, image understanding, template messages, payments, broadcasts | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes and images get a short notice and are flagged for the team |
+| Product photos (Stage 5): customers' photos on WhatsApp (and in the test chat) are looked at by the assistant and matched to the catalog, comparing with the catalog's own product photos | **Functional** — see "AI replies" below |
+| Voice transcription, template messages, payments, broadcasts | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes get a short notice and are flagged for the team |
 
 ## Multilingual architecture
 
@@ -181,7 +182,7 @@ Every WhatsApp message is stored with a `message_type`: `text`, `image`, `audio`
 | --- | --- | --- |
 | Text | **Processed** | Language pipeline → AI reply |
 | Voice note (audio) | **Architecture ready** | Stored privately; customer gets a polite "please type" reply in their language; team notified. Switch on once a speech-to-text provider is chosen (`Transcriber` in `lib/messaging/ports.ts`). |
-| Image | **Architecture ready** | Stored privately; customer told the team will look; team notified. Switch on with the catalog (Phase 3): image + caption go to the vision model with the `search_catalog` tool. |
+| Image | **Processed** (Stage 5) | Stored privately, then shown to the assistant with its caption; it searches the catalog and compares with product photos (`viewProductPhotos`). If the photo can't be opened, the customer gets a short notice and the team is flagged. |
 | Document, video, location | Stored, not processed | Team notified; shown in the dashboard. |
 
 - **Pipeline:** `lib/messaging/whatsapp/webhook.ts` (verify `X-Hub-Signature-256`, parse all types) →
@@ -264,6 +265,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e:dashboard
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... npm run test:e2e:whatsapp
 # Stage 3 AI replies, against a scripted fake Anthropic API (tests/e2e/fake-anthropic.mjs, port 4020).
 # Start the app with ANTHROPIC_API_KEY=test-key ANTHROPIC_BASE_URL=http://localhost:4020 AI_DEBOUNCE_MS=1500 too.
+# The photo checks need Supabase Storage (included in `npx supabase start`).
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... npm run test:e2e:ai
 # Stage 4 business operations (stock, usage banner, plan requests, invitations, roles).
 # Uses DATABASE_URL directly to play the WazaBolt operator (approving a plan) and simulate AI usage.
@@ -319,11 +321,15 @@ When a customer writes, the webhook stores the message and answers after respond
 3. Over the plan's monthly AI-conversation allowance, a new conversation is flagged for the team instead.
 4. Outside opening hours, follows the AI Assistant setting: answer normally, send the owner's
    after-hours message (once per 12 h), or hand over.
-5. Voice notes, images and files get a short notice in the customer's language and are flagged for
-   the team (understanding them is a later stage).
+5. Photos go to the model with their caption (`lib/ai/images.ts`: decoded and re-encoded as JPEG,
+   at most 1568 px, before anything is sent). It searches the catalog with words describing the photo
+   and can look at up to 4 catalog photos (`viewProductPhotos`, only images from WazaBolt's own
+   `product-images` storage) before saying "we have it". It never confirms a payment from a
+   screenshot. Voice notes and files get a short notice in the customer's language and are flagged
+   for the team.
 6. Otherwise: detects the language (English / French / Cameroonian Pidgin, mixed), picks the reply
    language, and asks Claude (`lib/ai/claude.ts`). The model uses tools scoped to the business —
-   searchProducts, checkProductStock, getBusinessHours, getDeliveryFee, getOrderStatus, createOrder,
+   searchProducts, viewProductPhotos, checkProductStock, getBusinessHours, getDeliveryFee, getOrderStatus, createOrder,
    createCustomer, requestHumanAgent — and finishes with `send_reply` (structured reply).
 7. The reply is checked before sending: it may only quote products the tools returned, must not be
    empty or too long; otherwise a handoff notice is sent instead. `needs_human` switches the
@@ -332,7 +338,7 @@ When a customer writes, the webhook stores the message and answers after respond
    the AI Assistant page.
 
 **Test chat** (AI Assistant → Test chat, agents and above): talk to the assistant as a customer
-without WhatsApp. Same prompt, knowledge, tools and language rules; catalog lookups are real, but
+without WhatsApp, including sending a product photo. Same prompt, knowledge, tools and language rules; catalog lookups are real, but
 orders, customer details and handovers are simulated (`dryRun`), nothing is sent and the transcript
 stays in the browser. Limited to 40 messages per business per hour; runs are logged in `ai_usage`
 with reason `test_chat` and left out of the monthly figures.

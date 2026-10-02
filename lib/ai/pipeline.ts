@@ -2,6 +2,7 @@ import "server-only";
 
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
+import { loadMessageImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage } from "@/lib/ai/service";
 import { getUsageStatus } from "@/lib/billing/usage";
@@ -39,6 +40,8 @@ export type PipelineDeps = {
   whatsapp: (businessId: string) => Promise<BusinessWhatsApp | null>;
   now: () => Date;
   sleep: (ms: number) => Promise<void>;
+  /** The photo of an inbound image message, once stored (null if unavailable). */
+  loadImage: (job: AiJob) => Promise<InputImage | null>;
 };
 
 export function defaultDeps(admin: Admin): PipelineDeps {
@@ -48,6 +51,7 @@ export function defaultDeps(admin: Admin): PipelineDeps {
     whatsapp: (id) => whatsappForBusiness(id),
     now: () => new Date(),
     sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+    loadImage: (job) => loadMessageImage(admin, job.businessId, job.messageId, (ms) => new Promise((r) => setTimeout(r, ms))),
   };
 }
 
@@ -107,13 +111,21 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
     return sendNotice(ctx, notice, conversationLanguage, handover ? "handed_over" : "replied", "after_hours");
   }
 
-  // Voice notes, images, documents…: not understood yet — a short notice and the team is flagged.
-  if (message.message_type !== "text") {
+  // Photos go to the model (Stage 5). Voice notes, documents…: not understood yet — a short notice and the team is flagged.
+  const images: InputImage[] = [];
+  if (message.message_type === "image") {
+    const image = await deps.loadImage(job);
+    if (!image) {
+      await flagForTeam(admin, job);
+      return sendNotice(ctx, fixedMessage(conversationLanguage, "imageNotSupported", business.business.name), conversationLanguage, "handed_over", "image_unavailable");
+    }
+    images.push(image);
+  } else if (message.message_type !== "text") {
     await flagForTeam(admin, job);
-    const key = message.message_type === "audio" ? "audioNotSupported" : message.message_type === "image" ? "imageNotSupported" : "attachmentReceived";
+    const key = message.message_type === "audio" ? "audioNotSupported" : "attachmentReceived";
     return sendNotice(ctx, fixedMessage(conversationLanguage, key, business.business.name), conversationLanguage, "handed_over", "media_not_supported");
   }
-  if (!text) return { outcome: "skipped", reason: "empty" };
+  if (!text && !images.length) return { outcome: "skipped", reason: "empty" };
 
   // Language: detection + explicit requests + saved preference → reply language.
   const preference =
@@ -142,6 +154,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
       detection: analysis.detection,
       now: deps.now(),
       tools: { db: admin, businessId: job.businessId, conversationId: job.conversationId, customerId: conversation.customer.id },
+      images,
     });
     const check = validateAIResponse(result.reply, { language: analysis.decision.language, allowedProductIds: result.productIds, maxChars: WHATSAPP_TEXT_LIMIT });
     const issues = check.ok ? [] : check.issues;

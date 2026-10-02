@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type { Database } from "@/types/database";
+import { MAX_IMAGE_INPUT_BYTES, prepareImage, type InputImage } from "@/lib/ai/images";
 import { isOpenAt, parseOpeningHours } from "@/lib/business/hours";
 
 /*
@@ -57,34 +58,95 @@ export const getBusinessInformation = tool({
 
 export const searchProducts = tool({
   name: "searchProducts",
-  description: "Search active products by name, category or SKU. Only facts returned here may be told to customers.",
+  description:
+    "Search active products by words in the name, category, description or SKU (any word may match; best matches first). " +
+    "For a customer's photo, search with words describing it (type, colour, pattern, material). Only facts returned here may be told to customers.",
   input: z.object({ query: z.string().trim().min(1).max(100), limit: z.number().int().min(1).max(10).default(5) }),
   async run(ctx, { query, limit }) {
-    const words = query.replace(/[%_,()*\\]/g, " ").trim();
+    const words = [...new Set(query.toLowerCase().replace(/[%_,.()*\\"'!?:;]/g, " ").split(/\s+/).filter((w) => w.length >= 2))].slice(0, 6);
+    if (!words.length) return [];
     const { data } = await ctx.db
       .from("products")
-      .select("id, name, description, category, price, currency, stock_quantity, product_variants(id, name, value, price_modifier, stock_quantity)")
+      .select("id, name, description, category, sku, price, currency, stock_quantity, image_url, product_variants(id, name, value, price_modifier, stock_quantity)")
       .eq("business_id", ctx.businessId)
       .eq("active", true)
-      .or(`name.ilike.%${words}%,category.ilike.%${words}%,sku.ilike.%${words}%`)
-      .limit(limit);
-    return (data ?? []).map((p) => ({
-      productId: p.id,
-      name: p.name,
-      description: p.description,
-      category: p.category,
-      price: Number(p.price),
-      currency: p.currency,
-      inStock: p.stock_quantity === null ? null : p.stock_quantity > 0,
-      variants: p.product_variants.map((v) => ({
-        variantId: v.id,
-        label: `${v.name}: ${v.value}`,
-        price: Math.max(0, Number(p.price) + Number(v.price_modifier)),
-        inStock: v.stock_quantity === null ? null : v.stock_quantity > 0,
-      })),
-    }));
+      .or(words.flatMap((w) => [`name.ilike.%${w}%`, `category.ilike.%${w}%`, `description.ilike.%${w}%`, `sku.ilike.%${w}%`]).join(","))
+      .limit(40);
+    // Rank: words found in the name count most, then category, then description/SKU.
+    const score = (p: NonNullable<typeof data>[number]) =>
+      words.reduce((sum, w) => {
+        if (p.name.toLowerCase().includes(w)) return sum + 3;
+        if (p.category?.toLowerCase().includes(w)) return sum + 2;
+        if (p.description?.toLowerCase().includes(w) || p.sku?.toLowerCase().includes(w)) return sum + 1;
+        return sum;
+      }, 0);
+    return (data ?? [])
+      .map((p) => ({ p, s: score(p) }))
+      .sort((a, b) => b.s - a.s || a.p.name.localeCompare(b.p.name))
+      .slice(0, limit)
+      .map(({ p }) => ({
+        productId: p.id,
+        name: p.name,
+        description: p.description,
+        category: p.category,
+        price: Number(p.price),
+        currency: p.currency,
+        inStock: p.stock_quantity === null ? null : p.stock_quantity > 0,
+        hasPhoto: catalogPhotoUrl(p.image_url) !== null,
+        variants: p.product_variants.map((v) => ({
+          variantId: v.id,
+          label: `${v.name}: ${v.value}`,
+          price: Math.max(0, Number(p.price) + Number(v.price_modifier)),
+          inStock: v.stock_quantity === null ? null : v.stock_quantity > 0,
+        })),
+      }));
   },
 });
+
+/**
+ * Only photos uploaded to WazaBolt's own product-images storage are fetched
+ * (never an arbitrary URL typed into a product).
+ */
+export function catalogPhotoUrl(url: string | null | undefined): string | null {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url || !base) return null;
+  return url.startsWith(`${base.replace(/\/$/, "")}/storage/v1/object/public/product-images/`) ? url : null;
+}
+
+/** A catalog photo the model can look at (converted to an image block by the responder). */
+export type ProductPhoto = { productId: string; name: string; image: InputImage };
+
+export const viewProductPhotos = tool({
+  name: "viewProductPhotos",
+  description:
+    "Look at the catalog photos of up to 4 products (ids from searchProducts with hasPhoto true), e.g. to compare them with a photo the customer sent. " +
+    "Returns the photos as images.",
+  input: z.object({ productIds: z.array(z.uuid()).min(1).max(4) }),
+  async run(ctx, { productIds }) {
+    const { data } = await ctx.db.from("products").select("id, name, image_url, active").eq("business_id", ctx.businessId).in("id", productIds);
+    const photos: ProductPhoto[] = [];
+    const withoutPhoto: string[] = [];
+    for (const p of data ?? []) {
+      const url = p.active ? catalogPhotoUrl(p.image_url) : null;
+      const image = url ? await fetchCatalogPhoto(url) : null;
+      if (image) photos.push({ productId: p.id, name: p.name, image });
+      else withoutPhoto.push(p.id);
+    }
+    return { photos, withoutPhoto };
+  },
+});
+
+async function fetchCatalogPhoto(url: string): Promise<InputImage | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const length = Number(res.headers.get("content-length") ?? 0);
+    if (length > MAX_IMAGE_INPUT_BYTES) return null;
+    return await prepareImage(new Uint8Array(await res.arrayBuffer()));
+  } catch {
+    return null;
+  }
+}
 
 export const checkProductStock = tool({
   name: "checkProductStock",
@@ -241,6 +303,7 @@ async function estimateOrder(ctx: ToolContext, items: { productId: string; varia
 export const TOOLS = {
   getBusinessInformation,
   searchProducts,
+  viewProductPhotos,
   checkProductStock,
   getBusinessHours,
   getDeliveryFee,

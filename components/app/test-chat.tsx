@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FlaskConical, Hand, Loader2, RotateCcw, Send, TriangleAlert } from "lucide-react";
+import { FlaskConical, Hand, ImagePlus, Loader2, RotateCcw, Send, TriangleAlert, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { TestChatError, TestChatResult } from "@/lib/ai/test-chat";
@@ -11,8 +11,27 @@ import type { Messages } from "@/messages/en";
 
 type T = Messages["dashboard"]["aiTest"];
 type Turn =
-  | { role: "customer"; text: string }
+  | { role: "customer"; text: string; photo?: string }
   | { role: "assistant"; text: string; meta: Extract<TestChatResult, { ok: true }> };
+
+type Photo = { dataUrl: string; base64: string };
+
+/** Shrinks a chosen photo in the browser (long side ≤ 1568 px, JPEG) so uploads stay small; the server re-checks it. */
+async function readPhoto(file: File): Promise<Photo> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1568 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const g = canvas.getContext("2d");
+  if (!g) throw new Error("no canvas");
+  g.fillStyle = "#fff";
+  g.fillRect(0, 0, canvas.width, canvas.height);
+  g.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+  return { dataUrl, base64: dataUrl.slice(dataUrl.indexOf(",") + 1) };
+}
 
 /** Calls the test-chat endpoint. Never throws: every failure becomes an error code shown in the chat. */
 async function ask(payload: unknown): Promise<TestChatResult> {
@@ -41,7 +60,9 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [photo, setPhoto] = useState<Photo | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Block body on purpose: newer browsers return a Promise from scrollIntoView, and an effect
   // must not return anything but a cleanup function.
@@ -51,29 +72,45 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
 
   const send = (text: string) => {
     const message = text.trim();
-    if (!message || pending) return;
+    const sentPhoto = photo;
+    if ((!message && !sentPhoto) || pending) return;
     setError(null);
     setDraft("");
-    const history = turns.map((turn) => ({ role: turn.role, text: turn.text }));
+    setPhoto(null);
+    // Earlier photos aren't re-sent: the history marks them, like on WhatsApp.
+    const history = turns.map((turn) => ({ role: turn.role, text: turn.role === "customer" && turn.photo ? `[photo] ${turn.text}`.trim() : turn.text }));
     const lastLanguage = [...turns].reverse().find((turn): turn is Extract<Turn, { role: "assistant" }> => turn.role === "assistant")?.meta.language ?? null;
-    setTurns((prev) => [...prev, { role: "customer", text: message }]);
+    setTurns((prev) => [...prev, { role: "customer", text: message, photo: sentPhoto?.dataUrl }]);
     setPending(true);
-    void ask({ message, history, language: lastLanguage }).then((res) => {
+    void ask({ message, history, language: lastLanguage, image: sentPhoto?.base64 ?? null }).then((res) => {
       setPending(false);
       if (res.ok) setTurns((prev) => [...prev, { role: "assistant", text: res.reply, meta: res }]);
       else {
         setError(t.errors[res.error] ?? t.errors.failed);
         setTurns((prev) => prev.slice(0, -1));
         setDraft(message);
+        setPhoto(sentPhoto);
       }
     });
+  };
+
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setError(null);
+    try {
+      setPhoto(await readPhoto(file));
+    } catch {
+      setError(t.errors.image_invalid);
+    }
   };
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-card">
       <div className="flex items-start gap-3 border-b border-border bg-gold-50 px-4 py-3 text-xs text-gold-800">
         <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <p>{t.testMode}</p>
+        <p>
+          {t.testMode} {t.photoHint}
+        </p>
       </div>
 
       <div className="flex max-h-[60dvh] min-h-80 flex-col gap-3 overflow-y-auto bg-surface/60 p-4" aria-live="polite">
@@ -100,7 +137,11 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
               <div key={i} className="flex justify-start">
                 <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-card px-3.5 py-2.5 text-sm text-deep shadow-sm sm:max-w-[70%]">
                   <p className="mb-1 text-[0.6875rem] font-semibold text-slate">{t.you}</p>
-                  <p className="whitespace-pre-line break-words">{turn.text}</p>
+                  {turn.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- a local data: URL, nothing to optimise
+                    <img src={turn.photo} alt={t.photo} className="mb-1.5 max-h-56 w-auto rounded-xl object-contain" />
+                  ) : null}
+                  {turn.text ? <p className="whitespace-pre-line break-words">{turn.text}</p> : null}
                 </div>
               </div>
             ) : (
@@ -150,6 +191,17 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
         </p>
       ) : null}
 
+      {photo ? (
+        <div className="flex items-center gap-3 border-t border-border px-3 pt-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a local data: URL */}
+          <img src={photo.dataUrl} alt={t.photo} className="size-14 rounded-xl object-cover" />
+          <Button type="button" variant="ghost" size="sm" onClick={() => setPhoto(null)} disabled={pending}>
+            <X aria-hidden />
+            <span>{t.removePhoto}</span>
+          </Button>
+        </div>
+      ) : null}
+
       <form
         className="flex items-end gap-2 border-t border-border p-3"
         onSubmit={(e) => {
@@ -157,6 +209,21 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
           send(draft);
         }}
       >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          tabIndex={-1}
+          aria-label={t.attach}
+          onChange={(e) => {
+            void pickPhoto(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+        <Button type="button" variant="outline" size="icon" className="size-11 shrink-0" aria-label={t.attach} title={t.attach} disabled={pending} onClick={() => fileRef.current?.click()}>
+          <ImagePlus aria-hidden />
+        </Button>
         <label htmlFor="test-chat-input" className="sr-only">
           {t.placeholder}
         </label>
@@ -175,7 +242,7 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
           }}
           className="max-h-32 min-h-11 min-w-0 flex-1 resize-y rounded-2xl border border-input bg-card px-3.5 py-2.5 text-[0.9375rem] text-deep outline-none focus-visible:border-waza-500 focus-visible:ring-4 focus-visible:ring-waza-500/15"
         />
-        <Button type="submit" disabled={pending || !draft.trim()} className="h-11 shrink-0">
+        <Button type="submit" disabled={pending || (!draft.trim() && !photo)} className="h-11 shrink-0">
           {/* Both icons stay mounted and text sits in its own span: translation/extension tools that rewrite
               text nodes then can't break React's DOM updates when the button switches state. */}
           <Loader2 className={cn("animate-spin", !pending && "hidden")} aria-hidden />

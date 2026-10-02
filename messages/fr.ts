@@ -247,7 +247,7 @@ const fr: Messages = {
       broadcasts: "Diffusions aux clients consentants",
       mobileMoney: "Paiements Mobile Money",
       morePacks: "D'autres packs de langues africaines",
-      voiceImages: "Messages vocaux et photos de produits",
+      voiceImages: "Messages vocaux",
     },
   },
 
@@ -917,7 +917,7 @@ const fr: Messages = {
         lowStockHint: "Vous êtes alerté quand le stock descend à ce nombre ou moins. Les commandes déduisent le stock automatiquement ; une annulation le remet.",
         active: "Actif — l'assistant peut proposer ce produit",
         image: "Photo du produit",
-        imageHint: "JPG, PNG ou WebP, 4 Mo maximum.",
+        imageHint: "JPG, PNG ou WebP, 4 Mo maximum. L'assistant y compare les photos des clients.",
         currentImage: "Photo actuelle",
       },
       stock: { untracked: "Non suivi", out: "En rupture", units: "{count} en stock" },
@@ -1055,7 +1055,7 @@ const fr: Messages = {
       sender: { customer: "Client", ai: "WazaBolt IA", agent: "Équipe", system: "Système" },
       futureMedia: {
         audio: "Message vocal — le traitement des médias sera disponible dans une prochaine version.",
-        image: "Image — le traitement des médias sera disponible dans une prochaine version.",
+        image: "Photo — l'assistant regarde les photos et les compare à votre catalogue.",
         document: "Document — le traitement des médias sera disponible dans une prochaine version.",
         video: "Vidéo — le traitement des médias sera disponible dans une prochaine version.",
         location: "Position partagée — visible par votre équipe ; pas encore traitée automatiquement.",
@@ -1167,6 +1167,10 @@ const fr: Messages = {
       testMode: "Mode test : rien n'est envoyé sur WhatsApp. Les commandes, infos client et transferts sont seulement simulés, jamais enregistrés.",
       placeholder: "Écrivez comme le ferait un client…",
       send: "Envoyer",
+      attach: "Ajouter une photo",
+      removePhoto: "Retirer la photo",
+      photo: "Photo envoyée par le client",
+      photoHint: "Envoyez une photo de produit comme le ferait un client (« vous avez ça ? »). Elle est comparée aux photos de votre catalogue.",
       typing: "L'assistant écrit…",
       reset: "Recommencer",
       you: "Vous (en tant que client)",
@@ -1182,6 +1186,7 @@ const fr: Messages = {
       suggestions: ["Bonjour, c'est combien ?", "Do you deliver to Buea?", "Una dey open for Sunday?", "Je veux parler à quelqu'un"],
       toolNames: {
         searchProducts: "catalogue",
+        viewProductPhotos: "photos produits",
         checkProductStock: "stock",
         getBusinessInformation: "infos de l'entreprise",
         getBusinessHours: "horaires",
@@ -1200,6 +1205,7 @@ const fr: Messages = {
         forbidden: "Votre rôle ne permet pas d'utiliser le chat de test.",
         network: "La connexion a été coupée avant la réponse. Réessayez.",
         timeout: "L'assistant a mis trop de temps à répondre. Réessayez.",
+        image_invalid: "Impossible d'ouvrir cette photo. Essayez un JPG ou PNG de moins de 8 Mo.",
       },
     },
     automations: {

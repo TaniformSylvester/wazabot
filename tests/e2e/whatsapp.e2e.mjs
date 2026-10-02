@@ -162,7 +162,7 @@ async function signUp(browser, user) {
   await deliver(inbound("237670000123", "Chantal", { id: "wamid.IN2", type: "image", image: { id: "media-1", mime_type: "image/jpeg", caption: "Celle-ci en taille L ?" } }));
   await main.getByText("Celle-ci en taille L ?").waitFor({ timeout: 20000 });
   ok("new message appears without reloading (auto refresh)", true);
-  ok("image shows the not-processed note", (await main.getByText("Image — media processing will be available in a future release.").count()) === 1);
+  ok("image shows the photo note", (await main.getByText("Photo — the assistant looks at photos and matches them to your catalog.").count()) === 1);
   await sleep(3000);
   const media = await (await fetch(`${SUPABASE}/rest/v1/message_media?select=status,kind,whatsapp_media_id`, { headers: rest(aTok) })).json();
   // The local test stack has no Storage service: the download works, storing is reported as failed.

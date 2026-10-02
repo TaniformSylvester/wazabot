@@ -150,12 +150,20 @@ export type ConversationContext = {
 
 const HISTORY_LIMIT = 30;
 
+const MEDIA_MARKERS: Record<string, string> = { image: "[photo]", audio: "[voice note]", video: "[video]", document: "[document]", location: "[location]" };
+
+/** Text for the model; photos, voice notes etc. show as a marker (with their caption) so the model knows they were sent. */
+function historyText(type: string, text: string) {
+  const marker = MEDIA_MARKERS[type];
+  return (marker ? `${marker} ${text}` : text).trim();
+}
+
 export async function buildConversationContext(db: Db, businessId: string, conversationId: string): Promise<ConversationContext | null> {
   const [conv, msgs] = await Promise.all([
     db.from("conversations").select("id, ai_enabled, language, customers(id, whatsapp_phone, name, city, preferred_language, preferred_language_source, tags)").eq("business_id", businessId).eq("id", conversationId).maybeSingle(),
     db
       .from("messages")
-      .select("direction, sender_type, content, caption, created_at")
+      .select("direction, sender_type, message_type, content, caption, created_at")
       .eq("business_id", businessId)
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false })
@@ -167,7 +175,7 @@ export async function buildConversationContext(db: Db, businessId: string, conve
     .reverse()
     .map((m) => ({
       role: m.sender_type === "customer" ? ("customer" as const) : m.sender_type === "ai" ? ("assistant" as const) : ("agent" as const),
-      text: (m.content || m.caption || "").trim(),
+      text: historyText(m.message_type, m.content || m.caption || ""),
       at: m.created_at,
     }))
     .filter((m) => m.text);

@@ -7,26 +7,37 @@
  *   "combien" / "prix"        → searchProducts, then quotes the catalog price
  *   "je prends N"             → searchProducts, createOrder, then confirms the order
  *   "parler à quelqu'un"      → send_reply with needs_human
+ *   a photo                   → searchProducts, viewProductPhotos, then "we have it"
  *   anything else             → a greeting
  */
 import { createServer } from "node:http";
 
 const usage = { input_tokens: 1200, output_tokens: 60, cache_read_input_tokens: 900, cache_creation_input_tokens: 0 };
 
-const lastCustomerText = (messages) => {
+// The latest customer turn: plain text, or [image…, text] when they sent a photo (tool results don't count).
+const lastCustomerTurn = (messages) => {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
-    if (m.role === "user" && typeof m.content === "string") return m.content.split("\n\n").at(-1);
+    if (m.role !== "user") continue;
+    if (typeof m.content === "string") return { text: m.content.split("\n\n").at(-1), images: [] };
+    if (m.content.some((b) => b.type === "tool_result")) continue;
+    return { text: m.content.filter((b) => b.type === "text").map((b) => b.text).join(" "), images: m.content.filter((b) => b.type === "image") };
   }
-  return "";
+  return { text: "", images: [] };
 };
+const lastCustomerText = (messages) => lastCustomerTurn(messages).text;
 const toolResults = (messages) => {
   const out = {};
   const byId = {};
   for (const m of messages) {
     if (m.role === "assistant" && Array.isArray(m.content)) for (const b of m.content) if (b.type === "tool_use") byId[b.id] = b.name;
     if (m.role === "user" && Array.isArray(m.content)) {
-      for (const b of m.content) if (b.type === "tool_result" && !b.is_error) out[byId[b.tool_use_id]] = JSON.parse(b.content);
+      for (const b of m.content) {
+        if (b.type !== "tool_result" || b.is_error) continue;
+        // Most results are JSON text; viewProductPhotos returns [text, image, …].
+        if (typeof b.content === "string") out[byId[b.tool_use_id]] = JSON.parse(b.content);
+        else out[byId[b.tool_use_id]] = { ...JSON.parse(b.content[0].text), images: b.content.filter((c) => c.type === "image").length };
+      }
     }
   }
   return out;
@@ -45,6 +56,13 @@ function respond(body) {
   const product = results.searchProducts?.[0];
   const order = results.createOrder;
 
+  // A customer photo: describe → search the catalog → compare with its photos → answer.
+  if (lastCustomerTurn(body.messages).images.length) {
+    if (!product) return [call("searchProducts", { query: "robe ankara rouge" })];
+    if (product.hasPhoto && !results.viewProductPhotos) return [call("viewProductPhotos", { productIds: [product.productId] })];
+    const seen = results.viewProductPhotos?.images ? " (même modèle que sur notre photo)" : "";
+    return [sendReply({ reply: `Oui, nous avons cette ${product.name}${seen} : ${product.price} ${product.currency}.`, catalog_product_ids: [product.productId] })];
+  }
   if (/parler à quelqu'un|un humain/.test(text)) {
     return [sendReply({ reply: "Bien sûr, je transmets votre demande à l'équipe.", needs_human: true, handoff_reason: "customer asked for a person" })];
   }

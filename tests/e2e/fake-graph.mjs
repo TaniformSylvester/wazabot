@@ -7,9 +7,11 @@
  */
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
+import sharp from "sharp";
 
 export const FAKE = { wabaId: "200200200", phoneNumberId: "100100100", otherPhoneNumberId: "100100999", display: "+237 6 99 00 00 01", verifiedName: "Awa Styles" };
-const IMAGE = Buffer.from("ffd8ffe000104a46494600010100000100010000ffd9", "hex");
+// A real (small) JPEG: the assistant decodes customer photos before looking at them.
+const IMAGE = await sharp({ create: { width: 320, height: 480, channels: 3, background: "#c0392b" } }).jpeg().toBuffer();
 
 export function startFakeGraph(port = 4010) {
   const sent = [];

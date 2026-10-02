@@ -7,7 +7,8 @@ import type { ConversationContext } from "@/lib/ai/context";
 import { buildBusinessPrompt, buildKnowledgePrompt, buildPlatformPrompt, buildTurnContext } from "@/lib/ai/prompts/system-prompt";
 import { assistantReplySchema, type AssistantReply } from "@/lib/ai/reply-schema";
 import type { AiResponder, AiUsage, GenerateInput, GenerateResult } from "@/lib/ai/service";
-import { runTool, toolSchemas } from "@/lib/ai/tools/registry";
+import type { InputImage } from "@/lib/ai/images";
+import { runTool, toolSchemas, type ProductPhoto } from "@/lib/ai/tools/registry";
 import { isOpenAt } from "@/lib/business/hours";
 import { languages } from "@/lib/i18n/languages";
 
@@ -156,7 +157,7 @@ export class ClaudeResponder implements AiResponder {
     ];
     const tools = assistantTools();
     const messages: Anthropic.Beta.BetaMessageParam[] = [
-      ...historyToMessages(input.conversation),
+      ...withImages(historyToMessages(input.conversation), input.images ?? []),
       { role: "system", content: buildTurnMessage(input) },
     ];
 
@@ -232,7 +233,7 @@ export class ClaudeResponder implements AiResponder {
           continue;
         }
         collectProductIds(call.name, call.input, outcome.result, productIds);
-        results.push({ type: "tool_result", tool_use_id: call.id, content: JSON.stringify(outcome.result ?? null).slice(0, MAX_TOOL_RESULT_CHARS) });
+        results.push({ type: "tool_result", tool_use_id: call.id, content: toolResultContent(call.name, outcome.result) });
       }
       if (replyCall) {
         results.push({ type: "tool_result", tool_use_id: replyCall.id, is_error: true, content: "Not sent: read the results of your other tool calls first, then call send_reply on its own." });
@@ -243,8 +244,37 @@ export class ClaudeResponder implements AiResponder {
   }
 }
 
+/** The customer's photos go into their latest turn, before its text (images first works best). */
+export function withImages(turns: Anthropic.Beta.BetaMessageParam[], images: InputImage[]): Anthropic.Beta.BetaMessageParam[] {
+  if (!images.length) return turns;
+  const blocks: Anthropic.Beta.BetaImageBlockParam[] = images.map((img) => ({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.data } }));
+  const last = turns.at(-1);
+  if (!last || last.role !== "user") return [...turns, { role: "user", content: [...blocks, { type: "text", text: "[photo]" }] }];
+  const text = typeof last.content === "string" ? last.content : "";
+  return [...turns.slice(0, -1), { role: "user", content: [...blocks, { type: "text", text: text || "[photo]" }] }];
+}
+
+/** Tool results go back as JSON text — except catalog photos, which the model sees as images. */
+function toolResultContent(name: string, result: unknown): Anthropic.Beta.BetaToolResultBlockParam["content"] {
+  if (name === "viewProductPhotos" && result && typeof result === "object" && "photos" in result) {
+    const { photos, withoutPhoto } = result as { photos: ProductPhoto[]; withoutPhoto: string[] };
+    const content: Exclude<Anthropic.Beta.BetaToolResultBlockParam["content"], string | undefined> = [
+      { type: "text", text: JSON.stringify({ photos: photos.map((p) => ({ productId: p.productId, name: p.name })), withoutPhoto }) },
+    ];
+    for (const p of photos) {
+      content.push({ type: "text", text: `Photo of ${p.name} (${p.productId}):` });
+      content.push({ type: "image", source: { type: "base64", media_type: p.image.mediaType, data: p.image.data } });
+    }
+    return content;
+  }
+  return JSON.stringify(result ?? null).slice(0, MAX_TOOL_RESULT_CHARS);
+}
+
 /** Remembers which products the tools actually returned, so the reply can only quote those. */
 function collectProductIds(name: string, input: unknown, result: unknown, ids: Set<string>) {
+  if (name === "viewProductPhotos" && result && typeof result === "object" && "photos" in result) {
+    for (const p of (result as { photos: ProductPhoto[] }).photos) ids.add(p.productId);
+  }
   if (name === "searchProducts" && Array.isArray(result)) {
     for (const p of result) if (p && typeof p === "object" && "productId" in p) ids.add(String((p as { productId: string }).productId));
   }
