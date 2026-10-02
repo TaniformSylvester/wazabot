@@ -1,5 +1,6 @@
 import "server-only";
 
+import { optKeyword } from "@/lib/broadcasts/compose";
 import { recordTemplateStatus } from "@/lib/notifications/service";
 import { detectLanguage } from "@/lib/ai/language";
 import { logServerError } from "@/lib/log";
@@ -29,7 +30,8 @@ import type { AiJob } from "@/lib/ai/pipeline";
 type Admin = NonNullable<ReturnType<typeof createAdminClient>>;
 
 export type MediaJob = { businessId: string; messageId: string; media: MediaRef };
-export type WebhookResult = { stored: number; duplicates: number; ignored: number; statuses: number; mediaJobs: MediaJob[]; aiJobs: AiJob[] };
+export type KeywordJob = { businessId: string; customerId: string; conversationId: string; messageId: string; keyword: "stop" | "start" };
+export type WebhookResult = { stored: number; duplicates: number; ignored: number; statuses: number; mediaJobs: MediaJob[]; aiJobs: AiJob[]; keywordJobs: KeywordJob[] };
 
 /** Reasons recorded when a type isn't processed automatically yet. */
 const NOT_PROCESSED_REASON: Record<string, string> = {
@@ -58,7 +60,7 @@ function contentOf(message: InboundMessage) {
 }
 
 export async function handleWebhookPayload(payload: unknown, admin: Admin): Promise<WebhookResult> {
-  const result: WebhookResult = { stored: 0, duplicates: 0, ignored: 0, statuses: 0, mediaJobs: [], aiJobs: [] };
+  const result: WebhookResult = { stored: 0, duplicates: 0, ignored: 0, statuses: 0, mediaJobs: [], aiJobs: [], keywordJobs: [] };
 
   for (const message of parseWebhookMessages(payload)) {
     const plan = planInbound(message, MVP_CAPABILITIES);
@@ -105,7 +107,10 @@ export async function handleWebhookPayload(payload: unknown, admin: Admin): Prom
       continue;
     }
     result.stored++;
-    result.aiJobs.push({ businessId: row.business_id, conversationId: row.conversation_id, messageId: row.message_id });
+    // STOP / START (promotions consent) is handled by WazaBolt, not answered by the assistant.
+    const keyword = message.type === "text" ? optKeyword(content) : null;
+    if (keyword) result.keywordJobs.push({ businessId: row.business_id, customerId: row.customer_id, conversationId: row.conversation_id, messageId: row.message_id, keyword });
+    else result.aiJobs.push({ businessId: row.business_id, conversationId: row.conversation_id, messageId: row.message_id });
     if ("media" in message && plan.steps.includes("store_media")) {
       result.mediaJobs.push({ businessId: row.business_id, messageId: row.message_id, media: message.media });
     }

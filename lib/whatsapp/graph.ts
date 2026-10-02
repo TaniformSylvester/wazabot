@@ -121,13 +121,20 @@ export class WhatsAppGraphClient {
     return { messageId };
   }
 
-  /** Submits a template for Meta's review (category UTILITY: order and appointment updates). */
-  async createTemplate(wabaId: string, t: { name: string; language: string; body: string; example: string[] }): Promise<{ id: string; status: string }> {
+  /**
+   * Submits a template for Meta's review: UTILITY for order and appointment
+   * updates, MARKETING for broadcasts. Example values are required when the
+   * body has parameters.
+   */
+  async createTemplate(
+    wabaId: string,
+    t: { name: string; language: string; body: string; example: string[]; category?: "UTILITY" | "MARKETING" },
+  ): Promise<{ id: string; status: string }> {
     const r = await this.request<{ id?: string; status?: string }>("POST", `${encodeURIComponent(wabaId)}/message_templates`, {
       name: t.name,
       language: t.language,
-      category: "UTILITY",
-      components: [{ type: "BODY", text: t.body, example: { body_text: [t.example] } }],
+      category: t.category ?? "UTILITY",
+      components: [{ type: "BODY", text: t.body, ...(t.example.length ? { example: { body_text: [t.example] } } : {}) }],
     });
     if (!r.id) throw new GraphApiError(502, null, "no template id returned");
     return { id: r.id, status: r.status ?? "PENDING" };

@@ -120,7 +120,7 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Marketing site, brand system, logo, SEO/OG/manifest, responsive layout | **Functional** (static pages) |
 | Hero chat, live demo, dashboard preview | **UI mockup** — demo conversation / example data |
 | Pricing | **Functional display** from `config/plans.ts` (proposed prices) |
-| Broadcasts, Mobile Money, voice notes | Shown as **Planned** — not in the first release |
+| Mobile Money, voice notes | Shown as **Planned** — not in the first release |
 | Auth: register, email confirmation, login, logout, password reset, protected dashboard | **Functional** (Phase 2) |
 | Database: users, businesses, business_members, audit_logs with RLS | **Functional** (Phase 2) |
 | Dashboard (Stage 1): home with real metrics, 6-step onboarding, products (variants, images, stock), knowledge (FAQs + documents), customers, conversations (Take Over / Return to AI), orders, AI settings, analytics, WhatsApp status, team, billing, settings | **Functional** — real data only; empty states say "No data yet" |
@@ -134,7 +134,8 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Product photos (Stage 5): customers' photos on WhatsApp (and in the test chat) are looked at by the assistant and matched to the catalog, comparing with the catalog's own product photos | **Functional** — see "AI replies" below |
 | Appointments (Stage 6): services with duration and price, bookable in opening hours (slot step, capacity, notice, horizon); the assistant finds free times and books on WhatsApp; Calendar with confirm / done / no-show / cancel; booking from the dashboard | **Functional** — see "Appointments" below |
 | Customer notifications (Stage 7): order updates, appointment confirmations / cancellations / reminders, follow-up after 24 h; WazaBolt's message templates submitted to Meta with review status | **Functional** — see "Customer notifications" below; goes out once WhatsApp is connected |
-| Voice transcription, payments, broadcasts | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes get a short notice and are flagged for the team |
+| Broadcasts (Stage 8): promotions to customers who agreed (consent on the customer page or START by WhatsApp, STOP always unsubscribes), each submitted to Meta as a marketing template, audience by tags and language, progress and per-customer results | **Functional** — see "Broadcasts" below |
+| Voice transcription, payments | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes get a short notice and are flagged for the team |
 
 ## Multilingual architecture
 
@@ -273,6 +274,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... npm run test:e2e:ai
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:appointments
 # Stage 7 notifications (fake Graph with templates); start the app with CRON_SECRET=test-cron too
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:notifications
+# Stage 8 broadcasts (fake Graph with templates; CRON_SECRET=test-cron)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:broadcasts
 # Stage 4 business operations (stock, usage banner, plan requests, invitations, roles).
 # Uses DATABASE_URL directly to play the WazaBolt operator (approving a plan) and simulate AI usage.
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... npm run test:e2e:operations
@@ -435,6 +438,23 @@ Apply `supabase/migrations/20261008120000_notifications.sql`.
   string); Vercel sends it to the job, and calls without it are refused. On Vercel's Hobby plan cron
   jobs run once a day, which is what this needs.
 - Notifications show in the customer's conversation (sender "System") and on the order page.
+
+## Broadcasts (Stage 8)
+
+Apply `supabase/migrations/20261009120000_broadcasts.sql`.
+
+- **Consent**: only customers with "Agreed to receive promotions" (customer page, with the date
+  recorded) receive broadcasts. Customers can text **START** to subscribe and **STOP** (also ARRÊT,
+  DÉSABONNER, UNSUBSCRIBE…) to unsubscribe; WazaBolt confirms and the assistant doesn't answer those.
+- **Broadcasts → New broadcast**: name, language, message (optionally starting "Hello {name},"),
+  audience by tags and language. WazaBolt adds the STOP line and submits it to Meta as a
+  **MARKETING** template; once approved, "Send to N customers" freezes the audience and sends.
+  Customers who unsubscribe before their turn are skipped; every message also appears in the
+  customer's conversation.
+- Sending runs after the click (up to about 4 minutes per run); a broadcast that didn't finish is
+  continued by "Resume sending" or by the daily job (`/api/cron/reminders`). Each customer gets it
+  once (`broadcast_recipients`).
+- Meta charges the business's WhatsApp Business Account for each marketing message delivered.
 
 ## Before launch
 

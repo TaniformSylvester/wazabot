@@ -543,3 +543,51 @@ export async function followUpReady(businessId: string) {
   const { count } = await db.from("whatsapp_templates").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("kind", "follow_up").eq("status", "approved");
   return (count ?? 0) > 0;
 }
+
+// ---------------------------------------------------------------------------
+// Broadcasts (Stage 8)
+// ---------------------------------------------------------------------------
+export async function listBroadcasts(businessId: string) {
+  const db = await createClient();
+  const { data } = await db
+    .from("broadcasts")
+    .select("id, name, language, status, template_status, recipients_count, sent_count, failed_count, created_at, finished_at")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  return data ?? [];
+}
+
+export async function getBroadcast(businessId: string, id: string) {
+  const db = await createClient();
+  const [broadcast, recipients] = await Promise.all([
+    db.from("broadcasts").select("*").eq("business_id", businessId).eq("id", id).maybeSingle(),
+    db
+      .from("broadcast_recipients")
+      .select("id, status, error, sent_at, customer_id, customers(name, whatsapp_phone)")
+      .eq("business_id", businessId)
+      .eq("broadcast_id", id)
+      .order("sent_at", { ascending: false, nullsFirst: false })
+      .limit(100),
+  ]);
+  return broadcast.data ? { ...broadcast.data, recipients: recipients.data ?? [] } : null;
+}
+
+/** Opted-in customers (with a number) matching tags (any) and language. */
+export async function countAudience(businessId: string, tags: string[], language: string | null) {
+  const db = await createClient();
+  let q = db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("marketing_opt_in", true).neq("whatsapp_phone", "");
+  if (tags.length) q = q.overlaps("tags", tags);
+  if (language) q = q.eq("preferred_language", language);
+  const { count } = await q;
+  return count ?? 0;
+}
+
+/** Every tag used on the business's customers, most used first. */
+export async function listCustomerTags(businessId: string) {
+  const db = await createClient();
+  const { data } = await db.from("customers").select("tags").eq("business_id", businessId).limit(5000);
+  const counts = new Map<string, number>();
+  for (const c of data ?? []) for (const t of c.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([tag]) => tag);
+}

@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { applyOptKeyword } from "@/lib/broadcasts/service";
 import { timingSafeEqual } from "node:crypto";
 
 import { logServerError } from "@/lib/log";
@@ -57,13 +58,14 @@ export async function POST(request: Request) {
     const result = await handleWebhookPayload(payload, admin);
     // One line per delivery: counts only, never message content or phone numbers.
     console.info(`[whatsapp.webhook] stored=${result.stored} duplicates=${result.duplicates} ignored=${result.ignored} statuses=${result.statuses}`);
-    if (result.mediaJobs.length || result.aiJobs.length) {
+    if (result.mediaJobs.length || result.aiJobs.length || result.keywordJobs.length) {
       after(async () => {
         const deps = defaultDeps(admin);
         await Promise.all([
           (async () => {
             for (const job of result.mediaJobs) await storeMedia(job, admin);
           })(),
+          ...result.keywordJobs.map((job) => applyOptKeyword(admin, job, job.keyword).catch((e) => logServerError("broadcasts.optKeyword", e))),
           ...result.aiJobs.map((job) =>
             replyToInbound(job, deps)
               .then((r) => console.info(`[ai.reply] ${r.outcome}${r.reason ? ` (${r.reason})` : ""}`))

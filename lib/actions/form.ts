@@ -33,7 +33,9 @@ export type ActionErrorKey =
   // Stage 7
   | "templates_failed"
   | "template_not_approved"
-  | "follow_up_already_sent";
+  | "follow_up_already_sent"
+  // Stage 8
+  | "broadcast_already_sent";
 
 export type FormState = {
   status: "idle" | "success" | "error";

@@ -112,10 +112,10 @@ export async function syncTemplates(admin: Admin, businessId: string, wa: WhatsA
 export async function recordTemplateStatus(admin: Admin, update: { templateId: string; event: string; reason?: string | null }) {
   const status = META_STATUS[update.event.toUpperCase()];
   if (!status) return;
-  await admin
-    .from("whatsapp_templates")
-    .update({ status, rejected_reason: status === "rejected" && update.reason && update.reason !== "NONE" ? update.reason.slice(0, 300) : null })
-    .eq("meta_template_id", update.templateId);
+  const reason = status === "rejected" && update.reason && update.reason !== "NONE" ? update.reason.slice(0, 300) : null;
+  await admin.from("whatsapp_templates").update({ status, rejected_reason: reason }).eq("meta_template_id", update.templateId);
+  // Broadcasts have their own (marketing) template.
+  await admin.from("broadcasts").update({ template_status: status, template_reason: reason }).eq("meta_template_id", update.templateId);
 }
 
 // ---------------------------------------------------------------------------
@@ -226,7 +226,7 @@ export async function notify(admin: Admin, ev: NotifyEvent, wa: WhatsAppFor = wh
 }
 
 /** The customer's latest conversation, or a new (resolved) one so the notification has somewhere to live. */
-async function customerConversation(admin: Admin, businessId: string, customerId: string, now: Date) {
+export async function customerConversation(admin: Admin, businessId: string, customerId: string, now: Date) {
   const { data } = await admin
     .from("conversations")
     .select("id, last_customer_message_at")

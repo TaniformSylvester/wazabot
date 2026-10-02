@@ -146,6 +146,8 @@ export const customerSchema = z.object({
     z.array(z.string().max(30, "too_long")).max(20, "too_long"),
   ),
   preferred_language: enumOrNull(LANGUAGE_CODES),
+  /** The customer agreed to receive promotions (Stage 8). */
+  marketing_opt_in: checkbox,
 });
 export type CustomerInput = z.infer<typeof customerSchema>;
 

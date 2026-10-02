@@ -305,6 +305,134 @@ export type Database = {
           },
         ];
       };
+      broadcast_recipients: {
+        Row: {
+          broadcast_id: string;
+          business_id: string;
+          customer_id: string;
+          error: string | null;
+          id: string;
+          message_id: string | null;
+          sent_at: string | null;
+          status: string;
+        };
+        Insert: {
+          broadcast_id: string;
+          business_id: string;
+          customer_id: string;
+          error?: string | null;
+          id?: string;
+          message_id?: string | null;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          broadcast_id?: string;
+          business_id?: string;
+          customer_id?: string;
+          error?: string | null;
+          id?: string;
+          message_id?: string | null;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_recipients_business_id_broadcast_id_fkey";
+            columns: ["business_id", "broadcast_id"];
+            isOneToOne: false;
+            referencedRelation: "broadcasts";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "broadcast_recipients_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      broadcasts: {
+        Row: {
+          audience_language: string | null;
+          audience_tags: string[];
+          body: string;
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          failed_count: number;
+          finished_at: string | null;
+          id: string;
+          language: string;
+          meta_template_id: string | null;
+          name: string;
+          personalized: boolean;
+          recipients_count: number;
+          sent_count: number;
+          started_at: string | null;
+          status: string;
+          template_name: string;
+          template_reason: string | null;
+          template_status: string;
+          updated_at: string;
+        };
+        Insert: {
+          audience_language?: string | null;
+          audience_tags?: string[];
+          body: string;
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          failed_count?: number;
+          finished_at?: string | null;
+          id?: string;
+          language: string;
+          meta_template_id?: string | null;
+          name: string;
+          personalized?: boolean;
+          recipients_count?: number;
+          sent_count?: number;
+          started_at?: string | null;
+          status?: string;
+          template_name: string;
+          template_reason?: string | null;
+          template_status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          audience_language?: string | null;
+          audience_tags?: string[];
+          body?: string;
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          failed_count?: number;
+          finished_at?: string | null;
+          id?: string;
+          language?: string;
+          meta_template_id?: string | null;
+          name?: string;
+          personalized?: boolean;
+          recipients_count?: number;
+          sent_count?: number;
+          started_at?: string | null;
+          status?: string;
+          template_name?: string;
+          template_reason?: string | null;
+          template_status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "broadcasts_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       business_counters: {
         Row: {
           business_id: string;
@@ -684,6 +812,9 @@ export type Database = {
           id: string;
           last_contact_at: string | null;
           last_detected_language: string | null;
+          marketing_opt_in: boolean;
+          marketing_opt_in_at: string | null;
+          marketing_opt_out_at: string | null;
           name: string;
           notes: string | null;
           preferred_language: string | null;
@@ -702,6 +833,9 @@ export type Database = {
           id?: string;
           last_contact_at?: string | null;
           last_detected_language?: string | null;
+          marketing_opt_in?: boolean;
+          marketing_opt_in_at?: string | null;
+          marketing_opt_out_at?: string | null;
           name?: string;
           notes?: string | null;
           preferred_language?: string | null;
@@ -720,6 +854,9 @@ export type Database = {
           id?: string;
           last_contact_at?: string | null;
           last_detected_language?: string | null;
+          marketing_opt_in?: boolean;
+          marketing_opt_in_at?: string | null;
+          marketing_opt_out_at?: string | null;
           name?: string;
           notes?: string | null;
           preferred_language?: string | null;
@@ -2024,6 +2161,7 @@ export type Database = {
         }[];
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
+      prepare_broadcast: { Args: { p_broadcast_id: string }; Returns: number };
       record_whatsapp_status: {
         Args: {
           p_at?: string;

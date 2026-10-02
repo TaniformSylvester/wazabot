@@ -13,8 +13,9 @@
     "test:e2e:operations": "node tests/e2e/operations.e2e.mjs",
     "test:e2e:appointments": "node tests/e2e/appointments.e2e.mjs",
     "test:e2e:notifications": "node tests/e2e/notifications.e2e.mjs",
+    "test:e2e:broadcasts": "node tests/e2e/broadcasts.e2e.mjs",
     "test:e2e:ai": "node tests/e2e/ai.e2e.mjs",
-    "test:db": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/tenant_isolation.sql -f supabase/tests/multilingual.sql -f supabase/tests/multimodal.sql -f supabase/tests/saas_foundation.sql -f supabase/tests/whatsapp_integration.sql -f supabase/tests/ai_replies.sql -f supabase/tests/business_operations.sql -f supabase/tests/appointments.sql -f supabase/tests/notifications.sql",
+    "test:db": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/tenant_isolation.sql -f supabase/tests/multilingual.sql -f supabase/tests/multimodal.sql -f supabase/tests/saas_foundation.sql -f supabase/tests/whatsapp_integration.sql -f supabase/tests/ai_replies.sql -f supabase/tests/business_operations.sql -f supabase/tests/appointments.sql -f supabase/tests/notifications.sql -f supabase/tests/broadcasts.sql",
     "test": "vitest run",
     "db:types": "npx -y supabase@2 gen types typescript --db-url \"$DATABASE_URL\" --schema public > types/supabase.ts && npx -y oxfmt types/supabase.ts"
   },

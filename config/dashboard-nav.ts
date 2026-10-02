@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Megaphone,
   CalendarDays,
   Bot,
   ChartColumn,
@@ -45,6 +46,7 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
       { key: "products", href: "/dashboard/products", icon: Package },
       { key: "orders", href: "/dashboard/orders", icon: ShoppingBag },
       { key: "appointments", href: "/dashboard/appointments", icon: CalendarDays },
+      { key: "broadcasts", href: "/dashboard/broadcasts", icon: Megaphone },
       { key: "knowledge", href: "/dashboard/knowledge", icon: BookOpen },
     ],
   },

@@ -4,7 +4,6 @@ import {
   CreditCard,
   Globe,
   Hand,
-  Megaphone,
   MessageCircle,
   Mic,
   Package,
@@ -33,7 +32,6 @@ const features: { key: keyof Messages["features"]["items"]; icon: typeof Message
 
 /** Not in the first release — always labelled as planned. */
 const planned = [
-  { key: "broadcasts", icon: Megaphone },
   { key: "mobileMoney", icon: CreditCard },
   { key: "voiceImages", icon: Mic },
   { key: "morePacks", icon: Globe },

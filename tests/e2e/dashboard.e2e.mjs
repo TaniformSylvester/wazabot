@@ -165,6 +165,7 @@ async function signUp(browser, user, locale) {
   await page.goto(`${APP}/en/dashboard/products?q=wax`);
   ok("product search", (await main.getByRole("link", { name: /Wax print shirt/ }).count()) === 1 && (await main.getByText("Ankara dress").count()) === 0);
   await page.goto(`${APP}/en/dashboard/products?stock=low`);
+  await main.getByText("Ankara dress").first().waitFor({ timeout: 10000 }).catch(() => {});
   ok("low-stock filter", (await main.getByText("Ankara dress").count()) === 1 && (await main.getByText("Wax print shirt").count()) === 0);
   await page.goto(`${APP}/en/dashboard/products`);
   const row = main.getByRole("row", { name: /Wax print shirt/ });

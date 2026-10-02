@@ -1,4 +1,4 @@
-import { ActionForm, SelectField, SubmitButton, TextArea, TextField, type FormText } from "@/components/app/form";
+import { ActionForm, CheckboxField, SelectField, SubmitButton, TextArea, TextField, type FormText } from "@/components/app/form";
 import { Panel } from "@/components/app/ui";
 import { saveCustomer } from "@/lib/actions/customers";
 import { LANGUAGE_CODES, languageName } from "@/lib/i18n/languages";
@@ -42,6 +42,13 @@ export function CustomerForm({
         />
         <TextField name="tags" label={f.tags} hint={f.tagsHint} defaultValue={customer?.tags.join(", ") ?? ""} maxLength={400} />
         <TextArea name="notes" label={f.notes} defaultValue={customer?.notes ?? ""} maxLength={4000} rows={3} className="sm:col-span-2" />
+        <CheckboxField
+          name="marketing_opt_in"
+          label={f.marketing}
+          description={f.marketingText}
+          defaultChecked={customer?.marketing_opt_in ?? false}
+          className="sm:col-span-2"
+        />
       </Panel>
       <div>
         <SubmitButton>{submitLabel}</SubmitButton>
