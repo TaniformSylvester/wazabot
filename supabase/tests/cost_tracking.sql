@@ -63,6 +63,35 @@ begin
   exception when insufficient_privilege then null;
   end;
   raise notice 'PASS owners see their own number''s free-message use (no prices), nothing else';
+
+  begin
+    perform 1 from public.admin_cost_report(date_trunc('month', now())::date, 1000);
+    raise exception 'FAIL: users run the margin report';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform 1 from public.platform_admins;
+    raise exception 'FAIL: users read platform admins';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'PASS the margin report and the WazaBolt team list are server-only';
+end $$;
+
+reset role;
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+do $$
+declare
+  r record;
+begin
+  select * into r from public.admin_cost_report((date_trunc('month', now() at time zone 'utc'))::date, 1) where business_id = (select biz from ids);
+  if r.claude_reply_fcfa <> 0.855 or r.claude_requests <> 1 or r.service_sent <> 2 or r.service_over_free <> 1 or r.marketing_sent <> 1 then
+    raise exception 'FAIL: report row %', row_to_json(r);
+  end if;
+  if exists (select 1 from public.admin_cost_report((date_trunc('month', now() at time zone 'utc') - interval '1 month')::date, 1000) where business_id = (select biz from ids) and claude_requests > 0) then
+    raise exception 'FAIL: last month includes this month''s calls';
+  end if;
+  raise notice 'PASS the margin report sums Claude cost and WhatsApp use per business for the month (free tier per number)';
 end $$;
 
 rollback;

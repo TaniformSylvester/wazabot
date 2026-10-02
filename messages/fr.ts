@@ -802,6 +802,11 @@ const fr: Messages = {
       onboarded: "Configuration enregistrée. Vous pourrez tout modifier plus tard dans le tableau de bord.",
       joined: "Vous avez rejoint {business}. Bienvenue dans l'équipe !",
       welcome: "Bienvenue, {name}",
+      freeMessages: {
+        title: "Messages WhatsApp gratuits ce mois-ci",
+        left: "{left} sur {total} restants",
+        text: "Votre numéro WhatsApp inclut {total} messages gratuits par mois pour répondre aux clients qui vous ont écrit dans les dernières 24 heures. Le compteur repart à zéro le {reset}.",
+      },
       stockAlerts: {
         title: "Alertes de stock",
         text: "Produits en rupture ou presque épuisés. L'assistant ne vendra pas plus que ce que vous avez.",

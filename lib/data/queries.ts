@@ -1,5 +1,6 @@
 import "server-only";
 
+import { META_PRICING } from "@/config/economics";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { oneOf, CONVERSATION_STATUSES, ORDER_STATUSES, PAYMENT_STATUSES, WHATSAPP_STATUSES } from "@/types/database";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
@@ -437,6 +438,19 @@ export async function getAiUsageSummary(businessId: string) {
 export type StockAlert = { productId: string; name: string; variant: string | null; quantity: number; out: boolean };
 
 /** Active products (or tracked variants) out of stock or at/below their low-stock threshold, most urgent first. */
+/**
+ * Free WhatsApp service messages left this month for the connected number
+ * (null when no number is connected). Counts only — never prices.
+ */
+export async function getFreeWhatsAppMessages(businessId: string) {
+  const db = await createClient();
+  const { data } = await db.rpc("whatsapp_free_usage", { p_business_id: businessId }).maybeSingle();
+  if (!data) return null;
+  const total = META_PRICING.freeServicePerNumberPerMonth;
+  const [y, m] = data.month.split("-").map(Number);
+  return { used: data.service_sent, total, left: Math.max(0, total - data.service_sent), resetsOn: new Date(Date.UTC(y, m, 1)).toISOString() };
+}
+
 export async function getStockAlerts(businessId: string, max = 8): Promise<{ alerts: StockAlert[]; total: number }> {
   const db = await createClient();
   const { data } = await db

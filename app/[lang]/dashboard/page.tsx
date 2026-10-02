@@ -20,10 +20,11 @@ import {
 } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
+import { FreeMessagesPanel } from "@/components/app/free-messages-panel";
 import { EmptyState, Panel, StatCard, StatusBadge, conversationStatusTone, formatDate, formatMoney, formatPercent, orderStatusTone } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { hasOpeningHours } from "@/lib/business/hours";
-import { getDashboardMetrics, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders } from "@/lib/data/queries";
+import { getDashboardMetrics, getFreeWhatsAppMessages, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -51,13 +52,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     redirect(localizePath(locale, `/dashboard/onboarding?step=1${params.welcome ? "&welcome=1" : ""}`));
   }
 
-  const [metrics, progress, conversations, orders, stock, appointments] = await Promise.all([
+  const [metrics, progress, conversations, orders, stock, appointments, freeMessages] = await Promise.all([
     getDashboardMetrics(business.id),
     getSetupProgress(business.id, !!(business.description || business.industry || business.city), hasOpeningHours(business.openingHours)),
     listConversations(business.id),
     listOrders(business.id),
     getStockAlerts(business.id),
     listNextAppointments(business.id),
+    getFreeWhatsAppMessages(business.id),
   ]);
   const apptTime = new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { timeZone: business.timezone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const done = setupSteps.filter((s) => progress[s.key === "ai" ? "aiConfigured" : s.key]).length;
@@ -130,6 +132,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
           </ol>
         </Panel>
       ) : null}
+
+      {freeMessages ? <FreeMessagesPanel usage={freeMessages} text={h.freeMessages} locale={locale} /> : null}
 
       {appointments.length ? (
         <Panel

@@ -110,3 +110,88 @@ end;
 $$;
 revoke execute on function public.whatsapp_free_usage(uuid) from public, anon;
 grant execute on function public.whatsapp_free_usage(uuid) to authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- WazaBolt team: the margin report
+-- ---------------------------------------------------------------------------
+-- People who can open /admin/margins. Added by hand in the SQL editor:
+--   insert into public.platform_admins (user_id) select id from auth.users where email = 'you@example.com';
+create table public.platform_admins (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+alter table public.platform_admins enable row level security;
+revoke all on public.platform_admins from anon, authenticated;
+grant select on public.platform_admins to service_role;
+
+/*
+ * Per business, for one month: our Claude cost (customer replies and test
+ * chat), AI conversations, and WhatsApp messages by category — service split
+ * into free and over the free allowance per number (p_free_service). Read by
+ * the admin margin page with the service role; revenue and margins are worked
+ * out there from config/economics.ts.
+ */
+create function public.admin_cost_report(p_month date, p_free_service integer)
+returns table (
+  business_id uuid,
+  business_name text,
+  plan_id text,
+  subscription_status text,
+  claude_reply_fcfa numeric,
+  claude_test_fcfa numeric,
+  claude_usd numeric,
+  claude_requests integer,
+  ai_conversations integer,
+  service_sent integer,
+  service_over_free integer,
+  utility_sent integer,
+  marketing_sent integer
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with bounds as (
+    -- The month in UTC, as timestamptz.
+    select p_month::timestamp at time zone 'utc' as starts, (p_month + interval '1 month') at time zone 'utc' as ends
+  ),
+  claude as (
+    select cc.business_id,
+           sum(cc.cost_fcfa) filter (where cc.source = 'reply') as reply_fcfa,
+           sum(cc.cost_fcfa) filter (where cc.source = 'test_chat') as test_fcfa,
+           sum(cc.cost_usd) as usd,
+           count(*)::int as requests
+    from public.claude_calls cc, bounds
+    where cc.created_at >= bounds.starts and cc.created_at < bounds.ends
+    group by cc.business_id
+  ),
+  conversations as (
+    select m.business_id, count(distinct m.conversation_id)::int as n
+    from public.messages m, bounds
+    where m.ai_generated and m.created_at >= bounds.starts and m.created_at < bounds.ends
+    group by m.business_id
+  ),
+  wa as (
+    select u.business_id,
+           sum(u.sent) filter (where u.category = 'service')::int as service,
+           sum(greatest(u.sent - p_free_service, 0)) filter (where u.category = 'service')::int as service_over,
+           sum(u.sent) filter (where u.category = 'utility')::int as utility,
+           sum(u.sent) filter (where u.category = 'marketing')::int as marketing
+    from public.whatsapp_usage u
+    where u.month = p_month
+    group by u.business_id
+  )
+  select b.id, b.name, s.plan_id, s.status,
+         coalesce(c.reply_fcfa, 0), coalesce(c.test_fcfa, 0), coalesce(c.usd, 0), coalesce(c.requests, 0),
+         coalesce(cv.n, 0),
+         coalesce(w.service, 0), coalesce(w.service_over, 0), coalesce(w.utility, 0), coalesce(w.marketing, 0)
+  from public.businesses b
+  left join public.subscriptions s on s.business_id = b.id
+  left join claude c on c.business_id = b.id
+  left join conversations cv on cv.business_id = b.id
+  left join wa w on w.business_id = b.id
+  order by coalesce(c.reply_fcfa, 0) + coalesce(c.test_fcfa, 0) desc, b.name;
+$$;
+revoke execute on function public.admin_cost_report(date, integer) from public, anon, authenticated;
+grant execute on function public.admin_cost_report(date, integer) to service_role;

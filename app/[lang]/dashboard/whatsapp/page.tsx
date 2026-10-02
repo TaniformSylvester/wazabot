@@ -1,11 +1,12 @@
 import { CircleAlert, CircleCheck, Loader2, Smartphone } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
+import { FreeMessagesPanel } from "@/components/app/free-messages-panel";
 import { ActionForm, DeleteButton, SubmitButton, TextField } from "@/components/app/form";
 import { DefinitionList, LinkTabs, PageHeader, Panel, StatusBadge, formatDate, type BadgeTone } from "@/components/app/ui";
 import { connectWhatsAppAction, disconnectWhatsAppAction } from "@/lib/actions/whatsapp";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
-import { getWhatsAppConnection } from "@/lib/data/queries";
+import { getFreeWhatsAppMessages, getWhatsAppConnection } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
@@ -26,7 +27,7 @@ const STATUS_UI: Record<string, { tone: BadgeTone; icon: typeof Smartphone }> = 
 export default async function WhatsAppPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/whatsapp"));
-  const [conn, hint] = await Promise.all([getWhatsAppConnection(business.id), storedTokenHint(business.id)]);
+  const [conn, hint, freeMessages] = await Promise.all([getWhatsAppConnection(business.id), storedTokenHint(business.id), getFreeWhatsAppMessages(business.id)]);
   const d = t.dashboard;
   const w = d.whatsapp;
   const status = conn?.status ?? "not_connected";
@@ -83,6 +84,8 @@ export default async function WhatsAppPage() {
           ) : null}
         </div>
       </Panel>
+
+      {status === "connected" && freeMessages ? <FreeMessagesPanel usage={freeMessages} text={t.dashboard.home.freeMessages} locale={locale} /> : null}
 
       {status !== "connected" ? (
         <Panel title={w.form.title} description={w.form.text}>

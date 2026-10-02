@@ -300,6 +300,27 @@ mkdirSync("test-results", { recursive: true });
   ok("AI page shows Switched off and this month's activity", (await main.getByText("Switched off").count()) === 1 && (await main.getByText("AI replies").count()) === 1);
   await page.screenshot({ path: "test-results/stage3-ai-page.png", fullPage: true });
 
+  // The owner's free-messages bar (counts only, no prices).
+  await page.goto(`${APP}/en/dashboard/whatsapp`);
+  await main.getByText("Free WhatsApp messages this month").waitFor({ timeout: 15000 });
+  const freePanel = main.locator('section[aria-labelledby="free-whatsapp-messages-title"]');
+  ok("WhatsApp page shows free messages left this month, without prices", /of 1,000 left/.test(await freePanel.innerText()) && !/\$|USD|FCFA|XAF/.test(await freePanel.innerText()), await freePanel.innerText());
+
+  // The WazaBolt margin report: a 404 for everyone but platform admins.
+  ok("margin report is a 404 for business owners", (await page.goto(`${APP}/en/admin/margins`))?.status() === 404);
+  if (DB) {
+    const bizId = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${U.email}'`);
+    sql(`insert into platform_admins (user_id) select id from auth.users where email = '${U.email}'`);
+    await page.goto(`${APP}/en/admin/margins`);
+    await page.getByRole("heading", { name: "By business" }).waitFor({ timeout: 15000 });
+    const bizRow = page.locator(`tr[data-business-id="${bizId}"]`);
+    const rowText = (await bizRow.count()) ? await bizRow.innerText() : "";
+    ok("margin report: the business's plan, Claude cost and WhatsApp use", /free/i.test(rowText) && /FCFA/.test(rowText) && /test chat/.test(rowText), rowText);
+    ok("margin report: Free counted as acquisition cost; Meta rates flagged unverified", (await page.locator('tr[data-plan="free"]').innerText()).includes("Acquisition cost") && (await page.getByText(/unverified/).count()) === 1);
+    await page.screenshot({ path: "test-results/margins.png", fullPage: true });
+    sql(`delete from platform_admins where user_id in (select id from auth.users where email = '${U.email}')`);
+  }
+
   // Leave the shared test number free for the other suites.
   await page.goto(`${APP}/en/dashboard/whatsapp`);
   await main.getByRole("button", { name: "Disconnect" }).click();

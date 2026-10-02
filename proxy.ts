@@ -6,7 +6,7 @@ import { matchLocale } from "@/lib/i18n/negotiate";
 import { localizePath, splitLocale } from "@/lib/i18n/paths";
 import { updateSession } from "@/lib/supabase/proxy";
 
-const PROTECTED_PREFIXES = ["/dashboard"];
+const PROTECTED_PREFIXES = ["/dashboard", "/admin"];
 /** Pages a signed-in user shouldn't see again. (/reset-password is allowed: recovery sessions land there.) */
 const GUEST_ONLY = ["/login", "/register", "/forgot-password"];
 /** Routes that are not localized (email-link handler, generated images). */

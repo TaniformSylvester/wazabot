@@ -804,6 +804,11 @@ const en = {
       onboarded: "Setup saved. You can change everything later in the dashboard.",
       joined: "You've joined {business}. Welcome to the team!",
       welcome: "Welcome, {name}",
+      freeMessages: {
+        title: "Free WhatsApp messages this month",
+        left: "{left} of {total} left",
+        text: "Your WhatsApp number includes {total} free messages a month for answering customers who wrote to you in the last 24 hours. The count starts again on {reset}.",
+      },
       stockAlerts: {
         title: "Stock alerts",
         text: "Products that are out of stock or running low. The assistant won't sell more than you have.",

@@ -477,6 +477,19 @@ card; each business pays Meta directly, so they are only used for estimates.
   for broadcasts) and is counted per WhatsApp number, month (UTC) and category in
   `whatsapp_usage`. When Meta's status webhook includes pricing, Meta's own category, billable flag
   and pricing type are stored next to ours (`messages.meta_*`) so the estimates can be checked.
+- **Owners** see "Free WhatsApp messages this month — N of 1,000 left" on the dashboard home and
+  the WhatsApp page (service messages from their number, resetting on the 1st, UTC). Counts only —
+  no prices anywhere.
+- **Margin report** (`/en/admin/margins`, WazaBolt team only; everyone else gets a 404): per plan
+  and per business for a month — revenue (price of active / past-due subscriptions; no payment
+  history yet), Claude cost (test chat shown separately), Mobile Money fee, margin, the hidden Claude
+  budget, Claude cost per AI conversation, WhatsApp messages by category and an estimate of what
+  Meta bills the business. Paid businesses and plans below 60%, and businesses costing money without
+  paying, are flagged; Free is shown as acquisition cost. Give yourself access in the SQL editor:
+
+  ```sql
+  insert into public.platform_admins (user_id) select id from auth.users where email = 'you@example.com';
+  ```
 
 ## Before launch
 

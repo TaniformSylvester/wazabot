@@ -1771,6 +1771,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_admins: {
+        Row: {
+          created_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       product_variants: {
         Row: {
           business_id: string;
@@ -2180,6 +2195,24 @@ export type Database = {
     };
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string };
+      admin_cost_report: {
+        Args: { p_free_service: number; p_month: string };
+        Returns: {
+          ai_conversations: number;
+          business_id: string;
+          business_name: string;
+          claude_reply_fcfa: number;
+          claude_requests: number;
+          claude_test_fcfa: number;
+          claude_usd: number;
+          marketing_sent: number;
+          plan_id: string;
+          service_over_free: number;
+          service_sent: number;
+          subscription_status: string;
+          utility_sent: number;
+        }[];
+      };
       ai_usage_status: {
         Args: { p_business_id: string };
         Returns: {
