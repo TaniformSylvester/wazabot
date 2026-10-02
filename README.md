@@ -459,6 +459,19 @@ Apply `supabase/migrations/20261009120000_broadcasts.sql`.
   once (`broadcast_recipients`).
 - Meta charges the business's WhatsApp Business Account for each marketing message delivered.
 
+## Costs and margins
+
+Apply `supabase/migrations/20261010120000_cost_tracking.sql`.
+
+All prices, rates, limits and budgets are in `config/economics.ts` (server-only — nothing in it
+reaches the browser). Meta rates there are marked **unverified** until checked against Meta's rate
+card; each business pays Meta directly, so they are only used for estimates.
+
+- **Claude calls** (`claude_calls`): one row per Messages API request — customer replies and test
+  chat, including attempts that then failed — with the model, input / output / cache-read /
+  cache-write (5-minute and 1-hour) tokens and the cost in USD and FCFA at the rates of the moment.
+  Internal: no business user can read it, owners included.
+
 ## Before launch
 
 - Replace `public/images/hero-owner.webp` and `product-robe-wax.webp` (low-resolution crops from

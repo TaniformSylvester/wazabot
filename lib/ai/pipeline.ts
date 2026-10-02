@@ -6,6 +6,7 @@ import { buildBusinessContext, buildConversationContext, type BusinessContext } 
 import { loadMessageImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage } from "@/lib/ai/service";
+import { logClaudeCalls, type ClaudeCallUsage } from "@/lib/billing/costs";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { isOpenAt } from "@/lib/business/hours";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
@@ -151,6 +152,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   }
 
   const started = Date.now();
+  const calls: ClaudeCallUsage[] = [];
   try {
     const result = await deps.responder.generate({
       business,
@@ -160,10 +162,11 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
       now: deps.now(),
       tools: { db: admin, businessId: job.businessId, conversationId: job.conversationId, customerId: conversation.customer.id },
       images,
+      calls,
     });
     const check = validateAIResponse(result.reply, { language: analysis.decision.language, allowedProductIds: result.productIds, maxChars: WHATSAPP_TEXT_LIMIT });
     const issues = check.ok ? [] : check.issues;
-    const meta = { model: result.model, usage: result.usage, toolCalls: result.toolCalls, durationMs: Date.now() - started };
+    const meta = { model: result.model, usage: result.usage, toolCalls: result.toolCalls, durationMs: Date.now() - started, calls };
 
     // A product the tools never returned, an empty or invalid reply: don't send it — hand over instead.
     if (issues.some((i) => i !== "language_mismatch")) {
@@ -187,13 +190,13 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
     logServerError("ai.generate", describeAiError(e));
     await flagForTeam(admin, job);
     await markProcessed(admin, job, reason);
-    await logUsage(admin, job, { outcome: "failed", reason, durationMs: Date.now() - started });
+    await logUsage(admin, job, { outcome: "failed", reason, durationMs: Date.now() - started, calls, model: calls.at(-1)?.model });
     return { outcome: "failed", reason };
   }
 }
 
 type Ctx = { deps: PipelineDeps; job: AiJob; business: BusinessContext; wa: BusinessWhatsApp; customerPhone: string };
-type Meta = { model?: string; usage?: AiUsage; toolCalls?: number; durationMs?: number };
+type Meta = { model?: string; usage?: AiUsage; toolCalls?: number; durationMs?: number; calls?: ClaudeCallUsage[] };
 
 /** Sends a fixed notice (no model call) and records it. */
 async function sendNotice(ctx: Ctx, text: string, language: LanguageCode, outcome: "replied" | "handed_over", reason: string, meta: Meta = {}): Promise<AiOutcome> {
@@ -285,9 +288,11 @@ async function withinPlanLimit(admin: Admin, job: AiJob) {
 async function logUsage(
   admin: Admin,
   job: AiJob,
-  u: { outcome: AiOutcome["outcome"]; reason?: string; replyMessageId?: string; model?: string; usage?: AiUsage; toolCalls?: number; durationMs?: number },
+  u: Meta & { outcome: AiOutcome["outcome"]; reason?: string; replyMessageId?: string },
 ) {
-  const { error } = await admin.from("ai_usage").insert({
+  const { data, error } = await admin
+    .from("ai_usage")
+    .insert({
     business_id: job.businessId,
     conversation_id: job.conversationId,
     inbound_message_id: job.messageId,
@@ -301,6 +306,10 @@ async function logUsage(
     cache_write_tokens: u.usage?.cacheWriteTokens ?? 0,
     tool_calls: u.toolCalls ?? 0,
     duration_ms: Math.max(0, Math.round(u.durationMs ?? 0)),
-  });
+    })
+    .select("id")
+    .single();
   if (error) logServerError("ai.usage", error);
+  // Our cost of this attempt, request by request (internal; failed attempts cost money too).
+  if (u.calls?.length) await logClaudeCalls(admin, job.businessId, u.calls, { source: "reply", aiUsageId: data?.id ?? null });
 }

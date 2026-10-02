@@ -658,6 +658,75 @@ export type Database = {
           },
         ];
       };
+      claude_calls: {
+        Row: {
+          ai_usage_id: string | null;
+          business_id: string;
+          cache_read_tokens: number;
+          cache_write_1h_tokens: number;
+          cache_write_5m_tokens: number;
+          cost_fcfa: number;
+          cost_usd: number;
+          created_at: string;
+          id: string;
+          input_tokens: number;
+          model: string;
+          output_tokens: number;
+          rate_known: boolean;
+          source: string;
+          step: number;
+        };
+        Insert: {
+          ai_usage_id?: string | null;
+          business_id: string;
+          cache_read_tokens?: number;
+          cache_write_1h_tokens?: number;
+          cache_write_5m_tokens?: number;
+          cost_fcfa: number;
+          cost_usd: number;
+          created_at?: string;
+          id?: string;
+          input_tokens?: number;
+          model: string;
+          output_tokens?: number;
+          rate_known?: boolean;
+          source: string;
+          step?: number;
+        };
+        Update: {
+          ai_usage_id?: string | null;
+          business_id?: string;
+          cache_read_tokens?: number;
+          cache_write_1h_tokens?: number;
+          cache_write_5m_tokens?: number;
+          cost_fcfa?: number;
+          cost_usd?: number;
+          created_at?: string;
+          id?: string;
+          input_tokens?: number;
+          model?: string;
+          output_tokens?: number;
+          rate_known?: boolean;
+          source?: string;
+          step?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "claude_calls_ai_usage_id_fkey";
+            columns: ["ai_usage_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_usage";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "claude_calls_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       conversations: {
         Row: {
           ai_enabled: boolean;

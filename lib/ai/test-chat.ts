@@ -9,6 +9,7 @@ import { prepareImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
 import { authorize } from "@/lib/auth/dal";
+import { logClaudeCalls, type ClaudeCallUsage } from "@/lib/billing/costs";
 import { isOpenAt } from "@/lib/business/hours";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
 import { logServerError } from "@/lib/log";
@@ -115,6 +116,7 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
   const analysis = analyzeInboundMessage(message, { settings: business.language, conversationLanguage });
 
   const started = Date.now();
+  const calls: ClaudeCallUsage[] = [];
   try {
     const result = await new ClaudeResponder(undefined, TEST_CHAT_MODEL).generate({
       business,
@@ -124,9 +126,12 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       now,
       tools: { db, businessId, conversationId: null, customerId: null, dryRun: true },
       images,
+      calls,
     });
     const check = validateAIResponse(result.reply, { language: analysis.decision.language, allowedProductIds: result.productIds, maxChars: WHATSAPP_TEXT_LIMIT });
-    await admin?.from("ai_usage").insert({
+    const logged = await admin
+      ?.from("ai_usage")
+      .insert({
       business_id: businessId,
       model: result.model.slice(0, 80),
       outcome: "replied",
@@ -137,7 +142,10 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       cache_write_tokens: result.usage.cacheWriteTokens,
       tool_calls: result.toolCalls,
       duration_ms: Date.now() - started,
-    });
+      })
+      .select("id")
+      .single();
+    if (admin) await logClaudeCalls(admin, businessId, calls, { source: "test_chat", aiUsageId: logged?.data?.id });
     const open = isOpenAt(business.business.openingHours, business.business.timezone, now);
     return {
       ok: true,
@@ -153,6 +161,7 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
     const reason = e instanceof AiRefusalError ? "refusal" : e instanceof AiNoReplyError ? e.reason : "api_error";
     logServerError("ai.testChat", describeAiError(e));
     await admin?.from("ai_usage").insert({ business_id: businessId, model: "none", outcome: "failed", reason: "test_chat", duration_ms: Date.now() - started });
+    if (admin) await logClaudeCalls(admin, businessId, calls, { source: "test_chat" });
     return { ok: false, error: reason === "refusal" ? "refusal" : "failed" };
   }
 }

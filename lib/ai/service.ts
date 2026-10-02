@@ -5,6 +5,7 @@ import { detectLanguage as detect, type DetectionResult, type LanguageDecision }
 import { assistantReplySchema, replyLanguageMismatch, type AssistantReply } from "@/lib/ai/reply-schema";
 import type { InputImage } from "@/lib/ai/images";
 import type { ToolContext } from "@/lib/ai/tools/registry";
+import type { ClaudeCallUsage } from "@/lib/billing/costs";
 
 export { buildBusinessContext, buildConversationContext } from "@/lib/ai/context";
 export type { BusinessContext, ConversationContext } from "@/lib/ai/context";
@@ -26,6 +27,8 @@ export type GenerateInput = {
   /** Photos sent with the latest customer message (already normalised by lib/ai/images). */
   images?: InputImage[];
   now: Date;
+  /** Filled with every Messages API request made, even when generate() then fails (cost logging). */
+  calls?: ClaudeCallUsage[];
 };
 
 export type AiUsage = { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number };

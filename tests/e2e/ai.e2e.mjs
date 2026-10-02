@@ -9,6 +9,7 @@
  * then:
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... npm run test:e2e:ai
  */
+import { execFileSync } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
@@ -50,6 +51,9 @@ async function latestMail(to, subjectIncludes) {
 }
 const linkFrom = (mail) => (mail.HTML.match(/href="([^"]*\/auth\/confirm[^"]*)"/) || [])[1]?.replace(/&amp;/g, "&");
 const restHeaders = (tok, extra = {}) => ({ apikey: ANON, authorization: `Bearer ${tok}`, "content-type": "application/json", ...extra });
+const DB = process.env.DATABASE_URL;
+const RUN_STARTED = new Date().toISOString();
+const sql = (q) => (DB ? execFileSync("psql", [DB, "-v", "ON_ERROR_STOP=1", "-qtAc", q], { encoding: "utf8" }).trim() : null);
 const get = async (tok, path) => (await fetch(`${SUPABASE}/rest/v1/${path}`, { headers: restHeaders(tok) })).json();
 const patch = (tok, path, body) => fetch(`${SUPABASE}/rest/v1/${path}`, { method: "PATCH", headers: restHeaders(tok), body: JSON.stringify(body) });
 const post = (tok, path, body) => fetch(`${SUPABASE}/rest/v1/${path}`, { method: "POST", headers: restHeaders(tok, { prefer: "return=representation" }), body: JSON.stringify(body) });
@@ -185,6 +189,7 @@ mkdirSync("test-results", { recursive: true });
 
   // Before WhatsApp is connected the assistant isn't live.
   await page.goto(`${APP}/en/dashboard/ai`);
+  await main.getByText("Waiting for WhatsApp").waitFor({ timeout: 10000 }).catch(() => {});
   ok("AI page: waiting for WhatsApp before connecting", (await main.getByText("Waiting for WhatsApp").count()) === 1);
 
   // Connect WhatsApp (fake Graph API)
@@ -207,6 +212,15 @@ mkdirSync("test-results", { recursive: true });
   ok("Claude request: Opus 5.5, low effort, server-side fallback", req?.body.model === "claude-opus-5-5" && req.body.output_config?.effort === "low" && req.body.fallbacks === "default" && String(req.headers["anthropic-beta"]).includes("server-side-fallback-2026-07-01"));
   ok("Claude request: cached system prompt with the FAQ, tools end with send_reply", req.body.system.every((b) => b.cache_control) && req.body.system[1].text.includes("Livrez-vous à Buea ?") && req.body.tools.at(-1).name === "send_reply");
   ok("Claude request: turn context as a system message after the customer's message", req.body.messages.at(-1).role === "system" && req.body.messages.at(-1).content.includes("reply_language: French (fr)"));
+  if (DB) {
+    // Our cost of each Claude request: one row per request, priced from config/economics.ts (fake usage: 1200 in, 60 out, 900 cache read).
+    const rows = sql(`select source, model, step, cost_usd, cost_fcfa from claude_calls where created_at >= '${RUN_STARTED}' order by created_at, step`).split("\n").filter(Boolean).map((r) => r.split("|"));
+    const replyRows = rows.filter((r) => r[0] === "reply");
+    ok("every Claude request is logged with its cost (reply: search + send_reply = 2 rows)", replyRows.length === 2 && replyRows[0][1] === "claude-opus-5-5" && Math.abs(Number(replyRows[0][3]) - 0.00618) < 1e-6 && Math.abs(Number(replyRows[0][4]) - 0.00618 * 570) < 1e-3, JSON.stringify(rows));
+    ok("test-chat requests are logged too, at Haiku rates", rows.some((r) => r[0] === "test_chat" && r[1] === "claude-haiku-4-5" && Math.abs(Number(r[3]) - (1200 * 1 + 60 * 5 + 900 * 0.1) / 1e6) < 1e-6));
+  }
+  const costs = await fetch(`${SUPABASE}/rest/v1/claude_calls?select=id`, { headers: restHeaders(tok) });
+  ok("owners can't read our Claude costs", costs.status >= 400);
   ok("the API key never reaches the browser", !(await page.content()).includes("test-key"));
   const [cust] = await get(tok, "customers?select=id,preferred_language,preferred_language_source");
   ok("customer's language remembered (inferred French)", cust.preferred_language === "fr" && cust.preferred_language_source === "inferred", JSON.stringify(cust));

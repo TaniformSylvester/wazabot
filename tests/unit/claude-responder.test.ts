@@ -153,6 +153,18 @@ describe("Claude responder", () => {
     expect(blocks.at(-1)?.text).toContain("reply_language: French (fr)");
   });
 
+  it("records every request's usage for cost logging, even when the loop then fails", async () => {
+    const withCache = { input_tokens: 300, output_tokens: 40, cache_read_input_tokens: 4000, cache_creation_input_tokens: 500, cache_creation: { ephemeral_5m_input_tokens: 200, ephemeral_1h_input_tokens: 300 } };
+    const api = scripted([
+      message([{ type: "tool_use", id: "t1", name: "searchProducts", input: { query: "Ankara" } }], "tool_use", { usage: withCache, model: "claude-haiku-4-5-20251001" }),
+      message([], "max_tokens"),
+    ]);
+    const calls: NonNullable<GenerateInput["calls"]> = [];
+    await expect(new ClaudeResponder(api.create, "claude-haiku-4-5").generate({ ...input([]), calls })).rejects.toThrow("max_tokens");
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toEqual({ model: "claude-haiku-4-5-20251001", inputTokens: 300, outputTokens: 40, cacheReadTokens: 4000, cacheWrite5mTokens: 200, cacheWrite1hTokens: 300 });
+  });
+
   it("asks again when send_reply is malformed", async () => {
     const api = scripted([
       message([{ type: "tool_use", id: "t1", name: "send_reply", input: { reply: "Bonjour" } }], "tool_use"),

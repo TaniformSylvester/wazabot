@@ -203,6 +203,16 @@ export class ClaudeResponder implements AiResponder {
         messages,
       });
       model = response.model;
+      const cacheWrite = response.usage.cache_creation_input_tokens ?? 0;
+      const cacheWrite1h = response.usage.cache_creation?.ephemeral_1h_input_tokens ?? 0;
+      input.calls?.push({
+        model: response.model,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+        cacheWrite5mTokens: Math.max(0, cacheWrite - cacheWrite1h),
+        cacheWrite1hTokens: cacheWrite1h,
+      });
       usage.inputTokens += response.usage.input_tokens;
       usage.outputTokens += response.usage.output_tokens;
       usage.cacheReadTokens += response.usage.cache_read_input_tokens ?? 0;
