@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { connectWhatsApp, disconnectWhatsApp, whatsappForBusiness } from "@/lib/whatsapp/connection";
 import { GraphApiError } from "@/lib/whatsapp/graph";
 import { windowOpen } from "@/lib/whatsapp/service";
+import { recordWhatsAppSend } from "@/lib/whatsapp/usage";
 
 import { fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
 
@@ -88,6 +89,7 @@ export async function sendWhatsAppMessage(_prev: FormState, formData: FormData):
       message_type: "text",
       content: text,
       delivery_status: "pending",
+      wa_category: "service",
       sent_by: ctx.user.id,
       processing_status: "processed",
     })
@@ -101,6 +103,7 @@ export async function sendWhatsAppMessage(_prev: FormState, formData: FormData):
   try {
     const { messageId } = await wa.client.sendText(wa.phoneNumberId, conv.customers.whatsapp_phone, text);
     await admin.from("messages").update({ whatsapp_message_id: messageId, delivery_status: "sent", status_updated_at: now }).eq("id", msg.id);
+    await recordWhatsAppSend(admin, businessId, wa.phoneNumberId, "service");
   } catch (e) {
     const g = e instanceof GraphApiError ? e : null;
     logServerError("whatsapp.send", g ? { code: String(g.code ?? g.status), message: g.title } : e);

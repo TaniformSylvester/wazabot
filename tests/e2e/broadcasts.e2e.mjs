@@ -163,6 +163,7 @@ mkdirSync("test-results", { recursive: true });
   ok("sent to the VIP audience only, with each customer's name", anaMsg?.template?.name === tpl.name && anaMsg.template.components[0].parameters[0].text === "Ana" && sentTo(CARA)[0]?.template.components[0].parameters[0].text === "Cara" && sentTo(BOB).length === 0);
   await page.goto(broadcastUrl);
   await main.getByText("Sent 2 of 2 · 0 failed").waitFor({ timeout: 15000 }).catch(() => {});
+  ok("broadcast messages are recorded as marketing", sql(`select count(*) from messages where whatsapp_message_id in ('${sentTo(CARA)[0]?.wamid}', '${anaMsg?.wamid}') and wa_category = 'marketing'`) === "2");
   ok("progress and recipients shown", (await main.getByText("Sent 2 of 2 · 0 failed").count()) === 1 && (await main.getByText("Sent", { exact: true }).count()) >= 2);
 
   // STOP and START from WhatsApp.

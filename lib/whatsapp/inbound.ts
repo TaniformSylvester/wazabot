@@ -128,6 +128,15 @@ export async function handleWebhookPayload(payload: unknown, admin: Admin): Prom
     });
     if (error) logServerError("whatsapp.status", error);
     else if (data) result.statuses++;
+    // What Meta says the message cost category is — checked against our own wa_category in the margin report.
+    if (s.pricing) {
+      const { error: pricingError } = await admin
+        .from("messages")
+        .update({ meta_category: s.pricing.category, meta_billable: s.pricing.billable, meta_pricing_type: s.pricing.type })
+        .eq("whatsapp_message_id", s.channelMessageId)
+        .eq("direction", "outbound");
+      if (pricingError) logServerError("whatsapp.pricing", pricingError);
+    }
   }
 
   // Meta's review result for a message template (Stage 7).

@@ -132,6 +132,8 @@ export type DeliveryStatusUpdate = {
   at: Date;
   /** "131047 Re-engagement message" — code and title only, never content. */
   error?: string;
+  /** Meta's pricing for the message (status "sent"/"delivered"): category, billable, type ("regular", "free_customer_service" …). */
+  pricing?: { category: string | null; billable: boolean | null; type: string | null };
 };
 
 const STATUSES = ["sent", "delivered", "read", "failed"] as const;
@@ -155,12 +157,16 @@ export function parseWebhookStatuses(payload: unknown): DeliveryStatusUpdate[] {
         if (!st || !channelMessageId || !status || !(STATUSES as readonly string[]).includes(status)) continue;
         const seconds = Number(st.timestamp);
         const err = obj(arr(st.errors)[0]);
+        const pricing = obj(st.pricing);
         out.push({
           phoneNumberId,
           channelMessageId,
           status: status as DeliveryStatusUpdate["status"],
           at: Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000) : new Date(),
           error: err ? `${num(err.code) ?? ""} ${str(err.title) ?? str(err.message) ?? ""}`.trim().slice(0, 200) : undefined,
+          ...(pricing
+            ? { pricing: { category: str(pricing.category)?.slice(0, 40) ?? null, billable: typeof pricing.billable === "boolean" ? pricing.billable : null, type: str(pricing.type)?.slice(0, 40) ?? null } }
+            : {}),
         });
       }
     }

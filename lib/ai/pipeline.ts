@@ -15,6 +15,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { whatsappForBusiness, type BusinessWhatsApp } from "@/lib/whatsapp/connection";
 import { GraphApiError } from "@/lib/whatsapp/graph";
 import { windowOpen } from "@/lib/whatsapp/service";
+import { recordWhatsAppSend } from "@/lib/whatsapp/usage";
 
 /*
  * After a customer message is stored: decide whether the assistant answers,
@@ -233,6 +234,7 @@ async function sendAssistantMessage(ctx: Ctx, text: string, language: LanguageCo
       language,
       language_reason: meta.languageReason,
       whatsapp_message_id: wamid,
+      wa_category: "service",
       delivery_status: wamid ? "sent" : "failed",
       delivery_error: error,
       status_updated_at: now,
@@ -240,6 +242,7 @@ async function sendAssistantMessage(ctx: Ctx, text: string, language: LanguageCo
     })
     .select("id")
     .single();
+  if (wamid) await recordWhatsAppSend(admin, ctx.job.businessId, ctx.wa.phoneNumberId, "service");
   await admin.from("conversations").update({ last_message_at: now, language }).eq("id", ctx.job.conversationId).eq("business_id", ctx.job.businessId);
   return wamid ? (data?.id ?? null) : null;
 }

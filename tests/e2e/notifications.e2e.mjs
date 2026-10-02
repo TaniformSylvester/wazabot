@@ -191,6 +191,7 @@ mkdirSync("test-results", { recursive: true });
   await sleep(1500);
   ok("saving the same status again doesn't notify twice", sentTo(BOB).filter((m) => m.template?.name === "wazabolt_order_ready").length === 1);
   ok("the notification shows in the customer's conversation", (await get(tok, `messages?select=content,sender_type&sender_type=eq.system`)).some((m) => m.content === "Hello Bob, your order ORD-00001 at Awa Styles is ready."));
+  ok("the template is recorded as a utility message", (await get(tok, `messages?select=content,wa_category&sender_type=eq.system`)).some((m) => m.content === "Hello Bob, your order ORD-00001 at Awa Styles is ready." && m.wa_category === "utility"));
 
   // Follow-up template from the conversation (window closed).
   const [bobConv] = await get(tok, `conversations?select=id&customer_id=eq.${bob.id}`);

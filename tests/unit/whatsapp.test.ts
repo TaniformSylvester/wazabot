@@ -46,7 +46,13 @@ describe("delivery status webhooks", () => {
               value: {
                 metadata: { phone_number_id: "PNID" },
                 statuses: [
-                  { id: "wamid.1", status: "delivered", timestamp: "1790700000", recipient_id: "237670000001" },
+                  {
+                    id: "wamid.1",
+                    status: "delivered",
+                    timestamp: "1790700000",
+                    recipient_id: "237670000001",
+                    pricing: { billable: false, pricing_model: "PMP", category: "service", type: "free_customer_service" },
+                  },
                   { id: "wamid.2", status: "failed", timestamp: "1790700001", errors: [{ code: 131047, title: "Re-engagement message" }] },
                   { id: "wamid.3", status: "deleted" },
                 ],
@@ -59,7 +65,9 @@ describe("delivery status webhooks", () => {
     const s = parseWebhookStatuses(payload);
     expect(s).toHaveLength(2);
     expect(s[0]).toMatchObject({ phoneNumberId: "PNID", channelMessageId: "wamid.1", status: "delivered" });
+    expect(s[0].pricing).toEqual({ category: "service", billable: false, type: "free_customer_service" });
     expect(s[1]).toMatchObject({ status: "failed", error: "131047 Re-engagement message" });
+    expect(s[1].pricing).toBeUndefined();
     expect(parseWebhookStatuses({ object: "page" })).toEqual([]);
   });
 });

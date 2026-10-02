@@ -56,7 +56,7 @@ const envelope = (value, phoneNumberId = FAKE.phoneNumberId) => ({
 });
 const inbound = (from, name, message, phoneNumberId) =>
   envelope({ contacts: [{ wa_id: from, profile: { name } }], messages: [{ from, timestamp: String(Math.floor(Date.now() / 1000)), ...message }] }, phoneNumberId);
-const statusUpdate = (wamid, status) => envelope({ statuses: [{ id: wamid, status, timestamp: String(Math.floor(Date.now() / 1000)), recipient_id: "237670000123" }] });
+const statusUpdate = (wamid, status, pricing) => envelope({ statuses: [{ id: wamid, status, timestamp: String(Math.floor(Date.now() / 1000)), recipient_id: "237670000123", ...(pricing ? { pricing } : {}) }] });
 
 mkdirSync("test-results", { recursive: true });
 
@@ -144,6 +144,9 @@ async function signUp(browser, user) {
   ok("customer created from WhatsApp (name, first contact, detected language)", cust?.name === "Chantal" && !!cust.first_contact_at && cust.last_detected_language === "fr", JSON.stringify(cust));
 
   // -------------------------------------------------------------------- reply
+  const [{ business_id: bizId }] = await (await fetch(`${SUPABASE}/rest/v1/business_members?select=business_id&limit=1`, { headers: rest(aTok) })).json();
+  const freeUsage = async () => (await (await fetch(`${SUPABASE}/rest/v1/rpc/whatsapp_free_usage`, { method: "POST", headers: { ...rest(aTok), "content-type": "application/json" }, body: JSON.stringify({ p_business_id: bizId }) })).json())[0]?.service_sent ?? null;
+  const serviceBefore = await freeUsage();
   await main.getByLabel("Reply").fill("Oui ! La livraison à Buea coûte 2 500 XAF.");
   await main.getByRole("button", { name: "Send" }).click();
   await main.getByText("La livraison à Buea coûte 2 500 XAF.").waitFor({ timeout: 15000 });
@@ -151,11 +154,14 @@ async function signUp(browser, user) {
   ok("reply sent through the Cloud API to the customer's number", sent?.to === "237670000123" && sent?.text?.body === "Oui ! La livraison à Buea coûte 2 500 XAF.", JSON.stringify(sent));
   ok("reply shows as Sent and the conversation is in Human Mode", (await main.getByText("Sent", { exact: true }).count()) >= 1 && (await main.getByText("Human Mode").count()) >= 1);
   ok("composer cleared after sending", (await main.getByLabel("Reply").inputValue()) === "");
-  await deliver(statusUpdate(sent.wamid, "delivered"));
+  ok("staff reply counted as a service message for this number", serviceBefore !== null && (await freeUsage()) === serviceBefore + 1, String(serviceBefore));
+  await deliver(statusUpdate(sent.wamid, "delivered", { billable: false, pricing_model: "PMP", category: "service", type: "free_customer_service" }));
   await deliver(statusUpdate(sent.wamid, "read"));
   await deliver(statusUpdate(sent.wamid, "delivered")); // out of order: must not go back
   // Receipts are applied as they arrive; the page refreshes itself every few seconds.
   const readShown = await main.getByText("Read", { exact: true }).waitFor({ timeout: 20000 }).then(() => true, () => false);
+  const [priced] = await (await fetch(`${SUPABASE}/rest/v1/messages?whatsapp_message_id=eq.${sent.wamid}&select=wa_category,meta_category,meta_billable,meta_pricing_type`, { headers: rest(aTok) })).json();
+  ok("our category and Meta's reported pricing are stored on the message", priced?.wa_category === "service" && priced.meta_category === "service" && priced.meta_billable === false && priced.meta_pricing_type === "free_customer_service", JSON.stringify(priced));
   ok("delivery receipts: Read (never back to Delivered)", readShown && (await main.getByText("Read", { exact: true }).count()) === 1);
 
   // ---------------------------------------------------------------- media + auto refresh

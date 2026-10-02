@@ -221,6 +221,8 @@ mkdirSync("test-results", { recursive: true });
   }
   const costs = await fetch(`${SUPABASE}/rest/v1/claude_calls?select=id`, { headers: restHeaders(tok) });
   ok("owners can't read our Claude costs", costs.status >= 400);
+  const aiMsgs = await get(tok, "messages?select=wa_category&sender_type=eq.ai");
+  ok("assistant replies are recorded as service messages", aiMsgs.length > 0 && aiMsgs.every((m) => m.wa_category === "service"), JSON.stringify(aiMsgs));
   ok("the API key never reaches the browser", !(await page.content()).includes("test-key"));
   const [cust] = await get(tok, "customers?select=id,preferred_language,preferred_language_source");
   ok("customer's language remembered (inferred French)", cust.preferred_language === "fr" && cust.preferred_language_source === "inferred", JSON.stringify(cust));

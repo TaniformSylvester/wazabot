@@ -5,6 +5,7 @@ import { customerConversation } from "@/lib/notifications/service";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { GraphApiError } from "@/lib/whatsapp/graph";
 import { whatsappForBusiness, type BusinessWhatsApp } from "@/lib/whatsapp/connection";
+import { recordWhatsAppSend } from "@/lib/whatsapp/usage";
 
 import { OPT_REPLY, broadcastTemplateName, renderBroadcast, type BroadcastLanguage } from "./compose";
 
@@ -117,6 +118,7 @@ export async function processBroadcast(admin: Admin, businessId: string, broadca
         error = (e instanceof GraphApiError ? e.summary : "send failed").slice(0, 200);
         logServerError("broadcasts.send", graphError(e));
       }
+      if (wamid) await recordWhatsAppSend(admin, businessId, conn.phoneNumberId, "marketing");
       const conversation = await customerConversation(admin, businessId, r.customer_id, new Date());
       let messageId: string | null = null;
       if (conversation) {
@@ -132,6 +134,7 @@ export async function processBroadcast(admin: Admin, businessId: string, broadca
             content: renderBroadcast(b.body, name),
             language,
             whatsapp_message_id: wamid,
+            wa_category: "marketing",
             delivery_status: wamid ? "sent" : "failed",
             delivery_error: error,
             status_updated_at: at,
@@ -207,10 +210,12 @@ export async function applyOptKeyword(
     content: text,
     language,
     whatsapp_message_id: wamid,
+    wa_category: "service",
     delivery_status: wamid ? "sent" : "failed",
     status_updated_at: at,
     processing_status: "processed",
   });
+  if (wamid) await recordWhatsAppSend(admin, job.businessId, conn.phoneNumberId, "service");
 }
 
 export { broadcastTemplateName };

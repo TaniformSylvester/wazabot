@@ -5,6 +5,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { GraphApiError } from "@/lib/whatsapp/graph";
 import { whatsappForBusiness, type BusinessWhatsApp } from "@/lib/whatsapp/connection";
 import { windowOpen } from "@/lib/whatsapp/service";
+import { recordWhatsAppSend } from "@/lib/whatsapp/usage";
 
 import {
   NOTIFICATION_KINDS,
@@ -214,6 +215,7 @@ export async function notify(admin: Admin, ev: NotifyEvent, wa: WhatsAppFor = wh
       content: renderBody(ev.kind, usedLanguage, ev.values),
       language: usedLanguage,
       whatsapp_message_id: wamid,
+      wa_category: channel === "template" ? "utility" : "service",
       delivery_status: wamid ? "sent" : "failed",
       delivery_error: error,
       status_updated_at: at,
@@ -221,6 +223,7 @@ export async function notify(admin: Admin, ev: NotifyEvent, wa: WhatsAppFor = wh
     })
     .select("id")
     .single();
+  if (wamid) await recordWhatsAppSend(admin, ev.businessId, conn.phoneNumberId, channel === "template" ? "utility" : "service");
   await admin.from("conversations").update({ last_message_at: at }).eq("id", conversation.id).eq("business_id", ev.businessId);
   return finish(wamid ? { status: "sent", channel } : { status: "failed", channel, reason: "send_failed" }, msg?.id);
 }

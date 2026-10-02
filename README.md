@@ -471,6 +471,12 @@ card; each business pays Meta directly, so they are only used for estimates.
   chat, including attempts that then failed — with the model, input / output / cache-read /
   cache-write (5-minute and 1-hour) tokens and the cost in USD and FCFA at the rates of the moment.
   Internal: no business user can read it, owners included.
+- **WhatsApp sends**: every outbound message records the category we sent it as
+  (`messages.wa_category`: service for free-form text in the 24-hour window — assistant, team,
+  in-window notifications, STOP/START confirmations; utility for notification templates; marketing
+  for broadcasts) and is counted per WhatsApp number, month (UTC) and category in
+  `whatsapp_usage`. When Meta's status webhook includes pricing, Meta's own category, billable flag
+  and pricing type are stored next to ours (`messages.meta_*`) so the estimates can be checked.
 
 ## Before launch
 

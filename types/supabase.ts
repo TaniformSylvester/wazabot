@@ -1317,6 +1317,9 @@ export type Database = {
           language_confidence: number | null;
           language_reason: string | null;
           message_type: string;
+          meta_billable: boolean | null;
+          meta_category: string | null;
+          meta_pricing_type: string | null;
           payload: NonNullable<Json>;
           processing_error: string | null;
           processing_status: string;
@@ -1324,6 +1327,7 @@ export type Database = {
           sender_type: string;
           sent_by: string | null;
           status_updated_at: string | null;
+          wa_category: string | null;
           whatsapp_message_id: string | null;
         };
         Insert: {
@@ -1344,6 +1348,9 @@ export type Database = {
           language_confidence?: number | null;
           language_reason?: string | null;
           message_type?: string;
+          meta_billable?: boolean | null;
+          meta_category?: string | null;
+          meta_pricing_type?: string | null;
           payload?: NonNullable<Json>;
           processing_error?: string | null;
           processing_status?: string;
@@ -1351,6 +1358,7 @@ export type Database = {
           sender_type: string;
           sent_by?: string | null;
           status_updated_at?: string | null;
+          wa_category?: string | null;
           whatsapp_message_id?: string | null;
         };
         Update: {
@@ -1371,6 +1379,9 @@ export type Database = {
           language_confidence?: number | null;
           language_reason?: string | null;
           message_type?: string;
+          meta_billable?: boolean | null;
+          meta_category?: string | null;
+          meta_pricing_type?: string | null;
           payload?: NonNullable<Json>;
           processing_error?: string | null;
           processing_status?: string;
@@ -1378,6 +1389,7 @@ export type Database = {
           sender_type?: string;
           sent_by?: string | null;
           status_updated_at?: string | null;
+          wa_category?: string | null;
           whatsapp_message_id?: string | null;
         };
         Relationships: [
@@ -2127,6 +2139,41 @@ export type Database = {
           },
         ];
       };
+      whatsapp_usage: {
+        Row: {
+          business_id: string;
+          category: string;
+          month: string;
+          phone_number_id: string;
+          sent: number;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          category: string;
+          month: string;
+          phone_number_id: string;
+          sent?: number;
+          updated_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          category?: string;
+          month?: string;
+          phone_number_id?: string;
+          sent?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_usage_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -2231,6 +2278,10 @@ export type Database = {
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
       prepare_broadcast: { Args: { p_broadcast_id: string }; Returns: number };
+      record_whatsapp_send: {
+        Args: { p_business_id: string; p_category: string; p_phone_number_id: string };
+        Returns: undefined;
+      };
       record_whatsapp_status: {
         Args: {
           p_at?: string;
@@ -2279,6 +2330,14 @@ export type Database = {
       update_member_role: {
         Args: { p_business_id: string; p_role: string; p_user_id: string };
         Returns: undefined;
+      };
+      whatsapp_free_usage: {
+        Args: { p_business_id: string };
+        Returns: {
+          month: string;
+          phone_number_id: string;
+          service_sent: number;
+        }[];
       };
     };
     Enums: {
