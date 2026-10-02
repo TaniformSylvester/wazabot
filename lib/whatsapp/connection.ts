@@ -113,19 +113,19 @@ export async function disconnectWhatsApp(businessId: string, userId: string): Pr
   return true;
 }
 
-export type BusinessWhatsApp = { businessId: string; phoneNumberId: string; client: WhatsAppGraphClient };
+export type BusinessWhatsApp = { businessId: string; phoneNumberId: string; wabaId: string | null; client: WhatsAppGraphClient };
 
 /** The connected number and a Graph client with the business's decrypted token (server-only, per call). */
 export async function whatsappForBusiness(businessId: string, graph: GraphFactory = defaultGraph): Promise<BusinessWhatsApp | null> {
   const admin = createAdminClient();
   if (!admin) return null;
   const [{ data: conn }, { data: cred }] = await Promise.all([
-    admin.from("whatsapp_connections").select("status, phone_number_id").eq("business_id", businessId).maybeSingle(),
+    admin.from("whatsapp_connections").select("status, phone_number_id, waba_id").eq("business_id", businessId).maybeSingle(),
     admin.from("whatsapp_credentials").select("access_token_encrypted").eq("business_id", businessId).maybeSingle(),
   ]);
   if (!conn || conn.status !== "connected" || !conn.phone_number_id || !cred) return null;
   try {
-    return { businessId, phoneNumberId: conn.phone_number_id, client: graph(decryptSecret(cred.access_token_encrypted)) };
+    return { businessId, phoneNumberId: conn.phone_number_id, wabaId: conn.waba_id, client: graph(decryptSecret(cred.access_token_encrypted)) };
   } catch (e) {
     logServerError("whatsapp.decrypt", e);
     return null;

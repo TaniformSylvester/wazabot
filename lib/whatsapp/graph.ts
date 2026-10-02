@@ -100,6 +100,48 @@ export class WhatsAppGraphClient {
     return { messageId };
   }
 
+  /**
+   * A message template, outside the 24-hour window (Stage 7). Parameters fill
+   * {{1}}, {{2}} … of the approved body in order.
+   */
+  async sendTemplate(phoneNumberId: string, to: string, name: string, language: string, bodyParams: string[]): Promise<{ messageId: string }> {
+    const r = await this.request<{ messages?: { id: string }[] }>("POST", `${encodeURIComponent(phoneNumberId)}/messages`, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "template",
+      template: {
+        name,
+        language: { code: language },
+        components: bodyParams.length ? [{ type: "body", parameters: bodyParams.map((text) => ({ type: "text", text })) }] : [],
+      },
+    });
+    const messageId = r.messages?.[0]?.id;
+    if (!messageId) throw new GraphApiError(502, null, "no message id returned");
+    return { messageId };
+  }
+
+  /** Submits a template for Meta's review (category UTILITY: order and appointment updates). */
+  async createTemplate(wabaId: string, t: { name: string; language: string; body: string; example: string[] }): Promise<{ id: string; status: string }> {
+    const r = await this.request<{ id?: string; status?: string }>("POST", `${encodeURIComponent(wabaId)}/message_templates`, {
+      name: t.name,
+      language: t.language,
+      category: "UTILITY",
+      components: [{ type: "BODY", text: t.body, example: { body_text: [t.example] } }],
+    });
+    if (!r.id) throw new GraphApiError(502, null, "no template id returned");
+    return { id: r.id, status: r.status ?? "PENDING" };
+  }
+
+  /** The account's templates with their review status. */
+  async listTemplates(wabaId: string): Promise<{ id: string; name: string; language: string; status: string; rejected_reason?: string }[]> {
+    const r = await this.request<{ data?: { id: string; name: string; language: string; status: string; rejected_reason?: string }[] }>(
+      "GET",
+      `${encodeURIComponent(wabaId)}/message_templates?fields=id,name,language,status,rejected_reason&limit=200`,
+    );
+    return r.data ?? [];
+  }
+
   /** Blue ticks for the customer: marks an inbound message as read. */
   async markRead(phoneNumberId: string, messageId: string): Promise<void> {
     await this.request("POST", `${encodeURIComponent(phoneNumberId)}/messages`, { messaging_product: "whatsapp", status: "read", message_id: messageId });

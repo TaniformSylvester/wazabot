@@ -2,12 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
 import { authorize } from "@/lib/auth/dal";
 import { localDate, localStamp, localTime } from "@/lib/business/time";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
+import { notifyAppointment } from "@/lib/notifications/events";
+import { runNotification } from "@/lib/notifications/run";
 import { createClient } from "@/lib/supabase/server";
 import { APPOINTMENT_STATUSES, appointmentSchema, bookingSettingsSchema, serviceSchema } from "@/lib/validation/app";
 
@@ -108,6 +111,7 @@ export async function createAppointment(_prev: FormState, formData: FormData): P
     logServerError("appointments.book", error);
     return fail(error?.code === "WB410" ? "slot_unavailable" : dbError(error));
   }
+  after(() => runNotification("appointments.notify", (admin) => notifyAppointment(admin, ctx.business.id, data, "appointment_booked")));
   revalidate();
   const locale = formData.get("locale");
   if (isLocale(locale)) redirect(localizePath(locale, `/dashboard/appointments?booked=1&day=${a.starts_at.slice(0, 10)}`));
@@ -125,6 +129,7 @@ export async function setAppointmentStatus(appointmentId: string, status: string
     return fail(dbError(error));
   }
   if (!data?.length) return fail("not_found");
+  if (status === "cancelled") after(() => runNotification("appointments.notify", (admin) => notifyAppointment(admin, ctx.business.id, appointmentId, "appointment_cancelled")));
   revalidate();
   return ok(appointmentId);
 }

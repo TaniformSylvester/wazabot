@@ -29,7 +29,11 @@ export type ActionErrorKey =
   | "invite_wrong_email"
   | "already_on_plan"
   // Stage 6
-  | "slot_unavailable";
+  | "slot_unavailable"
+  // Stage 7
+  | "templates_failed"
+  | "template_not_approved"
+  | "follow_up_already_sent";
 
 export type FormState = {
   status: "idle" | "success" | "error";

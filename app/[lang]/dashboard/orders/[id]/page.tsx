@@ -7,7 +7,7 @@ import { DefinitionList, PageHeader, Panel, StatusBadge, TableWrap, formatDate, 
 import { isUuid } from "@/lib/actions/form";
 import { deleteOrder, updateOrder } from "@/lib/actions/orders";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getOrder } from "@/lib/data/queries";
+import { getOrder, listOrderNotifications } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
@@ -19,10 +19,11 @@ export const generateMetadata = dashboardMetadata((d) => d.orders.title);
 export default async function OrderPage({ params, searchParams }: PageProps<"/[lang]/dashboard/orders/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/orders/${id}`));
-  const order = isUuid(id) ? await getOrder(business.id, id) : null;
+  const [order, notifications] = isUuid(id) ? await Promise.all([getOrder(business.id, id), listOrderNotifications(business.id, id)]) : [null, []];
   if (!order) notFound();
   const d = t.dashboard;
   const o = d.orders;
+  const n = d.notifications;
   const canEdit = hasRole(business.role, "agent");
   const canDelete = hasRole(business.role, "admin");
   const money = (v: number | string) => formatMoney(v, order.currency, locale);
@@ -123,6 +124,20 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
               <Link href={localizePath(locale, `/dashboard/conversations/${order.conversation_id}`)} className="text-sm font-semibold text-waza-700 hover:underline">
                 {o.conversation}
               </Link>
+            ) : null}
+            {notifications.length ? (
+              <div className="border-t border-border pt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate">{n.order.title}</p>
+                <ul className="flex flex-col gap-2 text-sm">
+                  {notifications.map((row) => (
+                    <li key={row.id} className="flex flex-wrap items-center gap-2">
+                      <span className="text-deep">{n.templates.kinds[row.kind as keyof typeof n.templates.kinds] ?? row.kind}</span>
+                      <StatusBadge tone={row.status === "sent" ? "green" : row.status === "failed" ? "red" : "neutral"}>{n.log.status[row.status as keyof typeof n.log.status] ?? row.status}</StatusBadge>
+                      {row.status !== "sent" && row.reason ? <span className="text-xs text-slate">{n.log.reasons[row.reason as keyof typeof n.log.reasons] ?? row.reason}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
           </div>
         </Panel>

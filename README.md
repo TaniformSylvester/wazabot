@@ -133,7 +133,8 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Business operations (Stage 4): orders take stock automatically (back on cancel/delete, never oversold — the AI included), low-stock alerts; team invitation links, roles, removing/leaving, switching businesses; AI-allowance warnings at 80 % / 100 %; plan-change requests approved by the WazaBolt team | **Functional** — see "Business operations" below |
 | Product photos (Stage 5): customers' photos on WhatsApp (and in the test chat) are looked at by the assistant and matched to the catalog, comparing with the catalog's own product photos | **Functional** — see "AI replies" below |
 | Appointments (Stage 6): services with duration and price, bookable in opening hours (slot step, capacity, notice, horizon); the assistant finds free times and books on WhatsApp; Calendar with confirm / done / no-show / cancel; booking from the dashboard | **Functional** — see "Appointments" below |
-| Voice transcription, template messages, payments, broadcasts | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes get a short notice and are flagged for the team |
+| Customer notifications (Stage 7): order updates, appointment confirmations / cancellations / reminders, follow-up after 24 h; WazaBolt's message templates submitted to Meta with review status | **Functional** — see "Customer notifications" below; goes out once WhatsApp is connected |
+| Voice transcription, payments, broadcasts | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes get a short notice and are flagged for the team |
 
 ## Multilingual architecture
 
@@ -270,6 +271,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... npm run test:e2e:ai
 # Stage 6 appointments (fake Graph + fake Anthropic, like the AI suite)
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:appointments
+# Stage 7 notifications (fake Graph with templates); start the app with CRON_SECRET=test-cron too
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:notifications
 # Stage 4 business operations (stock, usage banner, plan requests, invitations, roles).
 # Uses DATABASE_URL directly to play the WazaBolt operator (approving a plan) and simulate AI usage.
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... npm run test:e2e:operations
@@ -410,6 +413,28 @@ at once (chairs/staff), the minimum notice and how far ahead, and add services (
 - **Calendar**: next 30 days (or the past 30) by day; confirm, cancel, mark done or no-show. Bookings
   made on WhatsApp are marked. "New appointment" (also from a customer's page) only offers free times.
 - Reminders to customers on WhatsApp need approved template messages (not built yet).
+
+## Customer notifications (Stage 7)
+
+Apply `supabase/migrations/20261008120000_notifications.sql`.
+
+- **What's sent** (WhatsApp → Notifications, on by default): order Confirmed / Ready / Out for
+  delivery / Delivered (when the team changes the status), appointment booked / cancelled from the
+  dashboard, and a reminder the evening before. Each event is sent once (`notifications.event_key`).
+- **24-hour rule**: inside 24 h of the customer's last message a notification is a normal text;
+  after that WhatsApp only accepts **approved templates**. "Submit templates to Meta" creates
+  WazaBolt's 8 templates (English + French, category UTILITY) in the business's WhatsApp Business
+  Account; "Refresh status" reads Meta's review. Until a template is approved, that notification is
+  recorded as "not sent — template not approved yet" (and retried the next time).
+- **Template review webhook**: in the Meta app (WhatsApp → Configuration → Webhook fields) also
+  subscribe to `message_template_status_update` so approvals show up without refreshing.
+- **Follow-up**: on a conversation past 24 h, "Send follow-up template" asks the customer to reply
+  (once a day per conversation); when they do, the team can write freely again.
+- **Reminders**: `vercel.json` runs `/api/cron/reminders` daily at 17:00 UTC (18:00 in Douala) for
+  appointments starting in the next 2–30 hours. Set **`CRON_SECRET`** in Vercel (any long random
+  string); Vercel sends it to the job, and calls without it are refused. On Vercel's Hobby plan cron
+  jobs run once a day, which is what this needs.
+- Notifications show in the customer's conversation (sender "System") and on the order page.
 
 ## Before launch
 

@@ -512,3 +512,34 @@ export async function listNextAppointments(businessId: string, max = 5) {
     .limit(max);
   return data ?? [];
 }
+
+// ---------------------------------------------------------------------------
+// Customer notifications (Stage 7)
+// ---------------------------------------------------------------------------
+export async function getNotificationSetup(businessId: string) {
+  const db = await createClient();
+  const [settings, templates, log] = await Promise.all([
+    db.from("notification_settings").select("*").eq("business_id", businessId).maybeSingle(),
+    db.from("whatsapp_templates").select("id, kind, language, status, rejected_reason, updated_at").eq("business_id", businessId),
+    db
+      .from("notifications")
+      .select("id, kind, status, channel, reason, created_at, customer_id, order_id, appointment_id, customers(name, whatsapp_phone)")
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
+  return { settings: settings.data, templates: templates.data ?? [], log: log.data ?? [] };
+}
+
+export async function listOrderNotifications(businessId: string, orderId: string) {
+  const db = await createClient();
+  const { data } = await db.from("notifications").select("id, kind, status, channel, reason, created_at").eq("business_id", businessId).eq("order_id", orderId).order("created_at");
+  return data ?? [];
+}
+
+/** Is the follow-up template approved in any language? */
+export async function followUpReady(businessId: string) {
+  const db = await createClient();
+  const { count } = await db.from("whatsapp_templates").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("kind", "follow_up").eq("status", "approved");
+  return (count ?? 0) > 0;
+}

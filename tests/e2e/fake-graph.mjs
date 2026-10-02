@@ -16,6 +16,7 @@ const IMAGE = await sharp({ create: { width: 320, height: 480, channels: 3, back
 export function startFakeGraph(port = 4010) {
   const sent = [];
   const reads = [];
+  const templates = [];
   let n = 0;
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${port}`);
@@ -28,7 +29,12 @@ export function startFakeGraph(port = 4010) {
       res.writeHead(status, { "content-type": "application/json" });
       res.end(JSON.stringify(data));
     };
-    if (url.pathname === "/__sent") return json(200, { sent, reads });
+    if (url.pathname === "/__sent") return json(200, { sent, reads, templates });
+    // Test hook: Meta approves every template under review.
+    if (url.pathname === "/__approve") {
+      for (const t of templates) if (t.status === "PENDING") t.status = "APPROVED";
+      return json(200, { ok: true });
+    }
     if (url.pathname === "/media/photo.jpg") {
       res.writeHead(200, { "content-type": "image/jpeg" });
       return res.end(IMAGE);
@@ -40,6 +46,15 @@ export function startFakeGraph(port = 4010) {
       return id === FAKE.wabaId ? json(200, { data: [{ id: FAKE.phoneNumberId }] }) : json(400, { error: { code: 100, message: "Unknown account" } });
     }
     if (req.method === "POST" && edge === "subscribed_apps") return json(200, { success: true });
+    if (edge === "message_templates" && id === FAKE.wabaId) {
+      if (req.method === "GET") return json(200, { data: templates.map(({ id: tid, name, language, status }) => ({ id: tid, name, language, status })) });
+      if (req.method === "POST") {
+        if (templates.some((t) => t.name === body.name && t.language === body.language)) return json(400, { error: { code: 100, message: "Template already exists" } });
+        const t = { id: `tmpl_${templates.length + 1}`, name: body.name, language: body.language, category: body.category, components: body.components, status: "PENDING" };
+        templates.push(t);
+        return json(200, { id: t.id, status: "PENDING", category: body.category });
+      }
+    }
     if (req.method === "GET" && id === FAKE.phoneNumberId && !edge) {
       return json(200, { id, display_phone_number: FAKE.display, verified_name: FAKE.verifiedName, quality_rating: "GREEN" });
     }
@@ -58,5 +73,14 @@ export function startFakeGraph(port = 4010) {
     }
     json(404, { error: { code: 803, message: "Unknown path" } });
   });
-  return new Promise((resolve) => server.listen(port, () => resolve({ close: () => server.close(), sent: () => ({ sent, reads }) })));
+  return new Promise((resolve) =>
+    server.listen(port, () =>
+      resolve({
+        close: () => server.close(),
+        sent: () => ({ sent, reads }),
+        templates: () => templates,
+        approveAll: () => templates.forEach((t) => (t.status = t.status === "PENDING" ? "APPROVED" : t.status)),
+      }),
+    ),
+  );
 }

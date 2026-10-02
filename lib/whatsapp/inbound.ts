@@ -1,5 +1,6 @@
 import "server-only";
 
+import { recordTemplateStatus } from "@/lib/notifications/service";
 import { detectLanguage } from "@/lib/ai/language";
 import { logServerError } from "@/lib/log";
 import { MVP_CAPABILITIES } from "@/lib/messaging/capabilities";
@@ -123,7 +124,31 @@ export async function handleWebhookPayload(payload: unknown, admin: Admin): Prom
     if (error) logServerError("whatsapp.status", error);
     else if (data) result.statuses++;
   }
+
+  // Meta's review result for a message template (Stage 7).
+  for (const t of parseTemplateStatusUpdates(payload)) {
+    await recordTemplateStatus(admin, t);
+    result.statuses++;
+  }
   return result;
+}
+
+/** "message_template_status_update" changes: { event: "APPROVED", message_template_id, reason }. */
+export function parseTemplateStatusUpdates(payload: unknown): { templateId: string; event: string; reason: string | null }[] {
+  const out: { templateId: string; event: string; reason: string | null }[] = [];
+  const entries = (payload as { entry?: unknown })?.entry;
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    const changes = (entry as { changes?: unknown })?.changes;
+    for (const change of Array.isArray(changes) ? changes : []) {
+      const c = change as { field?: string; value?: { event?: unknown; message_template_id?: unknown; reason?: unknown } };
+      if (c?.field !== "message_template_status_update" || !c.value) continue;
+      const { event, message_template_id: id, reason } = c.value;
+      if (typeof event === "string" && (typeof id === "string" || typeof id === "number")) {
+        out.push({ templateId: String(id), event, reason: typeof reason === "string" ? reason : null });
+      }
+    }
+  }
+  return out;
 }
 
 /**

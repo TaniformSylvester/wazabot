@@ -1198,6 +1198,112 @@ export type Database = {
           },
         ];
       };
+      notification_settings: {
+        Row: {
+          appointment_reminders: boolean;
+          appointment_updates: boolean;
+          business_id: string;
+          order_updates: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          appointment_reminders?: boolean;
+          appointment_updates?: boolean;
+          business_id: string;
+          order_updates?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          appointment_reminders?: boolean;
+          appointment_updates?: boolean;
+          business_id?: string;
+          order_updates?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: true;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          appointment_id: string | null;
+          business_id: string;
+          channel: string | null;
+          created_at: string;
+          customer_id: string | null;
+          event_key: string;
+          id: string;
+          kind: string;
+          message_id: string | null;
+          order_id: string | null;
+          reason: string | null;
+          status: string;
+        };
+        Insert: {
+          appointment_id?: string | null;
+          business_id: string;
+          channel?: string | null;
+          created_at?: string;
+          customer_id?: string | null;
+          event_key: string;
+          id?: string;
+          kind: string;
+          message_id?: string | null;
+          order_id?: string | null;
+          reason?: string | null;
+          status: string;
+        };
+        Update: {
+          appointment_id?: string | null;
+          business_id?: string;
+          channel?: string | null;
+          created_at?: string;
+          customer_id?: string | null;
+          event_key?: string;
+          id?: string;
+          kind?: string;
+          message_id?: string | null;
+          order_id?: string | null;
+          reason?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_business_id_appointment_id_fkey";
+            columns: ["business_id", "appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "notifications_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "notifications_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_business_id_order_id_fkey";
+            columns: ["business_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
       order_items: {
         Row: {
           business_id: string;
@@ -1760,6 +1866,56 @@ export type Database = {
             foreignKeyName: "whatsapp_credentials_business_id_fkey";
             columns: ["business_id"];
             isOneToOne: true;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      whatsapp_templates: {
+        Row: {
+          body: string;
+          business_id: string;
+          id: string;
+          kind: string;
+          language: string;
+          meta_template_id: string | null;
+          name: string;
+          rejected_reason: string | null;
+          status: string;
+          submitted_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          body: string;
+          business_id: string;
+          id?: string;
+          kind: string;
+          language: string;
+          meta_template_id?: string | null;
+          name: string;
+          rejected_reason?: string | null;
+          status?: string;
+          submitted_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          business_id?: string;
+          id?: string;
+          kind?: string;
+          language?: string;
+          meta_template_id?: string | null;
+          name?: string;
+          rejected_reason?: string | null;
+          status?: string;
+          submitted_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
             referencedRelation: "businesses";
             referencedColumns: ["id"];
           },

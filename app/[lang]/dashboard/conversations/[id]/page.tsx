@@ -8,7 +8,9 @@ import { ConversationControls } from "@/components/app/conversation-controls";
 import { DefinitionList, StatusBadge, conversationStatusTone, formatDate, param } from "@/components/app/ui";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { Composer } from "@/components/app/composer";
+import { ActionButton } from "@/components/app/form";
 import { markConversationRead } from "@/lib/actions/conversations";
+import { sendFollowUp } from "@/lib/actions/notifications";
 import { markWhatsAppRead } from "@/lib/actions/whatsapp";
 import { SIGNED_URL_TTL_SECONDS } from "@/lib/messaging/media-policy";
 import { SupabaseMediaStore } from "@/lib/messaging/media-store";
@@ -16,7 +18,7 @@ import { locationFromPayload, mapsUrl } from "@/lib/messaging/views";
 import { windowOpen } from "@/lib/whatsapp/service";
 import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getAiSettingsRow, getConversation, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
+import { followUpReady, getAiSettingsRow, getConversation, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
 import { aiConfigured } from "@/lib/ai/claude";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -46,6 +48,8 @@ export default async function ConversationPage({ params, searchParams }: PagePro
   }
   const connection = await getWhatsAppConnection(business.id);
   const connected = connection?.status === "connected";
+  // After the 24-hour window, an approved follow-up template lets the team reach the customer again.
+  const canFollowUp = canAct && connected && (await followUpReady(business.id));
   const mediaUrls = await signMedia(messages);
   const aiSettings = await getAiSettingsRow(business.id);
   const assistantLive = aiConfigured() && connected && aiSettings?.ai_enabled !== false;
@@ -155,10 +159,18 @@ export default async function ConversationPage({ params, searchParams }: PagePro
                   {c.composer.connectLink}
                 </Link>
               </ComposerNote>
-            ) : !conversation.last_customer_message_at ? (
-              <ComposerNote text={c.composer.noCustomerMessage} />
-            ) : !windowOpen(conversation.last_customer_message_at) ? (
-              <ComposerNote text={c.composer.windowClosed} />
+            ) : !conversation.last_customer_message_at || !windowOpen(conversation.last_customer_message_at) ? (
+              <div className="flex flex-col gap-3">
+                <ComposerNote text={conversation.last_customer_message_at ? c.composer.windowClosed : c.composer.noCustomerMessage} />
+                {canFollowUp ? (
+                  <div className="flex flex-wrap items-center gap-3 pl-7">
+                    <ActionButton action={sendFollowUp.bind(null, conversation.id)} pendingLabel={d.notifications.followUp.sending} errors={d.errors} variant="default">
+                      {d.notifications.followUp.button}
+                    </ActionButton>
+                    <p className="text-xs text-slate">{d.notifications.followUp.text}</p>
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <Composer conversationId={conversation.id} labels={c.composer} text={{ errors: d.errors, saved: d.common.saved, saving: c.composer.sending }} />
             )}

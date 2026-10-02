@@ -1,12 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 
 import { authorize } from "@/lib/auth/dal";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
+import { notifyOrderStatus } from "@/lib/notifications/events";
+import { runNotification } from "@/lib/notifications/run";
 import { createClient } from "@/lib/supabase/server";
 import { orderSchema, orderUpdateSchema } from "@/lib/validation/app";
 
@@ -63,6 +66,8 @@ export async function updateOrder(_prev: FormState, formData: FormData): Promise
     return dbFail(error);
   }
   if (!data?.length) return fail("not_found");
+  // Tell the customer on WhatsApp (confirmed / ready / out for delivery / delivered), after the response.
+  if (parsed.data.status) after(() => runNotification("orders.notify", (admin) => notifyOrderStatus(admin, ctx.business.id, id)));
   revalidatePath("/[lang]/dashboard", "layout");
   return ok(id);
 }

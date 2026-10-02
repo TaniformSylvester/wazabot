@@ -2,7 +2,7 @@ import { CircleAlert, CircleCheck, Loader2, Smartphone } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionForm, DeleteButton, SubmitButton, TextField } from "@/components/app/form";
-import { DefinitionList, PageHeader, Panel, StatusBadge, formatDate, type BadgeTone } from "@/components/app/ui";
+import { DefinitionList, LinkTabs, PageHeader, Panel, StatusBadge, formatDate, type BadgeTone } from "@/components/app/ui";
 import { connectWhatsAppAction, disconnectWhatsAppAction } from "@/lib/actions/whatsapp";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
 import { getWhatsAppConnection } from "@/lib/data/queries";
@@ -40,6 +40,13 @@ export default async function WhatsAppPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <PageHeader title={w.title} description={w.description} />
+      <LinkTabs
+        active="connection"
+        tabs={[
+          { key: "connection", label: d.notifications.tabs.connection, href: localizePath(locale, "/dashboard/whatsapp") },
+          { key: "notifications", label: d.notifications.tabs.notifications, href: localizePath(locale, "/dashboard/whatsapp/notifications") },
+        ]}
+      />
       <Panel title={w.status}>
         <div className="flex flex-col gap-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
