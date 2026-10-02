@@ -113,6 +113,10 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
 
   // Photos go to the model (Stage 5). Voice notes, documents…: not understood yet — a short notice and the team is flagged.
   const images: InputImage[] = [];
+  if (message.message_type === "image" && !business.settings.photoUnderstanding) {
+    await flagForTeam(admin, job);
+    return sendNotice(ctx, fixedMessage(conversationLanguage, "imagePassedOn", business.business.name), conversationLanguage, "handed_over", "photos_off");
+  }
   if (message.message_type === "image") {
     const image = await deps.loadImage(job);
     if (!image) {

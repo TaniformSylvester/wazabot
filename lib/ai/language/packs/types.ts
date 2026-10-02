@@ -46,6 +46,8 @@ export type AiLanguagePack = {
     audioNotSupported: string;
     /** Image received while image understanding is off (the team is notified). */
     imageNotSupported: string;
+    /** Photos switched off by the business: passed to the team. */
+    imagePassedOn: string;
     /** Document, video or location received (the team is notified). */
     attachmentReceived: string;
   };

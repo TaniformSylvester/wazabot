@@ -17,6 +17,7 @@ export type Database = {
           human_handover_enabled: boolean;
           language_mode: string;
           mirror_code_switching: boolean;
+          photo_understanding: boolean;
           reply_length: string;
           sales_mode: boolean;
           style_notes: string;
@@ -36,6 +37,7 @@ export type Database = {
           human_handover_enabled?: boolean;
           language_mode?: string;
           mirror_code_switching?: boolean;
+          photo_understanding?: boolean;
           reply_length?: string;
           sales_mode?: boolean;
           style_notes?: string;
@@ -55,6 +57,7 @@ export type Database = {
           human_handover_enabled?: boolean;
           language_mode?: string;
           mirror_code_switching?: boolean;
+          photo_understanding?: boolean;
           reply_length?: string;
           sales_mode?: boolean;
           style_notes?: string;

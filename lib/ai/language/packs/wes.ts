@@ -40,6 +40,7 @@ export const wes: AiLanguagePack = {
     unavailable: "Ashia, we no fit answer you automatic now. Di {business} team go come back to you soon.",
     languageSwitched: "No wahala — a go continue for Pidgin.",
     audioNotSupported: "Ashia, a no fit listen voice note now. Abeg, you fit write ya message? Di {business} team fit listen am too.",
+    imagePassedOn: "Tenki for di picture! A don send am give di {business} team. Dem go answer you for here soon.",
     imageNotSupported: "Tenki for di picture! A no fit open am, so a don send am give di {business} team. Dem go answer you for here soon.",
     attachmentReceived: "Tenki, we don receive am. Di {business} team go check am and answer you for here soon.",
   },

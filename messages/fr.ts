@@ -1159,6 +1159,10 @@ const fr: Messages = {
       },
       handover: { label: "Transfert à l'équipe", text: "Permettre à l'assistant de transmettre la conversation à votre équipe quand un client demande une personne ou qu'il ne peut pas aider." },
       sales: { label: "Mode vente", text: "Suggérer des produits pertinents et proposer de prendre la commande quand c'est approprié." },
+      photos: {
+        label: "Comprendre les photos des clients",
+        text: "L'assistant regarde les photos envoyées par les clients et retrouve le produit dans votre catalogue. Une photo coûte à peu près comme un ou deux messages texte. Désactivé : les photos sont transmises à votre équipe.",
+      },
       saved: "Réglages de l'IA enregistrés.",
     },
     aiTest: {

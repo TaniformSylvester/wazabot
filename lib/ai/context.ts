@@ -53,6 +53,8 @@ export type BusinessContext = {
     afterHoursMessage: string | null;
     humanHandoverEnabled: boolean;
     salesMode: boolean;
+    /** Look at customers' photos (off: pass them to the team, no AI cost). */
+    photoUnderstanding: boolean;
   };
   /** Reply languages and mode (Languages & style page). */
   language: LanguageSettings;
@@ -111,6 +113,7 @@ export async function buildBusinessContext(db: Db, businessId: string, now = new
       afterHoursMessage: s?.after_hours_message ?? null,
       humanHandoverEnabled: s?.human_handover_enabled ?? true,
       salesMode: s?.sales_mode ?? false,
+      photoUnderstanding: s?.photo_understanding ?? true,
     },
     language: {
       mode: oneOf(LANGUAGE_MODES, s?.language_mode, "auto"),

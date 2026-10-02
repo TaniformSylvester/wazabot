@@ -121,6 +121,7 @@ export default async function AiAssistantPage() {
           <Panel className="grid gap-3 sm:grid-cols-2">
             <CheckboxField name="human_handover_enabled" label={a.handover.label} description={a.handover.text} defaultChecked={settings.human_handover_enabled} />
             <CheckboxField name="sales_mode" label={a.sales.label} description={a.sales.text} defaultChecked={settings.sales_mode} />
+            <CheckboxField name="photo_understanding" label={a.photos.label} description={a.photos.text} defaultChecked={settings.photo_understanding} />
           </Panel>
 
           <div>

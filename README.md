@@ -322,9 +322,12 @@ When a customer writes, the webhook stores the message and answers after respond
 4. Outside opening hours, follows the AI Assistant setting: answer normally, send the owner's
    after-hours message (once per 12 h), or hand over.
 5. Photos go to the model with their caption (`lib/ai/images.ts`: decoded and re-encoded as JPEG,
-   at most 1568 px, before anything is sent). It searches the catalog with words describing the photo
-   and can look at up to 4 catalog photos (`viewProductPhotos`, only images from WazaBolt's own
-   `product-images` storage) before saying "we have it". It never confirms a payment from a
+   at most 1024 px, before anything is sent). It searches the catalog with words describing the photo
+   and can look at up to 2 catalog photos (`viewProductPhotos`, 512 px thumbnails, only images from
+   WazaBolt's own `product-images` storage) before saying "we have it". Image tokens grow with
+   pixels, so a photo message costs about as much as one or two text messages. Businesses can switch
+   photo understanding off (AI Assistant → "Understand customer photos", migration
+   `20261006120000_photo_setting.sql`): photos are then passed to the team with a short notice. It never confirms a payment from a
    screenshot. Voice notes and files get a short notice in the customer's language and are flagged
    for the team.
 6. Otherwise: detects the language (English / French / Cameroonian Pidgin, mixed), picks the reply

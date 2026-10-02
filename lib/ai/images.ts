@@ -6,17 +6,20 @@ import { MEDIA_BUCKET } from "@/lib/messaging/media-policy";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 /*
- * Customer photos for the assistant (Stage 5). Every image is decoded and
- * re-encoded here before it reaches Claude: at most 1568 px on the long side
- * (Claude's own working size, so nothing useful is lost), JPEG, EXIF
- * stripped. That keeps requests small and refuses anything that isn't really
- * an image.
+ * Photos for the assistant (Stage 5). Every image is decoded and re-encoded
+ * here before it reaches Claude: small (see the sizes below), JPEG, EXIF
+ * stripped. That keeps the cost per photo low and refuses anything that
+ * isn't really an image.
  */
 
 export type InputImage = { mediaType: "image/jpeg"; data: string };
 
-/** Claude downsizes larger images anyway; sending more only costs time. */
-const MAX_EDGE = 1568;
+/**
+ * Image tokens grow with the pixel count (about width × height / 750), so
+ * photos are kept small: enough to recognise a product, a fraction of the cost.
+ */
+export const CUSTOMER_PHOTO_EDGE = 1024; // ≈ 1,000–1,400 tokens
+export const CATALOG_PHOTO_EDGE = 512; // ≈ 350 tokens
 /** Raw upload limit before decoding (WhatsApp allows 5 MB images). */
 export const MAX_IMAGE_INPUT_BYTES = 8 * 1024 * 1024;
 
@@ -27,13 +30,13 @@ export class ImageRejectedError extends Error {
   }
 }
 
-/** Decode → rotate per EXIF → fit within 1568 px → JPEG (base64). */
-export async function prepareImage(bytes: Uint8Array): Promise<InputImage> {
+/** Decode → rotate per EXIF → fit within `maxEdge` px → JPEG (base64). */
+export async function prepareImage(bytes: Uint8Array, maxEdge = CUSTOMER_PHOTO_EDGE): Promise<InputImage> {
   if (bytes.byteLength > MAX_IMAGE_INPUT_BYTES) throw new ImageRejectedError("too_large");
   try {
     const out = await sharp(bytes, { limitInputPixels: 50_000_000, animated: false })
       .rotate()
-      .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })
+      .resize({ width: maxEdge, height: maxEdge, fit: "inside", withoutEnlargement: true })
       .flatten({ background: "#ffffff" })
       .jpeg({ quality: 85, mozjpeg: true })
       .toBuffer();

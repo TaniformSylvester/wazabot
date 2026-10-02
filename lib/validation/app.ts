@@ -191,4 +191,5 @@ export const aiSettingsSchema = z.object({
   after_hours_message: optionalText(1000),
   human_handover_enabled: checkbox,
   sales_mode: checkbox,
+  photo_understanding: checkbox,
 });

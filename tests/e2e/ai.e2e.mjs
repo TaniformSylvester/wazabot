@@ -155,12 +155,33 @@ mkdirSync("test-results", { recursive: true });
   const photoReq = claude.requests.findLast((r) => r.body.messages.some((m) => Array.isArray(m.content) && m.content.some((b) => b.type === "image")));
   const userImage = photoReq?.body.messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).find((b) => b.type === "image");
   const imgMeta = userImage ? await sharp(Buffer.from(userImage.source.data, "base64")).metadata() : null;
-  ok("test chat photo: sent to Claude as a JPEG of at most 1568 px", userImage?.source.media_type === "image/jpeg" && imgMeta && Math.max(imgMeta.width, imgMeta.height) <= 1568, JSON.stringify(imgMeta && { w: imgMeta.width, h: imgMeta.height }));
+  ok("test chat photo: sent to Claude as a JPEG of at most 1024 px", userImage?.source.media_type === "image/jpeg" && imgMeta && Math.max(imgMeta.width, imgMeta.height) <= 1024, JSON.stringify(imgMeta && { w: imgMeta.width, h: imgMeta.height }));
+  const catalogImage = photoReq?.body.messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).flatMap((b) => (b.type === "tool_result" && Array.isArray(b.content) ? b.content : [])).find((c) => c.type === "image");
+  const catMeta = catalogImage ? await sharp(Buffer.from(catalogImage.source.data, "base64")).metadata() : null;
+  ok("catalog photos are sent as small thumbnails (512 px)", catMeta && Math.max(catMeta.width, catMeta.height) === 512, JSON.stringify(catMeta && { w: catMeta.width, h: catMeta.height }));
   const catalogPhoto = photoReq?.body.messages.some((m) => Array.isArray(m.content) && m.content.some((b) => b.type === "tool_result" && Array.isArray(b.content) && b.content.some((c) => c.type === "image")));
   ok("test chat photo: the catalog photo is shown to Claude for comparison", catalogPhoto && (await main.getByText("Looked up: catalog, product photos").count()) === 1);
   ok("test chat photo: shown in the transcript", (await main.getByRole("img", { name: "Photo sent by the customer" }).count()) === 1);
   await page.screenshot({ path: "test-results/stage5-test-chat-photo.png", fullPage: true });
   await main.getByRole("button", { name: "Start over" }).click();
+
+  // Photos switched off (AI Assistant setting): passed to the team, no AI call.
+  await page.goto(`${APP}/en/dashboard/ai`);
+  await main.getByLabel("Understand customer photos").uncheck();
+  await main.getByRole("button", { name: "Save" }).click();
+  await main.getByText("AI settings saved.").waitFor({ timeout: 10000 });
+  await page.goto(`${APP}/en/dashboard/ai/test`);
+  const requestsBefore = claude.requests.length;
+  await main.locator('input[type="file"]').setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: customerPhoto });
+  await main.getByRole("button", { name: "Remove the photo" }).waitFor({ timeout: 10000 });
+  await main.getByRole("button", { name: "Send" }).click();
+  await main.getByText("Thanks for the picture! I've passed it to the Awa Styles team", { exact: false }).waitFor({ timeout: 20000 });
+  ok("photos off: passed to the team without calling Claude", claude.requests.length === requestsBefore);
+  await page.goto(`${APP}/en/dashboard/ai`);
+  await main.getByLabel("Understand customer photos").check();
+  await main.getByRole("button", { name: "Save" }).click();
+  await main.getByText("AI settings saved.").waitFor({ timeout: 10000 });
+  await page.goto(`${APP}/en/dashboard/ai/test`);
 
   // Before WhatsApp is connected the assistant isn't live.
   await page.goto(`${APP}/en/dashboard/ai`);

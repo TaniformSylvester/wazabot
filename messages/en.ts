@@ -1161,6 +1161,10 @@ const en = {
       },
       handover: { label: "Human handover", text: "Let the assistant hand a conversation to your team when a customer asks for a person or it can't help." },
       sales: { label: "Sales mode", text: "Suggest relevant products and offer to take the order when it fits the conversation." },
+      photos: {
+        label: "Understand customer photos",
+        text: "The assistant looks at photos customers send and finds the product in your catalog. A photo costs about as much as one or two text messages. Off: photos are passed to your team.",
+      },
       saved: "AI settings saved.",
     },
     aiTest: {

@@ -28,6 +28,7 @@ export const fr: AiLanguagePack = {
       "Désolé, nous ne pouvons pas répondre automatiquement pour le moment. L'équipe de {business} vous recontactera très vite.",
     languageSwitched: "Bien sûr — je continue en français.",
     audioNotSupported: "Désolé, je ne peux pas encore écouter les messages vocaux. Pouvez-vous écrire votre message ? L'équipe de {business} pourra aussi l'écouter.",
+    imagePassedOn: "Merci pour la photo ! Je l'ai transmise à l'équipe de {business} — elle vous répondra ici très bientôt.",
     imageNotSupported: "Merci pour la photo ! Je n'ai pas pu l'ouvrir, je l'ai donc transmise à l'équipe de {business} — elle vous répondra ici très bientôt.",
     attachmentReceived: "Merci, nous l'avons bien reçu. L'équipe de {business} va le regarder et vous répondra ici très bientôt.",
   },

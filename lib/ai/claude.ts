@@ -85,9 +85,17 @@ const SEND_REPLY: Anthropic.Beta.BetaTool = {
   input_schema: replyInputSchema as Anthropic.Beta.BetaTool.InputSchema,
 };
 
-/** Every tool the assistant may call, in a fixed order (tools render first in the prompt; a stable order keeps the cache valid). */
-export function assistantTools(): Anthropic.Beta.BetaTool[] {
-  return [...toolSchemas().map((t) => ({ ...t, input_schema: t.input_schema as Anthropic.Beta.BetaTool.InputSchema })), SEND_REPLY];
+/**
+ * Every tool the assistant may call, in a fixed order (tools render first in the prompt; a stable order keeps the cache valid).
+ * Without photo understanding, the catalog-photo tool is left out.
+ */
+export function assistantTools(photos = true): Anthropic.Beta.BetaTool[] {
+  return [
+    ...toolSchemas()
+      .filter((t) => photos || t.name !== "viewProductPhotos")
+      .map((t) => ({ ...t, input_schema: t.input_schema as Anthropic.Beta.BetaTool.InputSchema })),
+    SEND_REPLY,
+  ];
 }
 
 /** Conversation history → Messages API turns. Team replies are marked so the model knows a person answered. */
@@ -155,7 +163,7 @@ export class ClaudeResponder implements AiResponder {
         cache_control: { type: "ephemeral" },
       },
     ];
-    const tools = assistantTools();
+    const tools = assistantTools(business.settings.photoUnderstanding);
     const messages: Anthropic.Beta.BetaMessageParam[] = [
       ...withImages(historyToMessages(input.conversation), input.images ?? []),
       { role: "system", content: buildTurnMessage(input) },

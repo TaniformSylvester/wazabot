@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type { Database } from "@/types/database";
-import { MAX_IMAGE_INPUT_BYTES, prepareImage, type InputImage } from "@/lib/ai/images";
+import { CATALOG_PHOTO_EDGE, MAX_IMAGE_INPUT_BYTES, prepareImage, type InputImage } from "@/lib/ai/images";
 import { isOpenAt, parseOpeningHours } from "@/lib/business/hours";
 
 /*
@@ -119,9 +119,9 @@ export type ProductPhoto = { productId: string; name: string; image: InputImage 
 export const viewProductPhotos = tool({
   name: "viewProductPhotos",
   description:
-    "Look at the catalog photos of up to 4 products (ids from searchProducts with hasPhoto true), e.g. to compare them with a photo the customer sent. " +
+    "Look at the catalog photos of up to 2 products (ids from searchProducts with hasPhoto true), e.g. to compare them with a photo the customer sent. " +
     "Returns the photos as images.",
-  input: z.object({ productIds: z.array(z.uuid()).min(1).max(4) }),
+  input: z.object({ productIds: z.array(z.uuid()).min(1).max(2) }),
   async run(ctx, { productIds }) {
     const { data } = await ctx.db.from("products").select("id, name, image_url, active").eq("business_id", ctx.businessId).in("id", productIds);
     const photos: ProductPhoto[] = [];
@@ -142,7 +142,7 @@ async function fetchCatalogPhoto(url: string): Promise<InputImage | null> {
     if (!res.ok) return null;
     const length = Number(res.headers.get("content-length") ?? 0);
     if (length > MAX_IMAGE_INPUT_BYTES) return null;
-    return await prepareImage(new Uint8Array(await res.arrayBuffer()));
+    return await prepareImage(new Uint8Array(await res.arrayBuffer()), CATALOG_PHOTO_EDGE);
   } catch {
     return null;
   }

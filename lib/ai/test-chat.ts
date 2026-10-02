@@ -5,7 +5,7 @@ import { z } from "zod";
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, type ConversationContext } from "@/lib/ai/context";
 import { prepareImage, type InputImage } from "@/lib/ai/images";
-import { analyzeInboundMessage } from "@/lib/ai/language";
+import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
 import { authorize } from "@/lib/auth/dal";
 import { isOpenAt } from "@/lib/business/hours";
@@ -100,6 +100,12 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
   if (!business) return { ok: false, error: "failed" };
 
   const conversationLanguage = language && isLanguageCode(language) ? language : null;
+
+  // Photos switched off: what the customer would get on WhatsApp (no AI call).
+  if (images.length && !business.settings.photoUnderstanding) {
+    const lang = conversationLanguage ?? business.language.defaultLanguage;
+    return { ok: true, reply: fixedMessage(lang, "imagePassedOn", business.business.name), language: lang, needsHuman: true, handoffReason: null, tools: [], blocked: false, afterHours: false };
+  }
   const conversation: ConversationContext = {
     conversationId: "test",
     aiEnabled: true,
