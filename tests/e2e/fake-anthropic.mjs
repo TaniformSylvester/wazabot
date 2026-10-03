@@ -52,10 +52,24 @@ const sendReply = (fields) => ({
 });
 const call = (name, input) => ({ type: "tool_use", id: `toolu_${Math.random().toString(36).slice(2)}`, name, input });
 
+// Products the app looked up before calling the model (<catalog_matches> in the turn context), latest first.
+const turnCatalog = (messages) => {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    const texts = typeof m.content === "string" ? [m.content] : (m.content ?? []).filter((b) => b.type === "text").map((b) => b.text);
+    for (const t of texts) {
+      const json = t.match(/<catalog_matches>\n([\s\S]*?)\n<\/catalog_matches>/)?.[1];
+      if (json) return JSON.parse(json);
+    }
+  }
+  return [];
+};
+
 function respond(body) {
   const text = lastCustomerText(body.messages).toLowerCase();
   const results = toolResults(body.messages);
-  const product = results.searchProducts?.[0];
+  // Like the real model: use the prefetched products, search only when they don't have it.
+  const product = results.searchProducts?.[0] ?? turnCatalog(body.messages)[0];
   const order = results.createOrder;
 
   // A customer photo: describe → search the catalog → compare with its photos → answer.

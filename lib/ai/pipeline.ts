@@ -5,6 +5,7 @@ import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describe
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
 import { loadMessageImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
+import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage } from "@/lib/ai/service";
 import { logClaudeCalls, type ClaudeCallUsage } from "@/lib/billing/costs";
 import { getUsageStatus } from "@/lib/billing/usage";
@@ -152,7 +153,11 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
       .eq("business_id", job.businessId);
   }
 
-  const cacheTtl = await cacheLifetime(admin, job.businessId, deps.now());
+  const toolCtx = { db: admin, businessId: job.businessId, conversationId: job.conversationId, customerId: conversation.customer.id };
+  const [cacheTtl, catalog] = await Promise.all([
+    cacheLifetime(admin, job.businessId, deps.now()),
+    prefetchCatalog(toolCtx, text, recentTopics(conversation.history)).catch(() => []),
+  ]);
   const started = Date.now();
   const calls: ClaudeCallUsage[] = [];
   try {
@@ -162,10 +167,11 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
       decision: analysis.decision,
       detection: analysis.detection,
       now: deps.now(),
-      tools: { db: admin, businessId: job.businessId, conversationId: job.conversationId, customerId: conversation.customer.id },
+      tools: toolCtx,
       images,
       calls,
       cacheTtl,
+      catalog,
     });
     const check = validateAIResponse(result.reply, { language: analysis.decision.language, allowedProductIds: result.productIds, maxChars: WHATSAPP_TEXT_LIMIT });
     const issues = check.ok ? [] : check.issues;

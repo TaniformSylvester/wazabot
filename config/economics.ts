@@ -64,6 +64,8 @@ export const REPLY_DEBOUNCE_MS = 6000;
  * off — measured in tests/unit/reply-budget.test.ts.
  */
 export const MAX_OUTPUT_TOKENS = { short: 300, medium: 450, detailed: 700 } as const;
+/** Products matching the conversation, looked up before the model runs so most replies need one call. */
+export const PREFETCH_PRODUCTS = 8;
 /**
  * Prompt cache lifetime: 5 minutes by default; 1 hour for a business that is
  * busy right now (this many AI replies in the past hour), so the cache

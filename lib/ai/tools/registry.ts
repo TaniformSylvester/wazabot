@@ -8,6 +8,8 @@ import { CATALOG_PHOTO_EDGE, MAX_IMAGE_INPUT_BYTES, prepareImage, type InputImag
 import { isOpenAt, parseOpeningHours } from "@/lib/business/hours";
 import { LOCAL_DATE, LOCAL_STAMP, localDate, localStamp, localTime, localWeekday } from "@/lib/business/time";
 
+import { searchWords } from "./search-words";
+
 /*
  * Controlled tools the model may call. Each tool:
  *   - has a JSON-schema-compatible Zod input the model's arguments are validated against,
@@ -64,7 +66,7 @@ export const searchProducts = tool({
     "For a customer's photo, search with words describing it (type, colour, pattern, material). Only facts returned here may be told to customers.",
   input: z.object({ query: z.string().trim().min(1).max(100), limit: z.number().int().min(1).max(10).default(5) }),
   async run(ctx, { query, limit }) {
-    const words = [...new Set(query.toLowerCase().replace(/[%_,.()*\\"'!?:;]/g, " ").split(/\s+/).filter((w) => w.length >= 2))].slice(0, 6);
+    const words = searchWords(query);
     if (!words.length) return [];
     const { data } = await ctx.db
       .from("products")

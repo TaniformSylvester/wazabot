@@ -7,6 +7,7 @@ import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describe
 import { buildBusinessContext, type ConversationContext } from "@/lib/ai/context";
 import { prepareImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
+import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
 import { authorize } from "@/lib/auth/dal";
 import { logClaudeCalls, type ClaudeCallUsage } from "@/lib/billing/costs";
@@ -115,6 +116,8 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
   };
   const analysis = analyzeInboundMessage(message, { settings: business.language, conversationLanguage });
 
+  const toolCtx = { db, businessId, conversationId: null, customerId: null, dryRun: true };
+  const catalog = await prefetchCatalog(toolCtx, message, recentTopics(conversation.history)).catch(() => []);
   const started = Date.now();
   const calls: ClaudeCallUsage[] = [];
   try {
@@ -124,9 +127,10 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       decision: analysis.decision,
       detection: analysis.detection,
       now,
-      tools: { db, businessId, conversationId: null, customerId: null, dryRun: true },
+      tools: toolCtx,
       images,
       calls,
+      catalog,
     });
     const check = validateAIResponse(result.reply, { language: analysis.decision.language, allowedProductIds: result.productIds, maxChars: WHATSAPP_TEXT_LIMIT });
     const logged = await admin
@@ -153,7 +157,8 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       language: isLanguageCode(result.reply.reply_language) ? result.reply.reply_language : analysis.decision.language,
       needsHuman: result.reply.needs_human,
       handoffReason: result.reply.handoff_reason,
-      tools: result.toolLog,
+      // Products looked up before the model ran show as a catalog lookup too.
+      tools: catalog.length && !result.toolLog.includes("searchProducts") ? ["searchProducts", ...result.toolLog] : result.toolLog,
       blocked: !check.ok && check.issues.some((i) => i === "unknown_product" || i === "empty" || i === "too_long"),
       afterHours: open === false && business.settings.afterHoursMode !== "reply_normally",
     };

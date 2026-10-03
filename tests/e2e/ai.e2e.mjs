@@ -210,13 +210,14 @@ mkdirSync("test-results", { recursive: true });
   ok("assistant answers a price question from the catalog", priceReply === "La Robe Ankara coûte 15000 XAF.", JSON.stringify(sentTexts()));
   const req = claude.requests[testChatRequests];
   ok("Claude request: Haiku 4.5, output capped for short replies, no effort or fallback", req?.body.model === "claude-haiku-4-5" && req.body.max_tokens === 300 && !req.body.output_config && !req.body.fallbacks);
+  ok("price question: the matching product is prefetched into the turn, no search call", req.body.messages.at(-1).content.at(-1).text.includes("<catalog_matches>") && req.body.messages.at(-1).content.at(-1).text.includes("Robe Ankara") && claude.requests.length === testChatRequests + 1);
   ok("Claude request: cached system prompt with the FAQ, tools end with send_reply", req.body.system.every((b) => b.cache_control) && req.body.system[1].text.includes("Livrez-vous à Buea ?") && req.body.tools.at(-1).name === "send_reply");
   ok("Claude request: turn context closes the customer's turn (Haiku has no system messages)", req.body.messages.at(-1).role === "user" && req.body.messages.at(-1).content.at(-1).text.includes("reply_language: French (fr)"));
   if (DB) {
     // Our cost of each Claude request: one row per request, priced from config/economics.ts (fake usage: 1200 in, 60 out, 900 cache read).
     const rows = sql(`select source, model, step, cost_usd, cost_fcfa from claude_calls where created_at >= '${RUN_STARTED}' order by created_at, step`).split("\n").filter(Boolean).map((r) => r.split("|"));
     const replyRows = rows.filter((r) => r[0] === "reply");
-    ok("every Claude request is logged with its cost (reply: search + send_reply = 2 rows)", replyRows.length === 2 && replyRows[0][1] === "claude-haiku-4-5" && Math.abs(Number(replyRows[0][3]) - 0.00159) < 1e-6 && Math.abs(Number(replyRows[0][4]) - 0.00159 * 570) < 1e-3, JSON.stringify(rows));
+    ok("every Claude request is logged with its cost (price question: one request, products prefetched)", replyRows.length === 1 && replyRows[0][1] === "claude-haiku-4-5" && Math.abs(Number(replyRows[0][3]) - 0.00159) < 1e-6 && Math.abs(Number(replyRows[0][4]) - 0.00159 * 570) < 1e-3, JSON.stringify(rows));
     ok("test-chat requests are logged too, at Haiku rates", rows.some((r) => r[0] === "test_chat" && r[1] === "claude-haiku-4-5" && Math.abs(Number(r[3]) - (1200 * 1 + 60 * 5 + 900 * 0.1) / 1e6) < 1e-6));
   }
   const costs = await fetch(`${SUPABASE}/rest/v1/claude_calls?select=id`, { headers: restHeaders(tok) });
@@ -227,7 +228,7 @@ mkdirSync("test-results", { recursive: true });
   const [cust] = await get(tok, "customers?select=id,preferred_language,preferred_language_source");
   ok("customer's language remembered (inferred French)", cust.preferred_language === "fr" && cust.preferred_language_source === "inferred", JSON.stringify(cust));
   const usage1 = await waitFor(async () => (await get(tok, "ai_usage?select=outcome,model,input_tokens,tool_calls&order=created_at.desc"))[0]);
-  ok("AI usage logged (outcome, tokens, tool calls)", usage1?.outcome === "replied" && usage1.input_tokens > 0 && usage1.tool_calls === 1, JSON.stringify(usage1));
+  ok("AI usage logged (outcome, tokens; no tool call needed for a prefetched product)", usage1?.outcome === "replied" && usage1.input_tokens > 0 && usage1.tool_calls === 0, JSON.stringify(usage1));
   await page.goto(`${APP}/en/dashboard/conversations`);
   await main.getByRole("link", { name: /Chantal/ }).click();
   await main.getByText("La Robe Ankara coûte 15000 XAF.").waitFor({ timeout: 15000 });

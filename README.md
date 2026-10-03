@@ -363,7 +363,10 @@ Model: Claude Haiku 4.5 (`REPLY_MODEL` in `config/economics.ts`; Sonnet 5.5 only
 capped by the business's reply length (`MAX_OUTPUT_TOKENS`: 300 / 450 / 700). The tools, platform
 rules and business knowledge are a cached prefix (kept above Haiku's 4,096-token caching minimum —
 checked in `tests/unit/reply-budget.test.ts`), cached for 5 minutes, or 1 hour for a business with 3+
-AI replies in the past hour. Set
+AI replies in the past hour. Before each reply, the up-to-8 products matching the conversation
+(`PREFETCH_PRODUCTS`; the latest message first, then the recent turns, with English / French / Pidgin
+everyday words ignored) go into the turn context, so most price and stock questions take one Claude
+request instead of search → reply. Set
 `ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
 once the key is set, WhatsApp is connected and AI is switched on.
 

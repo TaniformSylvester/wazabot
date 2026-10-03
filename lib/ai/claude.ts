@@ -147,7 +147,27 @@ export function buildTurnMessage(input: GenerateInput): string {
     buildTurnContext(decision, detection, business.style),
     `<now>\nlocal_time: ${local} (${b.timezone})\nbusiness_open_now: ${open === null ? "unknown (opening hours not set)" : open ? "yes" : "no"}\n</now>`,
     `<customer>\n${customer.join("\n")}\nfirst_message_in_conversation: ${firstContact ? "yes" : "no"}\n</customer>`,
-  ].join("\n\n");
+    catalogBlock(input.catalog ?? []),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/** Prefetched products, compact (no photos flag noise, short descriptions). Same facts as searchProducts. */
+function catalogBlock(catalog: NonNullable<GenerateInput["catalog"]>) {
+  if (!catalog.length) return "";
+  const items = catalog.map((p) => ({
+    productId: p.productId,
+    name: p.name,
+    ...(p.category ? { category: p.category } : {}),
+    ...(p.description ? { description: p.description.slice(0, 140) } : {}),
+    price: p.price,
+    currency: p.currency,
+    inStock: p.inStock,
+    ...(p.hasPhoto ? { hasPhoto: true } : {}),
+    ...(p.variants.length ? { variants: p.variants } : {}),
+  }));
+  return `<catalog_matches>\n${JSON.stringify(items)}\n</catalog_matches>`;
 }
 
 type CreateFn = (params: Anthropic.Beta.MessageCreateParamsNonStreaming) => Promise<Anthropic.Beta.BetaMessage>;
@@ -188,7 +208,8 @@ export class ClaudeResponder implements AiResponder {
       : withTurnContext(turns, buildTurnMessage(input));
 
     const usage: AiUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
-    const productIds = new Set<string>();
+    // Prefetched products count as looked up: the reply may quote them.
+    const productIds = new Set<string>((input.catalog ?? []).map((p) => p.productId));
     const toolLog: string[] = [];
     let toolCalls = 0;
     let model = this.model;

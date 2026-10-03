@@ -4,6 +4,7 @@ import type { BusinessContext, ConversationContext } from "@/lib/ai/context";
 import { detectLanguage as detect, type DetectionResult, type LanguageDecision } from "@/lib/ai/language";
 import { assistantReplySchema, replyLanguageMismatch, type AssistantReply } from "@/lib/ai/reply-schema";
 import type { InputImage } from "@/lib/ai/images";
+import type { CatalogMatchItem } from "@/lib/ai/tools/prefetch";
 import type { ToolContext } from "@/lib/ai/tools/registry";
 import type { ClaudeCallUsage } from "@/lib/billing/costs";
 
@@ -27,6 +28,8 @@ export type GenerateInput = {
   /** Photos sent with the latest customer message (already normalised by lib/ai/images). */
   images?: InputImage[];
   now: Date;
+  /** Products matching the conversation, looked up before the model runs (lib/ai/tools/prefetch.ts). */
+  catalog?: CatalogMatchItem[];
   /** Prompt-cache lifetime for the cached prefix (1h for businesses that are busy right now). */
   cacheTtl?: "5m" | "1h";
   /** Filled with every Messages API request made, even when generate() then fails (cost logging). */
