@@ -1198,6 +1198,7 @@ const fr: Messages = {
       handoverReason: "Raison : {reason}",
       blocked: "Sur WhatsApp, cette réponse ne serait pas envoyée (elle cite un produit que le catalogue n'a pas renvoyé). Le client recevrait un message de transfert à la place.",
       afterHours: "Vous êtes en dehors de vos horaires : sur WhatsApp, votre réglage hors horaires s'appliquerait à la place de cette réponse.",
+      ruled: "Réponse immédiate à partir des informations de votre entreprise (sans IA).",
       language: "Langue de réponse : {language}",
       empty: "Posez les questions d'un client — prix, stock, livraison, horaires — en anglais, en français ou en pidgin.",
       suggestionsLabel: "Essayez :",

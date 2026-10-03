@@ -7,6 +7,7 @@ import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describe
 import { buildBusinessContext, type ConversationContext } from "@/lib/ai/context";
 import { prepareImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
+import { answerWithRules } from "@/lib/ai/rules";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
 import { authorize } from "@/lib/auth/dal";
@@ -55,6 +56,8 @@ export type TestChatResult =
       afterHours: boolean;
       /** The assistant's updated running summary, sent back with the next message. */
       summary: string | null;
+      /** Answered by the rules layer (no Claude call), as it would be on WhatsApp. */
+      ruled?: boolean;
     }
   | { ok: false; error: TestChatError };
 
@@ -125,6 +128,11 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
 
   const toolCtx = { db, businessId, conversationId: null, customerId: null, dryRun: true };
   const catalog = await prefetchCatalog(toolCtx, message, recentTopics(conversation.history)).catch(() => []);
+  // Same as on WhatsApp: simple questions are answered from the business's data, without Claude.
+  if (!images.length) {
+    const ruled = answerWithRules({ text: message, language: analysis.decision.language, business, catalog });
+    if (ruled) return { ok: true, reply: ruled.text, language: analysis.decision.language, needsHuman: false, handoffReason: null, tools: [], blocked: false, afterHours: false, summary: summary ?? null, ruled: true };
+  }
   const started = Date.now();
   const calls: ClaudeCallUsage[] = [];
   try {

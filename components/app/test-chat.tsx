@@ -175,6 +175,7 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
                     </span>
                   ) : null}
                   {turn.meta.afterHours ? <span className="text-gold-800">{t.afterHours}</span> : null}
+                  {turn.meta.ruled ? <span>{t.ruled}</span> : null}
                 </div>
               </div>
             ),

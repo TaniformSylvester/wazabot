@@ -128,10 +128,16 @@ mkdirSync("test-results", { recursive: true });
   await page.goto(`${APP}/en/dashboard/ai/test`);
   ok("test chat page shows the test-mode notice", (await main.getByText(/Test mode: nothing is sent on WhatsApp/).count()) === 1);
   const chatInput = main.getByLabel("Write as a customer would…");
-  await chatInput.fill("Bonjour, c'est combien la robe Ankara ?");
+  // A question with more to it than a price goes to Claude; a plain one is answered by the rules.
+  await chatInput.fill("Bonjour, la robe Ankara c'est combien ? C'est pour un mariage.");
   await chatInput.press("Enter");
   await main.getByText("La Robe Ankara coûte 15000 XAF.").waitFor({ timeout: 20000 });
   ok("test chat: assistant answers from the catalog", (await main.getByText("Looked up: catalog").count()) === 1 && (await main.getByText("Reply language: French").count()) >= 1);
+  const beforeRules = claude.requests.length;
+  await chatInput.fill("Merci beaucoup");
+  await chatInput.press("Enter");
+  await main.getByText("Answered instantly from your business information (no AI used).").waitFor({ timeout: 20000 });
+  ok("test chat: a plain thanks is answered by the rules, without Claude", claude.requests.length === beforeRules && (await main.getByText("Avec plaisir ! N'hésitez pas si vous avez une autre question.").count()) === 1);
   await chatInput.fill("Je prends 2");
   await main.getByRole("button", { name: "Send" }).click();
   await main.getByText(/TEST-00001/).waitFor({ timeout: 20000 });
@@ -205,7 +211,7 @@ mkdirSync("test-results", { recursive: true });
   // 1. A price question: catalog lookup, quoted from the catalog, in French.
   const testChatRequests = claude.requests.length;
   ok("test chat runs on Haiku 4.5 (no effort, turn context in the customer's turn)", testChatRequests > 0 && claude.requests.slice(0, testChatRequests).every((r) => r.body.model === "claude-haiku-4-5" && !r.body.output_config && !r.body.messages.some((m) => m.role === "system")));
-  await deliver(text("Bonjour, c'est combien la robe Ankara ?"));
+  await deliver(text("Bonjour, la robe Ankara c'est combien ? C'est pour un mariage."));
   const priceReply = await waitFor(() => sentTexts().find((t) => t.includes("15000")));
   ok("assistant answers a price question from the catalog", priceReply === "La Robe Ankara coûte 15000 XAF.", JSON.stringify(sentTexts()));
   const req = claude.requests[testChatRequests];
@@ -234,6 +240,14 @@ mkdirSync("test-results", { recursive: true });
   await main.getByText("La Robe Ankara coûte 15000 XAF.").waitFor({ timeout: 15000 });
   ok("AI reply shown in the conversation as WazaBolt AI", (await main.getByText("WazaBolt AI").count()) >= 1 && (await main.getByText("The assistant answers this customer automatically.").count()) === 1);
   await page.screenshot({ path: "test-results/stage3-ai-conversation.png", fullPage: true });
+
+  // 1b. Plain questions are answered by the rules layer from the business's data: no Claude call.
+  const beforeRuled = { sent: sentTexts().length, claude: claude.requests.length };
+  await deliver(text("c'est combien la robe ankara ?"), "237670000999", "Ndi");
+  const ruledPrice = await waitFor(() => sentTexts().slice(beforeRuled.sent).find((t) => t.startsWith("Robe Ankara")));
+  ok("rules: a plain price question is answered from the catalog without Claude", ruledPrice === "Robe Ankara : 15 000 FCFA." && claude.requests.length === beforeRuled.claude, String(ruledPrice));
+  const ruledUsage = await waitFor(async () => (await get(tok, "ai_usage?select=model,reason&reason=eq.rules_price"))[0]);
+  ok("rules: logged as a rules answer (no model cost)", ruledUsage?.model === "rules", JSON.stringify(ruledUsage));
 
   // 2. A burst of two messages gets one answer — to the newest — and an order.
   const before = sentTexts().length;

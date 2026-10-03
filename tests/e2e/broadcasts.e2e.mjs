@@ -30,6 +30,8 @@ const ok = (name, cond, extra = "") => {
   if (!cond) process.exitCode = 1;
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// The fake Graph API numbers its message ids from 1 each run: scope database checks to this run.
+const RUN_STARTED = new Date().toISOString();
 async function waitFor(fn, ms = 15000) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
@@ -163,7 +165,10 @@ mkdirSync("test-results", { recursive: true });
   ok("sent to the VIP audience only, with each customer's name", anaMsg?.template?.name === tpl.name && anaMsg.template.components[0].parameters[0].text === "Ana" && sentTo(CARA)[0]?.template.components[0].parameters[0].text === "Cara" && sentTo(BOB).length === 0);
   await page.goto(broadcastUrl);
   await main.getByText("Sent 2 of 2 · 0 failed").waitFor({ timeout: 15000 }).catch(() => {});
-  ok("broadcast messages are recorded as marketing", sql(`select count(*) from messages where whatsapp_message_id in ('${sentTo(CARA)[0]?.wamid}', '${anaMsg?.wamid}') and wa_category = 'marketing'`) === "2");
+  // Each message row is written just after its send: give the last one a moment.
+  const marketingRows = () => sql(`select count(*) from messages where whatsapp_message_id in ('${sentTo(CARA)[0]?.wamid}', '${anaMsg?.wamid}') and wa_category = 'marketing' and created_at >= '${RUN_STARTED}'`);
+  for (let i = 0; i < 20 && marketingRows() !== "2"; i++) await sleep(500);
+  ok("broadcast messages are recorded as marketing", marketingRows() === "2");
   ok("progress and recipients shown", (await main.getByText("Sent 2 of 2 · 0 failed").count()) === 1 && (await main.getByText("Sent", { exact: true }).count()) >= 2);
 
   // STOP and START from WhatsApp.

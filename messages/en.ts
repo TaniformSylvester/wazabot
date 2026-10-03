@@ -1200,6 +1200,7 @@ const en = {
       handoverReason: "Reason: {reason}",
       blocked: "On WhatsApp this reply would not be sent (it mentions a product the catalog didn't return). The customer would get a handover message instead.",
       afterHours: "It's outside your opening hours: on WhatsApp, your after-hours setting would apply instead of this reply.",
+      ruled: "Answered instantly from your business information (no AI used).",
       language: "Reply language: {language}",
       empty: "Ask what a customer would ask — prices, stock, delivery, opening hours — in English, French or Pidgin.",
       suggestionsLabel: "Try:",

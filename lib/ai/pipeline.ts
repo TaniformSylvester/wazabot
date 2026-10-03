@@ -4,6 +4,7 @@ import { CACHE_1H_MIN_REPLIES_LAST_HOUR, CUSTOMER_AI_REPLIES_PER_HOUR, REPLY_DEB
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
 import { isEmojiOnly, spamReason } from "@/lib/ai/filters";
+import { answerWithRules } from "@/lib/ai/rules";
 import { loadMessageImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
@@ -174,10 +175,15 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   }
 
   const toolCtx = { db: admin, businessId: job.businessId, conversationId: job.conversationId, customerId: conversation.customer.id };
-  const [cacheTtl, catalog] = await Promise.all([
-    cacheLifetime(admin, job.businessId, deps.now()),
-    prefetchCatalog(toolCtx, text, recentTopics(conversation.history)).catch(() => []),
-  ]);
+  const catalog = await prefetchCatalog(toolCtx, text, recentTopics(conversation.history)).catch(() => []);
+
+  // Simple questions (greeting, hours, location, a price…) answered from the business's data — no Claude call.
+  if (!images.length) {
+    const ruled = answerWithRules({ text, language: analysis.decision.language, business, catalog });
+    if (ruled) return sendNotice(ctx, ruled.text, analysis.decision.language, "replied", `rules_${ruled.intent}`, { model: "rules" });
+  }
+
+  const cacheTtl = await cacheLifetime(admin, job.businessId, deps.now());
   const started = Date.now();
   const calls: ClaudeCallUsage[] = [];
   try {

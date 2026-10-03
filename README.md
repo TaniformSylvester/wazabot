@@ -373,7 +373,13 @@ FAQs and policies up to `KNOWLEDGE_CACHED_CHARS` (12,000 characters, by priority
 cached prompt; beyond that, at most 3 items matching the customer's message are sent with it.
 No Claude call for stickers and reactions (ignored on arrival), emoji-only messages, the same text
 repeated within 10 minutes, pastes over 2,000 characters or 3+ links (the team is flagged for those),
-or a customer past 15 AI replies in an hour (their messages wait for the team; nothing is dropped). Set
+or a customer past 15 AI replies in an hour (their messages wait for the team; nothing is dropped).
+**Rules layer** (`lib/ai/rules`): short single questions are answered from the business's own data
+without Claude — greetings and thanks, opening hours, the address, a delivery fee the business wrote
+for the named place, one clearly matching product's price and stock. Keywords in English, French and
+Pidgin, with typo tolerance; anything that looks like an order, a complaint, bargaining, a request for
+a person, a photo or more than one question goes to Claude. Logged in `ai_usage` as model `rules`
+(reason `rules_<intent>`); the test chat shows "Answered instantly … (no AI used)". Set
 `ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
 once the key is set, WhatsApp is connected and AI is switched on.
 
