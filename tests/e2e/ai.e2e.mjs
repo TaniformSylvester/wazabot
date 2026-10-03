@@ -301,6 +301,19 @@ mkdirSync("test-results", { recursive: true });
   ok("AI page shows Switched off and this month's activity", (await main.getByText("Switched off").count()) === 1 && (await main.getByText("AI replies").count()) === 1);
   await page.screenshot({ path: "test-results/stage3-ai-page.png", fullPage: true });
 
+  // Emoji-only messages and repeats never reach Claude.
+  await patch(tok, `ai_settings?business_id=eq.${biz.id}`, { ai_enabled: true });
+  const beforeCheap = { sent: sentTexts().length, claude: claude.requests.length };
+  await deliver(text("👍🏾🙏🏾"), "237670000888", "Emoji");
+  await sleep(4500);
+  ok("emoji-only message: no Claude call, no reply", sentTexts().length === beforeCheap.sent && claude.requests.length === beforeCheap.claude);
+  await deliver(text("Bonjour, c'est combien la robe Ankara ?"), "237670000888", "Emoji");
+  await waitFor(() => sentTexts().length > beforeCheap.sent);
+  const afterFirst = { sent: sentTexts().length, claude: claude.requests.length };
+  await deliver(text("Bonjour, c'est combien la robe Ankara ?"), "237670000888", "Emoji");
+  await sleep(4500);
+  ok("the same question again a minute later: not sent to Claude again", sentTexts().length === afterFirst.sent && claude.requests.length === afterFirst.claude);
+
   const summarised = claude.requests.find((r) => JSON.stringify(r.body.messages).includes("update_summary: yes"));
   const userTurns = summarised?.body.messages.filter((m) => m.role !== "system").length ?? 0;
   ok("only the last 6 messages are sent; once the window is full the assistant keeps a running summary", !!summarised && userTurns <= 6 && (await get(tok, "conversations?select=ai_summary&ai_summary=not.is.null")).some((c) => c.ai_summary.includes("Ankara")), String(userTurns));

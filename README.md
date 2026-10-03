@@ -370,7 +370,10 @@ request instead of search → reply. Only the last 6 messages are sent (`HISTORY
 that window is full the assistant keeps a short running summary of the conversation
 (`conversations.ai_summary`, apply `supabase/migrations/20261011120000_conversation_summary.sql`).
 FAQs and policies up to `KNOWLEDGE_CACHED_CHARS` (12,000 characters, by priority) stay in the
-cached prompt; beyond that, at most 3 items matching the customer's message are sent with it. Set
+cached prompt; beyond that, at most 3 items matching the customer's message are sent with it.
+No Claude call for stickers and reactions (ignored on arrival), emoji-only messages, the same text
+repeated within 10 minutes, pastes over 2,000 characters or 3+ links (the team is flagged for those),
+or a customer past 15 AI replies in an hour (their messages wait for the team; nothing is dropped). Set
 `ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
 once the key is set, WhatsApp is connected and AI is switched on.
 

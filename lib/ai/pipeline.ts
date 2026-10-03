@@ -1,8 +1,9 @@
 import "server-only";
 
-import { CACHE_1H_MIN_REPLIES_LAST_HOUR, REPLY_DEBOUNCE_MS } from "@/config/economics";
+import { CACHE_1H_MIN_REPLIES_LAST_HOUR, CUSTOMER_AI_REPLIES_PER_HOUR, REPLY_DEBOUNCE_MS } from "@/config/economics";
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
+import { isEmojiOnly, spamReason } from "@/lib/ai/filters";
 import { loadMessageImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
@@ -135,6 +136,25 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   }
   if (!text && !images.length) return { outcome: "skipped", reason: "empty" };
 
+  // Messages Claude isn't paid to read. Nothing is dropped: they stay in the inbox, and the team is flagged where a person should look.
+  if (!images.length) {
+    const earlier = conversation.history.slice(0, -1).filter((h) => h.role === "customer");
+    const skip = isEmojiOnly(text) ? "emoji_only" : spamReason(text, earlier, deps.now());
+    if (skip) {
+      if (skip === "too_long" || skip === "links") await flagForTeam(admin, job);
+      await markProcessed(admin, job, null);
+      await logUsage(admin, job, { outcome: "skipped", reason: skip });
+      return { outcome: "skipped", reason: skip };
+    }
+  }
+  // A customer writing non-stop (or a bot): beyond the hourly limit their messages wait for the team.
+  if (await overCustomerLimit(admin, job, deps.now())) {
+    await flagForTeam(admin, job);
+    await markProcessed(admin, job, null);
+    await logUsage(admin, job, { outcome: "skipped", reason: "customer_rate_limit" });
+    return { outcome: "skipped", reason: "customer_rate_limit" };
+  }
+
   // Language: detection + explicit requests + saved preference → reply language.
   const preference =
     conversation.customer.preferredLanguage && conversation.customer.preferredLanguageSource
@@ -260,6 +280,17 @@ async function sendAssistantMessage(ctx: Ctx, text: string, language: LanguageCo
   if (wamid) await recordWhatsAppSend(admin, ctx.job.businessId, ctx.wa.phoneNumberId, "service");
   await admin.from("conversations").update({ last_message_at: now, language }).eq("id", ctx.job.conversationId).eq("business_id", ctx.job.businessId);
   return wamid ? (data?.id ?? null) : null;
+}
+
+async function overCustomerLimit(admin: Admin, job: AiJob, now: Date) {
+  const { count } = await admin
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", job.businessId)
+    .eq("conversation_id", job.conversationId)
+    .eq("ai_generated", true)
+    .gte("created_at", new Date(now.getTime() - 3_600_000).toISOString());
+  return (count ?? 0) >= CUSTOMER_AI_REPLIES_PER_HOUR;
 }
 
 /** 1-hour prompt cache for a business that is busy right now; otherwise the cheaper 5-minute one. */

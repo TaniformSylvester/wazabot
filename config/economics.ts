@@ -81,6 +81,16 @@ export const PREFETCH_PRODUCTS = 8;
  * survives the gaps between its customers' messages.
  */
 export const CACHE_1H_MIN_REPLIES_LAST_HOUR = 3;
+/**
+ * Messages that never reach Claude: emoji-only, stickers and reactions
+ * (ignored on arrival), the same text repeated within REPEAT_WINDOW_MINUTES,
+ * very long pastes and link floods (spam → the team sees them in the inbox).
+ */
+export const REPEAT_WINDOW_MINUTES = 10;
+export const SPAM_MAX_CHARS = 2000;
+export const SPAM_MAX_LINKS = 3;
+/** AI replies per customer per hour; beyond that their messages wait for the team (never dropped). */
+export const CUSTOMER_AI_REPLIES_PER_HOUR = 15;
 /** AI replies per conversation before staff take over (Step 4). */
 export const MAX_AI_REPLIES_PER_CONVERSATION = 10;
 
