@@ -301,6 +301,9 @@ mkdirSync("test-results", { recursive: true });
   ok("AI page shows Switched off and this month's activity", (await main.getByText("Switched off").count()) === 1 && (await main.getByText("AI replies").count()) === 1);
   await page.screenshot({ path: "test-results/stage3-ai-page.png", fullPage: true });
 
+  const summarised = claude.requests.find((r) => JSON.stringify(r.body.messages).includes("update_summary: yes"));
+  const userTurns = summarised?.body.messages.filter((m) => m.role !== "system").length ?? 0;
+  ok("only the last 6 messages are sent; once the window is full the assistant keeps a running summary", !!summarised && userTurns <= 6 && (await get(tok, "conversations?select=ai_summary&ai_summary=not.is.null")).some((c) => c.ai_summary.includes("Ankara")), String(userTurns));
   ok("a busy business gets the 1-hour prompt cache (3+ AI replies in the past hour)", claude.requests.some((r) => r.body.system?.[0]?.cache_control?.ttl === "1h") && claude.requests[testChatRequests].body.system[0].cache_control.ttl === undefined);
 
   // The owner's free-messages bar (counts only, no prices).

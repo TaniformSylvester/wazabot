@@ -68,3 +68,43 @@ describe("cached prefix (Haiku caches only from 4,096 tokens)", () => {
     expect(tokens).toBeGreaterThanOrEqual(4096);
   });
 });
+
+describe("heavy knowledge base and the uncached part of a request", () => {
+  const faqs = Array.from({ length: 60 }, (_, i) => ({ question: `Livrez-vous à la ville numéro ${i} et en combien de jours ?`, answer: `Oui, livraison en 2 jours pour 2 500 FCFA, paiement Orange Money ou MTN MoMo à la livraison (zone ${i}).` }));
+  const documents = Array.from({ length: 20 }, (_, i) => ({ type: "policy", title: `Politique ${i}`, content: `Retours acceptés sous 7 jours si l'article n'est pas porté, remboursement en bon d'achat. `.repeat(45).slice(0, 4000) }));
+  const heavy: BusinessContext = { ...minimal, faqs, documents, booking: { enabled: true, services: [] } };
+
+  it("only ~12,000 characters of FAQs and policies stay in the cached prompt", () => {
+    const before = faqs.reduce((n, f) => n + f.question.length + f.answer.length, 0) + documents.reduce((n, d) => n + d.content.length, 0);
+    const system = buildKnowledgePrompt(heavy);
+    console.log(`[budget] heavy knowledge: ${Math.ceil(before / 3.6)} tokens written by the business → ~${Math.ceil(system.length / 3.6)} tokens in the cached prompt`);
+    expect(system.length).toBeLessThan(14_000);
+    expect(system).toContain("more FAQs or policies exist");
+  });
+
+  it("a typical turn's uncached part (6 messages, turn context, 8 products, 3 extra items) stays under 2,500 tokens", async () => {
+    const { ClaudeResponder } = await import("@/lib/ai/claude");
+    const { analyzeInboundMessage } = await import("@/lib/ai/language");
+    const history = [
+      "Bonjour, vous avez des robes en wax pour un mariage ?",
+      "Bonjour ! Oui, nous avons plusieurs robes en wax : la robe longue imprimée à 22 000 FCFA et la robe wax rouge à 15 000 FCFA. Laquelle vous intéresse ?",
+      "La rouge, en taille M. Vous livrez à Buea ? C'est combien la livraison ?",
+      "Oui, nous livrons à Buea en 2 jours pour 2 500 FCFA. La robe wax rouge est disponible en M. Je vous la réserve ?",
+      "Oui svp, et aussi le foulard assorti si vous l'avez",
+      "Le foulard assorti est à 4 000 FCFA. Voulez-vous que je prépare la commande pour la robe et le foulard ?",
+    ].map((text, i) => ({ role: (i % 2 ? "assistant" : "customer") as "customer", text, at: "2026-10-01T10:00:00Z" }));
+    const conversation = { conversationId: "c", aiEnabled: true, language: null, customer: { id: "cu", whatsappPhone: "237670000001", name: "Brenda", city: "Buea", preferredLanguage: null, preferredLanguageSource: null, tags: ["vip"] }, history: [...history, { role: "customer" as const, text: "Ok je prends les deux, livrés à Molyko. Retour possible si la taille ne va pas ?", at: "2026-10-01T10:05:00Z" }], hasEarlier: true, summary: "Brenda cherche une robe en wax pour un mariage, taille M, livraison à Buea." };
+    const catalog = Array.from({ length: 8 }, (_, i) => ({ productId: `1111111${i}-1111-4111-8111-111111111111`, name: `Robe wax modèle ${i}`, description: "Robe en wax 100 % coton, coupe droite, longueur genou, fermeture éclair au dos.", category: "Robes", price: 15000 + i * 500, currency: "XAF", inStock: true, hasPhoto: true, variants: [{ variantId: `2222222${i}-2222-4222-8222-222222222222`, label: "Taille: M", price: 15000, inStock: true }, { variantId: `3333333${i}-3333-4333-8333-333333333333`, label: "Taille: L", price: 15000, inStock: false }] }));
+    let request = "";
+    const create = async (p: { messages: unknown; system: unknown; tools: unknown }) => {
+      request = JSON.stringify(p.messages);
+      return { id: "m", type: "message", role: "assistant", model: "claude-haiku-4-5", stop_reason: "tool_use", usage: { input_tokens: 0, output_tokens: 0 }, content: [{ type: "tool_use", id: "t", name: "send_reply", input: { reply: "x", reply_language: "fr", customer_languages: ["fr"], language_request: null, catalog_product_ids: [], needs_human: false, handoff_reason: null } }] };
+    };
+    const a = analyzeInboundMessage(conversation.history.at(-1)!.text, { settings: heavy.language });
+    await new ClaudeResponder(create as never).generate({ business: heavy, conversation, decision: a.decision, detection: a.detection, now: new Date("2026-10-05T10:00:00Z"), tools: {} as never, catalog });
+    const tokens = outTokens(request); // 3 chars per token: over-counts
+    console.log(`[budget] uncached part of a typical request: ~${tokens} tokens (≤ ${Math.ceil(request.length / 3.6)} at 3.6 chars/token)`);
+    expect(request).toContain("<more_business_info>");
+    expect(tokens).toBeLessThanOrEqual(2500);
+  });
+});

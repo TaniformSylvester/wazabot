@@ -3,12 +3,14 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
-import { MAX_OUTPUT_TOKENS, REPLY_MODEL } from "@/config/economics";
+import { HISTORY_MESSAGES, MAX_OUTPUT_TOKENS, REPLY_MODEL } from "@/config/economics";
 import type { ConversationContext } from "@/lib/ai/context";
+import { relevantExtra, splitKnowledge } from "@/lib/ai/knowledge";
 import { buildBusinessPrompt, buildKnowledgePrompt, buildPlatformPrompt, buildTurnContext } from "@/lib/ai/prompts/system-prompt";
 import { assistantReplySchema, type AssistantReply } from "@/lib/ai/reply-schema";
 import type { AiResponder, AiUsage, GenerateInput, GenerateResult } from "@/lib/ai/service";
 import type { InputImage } from "@/lib/ai/images";
+import { recentTopics } from "@/lib/ai/tools/prefetch";
 import { runTool, toolSchemas, type ProductPhoto } from "@/lib/ai/tools/registry";
 import { isOpenAt } from "@/lib/business/hours";
 import { languages } from "@/lib/i18n/languages";
@@ -93,7 +95,8 @@ const SEND_REPLY: Anthropic.Beta.BetaTool = {
   description:
     "Send your WhatsApp message to the customer and finish this turn. Call it exactly once, after any lookups, as your last action. " +
     "Fill every field: reply (the message text, in the reply language), reply_language, customer_languages, language_request, " +
-    "catalog_product_ids (ids from tool results whose details you state), needs_human and handoff_reason.",
+    "catalog_product_ids (ids from tool results or <catalog_matches> whose details you state), needs_human and handoff_reason. " +
+    "When the turn context says update_summary: yes, also fill summary.",
   input_schema: replyInputSchema as Anthropic.Beta.BetaTool.InputSchema,
 };
 
@@ -147,25 +150,49 @@ export function buildTurnMessage(input: GenerateInput): string {
     buildTurnContext(decision, detection, business.style),
     `<now>\nlocal_time: ${local} (${b.timezone})\nbusiness_open_now: ${open === null ? "unknown (opening hours not set)" : open ? "yes" : "no"}\n</now>`,
     `<customer>\n${customer.join("\n")}\nfirst_message_in_conversation: ${firstContact ? "yes" : "no"}\n</customer>`,
+    summaryBlock(conversation),
+    moreInfoBlock(input),
     catalogBlock(input.catalog ?? []),
   ]
     .filter(Boolean)
     .join("\n\n");
 }
 
+/**
+ * Only the last HISTORY_MESSAGES messages are sent. Once the window is full,
+ * the model is asked to keep a running summary (returned in send_reply) so
+ * what falls out of the window — chosen items, sizes, delivery place — isn't lost.
+ */
+function summaryBlock(conversation: GenerateInput["conversation"]) {
+  const full = conversation.history.length >= HISTORY_MESSAGES;
+  if (!conversation.hasEarlier && !full) return "";
+  const earlier = conversation.hasEarlier ? `<earlier_conversation>\n${conversation.summary ?? "(older messages, not summarised)"}\n</earlier_conversation>\n` : "";
+  return `${earlier}update_summary: ${full ? "yes" : "no"}`;
+}
+
+/** FAQs and policies beyond the cached ones that match what the customer is talking about. */
+function moreInfoBlock(input: GenerateInput) {
+  const { extra } = splitKnowledge(input.business);
+  const history = input.conversation.history;
+  const items = relevantExtra(extra, [history.at(-1)?.text ?? "", ...recentTopics(history)]);
+  if (!items.length) return "";
+  // Excerpts: the start of each item is usually what matters; the model can hand over if it needs more.
+  return `<more_business_info>\n${items.map((i) => (i.kind === "faq" ? `Q: ${i.title}\nA: ${i.text.slice(0, 600)}` : `## ${i.title}\n${i.text.slice(0, 600)}`)).join("\n\n")}\n</more_business_info>`;
+}
+
 /** Prefetched products, compact (no photos flag noise, short descriptions). Same facts as searchProducts. */
 function catalogBlock(catalog: NonNullable<GenerateInput["catalog"]>) {
   if (!catalog.length) return "";
+  // Compact: these tokens are paid on every reply. Variant price only when it differs from the product's.
   const items = catalog.map((p) => ({
     productId: p.productId,
     name: p.name,
-    ...(p.category ? { category: p.category } : {}),
-    ...(p.description ? { description: p.description.slice(0, 140) } : {}),
+    ...(p.description ? { description: p.description.slice(0, 80) } : {}),
     price: p.price,
     currency: p.currency,
     inStock: p.inStock,
     ...(p.hasPhoto ? { hasPhoto: true } : {}),
-    ...(p.variants.length ? { variants: p.variants } : {}),
+    ...(p.variants.length ? { variants: p.variants.map((v) => ({ variantId: v.variantId, label: v.label, ...(v.price !== p.price ? { price: v.price } : {}), inStock: v.inStock })) } : {}),
   }));
   return `<catalog_matches>\n${JSON.stringify(items)}\n</catalog_matches>`;
 }

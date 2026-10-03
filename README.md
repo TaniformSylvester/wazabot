@@ -366,7 +366,11 @@ checked in `tests/unit/reply-budget.test.ts`), cached for 5 minutes, or 1 hour f
 AI replies in the past hour. Before each reply, the up-to-8 products matching the conversation
 (`PREFETCH_PRODUCTS`; the latest message first, then the recent turns, with English / French / Pidgin
 everyday words ignored) go into the turn context, so most price and stock questions take one Claude
-request instead of search → reply. Set
+request instead of search → reply. Only the last 6 messages are sent (`HISTORY_MESSAGES`); once
+that window is full the assistant keeps a short running summary of the conversation
+(`conversations.ai_summary`, apply `supabase/migrations/20261011120000_conversation_summary.sql`).
+FAQs and policies up to `KNOWLEDGE_CACHED_CHARS` (12,000 characters, by priority) stay in the
+cached prompt; beyond that, at most 3 items matching the customer's message are sent with it. Set
 `ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
 once the key is set, WhatsApp is connected and AI is switched on.
 

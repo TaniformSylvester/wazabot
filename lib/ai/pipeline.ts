@@ -191,6 +191,13 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
     if (handOver) {
       await admin.from("conversations").update({ ai_enabled: false, human_requested: true, status: "pending" }).eq("id", job.conversationId).eq("business_id", job.businessId);
     }
+    if (reply.summary?.trim()) {
+      await admin
+        .from("conversations")
+        .update({ ai_summary: reply.summary.trim().slice(0, 800), ai_summary_updated_at: deps.now().toISOString() })
+        .eq("id", job.conversationId)
+        .eq("business_id", job.businessId);
+    }
     await markProcessed(admin, job, sent ? null : "send_failed");
     await logUsage(admin, job, { outcome: sent ? (handOver ? "handed_over" : "replied") : "failed", reason: sent ? (handOver ? "needs_human" : undefined) : "send_failed", replyMessageId: sent ?? undefined, ...meta });
     return { outcome: sent ? (handOver ? "handed_over" : "replied") : "failed", reason: sent ? undefined : "send_failed" };

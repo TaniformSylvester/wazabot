@@ -79,10 +79,13 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
     setPhoto(null);
     // Earlier photos aren't re-sent: the history marks them, like on WhatsApp.
     const history = turns.map((turn) => ({ role: turn.role, text: turn.role === "customer" && turn.photo ? `[photo] ${turn.text}`.trim() : turn.text }));
-    const lastLanguage = [...turns].reverse().find((turn): turn is Extract<Turn, { role: "assistant" }> => turn.role === "assistant")?.meta.language ?? null;
+    const lastAssistant = [...turns].reverse().find((turn): turn is Extract<Turn, { role: "assistant" }> => turn.role === "assistant");
+    const lastLanguage = lastAssistant?.meta.language ?? null;
+    // The assistant's running summary travels with the transcript, like on WhatsApp it lives on the conversation.
+    const summary = [...turns].reverse().find((turn): turn is Extract<Turn, { role: "assistant" }> => turn.role === "assistant" && !!turn.meta.summary)?.meta.summary ?? null;
     setTurns((prev) => [...prev, { role: "customer", text: message, photo: sentPhoto?.dataUrl }]);
     setPending(true);
-    void ask({ message, history, language: lastLanguage, image: sentPhoto?.base64 ?? null }).then((res) => {
+    void ask({ message, history, language: lastLanguage, summary, image: sentPhoto?.base64 ?? null }).then((res) => {
       setPending(false);
       if (res.ok) setTurns((prev) => [...prev, { role: "assistant", text: res.reply, meta: res }]);
       else {

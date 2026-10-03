@@ -23,6 +23,12 @@ export const assistantReplySchema = z.object({
     .describe("Ids of catalog products (from searchProducts / checkProductStock) whose details the reply states. Empty if none."),
   needs_human: z.boolean().describe("True when a person from the business must take over."),
   handoff_reason: z.string().nullable().describe("Short internal reason for the handoff, or null."),
+  summary: z
+    .string()
+    .max(600)
+    .nullable()
+    .optional()
+    .describe("Only when the turn context says update_summary: yes — the running summary of the whole conversation (see <earlier_conversation>). Otherwise null."),
 });
 
 export type AssistantReply = z.infer<typeof assistantReplySchema>;

@@ -730,6 +730,8 @@ export type Database = {
       conversations: {
         Row: {
           ai_enabled: boolean;
+          ai_summary: string | null;
+          ai_summary_updated_at: string | null;
           assigned_to: string | null;
           business_id: string;
           channel: string;
@@ -746,6 +748,8 @@ export type Database = {
         };
         Insert: {
           ai_enabled?: boolean;
+          ai_summary?: string | null;
+          ai_summary_updated_at?: string | null;
           assigned_to?: string | null;
           business_id: string;
           channel?: string;
@@ -762,6 +766,8 @@ export type Database = {
         };
         Update: {
           ai_enabled?: boolean;
+          ai_summary?: string | null;
+          ai_summary_updated_at?: string | null;
           assigned_to?: string | null;
           business_id?: string;
           channel?: string;

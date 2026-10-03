@@ -67,6 +67,8 @@ const conversation: ConversationContext = {
   language: null,
   customer: { id: "cu1", whatsappPhone: "237670000001", name: "Brenda", city: null, preferredLanguage: null, preferredLanguageSource: null, tags: [] },
   history: [{ role: "customer", text: "Bonjour, c'est combien la robe Ankara ?", at: "2026-10-01T10:00:00Z" }],
+  hasEarlier: false,
+  summary: null,
 };
 
 function input(dbData: unknown = []): GenerateInput {
@@ -179,6 +181,21 @@ describe("Claude responder", () => {
     await expect(new ClaudeResponder(api.create, "claude-haiku-4-5").generate({ ...input([]), calls })).rejects.toThrow("max_tokens");
     expect(calls).toHaveLength(2);
     expect(calls[0]).toEqual({ model: "claude-haiku-4-5-20251001", inputTokens: 300, outputTokens: 40, cacheReadTokens: 4000, cacheWrite5mTokens: 200, cacheWrite1hTokens: 300 });
+  });
+
+  it("sends the running summary once the window is full, and asks to update it", async () => {
+    const api = scripted([message([{ type: "tool_use", id: "t1", name: "send_reply", input: reply({ catalog_product_ids: [], summary: "Brenda wants 2 Ankara dresses, size M, delivered to Buea." }) }], "tool_use")]);
+    const turns = Array.from({ length: 6 }, (_, i) => ({ role: (i % 2 ? "assistant" : "customer") as "customer", text: `message ${i}`, at: "2026-10-01T10:00:00Z" }));
+    const long = { ...conversation, history: turns, hasEarlier: true, summary: "Brenda asked about Ankara dresses." };
+    const result = await new ClaudeResponder(api.create).generate({ ...input(), conversation: long });
+    const turn = (api.requests[0].messages.at(-1)!.content as Anthropic.Beta.BetaTextBlockParam[]).at(-1)!.text;
+    expect(turn).toContain("<earlier_conversation>\nBrenda asked about Ankara dresses.\n</earlier_conversation>");
+    expect(turn).toContain("update_summary: yes");
+    expect(result.reply.summary).toBe("Brenda wants 2 Ankara dresses, size M, delivered to Buea.");
+
+    const short = scripted([message([{ type: "tool_use", id: "t1", name: "send_reply", input: reply({ catalog_product_ids: [] }) }], "tool_use")]);
+    await new ClaudeResponder(short.create).generate(input());
+    expect(JSON.stringify(short.requests[0].messages)).not.toContain("update_summary");
   });
 
   it("asks again when send_reply is malformed", async () => {

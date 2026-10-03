@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import { TEST_CHAT_MODEL, TEST_CHAT_PER_HOUR } from "@/config/economics";
+import { HISTORY_MESSAGES, TEST_CHAT_MODEL, TEST_CHAT_PER_HOUR } from "@/config/economics";
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, type ConversationContext } from "@/lib/ai/context";
 import { prepareImage, type InputImage } from "@/lib/ai/images";
@@ -37,6 +37,8 @@ const inputSchema = z.object({
     .max(30),
   /** Language the test conversation is already in (from the previous reply). */
   language: z.string().nullable(),
+  /** The assistant's running summary from an earlier reply (as stored on a WhatsApp conversation). */
+  summary: z.string().max(800).nullish(),
 });
 
 export type TestChatResult =
@@ -51,6 +53,8 @@ export type TestChatResult =
       blocked: boolean;
       /** Outside opening hours with an after-hours setting other than "answer as usual". */
       afterHours: boolean;
+      /** The assistant's updated running summary, sent back with the next message. */
+      summary: string | null;
     }
   | { ok: false; error: TestChatError };
 
@@ -71,7 +75,7 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
   if (!aiConfigured()) return { ok: false, error: "not_configured" };
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { message, history, language, image } = parsed.data;
+  const { message, history, language, image, summary } = parsed.data;
   if (!message && !image) return { ok: false, error: "invalid" };
   let images: InputImage[] = [];
   if (image) {
@@ -105,14 +109,17 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
   // Photos switched off: what the customer would get on WhatsApp (no AI call).
   if (images.length && !business.settings.photoUnderstanding) {
     const lang = conversationLanguage ?? business.language.defaultLanguage;
-    return { ok: true, reply: fixedMessage(lang, "imagePassedOn", business.business.name), language: lang, needsHuman: true, handoffReason: null, tools: [], blocked: false, afterHours: false };
+    return { ok: true, reply: fixedMessage(lang, "imagePassedOn", business.business.name), language: lang, needsHuman: true, handoffReason: null, tools: [], blocked: false, afterHours: false, summary: summary ?? null };
   }
   const conversation: ConversationContext = {
     conversationId: "test",
     aiEnabled: true,
     language: conversationLanguage,
     customer: { id: "test", whatsappPhone: "000000000", name: "", city: null, preferredLanguage: null, preferredLanguageSource: null, tags: [] },
-    history: [...history.map((h) => ({ role: h.role, text: h.text, at: now.toISOString() })), { role: "customer" as const, text: images.length ? `[photo] ${message}`.trim() : message, at: now.toISOString() }],
+    // Same window as on WhatsApp: the last messages, older ones carried by the summary.
+    history: [...history.map((h) => ({ role: h.role, text: h.text, at: now.toISOString() })), { role: "customer" as const, text: images.length ? `[photo] ${message}`.trim() : message, at: now.toISOString() }].slice(-HISTORY_MESSAGES),
+    hasEarlier: history.length + 1 > HISTORY_MESSAGES,
+    summary: summary ?? null,
   };
   const analysis = analyzeInboundMessage(message, { settings: business.language, conversationLanguage });
 
@@ -161,6 +168,7 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       tools: catalog.length && !result.toolLog.includes("searchProducts") ? ["searchProducts", ...result.toolLog] : result.toolLog,
       blocked: !check.ok && check.issues.some((i) => i === "unknown_product" || i === "empty" || i === "too_long"),
       afterHours: open === false && business.settings.afterHoursMode !== "reply_normally",
+      summary: result.reply.summary?.trim() || summary || null,
     };
   } catch (e) {
     const reason = e instanceof AiRefusalError ? "refusal" : e instanceof AiNoReplyError ? e.reason : "api_error";

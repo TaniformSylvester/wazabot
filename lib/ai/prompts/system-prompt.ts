@@ -4,6 +4,7 @@ import type { DetectionResult } from "@/lib/ai/language/detect";
 import type { LanguageDecision } from "@/lib/ai/language/resolve";
 import { styleGuidance, type LanguageSettings, type ResponseStyle } from "@/lib/ai/style";
 import type { BusinessContext } from "@/lib/ai/context";
+import { splitKnowledge } from "@/lib/ai/knowledge";
 import { WEEKDAYS } from "@/lib/business/hours";
 
 /**
@@ -49,10 +50,11 @@ export function buildPlatformPrompt(): string {
 - Appointments (only when the business information lists bookable services): use findAvailableSlots for a service and a day, offer a few of the free times, and call bookAppointment only once the customer has confirmed the service, the day and the time. Times are the business's local time, written YYYY-MM-DDTHH:mm. Never invent free times; never say it's booked unless bookAppointment returned ok, then repeat the day and time. To move or cancel: getMyAppointments, then cancelAppointment (and book the new time).
 - Never confirm a payment from a screenshot or photo: say the team will check it, and set needs_human to true. If a photo is unclear or not about the business, say what you can see and ask what they need.
 - Payments are not taken in WhatsApp: explain the payment options only if the business information mentions them.
+- You see only the latest messages of the conversation. <earlier_conversation> summarises what came before. When the turn context says update_summary: yes, fill send_reply's summary with an updated summary of the whole conversation (earlier summary + the messages you see), in English, at most 3 short sentences: what the customer wants, items/sizes/quantities chosen, name and delivery place if given, anything promised or still open. Never put payment codes or other secrets in it.
 - Always finish by calling send_reply exactly once with your message to the customer. Do not write the message as plain text.
 
 # Honesty
-- Only state facts that appear in the business information you are given or in tool results (products, prices, stock, delivery, opening hours, policies). Never guess or invent them.
+- Only state facts that appear in the business information you are given (including <more_business_info>) or in tool results (products, prices, stock, delivery, opening hours, policies). Never guess or invent them.
 - If you don't know, say you'll check with the team and set needs_human to true.
 - Never claim to be a person. If asked, say you are the business's automated assistant and that a team member can take over.
 - Set needs_human to true when the customer asks for a person, complains, reports a problem with an order or payment, or when you cannot help.
@@ -200,8 +202,11 @@ export function buildKnowledgePrompt(ctx: BusinessContext): string {
     const h = b.openingHours[d];
     return `- ${d}: ${!h ? "not set" : h.closed ? "closed" : `${h.open}–${h.close}`}`;
   });
-  const faqs = ctx.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`);
-  const docs = ctx.documents.map((d) => `## ${d.title} (${d.type})\n${d.content}`);
+  // A large knowledge base: the rest is sent per message when relevant (lib/ai/knowledge.ts).
+  const { cached, extra } = splitKnowledge(ctx);
+  const faqs = cached.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`);
+  const docs = cached.documents.map((d) => `## ${d.title} (${d.type})\n${d.content}`);
+  if (extra.length) docs.push(`(${extra.length} more FAQs or policies exist: the ones relevant to the customer's message are given in <more_business_info>.)`);
   const behaviour = [
     s.greeting && `- When a customer writes for the first time, greet them with (in the reply language): "${s.greeting}"`,
     s.fallbackMessage && `- When you can't answer from the information you have, say (in the reply language): "${s.fallbackMessage}"`,

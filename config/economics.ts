@@ -64,6 +64,15 @@ export const REPLY_DEBOUNCE_MS = 6000;
  * off — measured in tests/unit/reply-budget.test.ts.
  */
 export const MAX_OUTPUT_TOKENS = { short: 300, medium: 450, detailed: 700 } as const;
+/** Messages of the conversation sent with each request; older ones are carried by a running summary. */
+export const HISTORY_MESSAGES = 6;
+/**
+ * The business's FAQs and policies kept in the cached prompt (characters, by
+ * priority; ≈3,300 tokens). A larger knowledge base sends the rest only when
+ * relevant to the customer's message (KNOWLEDGE_EXTRA_ITEMS at most).
+ */
+export const KNOWLEDGE_CACHED_CHARS = 12_000;
+export const KNOWLEDGE_EXTRA_ITEMS = 3;
 /** Products matching the conversation, looked up before the model runs so most replies need one call. */
 export const PREFETCH_PRODUCTS = 8;
 /**

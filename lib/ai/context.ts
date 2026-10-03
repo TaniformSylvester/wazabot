@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { HISTORY_MESSAGES } from "@/config/economics";
 import type { Database } from "@/types/database";
 import { oneOf, AFTER_HOURS_MODES } from "@/types/database";
 import { isOpenAt, parseOpeningHours, type OpeningHours } from "@/lib/business/hours";
@@ -165,11 +166,13 @@ export type ConversationContext = {
     preferredLanguageSource: string | null;
     tags: string[];
   };
-  /** Oldest first; only text the model may read (typed text, captions, transcripts). */
+  /** Oldest first; only text the model may read (typed text, captions, transcripts). The last HISTORY_MESSAGES only. */
   history: { role: "customer" | "assistant" | "agent"; text: string; at: string }[];
+  /** There are older messages than `history`: they are carried by `summary`. */
+  hasEarlier: boolean;
+  /** The assistant's running summary of the conversation so far (null until it writes one). */
+  summary: string | null;
 };
-
-const HISTORY_LIMIT = 30;
 
 const MEDIA_MARKERS: Record<string, string> = { image: "[photo]", audio: "[voice note]", video: "[video]", document: "[document]", location: "[location]" };
 
@@ -181,18 +184,26 @@ function historyText(type: string, text: string) {
 
 export async function buildConversationContext(db: Db, businessId: string, conversationId: string): Promise<ConversationContext | null> {
   const [conv, msgs] = await Promise.all([
-    db.from("conversations").select("id, ai_enabled, language, customers(id, whatsapp_phone, name, city, preferred_language, preferred_language_source, tags)").eq("business_id", businessId).eq("id", conversationId).maybeSingle(),
+    db
+      .from("conversations")
+      .select("id, ai_enabled, language, ai_summary, customers(id, whatsapp_phone, name, city, preferred_language, preferred_language_source, tags)")
+      .eq("business_id", businessId)
+      .eq("id", conversationId)
+      .maybeSingle(),
     db
       .from("messages")
       .select("direction, sender_type, message_type, content, caption, created_at")
       .eq("business_id", businessId)
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false })
-      .limit(HISTORY_LIMIT),
+      // One more than we send, to know whether there is anything older.
+      .limit(HISTORY_MESSAGES + 1),
   ]);
   const c = conv.data;
   if (!c || !c.customers) return null;
-  const history = (msgs.data ?? [])
+  const rows = msgs.data ?? [];
+  const history = rows
+    .slice(0, HISTORY_MESSAGES)
     .reverse()
     .map((m) => ({
       role: m.sender_type === "customer" ? ("customer" as const) : m.sender_type === "ai" ? ("assistant" as const) : ("agent" as const),
@@ -215,5 +226,7 @@ export async function buildConversationContext(db: Db, businessId: string, conve
       tags: c.customers.tags,
     },
     history,
+    hasEarlier: rows.length > HISTORY_MESSAGES,
+    summary: c.ai_summary,
   };
 }

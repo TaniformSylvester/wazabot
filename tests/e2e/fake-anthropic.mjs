@@ -44,11 +44,13 @@ const toolResults = (messages) => {
   }
   return out;
 };
+// Set per request: the app asked for the running summary (update_summary: yes in the turn context).
+let wantSummary = false;
 const sendReply = (fields) => ({
   type: "tool_use",
   id: `toolu_${Math.random().toString(36).slice(2)}`,
   name: "send_reply",
-  input: { reply_language: "fr", customer_languages: ["fr"], language_request: null, catalog_product_ids: [], needs_human: false, handoff_reason: null, ...fields },
+  input: { reply_language: "fr", customer_languages: ["fr"], language_request: null, catalog_product_ids: [], needs_human: false, handoff_reason: null, ...(wantSummary ? { summary: "The customer asked about the Ankara dress and ordered." } : {}), ...fields },
 });
 const call = (name, input) => ({ type: "tool_use", id: `toolu_${Math.random().toString(36).slice(2)}`, name, input });
 
@@ -125,6 +127,7 @@ export function startFakeAnthropic(port = 4020) {
         res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: "simulated failure" } }));
         return;
       }
+      wantSummary = JSON.stringify(body.messages).includes("update_summary: yes");
       const content = respond(body);
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ id: `msg_${requests.length}`, type: "message", role: "assistant", model: body.model, content, stop_reason: "tool_use", stop_sequence: null, usage }));
