@@ -1,6 +1,6 @@
 import "server-only";
 
-import { REPLY_DEBOUNCE_MS } from "@/config/economics";
+import { CACHE_1H_MIN_REPLIES_LAST_HOUR, REPLY_DEBOUNCE_MS } from "@/config/economics";
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
 import { loadMessageImage, type InputImage } from "@/lib/ai/images";
@@ -152,6 +152,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
       .eq("business_id", job.businessId);
   }
 
+  const cacheTtl = await cacheLifetime(admin, job.businessId, deps.now());
   const started = Date.now();
   const calls: ClaudeCallUsage[] = [];
   try {
@@ -164,6 +165,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
       tools: { db: admin, businessId: job.businessId, conversationId: job.conversationId, customerId: conversation.customer.id },
       images,
       calls,
+      cacheTtl,
     });
     const check = validateAIResponse(result.reply, { language: analysis.decision.language, allowedProductIds: result.productIds, maxChars: WHATSAPP_TEXT_LIMIT });
     const issues = check.ok ? [] : check.issues;
@@ -245,6 +247,18 @@ async function sendAssistantMessage(ctx: Ctx, text: string, language: LanguageCo
   if (wamid) await recordWhatsAppSend(admin, ctx.job.businessId, ctx.wa.phoneNumberId, "service");
   await admin.from("conversations").update({ last_message_at: now, language }).eq("id", ctx.job.conversationId).eq("business_id", ctx.job.businessId);
   return wamid ? (data?.id ?? null) : null;
+}
+
+/** 1-hour prompt cache for a business that is busy right now; otherwise the cheaper 5-minute one. */
+async function cacheLifetime(admin: Admin, businessId: string, now: Date): Promise<"5m" | "1h"> {
+  const { count } = await admin
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .in("outcome", ["replied", "handed_over"])
+    .not("conversation_id", "is", null) // customer replies only (test-chat runs have no conversation)
+    .gte("created_at", new Date(now.getTime() - 3_600_000).toISOString());
+  return (count ?? 0) >= CACHE_1H_MIN_REPLIES_LAST_HOUR ? "1h" : "5m";
 }
 
 async function flagForTeam(admin: Admin, job: AiJob) {

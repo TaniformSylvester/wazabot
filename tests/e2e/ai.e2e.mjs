@@ -209,14 +209,14 @@ mkdirSync("test-results", { recursive: true });
   const priceReply = await waitFor(() => sentTexts().find((t) => t.includes("15000")));
   ok("assistant answers a price question from the catalog", priceReply === "La Robe Ankara coûte 15000 XAF.", JSON.stringify(sentTexts()));
   const req = claude.requests[testChatRequests];
-  ok("Claude request: Opus 5.5, low effort, server-side fallback", req?.body.model === "claude-opus-5-5" && req.body.output_config?.effort === "low" && req.body.fallbacks === "default" && String(req.headers["anthropic-beta"]).includes("server-side-fallback-2026-07-01"));
+  ok("Claude request: Haiku 4.5, output capped for short replies, no effort or fallback", req?.body.model === "claude-haiku-4-5" && req.body.max_tokens === 300 && !req.body.output_config && !req.body.fallbacks);
   ok("Claude request: cached system prompt with the FAQ, tools end with send_reply", req.body.system.every((b) => b.cache_control) && req.body.system[1].text.includes("Livrez-vous à Buea ?") && req.body.tools.at(-1).name === "send_reply");
-  ok("Claude request: turn context as a system message after the customer's message", req.body.messages.at(-1).role === "system" && req.body.messages.at(-1).content.includes("reply_language: French (fr)"));
+  ok("Claude request: turn context closes the customer's turn (Haiku has no system messages)", req.body.messages.at(-1).role === "user" && req.body.messages.at(-1).content.at(-1).text.includes("reply_language: French (fr)"));
   if (DB) {
     // Our cost of each Claude request: one row per request, priced from config/economics.ts (fake usage: 1200 in, 60 out, 900 cache read).
     const rows = sql(`select source, model, step, cost_usd, cost_fcfa from claude_calls where created_at >= '${RUN_STARTED}' order by created_at, step`).split("\n").filter(Boolean).map((r) => r.split("|"));
     const replyRows = rows.filter((r) => r[0] === "reply");
-    ok("every Claude request is logged with its cost (reply: search + send_reply = 2 rows)", replyRows.length === 2 && replyRows[0][1] === "claude-opus-5-5" && Math.abs(Number(replyRows[0][3]) - 0.00618) < 1e-6 && Math.abs(Number(replyRows[0][4]) - 0.00618 * 570) < 1e-3, JSON.stringify(rows));
+    ok("every Claude request is logged with its cost (reply: search + send_reply = 2 rows)", replyRows.length === 2 && replyRows[0][1] === "claude-haiku-4-5" && Math.abs(Number(replyRows[0][3]) - 0.00159) < 1e-6 && Math.abs(Number(replyRows[0][4]) - 0.00159 * 570) < 1e-3, JSON.stringify(rows));
     ok("test-chat requests are logged too, at Haiku rates", rows.some((r) => r[0] === "test_chat" && r[1] === "claude-haiku-4-5" && Math.abs(Number(r[3]) - (1200 * 1 + 60 * 5 + 900 * 0.1) / 1e6) < 1e-6));
   }
   const costs = await fetch(`${SUPABASE}/rest/v1/claude_calls?select=id`, { headers: restHeaders(tok) });
@@ -299,6 +299,8 @@ mkdirSync("test-results", { recursive: true });
   await page.goto(`${APP}/en/dashboard/ai`);
   ok("AI page shows Switched off and this month's activity", (await main.getByText("Switched off").count()) === 1 && (await main.getByText("AI replies").count()) === 1);
   await page.screenshot({ path: "test-results/stage3-ai-page.png", fullPage: true });
+
+  ok("a busy business gets the 1-hour prompt cache (3+ AI replies in the past hour)", claude.requests.some((r) => r.body.system?.[0]?.cache_control?.ttl === "1h") && claude.requests[testChatRequests].body.system[0].cache_control.ttl === undefined);
 
   // The owner's free-messages bar (counts only, no prices).
   await page.goto(`${APP}/en/dashboard/whatsapp`);

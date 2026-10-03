@@ -358,8 +358,12 @@ with reason `test_chat` and left out of the monthly figures.
 Prices, rates, limits and budgets (Claude and Meta rates, FCFA rate, Mobile Money fee, plan prices,
 margin target, model choice) all live in `config/economics.ts` (server-only).
 
-Model: `claude-opus-5-5` at `low` effort by default (`REPLY_MODEL`; env `AI_MODEL`, `AI_EFFORT` override), prompt caching on the
-platform rules + business knowledge, and Anthropic's server-side fallback for safety declines. Set
+Model: Claude Haiku 4.5 (`REPLY_MODEL` in `config/economics.ts`; Sonnet 5.5 only if
+`USE_SONNET_FOR_REPLIES` is switched on; env `AI_MODEL` overrides for a quick rollback). Output is
+capped by the business's reply length (`MAX_OUTPUT_TOKENS`: 300 / 450 / 700). The tools, platform
+rules and business knowledge are a cached prefix (kept above Haiku's 4,096-token caching minimum —
+checked in `tests/unit/reply-budget.test.ts`), cached for 5 minutes, or 1 hour for a business with 3+
+AI replies in the past hour. Set
 `ANTHROPIC_API_KEY` in Vercel (server-side only) and redeploy; the AI Assistant page shows **Live**
 once the key is set, WhatsApp is connected and AI is switched on.
 

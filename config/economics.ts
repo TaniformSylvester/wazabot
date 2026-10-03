@@ -42,10 +42,11 @@ export const CLAUDE_RATES: Record<string, ClaudeRates> = {
 /** Unknown model ids are costed at the most expensive known rates, so a mistake over-reports. */
 export const CLAUDE_FALLBACK_RATES: ClaudeRates = CLAUDE_RATES["claude-opus-5-5"];
 
-/** Customer replies. Env AI_MODEL still overrides (e.g. for a quick rollback). Haiku by default from Step 3. */
-export const REPLY_MODEL = "claude-opus-5-5";
-/** Sonnet only when explicitly switched on (Step 3). */
+/** Sonnet 5.5 for customer replies instead of Haiku — off; only switch on deliberately (it costs ~2× Haiku). */
+export const USE_SONNET_FOR_REPLIES = false;
 export const SONNET_MODEL = "claude-sonnet-5-5";
+/** Customer replies. Env AI_MODEL still overrides (e.g. for a quick rollback). */
+export const REPLY_MODEL = USE_SONNET_FOR_REPLIES ? SONNET_MODEL : "claude-haiku-4-5";
 /** The dashboard test chat. */
 export const TEST_CHAT_MODEL = "claude-haiku-4-5";
 /** Test-chat messages per business per hour. */
@@ -56,6 +57,19 @@ export const TEST_CHAT_PER_HOUR = 10;
 // ---------------------------------------------------------------------------
 /** Wait after a customer message so quick follow-ups are answered together, in one reply. */
 export const REPLY_DEBOUNCE_MS = 6000;
+/**
+ * Output cap per Claude request, by the business's reply-length setting. Only
+ * generated tokens are billed, so the cap costs nothing unless used; it is
+ * sized so a reply of that length (with the send_reply fields) is never cut
+ * off — measured in tests/unit/reply-budget.test.ts.
+ */
+export const MAX_OUTPUT_TOKENS = { short: 300, medium: 450, detailed: 700 } as const;
+/**
+ * Prompt cache lifetime: 5 minutes by default; 1 hour for a business that is
+ * busy right now (this many AI replies in the past hour), so the cache
+ * survives the gaps between its customers' messages.
+ */
+export const CACHE_1H_MIN_REPLIES_LAST_HOUR = 3;
 /** AI replies per conversation before staff take over (Step 4). */
 export const MAX_AI_REPLIES_PER_CONVERSATION = 10;
 

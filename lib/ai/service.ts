@@ -27,6 +27,8 @@ export type GenerateInput = {
   /** Photos sent with the latest customer message (already normalised by lib/ai/images). */
   images?: InputImage[];
   now: Date;
+  /** Prompt-cache lifetime for the cached prefix (1h for businesses that are busy right now). */
+  cacheTtl?: "5m" | "1h";
   /** Filled with every Messages API request made, even when generate() then fails (cost logging). */
   calls?: ClaudeCallUsage[];
 };

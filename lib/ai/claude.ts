@@ -3,7 +3,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
-import { REPLY_MODEL } from "@/config/economics";
+import { MAX_OUTPUT_TOKENS, REPLY_MODEL } from "@/config/economics";
 import type { ConversationContext } from "@/lib/ai/context";
 import { buildBusinessPrompt, buildKnowledgePrompt, buildPlatformPrompt, buildTurnContext } from "@/lib/ai/prompts/system-prompt";
 import { assistantReplySchema, type AssistantReply } from "@/lib/ai/reply-schema";
@@ -170,12 +170,14 @@ export class ClaudeResponder implements AiResponder {
 
   async generate(input: GenerateInput): Promise<GenerateResult> {
     const { business } = input;
+    // Tools, then these two blocks, are the cached prefix; the 1-hour lifetime costs more to write, so only busy businesses get it.
+    const cache_control: Anthropic.Beta.BetaCacheControlEphemeral = input.cacheTtl === "1h" ? { type: "ephemeral", ttl: "1h" } : { type: "ephemeral" };
     const system: Anthropic.Beta.BetaTextBlockParam[] = [
-      { type: "text", text: buildPlatformPrompt(), cache_control: { type: "ephemeral" } },
+      { type: "text", text: buildPlatformPrompt(), cache_control },
       {
         type: "text",
         text: `${buildBusinessPrompt({ name: business.business.name, countryCode: business.business.countryCode }, business.language, business.style)}\n\n${buildKnowledgePrompt(business)}`,
-        cache_control: { type: "ephemeral" },
+        cache_control,
       },
     ];
     const tools = assistantTools(business.settings.photoUnderstanding, business.booking.enabled);
@@ -194,7 +196,8 @@ export class ClaudeResponder implements AiResponder {
     for (let step = 0; step < MAX_STEPS; step++) {
       const response = await this.create({
         model: this.model,
-        max_tokens: 8000,
+        // Sized to the business's reply length (config/economics.ts); billed only for what is generated.
+        max_tokens: MAX_OUTPUT_TOKENS[business.style.replyLength],
         ...(features.effort ? { output_config: { effort: this.effort } } : {}),
         // Opt-in server-side fallback: a safety decline is retried on Anthropic's recommended model in the same call.
         ...(features.fallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),

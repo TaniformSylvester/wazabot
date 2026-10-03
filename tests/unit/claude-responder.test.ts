@@ -114,7 +114,8 @@ describe("Claude responder", () => {
       message([{ type: "tool_use", id: "t2", name: "send_reply", input: reply() }], "tool_use"),
     ]);
     const products = [{ id: PRODUCT, name: "Ankara dress", description: null, category: null, price: 15000, currency: "XAF", stock_quantity: 3, product_variants: [] }];
-    const result = await new ClaudeResponder(api.create).generate(input(products));
+    // Sonnet (the opt-in model): effort, server-side fallback and a system message are supported.
+    const result = await new ClaudeResponder(api.create, "claude-sonnet-5-5").generate(input(products));
 
     expect(result.reply.reply).toContain("15 000");
     expect(result.productIds.has(PRODUCT)).toBe(true);
@@ -122,11 +123,11 @@ describe("Claude responder", () => {
     expect(result.usage).toEqual({ inputTokens: 200, outputTokens: 40, cacheReadTokens: 100, cacheWriteTokens: 20 });
 
     const [first, second] = api.requests;
-    expect(first.model).toBe("claude-opus-5-5");
+    expect(first.model).toBe("claude-sonnet-5-5");
     expect(first.fallbacks).toBe("default");
     expect(first.betas).toContain("server-side-fallback-2026-07-01");
     expect(first.output_config?.effort).toBe("low");
-    expect(first.thinking).toBeUndefined(); // always on for this model; never disabled
+    expect(first.thinking).toBeUndefined();
     const system = first.system as Anthropic.Beta.BetaTextBlockParam[];
     expect(system.every((b) => b.cache_control?.type === "ephemeral")).toBe(true);
     expect(system[1].text).toContain("Livrez-vous à Buea ?"); // FAQ in the cached business block
@@ -135,6 +136,21 @@ describe("Claude responder", () => {
     // The tool result went back as one user message; the system message stays in place.
     expect(second.messages.at(-1)).toMatchObject({ role: "user", content: [{ type: "tool_result", tool_use_id: "t1" }] });
     expect(String((second.messages.at(-1)?.content as Anthropic.Beta.BetaToolResultBlockParam[])[0].content)).toContain(PRODUCT);
+  });
+
+  it("replies on Haiku by default, capped by reply length, with the 1-hour cache when asked", async () => {
+    const api = scripted([message([{ type: "tool_use", id: "t1", name: "send_reply", input: reply({ catalog_product_ids: [] }) }], "tool_use")]);
+    await new ClaudeResponder(api.create).generate({ ...input(), cacheTtl: "1h" });
+    const [first] = api.requests;
+    expect(first.model).toBe("claude-haiku-4-5");
+    expect(first.max_tokens).toBe(300); // "short" replies
+    const system = first.system as Anthropic.Beta.BetaTextBlockParam[];
+    expect(system.every((b) => b.cache_control?.type === "ephemeral" && b.cache_control.ttl === "1h")).toBe(true);
+
+    const api5m = scripted([message([{ type: "tool_use", id: "t1", name: "send_reply", input: reply({ catalog_product_ids: [] }) }], "tool_use")]);
+    await new ClaudeResponder(api5m.create).generate({ ...input(), business: { ...business, style: { ...business.style, replyLength: "detailed" } } });
+    expect(api5m.requests[0].max_tokens).toBe(700);
+    expect((api5m.requests[0].system as Anthropic.Beta.BetaTextBlockParam[])[0].cache_control).toEqual({ type: "ephemeral" });
   });
 
   it("on Haiku: no effort, no fallback, turn context inside the customer's turn", async () => {
