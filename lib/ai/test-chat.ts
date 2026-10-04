@@ -61,7 +61,7 @@ export type TestChatResult =
     }
   | { ok: false; error: TestChatError };
 
-export type TestChatError = "forbidden" | "not_configured" | "invalid" | "image_invalid" | "rate_limited" | "refusal" | "failed" | "network" | "timeout";
+export type TestChatError = "forbidden" | "not_configured" | "invalid" | "image_invalid" | "rate_limited" | "paused" | "refusal" | "failed" | "network" | "timeout";
 
 export async function sendTestMessage(input: unknown): Promise<TestChatResult> {
   try {
@@ -99,6 +99,9 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       .eq("reason", "test_chat")
       .gte("created_at", new Date(Date.now() - 3_600_000).toISOString());
     if ((count ?? 0) >= TEST_CHAT_PER_HOUR) return { ok: false, error: "rate_limited" };
+    // The WazaBolt team's kill switch stops the test chat too.
+    const { data: control } = await admin.from("platform_business_controls").select("ai_paused").eq("business_id", businessId).maybeSingle();
+    if (control?.ai_paused) return { ok: false, error: "paused" };
   }
 
   // Read with the user's own session: RLS limits everything to their business.

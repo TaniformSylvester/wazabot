@@ -125,6 +125,7 @@ mkdirSync("test-results", { recursive: true });
       insert into public.conversations (business_id, customer_id) values ('${biz.id}', '${customer.id}') returning id into c;
       insert into public.messages (business_id, conversation_id, direction, sender_type, message_type, content, ai_generated)
       values ('${biz.id}', c, 'outbound', 'ai', 'text', 'Bonjour', true);
+      insert into public.ai_conversation_windows (business_id, conversation_id, ends_at, claude_replies) values ('${biz.id}', c, now() + interval '24 hours', 1);
     end loop; end $$`);
   addAiConversations(4);
   await page.goto(`${APP}/en/dashboard/products`);

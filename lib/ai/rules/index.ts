@@ -21,13 +21,15 @@ type Input = {
   business: BusinessContext;
   /** Products matching the conversation (lib/ai/tools/prefetch.ts). */
   catalog: CatalogMatchItem[];
+  /** Longest message the rules try (saver mode leans more on them). */
+  maxChars?: number;
 };
 
 /** Longer messages usually say more than one thing: leave them to Claude. */
 const MAX_RULE_CHARS = 160;
 
-export function answerWithRules({ text, language, business, catalog }: Input): RuleAnswer | null {
-  if (!text.trim() || text.length > MAX_RULE_CHARS) return null;
+export function answerWithRules({ text, language, business, catalog, maxChars = MAX_RULE_CHARS }: Input): RuleAnswer | null {
+  if (!text.trim() || text.length > maxChars) return null;
   const { intents, blocked, tokens } = detectIntents(text);
   if (blocked || !intents.length) return null;
   // "Bonjour, c'est combien … ?" is a price question; price + stock is one product question;

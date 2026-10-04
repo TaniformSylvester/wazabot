@@ -1239,6 +1239,7 @@ const fr: Messages = {
       errors: {
         not_configured: "L'assistant n'est pas encore configuré sur le serveur : ajoutez ANTHROPIC_API_KEY dans Vercel (côté serveur) et redéployez.",
         rate_limited: "Limite de tests atteinte pour cette heure. Réessayez un peu plus tard.",
+        paused: "L'assistant est en pause pour votre entreprise. Contactez WazaBolt pour le réactiver.",
         refusal: "L'assistant a refusé de répondre à ce message.",
         failed: "L'assistant n'a pas pu répondre. Réessayez.",
         invalid: "Message trop long ou vide.",

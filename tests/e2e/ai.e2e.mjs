@@ -16,6 +16,7 @@ import { chromium } from "playwright";
 import sharp from "sharp";
 
 import { startFakeAnthropic } from "./fake-anthropic.mjs";
+import { startFakeResend } from "./fake-resend.mjs";
 import { FAKE, startFakeGraph } from "./fake-graph.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
@@ -94,6 +95,7 @@ mkdirSync("test-results", { recursive: true });
 (async () => {
   const graph = await startFakeGraph(4010);
   const claude = await startFakeAnthropic(4020);
+  const resend = await startFakeResend(4030);
   const sentTexts = () => graph.sent().sent.map((m) => m.text?.body ?? "");
   const stamp = Date.now();
   const U = { name: "Awa Nkeng", business: "Awa Styles", email: `ai+${stamp}@example.com`, password: "Wazabolt2026" };
@@ -333,6 +335,52 @@ mkdirSync("test-results", { recursive: true });
   ok("only the last 6 messages are sent; once the window is full the assistant keeps a running summary", !!summarised && userTurns <= 6 && (await get(tok, "conversations?select=ai_summary&ai_summary=not.is.null")).some((c) => c.ai_summary.includes("Ankara")), String(userTurns));
   ok("a busy business gets the 1-hour prompt cache (3+ AI replies in the past hour)", claude.requests.some((r) => r.body.system?.[0]?.cache_control?.ttl === "1h") && claude.requests[testChatRequests].body.system[0].cache_control.ttl === undefined);
 
+  // Step 4: 24-hour windows, the WazaBolt kill switch, the 10-reply cap and the hidden Claude budget.
+  if (DB) {
+    const convOf = (phone) => `(select c.id from conversations c join customers cu on cu.id = c.customer_id where cu.business_id = '${biz.id}' and cu.whatsapp_phone = '${phone}')`;
+    ok("each Claude reply is counted in the customer's 24-hour window", Number(sql(`select coalesce(sum(claude_replies), 0) from ai_conversation_windows where business_id = '${biz.id}'`)) > 0);
+
+    sql(`insert into platform_business_controls (business_id, ai_paused, reason) values ('${biz.id}', true, 'e2e')`);
+    const beforePause = { sent: sentTexts().length, claude: claude.requests.length };
+    await deliver(text("Bonjour, vous faites des robes de mariée sur mesure ?"), "237670001001", "Paused");
+    await sleep(4500);
+    ok(
+      "kill switch: the assistant stays silent and the message waits for the team",
+      sentTexts().length === beforePause.sent && claude.requests.length === beforePause.claude && sql(`select human_requested from conversations where id = ${convOf("237670001001")}`) === "t",
+    );
+    sql(`delete from platform_business_controls where business_id = '${biz.id}'`);
+
+    await deliver(text("Je cherche une tenue pour un mariage samedi"), "237670001002", "Chatty");
+    await waitFor(() => Number(sql(`select coalesce(sum(claude_replies), 0) from ai_conversation_windows where conversation_id = ${convOf("237670001002")}`)) > 0);
+    sql(`update ai_conversation_windows set claude_replies = 10 where conversation_id = ${convOf("237670001002")}`);
+    const beforeCap = { sent: sentTexts().length, claude: claude.requests.length };
+    await deliver(text("Et pour la cérémonie religieuse, quelle tenue me conseillez-vous ?"), "237670001002", "Chatty");
+    await waitFor(() => sentTexts().length > beforeCap.sent);
+    ok(
+      "after 10 Claude replies in a conversation it is handed to the team, with a notice",
+      sentTexts().length === beforeCap.sent + 1 && claude.requests.length === beforeCap.claude && sql(`select ai_enabled from conversations where id = ${convOf("237670001002")}`) === "f",
+    );
+
+    // Free's hidden budget is 300 FCFA a month: bring the spend just under 80%, then past it.
+    const spent = Number(sql(`select coalesce(sum(cost_fcfa), 0) from claude_calls where business_id = '${biz.id}' and created_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'`));
+    sql(`insert into claude_calls (business_id, source, model, cost_usd, cost_fcfa) values ('${biz.id}', 'reply', 'e2e-budget', 0, ${Math.max(0, 239.99 - spent).toFixed(4)})`);
+    await deliver(text("Vous pouvez coudre une robe pour ma fille de 6 ans ?"), "237670001003", "Budget");
+    const alert = await waitFor(() => resend.emails.find((e) => e.subject.includes("of its Claude budget") && e.subject.includes(U.business)));
+    ok("the WazaBolt team is emailed when a business passes 80% of its hidden budget", !!alert && alert.to.includes("contact@wazabolt.com"), alert?.subject ?? "");
+    sql(`insert into claude_calls (business_id, source, model, cost_usd, cost_fcfa) values ('${biz.id}', 'reply', 'e2e-budget', 0, 100)`);
+    const beforeBudget = { sent: sentTexts().length, claude: claude.requests.length };
+    await deliver(text("Quels tissus me conseillez-vous pour une robe de soirée ?"), "237670001004", "Over");
+    await sleep(4500);
+    ok(
+      "budget used up: no Claude; the question waits for the team",
+      sentTexts().length === beforeBudget.sent && claude.requests.length === beforeBudget.claude && sql(`select human_requested from conversations where id = ${convOf("237670001004")}`) === "t",
+    );
+    await deliver(text("Bonjour"), "237670001005", "Hello");
+    await waitFor(() => sentTexts().length > beforeBudget.sent);
+    ok("budget used up: the rules still answer simple messages", sentTexts().length === beforeBudget.sent + 1 && claude.requests.length === beforeBudget.claude);
+    sql(`delete from claude_calls where business_id = '${biz.id}' and model = 'e2e-budget'`);
+  }
+
   // The owner's free-messages bar (counts only, no prices).
   await page.goto(`${APP}/en/dashboard/whatsapp`);
   await main.getByText("Free WhatsApp messages this month").waitFor({ timeout: 15000 });
@@ -393,6 +441,7 @@ mkdirSync("test-results", { recursive: true });
   await browser.close();
   graph.close();
   claude.close();
+  resend.close();
 })().catch((e) => {
   console.log(results.join("\n"));
   console.error("CRASH", e.message);

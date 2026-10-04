@@ -1,6 +1,16 @@
 import "server-only";
 
-import { CACHE_1H_MIN_REPLIES_LAST_HOUR, CUSTOMER_AI_REPLIES_PER_HOUR, REPLY_DEBOUNCE_MS } from "@/config/economics";
+import {
+  AI_CONVERSATION_WINDOW_HOURS,
+  ALERTS,
+  CACHE_1H_MIN_REPLIES_LAST_HOUR,
+  CUSTOMER_AI_REPLIES_PER_HOUR,
+  REPLY_DEBOUNCE_MS,
+  SAVER_HISTORY_MESSAGES,
+  SAVER_RULE_MAX_CHARS,
+  claudeBudgetFcfa,
+  type PlanId,
+} from "@/config/economics";
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
 import { isEmojiOnly, spamReason } from "@/lib/ai/filters";
@@ -9,7 +19,9 @@ import { loadMessageImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage } from "@/lib/ai/service";
-import { logClaudeCalls, type ClaudeCallUsage } from "@/lib/billing/costs";
+import { sendBudgetAlert } from "@/lib/billing/alerts";
+import { claudeCostUsd, logClaudeCalls, usdToFcfa, type ClaudeCallUsage } from "@/lib/billing/costs";
+import { decideAllowance, elapsedShare, type Allowance } from "@/lib/billing/guard";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { isOpenAt } from "@/lib/business/hours";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
@@ -24,11 +36,12 @@ import { recordWhatsAppSend } from "@/lib/whatsapp/usage";
  * After a customer message is stored: decide whether the assistant answers,
  * generate the reply with Claude, check it, send it on WhatsApp and record it.
  *
- * The assistant stays silent when: AI is switched off for the business,
- * the conversation is in Human Mode, a newer customer message arrived (the
- * newest one answers the whole burst), or the plan's monthly AI allowance
- * is used up (the team is flagged instead). Logs contain ids and reason
- * codes only — never message content.
+ * The assistant stays silent when: AI is switched off for the business (or
+ * paused by the WazaBolt team), the conversation is in Human Mode, or a
+ * newer customer message arrived (the newest one answers the whole burst).
+ * Over the plan's allowance or the hidden Claude budget it answers with
+ * rules only and the rest goes to the team (lib/billing/guard.ts). Logs
+ * contain ids and reason codes only — never message content.
  */
 
 type Admin = NonNullable<ReturnType<typeof createAdminClient>>;
@@ -86,6 +99,13 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   if (!business || !conversation || !inbound.data || !conv.data) return { outcome: "skipped", reason: "not_found" };
   if (!business.settings.aiEnabled) return { outcome: "skipped", reason: "ai_disabled" };
   if (!conv.data.ai_enabled) return { outcome: "skipped", reason: "human_mode" };
+  // The WazaBolt team's kill switch: the assistant is silent, the team answers.
+  if (await pausedByWazaBolt(admin, job.businessId)) {
+    await flagForTeam(admin, job);
+    await markProcessed(admin, job, null);
+    await logUsage(admin, job, { outcome: "skipped", reason: "admin_paused" });
+    return { outcome: "skipped", reason: "admin_paused" };
+  }
   if (!windowOpen(conv.data.last_customer_message_at, deps.now().getTime())) return { outcome: "skipped", reason: "window_closed" };
 
   const wa = await deps.whatsapp(job.businessId);
@@ -97,13 +117,6 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   const replyLanguage = (lang: LanguageCode | null | undefined) =>
     lang && business.language.enabledLanguages.includes(lang) ? lang : business.language.defaultLanguage;
   const conversationLanguage = replyLanguage(conversation.language ?? conversation.customer.preferredLanguage);
-
-  // Monthly AI allowance (plans table): a new conversation over the limit goes to the team.
-  if (!(await withinPlanLimit(admin, job))) {
-    await flagForTeam(admin, job);
-    await logUsage(admin, job, { outcome: "skipped", reason: "plan_limit" });
-    return { outcome: "skipped", reason: "plan_limit" };
-  }
 
   // Outside opening hours, per the business's choice.
   const open = isOpenAt(business.business.openingHours, business.business.timezone, deps.now());
@@ -177,19 +190,34 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   const toolCtx = { db: admin, businessId: job.businessId, conversationId: job.conversationId, customerId: conversation.customer.id };
   const catalog = await prefetchCatalog(toolCtx, text, recentTopics(conversation.history)).catch(() => []);
 
+  // The plan's allowance and the hidden Claude budget decide what this reply may cost.
+  const guard = await loadGuard(admin, job, deps.now());
+  const allowance = guard.allowance;
+
   // Simple questions (greeting, hours, location, a price…) answered from the business's data — no Claude call.
   if (!images.length) {
-    const ruled = answerWithRules({ text, language: analysis.decision.language, business, catalog });
-    if (ruled) return sendNotice(ctx, ruled.text, analysis.decision.language, "replied", `rules_${ruled.intent}`, { model: "rules" });
+    const ruled = answerWithRules({ text, language: analysis.decision.language, business, catalog, maxChars: allowance.mode === "normal" ? undefined : SAVER_RULE_MAX_CHARS });
+    if (ruled) {
+      const out = await sendNotice(ctx, ruled.text, analysis.decision.language, "replied", `rules_${ruled.intent}`, { model: "rules" });
+      if (out.outcome === "replied") await recordReply(admin, job, false);
+      return out;
+    }
   }
+  if (allowance.mode === "rules_only") return holdForTeam(ctx, allowance.reason, conversationLanguage);
+
+  // Budget running ahead of the month: short replies and less history.
+  const saver = allowance.mode === "saver";
+  const replyBusiness: BusinessContext = saver ? { ...business, settings: { ...business.settings, replyLength: "short" }, style: { ...business.style, replyLength: "short" } } : business;
+  const replyConversation =
+    saver && conversation.history.length > SAVER_HISTORY_MESSAGES ? { ...conversation, history: conversation.history.slice(-SAVER_HISTORY_MESSAGES), hasEarlier: true } : conversation;
 
   const cacheTtl = await cacheLifetime(admin, job.businessId, deps.now());
   const started = Date.now();
   const calls: ClaudeCallUsage[] = [];
   try {
     const result = await deps.responder.generate({
-      business,
-      conversation,
+      business: replyBusiness,
+      conversation: replyConversation,
       decision: analysis.decision,
       detection: analysis.detection,
       now: deps.now(),
@@ -225,11 +253,14 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
         .eq("business_id", job.businessId);
     }
     await markProcessed(admin, job, sent ? null : "send_failed");
-    await logUsage(admin, job, { outcome: sent ? (handOver ? "handed_over" : "replied") : "failed", reason: sent ? (handOver ? "needs_human" : undefined) : "send_failed", replyMessageId: sent ?? undefined, ...meta });
+    await logUsage(admin, job, { outcome: sent ? (handOver ? "handed_over" : "replied") : "failed", reason: sent ? (handOver ? "needs_human" : saver ? "saver" : undefined) : "send_failed", replyMessageId: sent ?? undefined, ...meta });
+    if (sent) await recordReply(admin, job, true);
+    await checkBudgetAlert(admin, job, business, guard, calls);
     return { outcome: sent ? (handOver ? "handed_over" : "replied") : "failed", reason: sent ? undefined : "send_failed" };
   } catch (e) {
     const reason = e instanceof AiRefusalError ? `refusal_${e.category ?? "unknown"}` : e instanceof AiNoReplyError ? e.reason : "api_error";
     logServerError("ai.generate", describeAiError(e));
+    await checkBudgetAlert(admin, job, business, guard, calls);
     await flagForTeam(admin, job);
     await markProcessed(admin, job, reason);
     await logUsage(admin, job, { outcome: "failed", reason, durationMs: Date.now() - started, calls, model: calls.at(-1)?.model });
@@ -336,20 +367,89 @@ async function noticeRecentlySent(admin: Admin, job: AiJob, now: Date) {
   return (count ?? 0) > 0;
 }
 
-/** AI conversations this month vs. the plan's allowance. An ongoing AI conversation always continues. */
-async function withinPlanLimit(admin: Admin, job: AiJob) {
-  const status = await getUsageStatus(admin, job.businessId);
-  if (!status || status.used < status.limit) return true;
-  // Over the allowance: conversations already answered this month keep their assistant.
-  const { data } = await admin
-    .from("messages")
-    .select("id")
-    .eq("business_id", job.businessId)
-    .eq("conversation_id", job.conversationId)
-    .eq("ai_generated", true)
-    .gte("created_at", status.periodStart)
-    .limit(1);
-  return Boolean(data?.length);
+// ---------------------------------------------------------------------------
+// Plan allowance, hidden budget, kill switch (Step 4)
+// ---------------------------------------------------------------------------
+type Guard = { allowance: Allowance; spent: number; budget: number; periodStart: string; planId: string };
+
+async function pausedByWazaBolt(admin: Admin, businessId: string) {
+  const { data } = await admin.from("platform_business_controls").select("ai_paused").eq("business_id", businessId).maybeSingle();
+  return Boolean(data?.ai_paused);
+}
+
+/** Usage this month, this conversation's open 24-hour window and Claude spend → what this reply may cost. */
+async function loadGuard(admin: Admin, job: AiJob, now: Date): Promise<Guard> {
+  const [status, window] = await Promise.all([
+    getUsageStatus(admin, job.businessId, now),
+    admin
+      .from("ai_conversation_windows")
+      .select("claude_replies")
+      .eq("business_id", job.businessId)
+      .eq("conversation_id", job.conversationId)
+      .gt("ends_at", now.toISOString())
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  // No subscription row (shouldn't happen): don't block the business's customers.
+  if (!status) return { allowance: { mode: "normal" }, spent: 0, budget: 0, periodStart: now.toISOString(), planId: "free" };
+  const [spend, legacy] = await Promise.all([
+    admin.rpc("claude_spend_since", { p_business_id: job.businessId, p_since: status.periodStart }),
+    status.counting === "legacy"
+      ? admin.from("messages").select("id").eq("business_id", job.businessId).eq("conversation_id", job.conversationId).eq("ai_generated", true).gte("created_at", status.periodStart).limit(1)
+      : Promise.resolve({ data: [] as { id: string }[] }),
+  ]);
+  if (spend.error) logServerError("ai.budget", spend.error);
+  const spent = Number(spend.data ?? 0);
+  const budget = claudeBudgetFcfa({ id: status.planId as PlanId, monthlyPrice: status.monthlyPrice }, status.interval);
+  const allowance = decideAllowance({
+    used: status.used,
+    limit: status.limit,
+    windowClaudeReplies: window.data?.claude_replies ?? null,
+    legacyAnswered: Boolean(legacy.data?.length),
+    counting: status.counting,
+    spent,
+    budget,
+    elapsed: elapsedShare(status.periodStart, status.periodEnd, now),
+  });
+  return { allowance, spent, budget, periodStart: status.periodStart, planId: status.planId };
+}
+
+/**
+ * Nothing the rules could answer, and Claude isn't allowed: the message waits
+ * for the team (flagged in the inbox). After MAX_AI_REPLIES_PER_CONVERSATION
+ * the conversation is handed over with a short notice; otherwise silently.
+ */
+async function holdForTeam(ctx: Ctx, reason: Extract<Allowance, { mode: "rules_only" }>["reason"], language: LanguageCode): Promise<AiOutcome> {
+  const { admin } = ctx.deps;
+  if (reason === "reply_cap") {
+    await admin.from("conversations").update({ ai_enabled: false, human_requested: true, status: "pending" }).eq("id", ctx.job.conversationId).eq("business_id", ctx.job.businessId);
+    return sendNotice(ctx, fixedMessage(language, "handoff", ctx.business.business.name), language, "handed_over", "reply_cap");
+  }
+  await flagForTeam(admin, ctx.job);
+  await markProcessed(admin, ctx.job, null);
+  await logUsage(admin, ctx.job, { outcome: "skipped", reason });
+  return { outcome: "skipped", reason };
+}
+
+/** Counts the reply in the conversation's 24-hour window (opening one if needed). */
+async function recordReply(admin: Admin, job: AiJob, claude: boolean) {
+  const { error } = await admin.rpc("record_ai_reply", { p_business_id: job.businessId, p_conversation_id: job.conversationId, p_claude: claude, p_window_hours: AI_CONVERSATION_WINDOW_HOURS });
+  if (error) logServerError("ai.window", error);
+}
+
+/** Tells the WazaBolt team (once per usage month) when this reply took the business past 80% / 100% of its budget. */
+async function checkBudgetAlert(admin: Admin, job: AiJob, business: BusinessContext, guard: Guard, calls: ClaudeCallUsage[]) {
+  if (!guard.budget || !calls.length) return;
+  const after = guard.spent + usdToFcfa(calls.reduce((n, c) => n + claudeCostUsd(c), 0));
+  const crossed = (share: number) => guard.spent < guard.budget * share && after >= guard.budget * share;
+  const reached = crossed(1);
+  if (!reached && !crossed(ALERTS.budgetShare)) return;
+  try {
+    await sendBudgetAlert(admin, { businessId: job.businessId, businessName: business.business.name, planId: guard.planId, spent: after, budget: guard.budget, periodStart: guard.periodStart, reached });
+  } catch (e) {
+    logServerError("ai.budgetAlert", e);
+  }
 }
 
 async function logUsage(

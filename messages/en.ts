@@ -1241,6 +1241,7 @@ const en = {
       errors: {
         not_configured: "The assistant isn't set up on the server yet: add ANTHROPIC_API_KEY in Vercel (server-side) and redeploy.",
         rate_limited: "Test limit reached for this hour. Try again a bit later.",
+        paused: "The assistant is paused for your business. Contact WazaBolt to switch it back on.",
         refusal: "The assistant declined to answer this message.",
         failed: "The assistant couldn't answer. Please try again.",
         invalid: "Message too long or empty.",
