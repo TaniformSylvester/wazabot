@@ -808,6 +808,7 @@ const en = {
       image_invalid: "Saved, but the image wasn't accepted. Use a JPG, PNG or WebP under 4 MB.",
       whatsapp_not_configured: "WhatsApp isn't set up on the WazaBolt server yet. Contact WazaBolt support.",
       whatsapp_number_in_use: "This number is already connected to another WazaBolt business.",
+      whatsapp_free_number_used: "This WhatsApp number was already used with another WazaBolt account. One Free account per number: choose a paid plan on Billing to connect it here.",
       whatsapp_not_in_account: "This Phone Number ID doesn't belong to that WhatsApp Business Account.",
       whatsapp_token_invalid: "Meta rejected the access token. Check it hasn't expired and has the whatsapp_business_messaging and whatsapp_business_management permissions.",
       whatsapp_verify_failed: "Meta couldn't confirm this number. Check the IDs and try again.",

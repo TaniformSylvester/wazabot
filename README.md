@@ -265,7 +265,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... npm run test:e2e:dashboard
 # Stage 2 WhatsApp, against a local fake Graph API (tests/e2e/fake-graph.mjs, port 4010).
 # Start the app with WHATSAPP_GRAPH_API_BASE_URL=http://localhost:4010 and test values for
 # WHATSAPP_APP_SECRET / WHATSAPP_VERIFY_TOKEN / WHATSAPP_TOKEN_ENCRYPTION_KEY / SUPABASE_SERVICE_ROLE_KEY.
-NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... npm run test:e2e:whatsapp
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... [DATABASE_URL=...] npm run test:e2e:whatsapp
 # Stage 3 AI replies, against a scripted fake Anthropic API (tests/e2e/fake-anthropic.mjs, port 4020).
 # Start the app with ANTHROPIC_API_KEY=test-key ANTHROPIC_BASE_URL=http://localhost:4020 AI_DEBOUNCE_MS=1500 too.
 # The photo checks need Supabase Storage (included in `npx supabase start`).
@@ -404,28 +404,49 @@ own); someone who already has a WazaBolt account logs in and clicks **Join**, th
 businesses from the name at the top of the dashboard. Admins manage agents and viewers; only the
 owner invites or manages admins; the owner can't be removed. Anyone else can leave a business.
 
-**AI allowance.** `ai_usage_status()` counts the conversations the assistant answered in since the
-1st of the month (UTC) against the plan; the AI pipeline, the billing page and the dashboard banner
-all use it. Owners and admins see a warning from 80 % and a notice once it's used up (conversations
-already answered this month continue; new ones go to the team).
+**AI allowance.** `ai_usage_status()` returns the plan's allowance and this usage month's use; the
+AI pipeline, the billing page and the dashboard banner all use it. An **AI conversation** is one
+customer's 24-hour window in which Claude replied (`ai_conversation_windows`); answers from the
+rules layer alone don't count. Paid plans count per month of their billing period (yearly plans:
+each month of the year), Free per calendar month. Businesses that signed up before Step 4 keep the
+old count (conversations answered this calendar month; Free 50) until `subscriptions.rules_from`:
+their next billing period, or 1 November 2026 for Free; the dashboard shows a notice until then.
+Owners and admins are warned from 80 %; once it's used up, conversations already going continue,
+the rules still answer simple questions and other messages go to the team, with an Upgrade link.
 
-**Plan changes (no payments yet).** On **Billing**, an owner or admin requests a plan with a phone
-number to reach them. Each new request emails the team (`contact@wazabolt.com`, see
-`config/site.ts` → `email.teamInbox`) and shows up in **WazaBolt admin → Plan requests**
-(`/en/admin/plan-requests`, platform admins only), with a badge on the tab and on the "WazaBolt
-admin" link in the dashboard sidebar while requests are waiting. Arrange payment (e.g. Mobile
-Money), then press **Approve** (switches the plan, new one-month period from now) or **Decline**.
-The customer gets an email either way, in their dashboard language (English or French).
+**Protecting the margin (Step 4).** Apply `supabase/migrations/20261012120000_margin_protection.sql`. Per business and usage month, the pipeline compares our Claude
+spend with the plan's hidden budget (`claudeBudgetFcfa()` in `config/economics.ts`, never shown to
+businesses) — `lib/billing/guard.ts`:
+
+- ahead of the month's pace (from 20 % spent) or past 80 %: **saver** — short replies, 4 messages of
+  history, the rules answer longer messages too;
+- past 95 %: new conversations go to the team; at 100 %: rules only, the rest to the team;
+- after 10 Claude replies in one conversation's 24 hours it's handed to the team with a notice;
+- **kill switch**: WazaBolt admin → Businesses → Pause stops a business's assistant (and test chat);
+  the business sees a notice;
+- the team (`contact@wazabolt.com`) is emailed when a business passes 80 % and 100 % of its budget,
+  and when yesterday's total Claude spend is more than 30 % above the day before (each alert once).
+
+**Prepaid billing.** Plans are paid in advance, monthly or yearly (10 months for 12). On **Billing**
+an owner or admin requests a plan, or a renewal of their paid plan, with a phone number to reach
+them. Each request emails the team and shows up in **WazaBolt admin → Plan requests**
+(`/en/admin/plan-requests`, platform admins only, with a badge while requests wait). Take the
+payment (Mobile Money, outside WazaBolt for now), then **Approve** with the amount received, the
+method and the Mobile Money reference: it's recorded (`subscription_payments`, shown to the owner on
+Billing) and the plan starts now — or, for a renewal paid before the end or in the grace days, the
+next period follows on from the current one. **Decline** emails the customer too.
+
+A daily job (`/api/cron/billing`, 05:00 UTC, `vercel.json`; needs `CRON_SECRET`) emails the owner a
+renewal reminder 5 and 1 days before a paid period ends; at the end the plan is **payment due** for 3
+days (banner, email), then the business moves to **Free** (nothing is deleted; paying restores the
+plan). A Mobile Money provider (Campay or Notch Pay) will plug in through `lib/billing/payments.ts`.
+
+**One Free account per WhatsApp number.** A business on Free can't connect a number another
+business has used before (`whatsapp_number_history`); on a paid plan it can.
 
 Emails go through Resend from `WazaBolt <noreply@wazabolt.com>` (replies go to contact@). Set
 **`RESEND_API_KEY`** in Vercel (Production, marked Sensitive) and redeploy; without it nothing is
-sent (the server logs `[email] skipped`) and the Plan requests page says emails are off. Approving or
-declining still works from the SQL editor too:
-
-```sql
-select public.approve_plan_change('<request id>');
-select public.reject_plan_change('<request id>');
-```
+sent (the server logs `[email] skipped`) and the Plan requests page says emails are off.
 
 ## Appointments (Stage 6)
 

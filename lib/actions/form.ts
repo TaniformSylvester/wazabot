@@ -16,6 +16,7 @@ export type ActionErrorKey =
   // WhatsApp (Stage 2)
   | "whatsapp_not_configured"
   | "whatsapp_number_in_use"
+  | "whatsapp_free_number_used"
   | "whatsapp_not_in_account"
   | "whatsapp_token_invalid"
   | "whatsapp_verify_failed"

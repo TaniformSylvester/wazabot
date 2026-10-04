@@ -10,6 +10,7 @@
  * then:
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=test-secret WHATSAPP_VERIFY_TOKEN=test-verify npm run test:e2e:whatsapp
  */
+import { execFileSync } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
@@ -22,6 +23,9 @@ const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:54321
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SECRET = process.env.WHATSAPP_APP_SECRET;
 const VERIFY = process.env.WHATSAPP_VERIFY_TOKEN;
+// Optional: lets the suite play another business that used the number before (one Free account per number).
+const DB = process.env.DATABASE_URL;
+const sql = (q) => (DB ? execFileSync("psql", [DB, "-v", "ON_ERROR_STOP=1", "-qtAc", q], { encoding: "utf8" }).trim() : null);
 if (!ANON || !SECRET || !VERIFY) throw new Error("Set NEXT_PUBLIC_SUPABASE_ANON_KEY, WHATSAPP_APP_SECRET and WHATSAPP_VERIFY_TOKEN");
 
 const results = [];
@@ -113,6 +117,17 @@ async function signUp(browser, user) {
   await main.getByRole("button", { name: "Connect WhatsApp" }).click();
   await main.getByText("doesn't belong to that WhatsApp Business Account").waitFor({ timeout: 15000 });
   ok("number outside the account refused", true);
+  if (DB) {
+    // Another business used this number before: on Free it can't be connected again here.
+    sql(`insert into whatsapp_number_history (phone_number_id, business_id) select '${FAKE.phoneNumberId}', id from businesses order by created_at limit 1`);
+    await main.getByLabel("Phone Number ID").fill(FAKE.phoneNumberId);
+    await main.getByLabel("WhatsApp Business Account ID").fill(FAKE.wabaId);
+    await main.getByLabel("Access token").fill("GOOD-token-abcdefghijklmn1234");
+    await main.getByRole("button", { name: "Connect WhatsApp" }).click();
+    await main.getByText(/already used with another WazaBolt account/).waitFor({ timeout: 15000 });
+    ok("one Free account per WhatsApp number: a number used by another business is refused on Free", true);
+    sql(`delete from whatsapp_number_history where phone_number_id = '${FAKE.phoneNumberId}'`);
+  }
   await main.getByLabel("Phone Number ID").fill(FAKE.phoneNumberId);
   await main.getByLabel("WhatsApp Business Account ID").fill(FAKE.wabaId);
   await main.getByLabel("Access token").fill("GOOD-token-abcdefghijklmn1234");

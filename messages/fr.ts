@@ -806,6 +806,7 @@ const fr: Messages = {
       image_invalid: "Enregistré, mais la photo a été refusée. Utilisez un JPG, PNG ou WebP de moins de 4 Mo.",
       whatsapp_not_configured: "WhatsApp n'est pas encore configuré sur le serveur WazaBolt. Contactez le support WazaBolt.",
       whatsapp_number_in_use: "Ce numéro est déjà connecté à une autre entreprise WazaBolt.",
+      whatsapp_free_number_used: "Ce numéro WhatsApp a déjà été utilisé avec un autre compte WazaBolt. Un seul compte Gratuit par numéro : choisissez un forfait payant dans Facturation pour le connecter ici.",
       whatsapp_not_in_account: "Cet ID de numéro n'appartient pas à ce compte WhatsApp Business.",
       whatsapp_token_invalid: "Meta a refusé le jeton d'accès. Vérifiez qu'il n'a pas expiré et qu'il a les autorisations whatsapp_business_messaging et whatsapp_business_management.",
       whatsapp_verify_failed: "Meta n'a pas pu confirmer ce numéro. Vérifiez les identifiants et réessayez.",

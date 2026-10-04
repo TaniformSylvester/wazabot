@@ -19,6 +19,7 @@ export type ConnectInput = { phoneNumberId: string; wabaId: string; accessToken:
 export type ConnectError =
   | "not_configured" // platform env missing (service role, encryption key, app secret, verify token)
   | "number_in_use" // already connected to another WazaBolt business
+  | "free_number_used" // on Free, and the number was used by another business before (one Free account per number)
   | "not_in_account" // the number doesn't belong to that WhatsApp Business Account
   | "token_invalid" // Meta rejected the token or its permissions
   | "verify_failed"; // any other Graph API failure
@@ -53,6 +54,7 @@ export async function connectWhatsApp(
     .neq("business_id", businessId)
     .maybeSingle();
   if (taken) return { ok: false, error: "number_in_use" };
+  if (await freeNumberUsedElsewhere(admin, businessId, { phoneNumberId: input.phoneNumberId })) return { ok: false, error: "free_number_used" };
 
   await setState(admin, businessId, { status: "connecting", last_error: null });
   const client = graph(input.accessToken);
@@ -63,6 +65,11 @@ export async function connectWhatsApp(
       return { ok: false, error: "not_in_account" };
     }
     const phone = await client.getPhoneNumber(input.phoneNumberId);
+    const digits = phone.displayPhoneNumber.replace(/\D/g, "") || null;
+    if (await freeNumberUsedElsewhere(admin, businessId, { phoneNumberId: input.phoneNumberId, digits })) {
+      await setState(admin, businessId, { status: "not_connected", last_error: null });
+      return { ok: false, error: "free_number_used" };
+    }
     await client.subscribeApp(input.wabaId);
 
     const { error: credError } = await admin.from("whatsapp_credentials").upsert({
@@ -80,6 +87,8 @@ export async function connectWhatsApp(
       connected_at: new Date().toISOString(),
       last_error: null,
     });
+    // Remembered for the one-Free-account-per-number rule (kept after a disconnect).
+    await admin.from("whatsapp_number_history").upsert({ phone_number_id: input.phoneNumberId, phone_digits: digits, business_id: businessId }, { onConflict: "phone_number_id,business_id", ignoreDuplicates: true });
     await audit(admin, businessId, userId, "whatsapp.connected", { phone_number_id: input.phoneNumberId });
     return { ok: true, displayPhoneNumber: phone.displayPhoneNumber, verifiedName: phone.verifiedName };
   } catch (e) {
@@ -90,6 +99,19 @@ export async function connectWhatsApp(
     if ((e as { code?: string })?.code === "23505") return { ok: false, error: "number_in_use" };
     return { ok: false, error: graphError?.isAuthError ? "token_invalid" : "verify_failed" };
   }
+}
+
+/**
+ * One Free account per WhatsApp number: a business on Free can't connect a
+ * number another business has used before (it would get a second free
+ * allowance). Paid plans can.
+ */
+async function freeNumberUsedElsewhere(admin: NonNullable<ReturnType<typeof createAdminClient>>, businessId: string, number: { phoneNumberId: string; digits?: string | null }) {
+  const { data: sub } = await admin.from("subscriptions").select("plans(monthly_price)").eq("business_id", businessId).maybeSingle();
+  if (Number(sub?.plans?.monthly_price ?? 0) > 0) return false;
+  const match = number.digits ? `phone_number_id.eq.${number.phoneNumberId},phone_digits.eq.${number.digits}` : `phone_number_id.eq.${number.phoneNumberId}`;
+  const { data } = await admin.from("whatsapp_number_history").select("business_id").neq("business_id", businessId).or(match).limit(1);
+  return Boolean(data?.length);
 }
 
 export async function disconnectWhatsApp(businessId: string, userId: string): Promise<boolean> {
