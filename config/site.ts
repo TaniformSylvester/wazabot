@@ -21,6 +21,8 @@ export const siteConfig = {
   contact: {
     phone: "+237 651 575 933",
     phoneHref: "tel:+237651575933",
+    /** The same number on WhatsApp (wa.me takes digits only, with the country code). */
+    whatsappNumber: "237651575933",
     email: "contact@wazabolt.com",
     address: "Mile Six Nkwen, Bamenda, Behind Mawa Hotel, Cameroon",
     mapUrl: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Mawa Hotel, Mile Six Nkwen, Bamenda, Cameroon"),
