@@ -9,7 +9,7 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
-import { currentUserIsPlatformAdmin } from "@/lib/admin/access";
+import { currentUserIsPlatformAdmin, pendingRequestsForAdmin } from "@/lib/admin/access";
 import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/lib/auth/dal";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -30,12 +30,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const user = await requireUser(localizePath(locale, "/dashboard"));
   const business = await getCurrentBusiness();
-  const [whatsapp, usage, businesses, platformAdmin] = await Promise.all([
+  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests] = await Promise.all([
     business ? getWhatsAppConnection(business.id) : null,
     // Owners and admins are warned before the monthly AI allowance runs out.
     business && hasRole(business.role, "admin") ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
     listMyBusinesses(),
     currentUserIsPlatformAdmin(),
+    pendingRequestsForAdmin(),
   ]);
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
@@ -44,10 +45,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <>
       {platformAdmin ? (
         <Link
-          href={localizePath(locale, "/admin/businesses")}
+          href={localizePath(locale, waitingPlanRequests ? "/admin/plan-requests" : "/admin/businesses")}
           className="mb-3 flex items-center gap-2 rounded-xl border border-gold/40 px-3 py-2 text-sm font-semibold text-gold hover:bg-cream/5"
         >
           <ShieldCheck className="size-4" aria-hidden /> {d.nav.platformAdmin}
+          {waitingPlanRequests ? (
+            <span className="ml-auto rounded-full bg-coral-500 px-2 py-0.5 text-xs font-bold text-white" title={format(d.nav.planRequestsWaiting, { count: waitingPlanRequests })}>
+              {waitingPlanRequests}
+            </span>
+          ) : null}
         </Link>
       ) : null}
       <UserCard name={user.fullName} email={user.email} locale={locale} labels={d.userCard} />

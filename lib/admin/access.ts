@@ -28,6 +28,15 @@ export const currentUserIsPlatformAdmin = cache(async (): Promise<boolean> => {
   return Boolean(user && admin && (await isPlatformAdmin(admin, user.id)));
 });
 
+/** Plan requests waiting for the team — for the badge on the dashboard's admin link (0 for everyone else). */
+export const pendingRequestsForAdmin = cache(async (): Promise<number> => {
+  if (!(await currentUserIsPlatformAdmin())) return 0;
+  const admin = createAdminClient();
+  if (!admin) return 0;
+  const { count } = await admin.from("plan_change_requests").select("id", { count: "exact", head: true }).eq("status", "pending");
+  return count ?? 0;
+});
+
 /** For admin pages: the service-role client, or a redirect to log in / a 404. */
 export async function requirePlatformAdmin(locale: Locale, path: string): Promise<Admin> {
   const user = await getCurrentUser();

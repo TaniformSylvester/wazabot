@@ -1,10 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { authorize } from "@/lib/auth/dal";
 import { logServerError } from "@/lib/log";
+import { notifyTeamOfPlanRequest } from "@/lib/admin/plan-requests";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
@@ -39,6 +42,11 @@ export async function requestPlanChange(_prev: FormState, formData: FormData): P
   }
   // Shows up in the server logs so the WazaBolt team notices new requests (ids only).
   console.info(`[billing.planRequest] business=${ctx.business.id} request=${data} plan=${parsed.data.plan_id}`);
+  // And by email (after the response, so the owner doesn't wait on it).
+  after(async () => {
+    const admin = createAdminClient();
+    if (admin) await notifyTeamOfPlanRequest(admin, data);
+  });
   revalidatePath("/[lang]/dashboard/billing", "page");
   return ok(data);
 }

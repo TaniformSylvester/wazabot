@@ -5,6 +5,7 @@ import { PageHeader, Panel, StatusBadge, TableWrap, td, th } from "@/components/
 import { FCFA_PER_USD, MARGIN_TARGET, META_PRICING, MOBILE_MONEY_FEE_RATE } from "@/config/economics";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { requirePlatformAdmin } from "@/lib/admin/access";
+import { pendingPlanRequestCount } from "@/lib/admin/plan-requests";
 import { getMarginReport, reportMonth } from "@/lib/billing/margins";
 import { localizePath } from "@/lib/i18n/paths";
 import { getLocale } from "@/lib/i18n/dictionaries";
@@ -26,7 +27,7 @@ export default async function MarginsPage({ searchParams }: PageProps<"/[lang]/a
   const admin = await requirePlatformAdmin(locale, "/admin/margins");
 
   const month = reportMonth(typeof params.month === "string" ? params.month : undefined, new Date());
-  const report = await getMarginReport(admin, month);
+  const [report, waiting] = await Promise.all([getMarginReport(admin, month), pendingPlanRequestCount(admin)]);
   const [y, m] = month.split("-").map(Number);
   const shift = (d: number) => new Date(Date.UTC(y, m - 1 + d, 1)).toISOString().slice(0, 7);
   const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)));
@@ -36,7 +37,7 @@ export default async function MarginsPage({ searchParams }: PageProps<"/[lang]/a
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <AdminNav locale={locale} active="margins" />
+      <AdminNav locale={locale} active="margins" pendingPlanRequests={waiting} />
       <PageHeader
         title={`Margins — ${monthLabel}`}
         description={`Target: at least ${pct(MARGIN_TARGET)} gross margin on every paid plan after Claude and Mobile Money fees (${pct(MOBILE_MONEY_FEE_RATE)}). Costs in FCFA at ${FCFA_PER_USD} FCFA = $1.`}

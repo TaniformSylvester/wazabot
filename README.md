@@ -410,17 +410,20 @@ all use it. Owners and admins see a warning from 80 % and a notice once it's use
 already answered this month continue; new ones go to the team).
 
 **Plan changes (no payments yet).** On **Billing**, an owner or admin requests a plan with a phone
-number to reach them. The request is logged on the server (`[billing.planRequest] …` in the Vercel
-logs) and listed in the `plan_change_requests` table. Arrange payment (e.g. Mobile Money), then in the
-Supabase SQL editor:
+number to reach them. Each new request emails the team (`contact@wazabolt.com`, see
+`config/site.ts` → `email.teamInbox`) and shows up in **WazaBolt admin → Plan requests**
+(`/en/admin/plan-requests`, platform admins only), with a badge on the tab and on the "WazaBolt
+admin" link in the dashboard sidebar while requests are waiting. Arrange payment (e.g. Mobile
+Money), then press **Approve** (switches the plan, new one-month period from now) or **Decline**.
+The customer gets an email either way, in their dashboard language (English or French).
+
+Emails go through Resend from `WazaBolt <noreply@wazabolt.com>` (replies go to contact@). Set
+**`RESEND_API_KEY`** in Vercel (Production, marked Sensitive) and redeploy; without it nothing is
+sent (the server logs `[email] skipped`) and the Plan requests page says emails are off. Approving or
+declining still works from the SQL editor too:
 
 ```sql
--- pending requests
-select r.id, b.name, r.from_plan_id, r.to_plan_id, r.contact_phone, r.note, r.created_at
-from plan_change_requests r join businesses b on b.id = r.business_id
-where r.status = 'pending' order by r.created_at;
-
-select public.approve_plan_change('<request id>');  -- switches the plan, new one-month period from now
+select public.approve_plan_change('<request id>');
 select public.reject_plan_change('<request id>');
 ```
 
@@ -500,7 +503,7 @@ card; each business pays Meta directly, so they are only used for estimates.
 - **Owners** see "Free WhatsApp messages this month — N of 1,000 left" on the dashboard home and
   the WhatsApp page (service messages from their number, resetting on the 1st, UTC). Counts only —
   no prices anywhere.
-- **WazaBolt admin** (`/en/admin/businesses` and `/en/admin/margins`; a "WazaBolt admin" link in the
+- **WazaBolt admin** (`/en/admin/businesses`, `/en/admin/plan-requests` and `/en/admin/margins`; a "WazaBolt admin" link in the
   dashboard sidebar appears only for platform admins, everyone else gets a 404). **Businesses** lists
   every sign-up, newest first: business, owner name and email, plan, whether setup is finished and
   WhatsApp connected, team size — account facts only, never a business's customers or conversations.

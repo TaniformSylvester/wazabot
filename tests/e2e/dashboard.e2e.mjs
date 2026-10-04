@@ -294,6 +294,7 @@ async function signUp(browser, user, locale) {
   await main.getByText("AI settings saved.").waitFor({ timeout: 10000 });
   ok("AI settings saved", true);
   await page.goto(`${APP}/en/dashboard/analytics`);
+  await main.getByText("Most ordered products").waitFor({ timeout: 15000 });
   ok("analytics shows real counts and no invented AI figures", (await main.getByText("No data yet").count()) >= 2 && (await main.getByText("Most ordered products").count()) === 1);
   await page.goto(`${APP}/en/dashboard/whatsapp`);
   ok("WhatsApp page: Not Connected, with the connect form (no fake connection)", (await main.getByText("Not Connected").count()) === 1 && (await main.getByLabel("Phone Number ID").count()) === 1);

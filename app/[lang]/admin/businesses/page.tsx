@@ -4,6 +4,7 @@ import { AdminNav } from "@/components/admin/admin-nav";
 import { PageHeader, Panel, StatusBadge, TableWrap, td, th } from "@/components/app/ui";
 import { requirePlatformAdmin } from "@/lib/admin/access";
 import { listAllBusinesses, signupCounts } from "@/lib/admin/businesses";
+import { pendingPlanRequestCount } from "@/lib/admin/plan-requests";
 import { getLocale } from "@/lib/i18n/dictionaries";
 
 export const metadata: Metadata = { title: "Businesses", robots: { index: false, follow: false } };
@@ -18,7 +19,7 @@ const when = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", 
 export default async function BusinessesAdminPage() {
   const locale = await getLocale();
   const admin = await requirePlatformAdmin(locale, "/admin/businesses");
-  const rows = await listAllBusinesses(admin);
+  const [rows, waiting] = await Promise.all([listAllBusinesses(admin), pendingPlanRequestCount(admin)]);
   const counts = signupCounts(rows, new Date());
   const stats = [
     { label: "Businesses", value: counts.total },
@@ -29,7 +30,7 @@ export default async function BusinessesAdminPage() {
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <AdminNav locale={locale} active="businesses" />
+      <AdminNav locale={locale} active="businesses" pendingPlanRequests={waiting} />
       <PageHeader title="Businesses" description="Everyone who signed up for WazaBolt, newest first. Times are Cameroon time." />
 
       <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">

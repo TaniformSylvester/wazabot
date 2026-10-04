@@ -12,6 +12,8 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 
+import { startFakeResend } from "./fake-resend.mjs";
+
 const APP = process.env.APP_URL ?? "http://localhost:3000";
 const MAIL = process.env.MAILPIT_URL ?? "http://localhost:54324";
 const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:54321";
@@ -25,6 +27,13 @@ const ok = (name, cond, extra = "") => {
   if (!cond) process.exitCode = 1;
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function waitFor(fn, ms = 15000) {
+  for (const end = Date.now() + ms; Date.now() < end; await sleep(300)) {
+    const v = await fn();
+    if (v) return v;
+  }
+  return null;
+}
 const sql = (q) => execFileSync("psql", [DB, "-v", "ON_ERROR_STOP=1", "-qtAc", q], { encoding: "utf8" }).trim();
 async function latestMail(to, subjectIncludes) {
   for (let i = 0; i < 20; i++) {
@@ -62,6 +71,8 @@ mkdirSync("test-results", { recursive: true });
   const OWNER = { name: "Awa Nkeng", business: "Awa Styles", email: `ops-owner+${stamp}@example.com`, password: "Wazabolt2026" };
   const AGENT = { name: "Brice Tamo", email: `ops-agent+${stamp}@example.com`, password: "Wazabolt2026" };
   const OTHER = { name: "Clara Ebah", business: "Clara Beauty", email: `ops-other+${stamp}@example.com`, password: "Wazabolt2026" };
+  const resend = await startFakeResend(4030);
+  const emailTo = (to, subject) => resend.emails.find((e) => e.to.includes(to) && subject.test(e.subject));
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-US" });
   const page = await ctx.newPage();
@@ -133,9 +144,39 @@ mkdirSync("test-results", { recursive: true });
   ok("plan change request sent and shown as pending", (await main.getByText(/You asked for the Business plan/).count()) === 1);
   await page.screenshot({ path: "test-results/stage4-billing.png", fullPage: true });
   const requestId = sql(`select id from public.plan_change_requests where business_id = '${biz.id}' and status = 'pending'`);
-  sql(`select public.approve_plan_change('${requestId}')`);
-  await page.reload();
+  const teamEmail = await waitFor(() => emailTo("contact@wazabolt.com", /New plan request – Awa Styles → Business/));
+  ok("the WazaBolt team is emailed about the new request (business, plan, phone)", !!teamEmail && teamEmail.html.includes("+237 670 00 00 00") && teamEmail.html.includes("25,000 FCFA") && teamEmail.html.includes("/en/admin/plan-requests"), teamEmail?.subject);
+
+  // The WazaBolt team approves it in admin (this owner stands in for the team).
+  sql(`insert into public.platform_admins (user_id) select id from auth.users where email = '${OWNER.email}'`);
+  await page.goto(`${APP}/en/dashboard`);
+  const adminLink = page.getByRole("link", { name: /WazaBolt admin/ }).first();
+  await adminLink.waitFor({ timeout: 10000 });
+  ok("the admin link shows how many plan requests are waiting", (await adminLink.innerText()).includes("1"));
+  await adminLink.click();
+  await page.getByRole("heading", { name: "Waiting for you (1)" }).waitFor({ timeout: 10000 });
+  const card = page.locator(`li[data-request-id="${requestId}"]`);
+  ok("plan requests page: business, plan and price, requester and phone", /Awa Styles/.test(await card.innerText()) && /Business/.test(await card.innerText()) && /25,000 FCFA/.test(await card.innerText()) && (await card.innerText()).includes(OWNER.email) && (await card.innerText()).includes("+237 670 00 00 00"));
+  await page.screenshot({ path: "test-results/admin-plan-requests.png", fullPage: true });
+  await card.getByRole("button", { name: "Approve" }).click();
+  await page.getByText(/Approved — the business is on its new plan/).waitFor({ timeout: 10000 });
+  ok("approved from admin: request recorded as approved", sql(`select status from public.plan_change_requests where id = '${requestId}'`) === "approved");
+  const approvedEmail = await waitFor(() => emailTo(OWNER.email, /Your WazaBolt Business plan is active/));
+  ok("the customer is emailed that the plan is active", !!approvedEmail && approvedEmail.from === "WazaBolt <noreply@wazabolt.com>" && approvedEmail.html.includes("/en/dashboard"));
+  await page.goto(`${APP}/en/dashboard/billing`);
   ok("operator approval switches the plan and clears the banner", (await main.locator("li").filter({ hasText: "Business" }).getByText("Current plan").count()) === 1 && (await page.getByText(/AI conversations are used up/).count()) === 0);
+
+  // Declining a request emails the customer too, and leaves the plan as it is.
+  await main.getByLabel("New plan").selectOption("starter");
+  await main.getByRole("button", { name: "Send request" }).click();
+  await main.getByText("Plan change requested").waitFor({ timeout: 10000 });
+  const secondId = sql(`select id from public.plan_change_requests where business_id = '${biz.id}' and status = 'pending'`);
+  await page.goto(`${APP}/en/admin/plan-requests`);
+  await page.locator(`li[data-request-id="${secondId}"]`).getByRole("button", { name: "Decline" }).click();
+  await page.getByText(/Declined — the customer has been emailed/).waitFor({ timeout: 10000 });
+  const declinedEmail = await waitFor(() => emailTo(OWNER.email, /About your WazaBolt Starter plan request/));
+  ok("declined from admin: plan unchanged, customer emailed, no requests waiting", !!declinedEmail && sql(`select plan_id from public.subscriptions where business_id = '${biz.id}'`) === "business" && (await page.getByRole("heading", { name: "Waiting for you (0)" }).count()) === 1);
+  sql(`delete from public.platform_admins where user_id in (select id from auth.users where email = '${OWNER.email}')`);
 
   // ---------------------------------------------------------------- invites
   await page.goto(`${APP}/en/dashboard/team`);
@@ -240,6 +281,7 @@ mkdirSync("test-results", { recursive: true });
   sql(`update public.subscriptions set plan_id = 'free' where plan_id = 'e2e_tiny_${stamp}'; update public.plan_change_requests set from_plan_id = null where from_plan_id = 'e2e_tiny_${stamp}'; delete from public.plans where id = 'e2e_tiny_${stamp}'`);
   console.log(results.join("\n"));
   await browser.close();
+  resend.close();
 })().catch((e) => {
   console.error(e);
   console.log(results.join("\n"));

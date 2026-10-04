@@ -27,6 +27,13 @@ export const siteConfig = {
     address: "Mile Six Nkwen, Bamenda, Behind Mawa Hotel, Cameroon",
     mapUrl: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Mawa Hotel, Mile Six Nkwen, Bamenda, Cameroon"),
   },
+  /** Emails WazaBolt itself sends (via Resend; RESEND_API_KEY in the server environment). */
+  email: {
+    from: "WazaBolt <noreply@wazabolt.com>",
+    replyTo: "contact@wazabolt.com",
+    /** Where new plan requests are announced to the WazaBolt team. */
+    teamInbox: "contact@wazabolt.com",
+  },
   /** Required wherever WhatsApp is named prominently. */
   trademarkNotice:
     "WazaBolt is an independent product. It is not affiliated with, endorsed by or sponsored by WhatsApp or Meta. WhatsApp is a trademark of its respective owner.",

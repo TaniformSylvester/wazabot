@@ -5,10 +5,11 @@ import { localizePath } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
 
 /** Tabs across the WazaBolt team's pages, plus the way back to the normal dashboard. Internal, English-only. */
-export function AdminNav({ locale, active }: { locale: Locale; active: "businesses" | "margins" }) {
+export function AdminNav({ locale, active, pendingPlanRequests = 0 }: { locale: Locale; active: "businesses" | "plan-requests" | "margins"; pendingPlanRequests?: number }) {
   const tabs = [
-    { key: "businesses", label: "Businesses", href: "/admin/businesses" },
-    { key: "margins", label: "Margins", href: "/admin/margins" },
+    { key: "businesses", label: "Businesses", href: "/admin/businesses", badge: 0 },
+    { key: "plan-requests", label: "Plan requests", href: "/admin/plan-requests", badge: pendingPlanRequests },
+    { key: "margins", label: "Margins", href: "/admin/margins", badge: 0 },
   ] as const;
   return (
     <nav aria-label="WazaBolt admin" className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
@@ -22,6 +23,7 @@ export function AdminNav({ locale, active }: { locale: Locale; active: "business
             className={cn("rounded-full px-3 py-1.5 text-sm font-semibold", active === t.key ? "bg-deep text-cream" : "text-slate hover:bg-mint")}
           >
             {t.label}
+            {t.badge ? <span className="ml-1.5 rounded-full bg-coral-500 px-1.5 py-0.5 text-[0.6875rem] font-bold text-white">{t.badge}</span> : null}
           </Link>
         ))}
       </div>
