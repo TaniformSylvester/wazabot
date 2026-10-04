@@ -6,11 +6,15 @@ import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { UserCard, initials } from "@/components/dashboard/user-card";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { ShieldCheck, TriangleAlert } from "lucide-react";
+import { Info, PauseCircle, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 import { currentUserIsPlatformAdmin, pendingRequestsForAdmin } from "@/lib/admin/access";
 import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/lib/auth/dal";
+import { formatDate } from "@/components/app/ui";
+import { PLANS } from "@/config/economics";
+import { siteConfig } from "@/config/site";
+import { aiPausedByWazaBolt } from "@/lib/billing/controls";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { createClient } from "@/lib/supabase/server";
@@ -30,14 +34,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const user = await requireUser(localizePath(locale, "/dashboard"));
   const business = await getCurrentBusiness();
-  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests] = await Promise.all([
+  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests, paused] = await Promise.all([
     business ? getWhatsAppConnection(business.id) : null,
     // Owners and admins are warned before the monthly AI allowance runs out.
     business && hasRole(business.role, "admin") ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
     listMyBusinesses(),
     currentUserIsPlatformAdmin(),
     pendingRequestsForAdmin(),
+    business ? aiPausedByWazaBolt(business.id) : false,
   ]);
+  const billingHref = localizePath(locale, "/dashboard/billing");
+  const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6";
+  const billingState = usage?.billing.state;
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
   // Only the WazaBolt team (platform_admins) sees the way to the admin pages.
@@ -104,6 +112,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {initials(user.fullName, user.email)}
           </Link>
         </header>
+        {paused ? (
+          <div role="status" className={`${bar} border-coral-200 bg-coral-50 text-coral-800`}>
+            <PauseCircle className="size-4 shrink-0" aria-hidden />
+            <p className="min-w-0 flex-1">{format(d.billingBanner.paused, { email: siteConfig.contact.email })}</p>
+          </div>
+        ) : null}
+        {usage && (billingState === "payment_due" || billingState === "renew_soon") ? (
+          <div role="status" data-testid="billing-banner" className={`${bar} ${billingState === "payment_due" ? "border-coral-200 bg-coral-50 text-coral-800" : "border-gold-200 bg-gold-50 text-gold-800"}`}>
+            <TriangleAlert className="size-4 shrink-0" aria-hidden />
+            <p className="min-w-0 flex-1">
+              {format(billingState === "payment_due" ? d.billingBanner.paymentDue : d.billingBanner.renewSoon, {
+                plan: usage.planName,
+                date: formatDate(usage.currentPeriodEnd, locale),
+                grace: formatDate(usage.billing.graceUntil, locale),
+              })}
+            </p>
+            <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
+              {d.billingBanner.renew}
+            </Link>
+          </div>
+        ) : null}
         {usage && usage.level !== "ok" ? (
           <div
             role="status"
@@ -121,8 +150,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 plan: usage.planName,
               })}
             </p>
-            <Link href={localizePath(locale, "/dashboard/billing")} className="font-semibold underline underline-offset-2">
-              {d.usageBanner.cta}
+            <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
+              {usage.level === "reached" ? d.usageBanner.upgrade : d.usageBanner.cta}
+            </Link>
+          </div>
+        ) : null}
+        {usage?.counting === "legacy" ? (
+          <div role="status" data-testid="rules-notice" className={`${bar} border-waza-100 bg-mint/60 text-deep`}>
+            <Info className="size-4 shrink-0 text-waza-700" aria-hidden />
+            <p className="min-w-0 flex-1">
+              {format(usage.monthlyPrice > 0 ? d.billingBanner.newRules : d.billingBanner.newRulesFree, { date: formatDate(usage.rulesFrom, locale), limit: formatNumber(PLANS.find((p) => p.id === usage.planId)?.aiConversationsPerMonth ?? usage.limit, locale) })}
+            </p>
+            <Link href={billingHref} className="font-semibold underline underline-offset-2">
+              {d.billingBanner.learnMore}
             </Link>
           </div>
         ) : null}

@@ -331,18 +331,21 @@ export async function getWhatsAppConnection(businessId: string) {
 
 export async function getBilling(businessId: string) {
   const db = await createClient();
-  const [plans, subscription, usage, request] = await Promise.all([
+  const [plans, subscription, usage, request, payments] = await Promise.all([
     db.from("plans").select("*").eq("active", true).order("sort_order"),
     db.from("subscriptions").select("*, plans(*)").eq("business_id", businessId).maybeSingle(),
     getUsageStatus(db, businessId),
     // Owners/admins only (RLS): the plan change waiting for the WazaBolt team.
-    db.from("plan_change_requests").select("id, to_plan_id, created_at, contact_phone").eq("business_id", businessId).eq("status", "pending").maybeSingle(),
+    db.from("plan_change_requests").select("id, to_plan_id, created_at, contact_phone, billing_interval, kind").eq("business_id", businessId).eq("status", "pending").maybeSingle(),
+    // Owners/admins only (RLS).
+    db.from("subscription_payments").select("id, plan_id, billing_interval, amount, currency, reference, period_start, period_end, created_at").eq("business_id", businessId).order("created_at", { ascending: false }).limit(12),
   ]);
   return {
     plans: plans.data ?? [],
     subscription: subscription.data,
     usage,
     pendingRequest: request.data,
+    payments: payments.data ?? [],
   };
 }
 

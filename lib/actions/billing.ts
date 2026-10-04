@@ -13,13 +13,15 @@ import { createClient } from "@/lib/supabase/server";
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
 
 /*
- * Plan changes (Stage 4). No payment is processed in WazaBolt yet: the owner
- * or an admin asks for a plan, the WazaBolt team arranges payment (e.g. Mobile
- * Money) and approves the request, which switches the plan.
+ * Plan changes and renewals, monthly or yearly (prepaid). No payment is
+ * processed in WazaBolt itself: the owner or an admin asks for a plan, the
+ * WazaBolt team arranges payment (Mobile Money, bank transfer) and approves
+ * the request with the payment, which switches or extends the plan.
  */
 
 const requestSchema = z.object({
   plan_id: z.string().regex(/^[a-z0-9_]{2,32}$/, "required"),
+  billing_interval: z.enum(["month", "year"]).default("month"),
   contact_phone: z.string().trim().max(40, "too_long").optional().transform((v) => v || undefined),
   note: z.string().trim().max(500, "too_long").optional().transform((v) => v || undefined),
 });
@@ -35,6 +37,7 @@ export async function requestPlanChange(_prev: FormState, formData: FormData): P
     p_plan_id: parsed.data.plan_id,
     p_contact_phone: parsed.data.contact_phone,
     p_note: parsed.data.note,
+    p_interval: parsed.data.billing_interval,
   });
   if (error || !data) {
     logServerError("billing.request", error);

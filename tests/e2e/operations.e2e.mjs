@@ -167,6 +167,27 @@ mkdirSync("test-results", { recursive: true });
   await page.goto(`${APP}/en/dashboard/billing`);
   ok("operator approval switches the plan and clears the banner", (await main.locator("li").filter({ hasText: "Business" }).getByText("Current plan").count()) === 1 && (await page.getByText(/AI conversations are used up/).count()) === 0);
 
+  // Step 4: prepaid billing as the owner sees it.
+  ok("billing: yearly price offered (pay 10 months, get 12)", (await main.getByText("or 250,000 XAF/year: 2 months free").count()) === 1);
+  ok("billing: paid until the end of the period", /Paid until/.test(await main.getByTestId("billing-state").innerText()));
+  sql(`update public.subscriptions set current_period_end = now() + interval '3 days' where business_id = '${biz.id}'`);
+  await page.reload();
+  ok("renewal reminder in the last days of a paid period", /Your Business plan ends on .*Renew it/.test(await page.getByTestId("billing-banner").innerText()));
+  sql(`update public.subscriptions set current_period_end = now() - interval '1 day', status = 'past_due' where business_id = '${biz.id}'`);
+  await page.reload();
+  ok("payment due: renew by the end of the grace days, or move to Free", /ended on .*Renew by .*Free plan/.test(await page.getByTestId("billing-banner").innerText()));
+  ok("billing page: renewal is the default request", (await main.getByLabel("New plan").inputValue()) === "business" && (await main.getByRole("option", { name: "Business: renew" }).count()) === 1);
+  await page.screenshot({ path: "test-results/step4-payment-due.png", fullPage: true });
+  sql(`update public.subscriptions set current_period_end = now() + interval '1 month', status = 'active' where business_id = '${biz.id}'`);
+  sql(`update public.subscriptions set rules_from = now() + interval '10 days' where business_id = '${biz.id}'`);
+  await page.reload();
+  ok("notice before the business moves to 24-hour AI conversations", /AI conversations are counted per customer per 24 hours/.test(await page.getByTestId("rules-notice").innerText()));
+  sql(`update public.subscriptions set rules_from = now() where business_id = '${biz.id}'`);
+  sql(`insert into public.platform_business_controls (business_id, ai_paused) values ('${biz.id}', true)`);
+  await page.reload();
+  ok("kill switch: the business is told its assistant is paused", (await page.getByText(/has paused your assistant/).count()) === 1);
+  sql(`delete from public.platform_business_controls where business_id = '${biz.id}'`);
+
   // Declining a request emails the customer too, and leaves the plan as it is.
   await main.getByLabel("New plan").selectOption("starter");
   await main.getByRole("button", { name: "Send request" }).click();
