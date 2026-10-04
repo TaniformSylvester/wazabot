@@ -155,3 +155,28 @@ export function claudeBudgetFcfa(plan: Pick<PlanEconomics, "id" | "monthlyPrice"
   if (plan.monthlyPrice === 0) return FREE_PLAN_CLAUDE_BUDGET_FCFA;
   return Math.floor(plan.monthlyPrice * (1 - MARGIN_TARGET - MOBILE_MONEY_FEE_RATE) + 1e-9);
 }
+
+// ---------------------------------------------------------------------------
+// Simulation and pricing calculator (admin → Pricing, tests/unit/simulation.test.ts)
+// ---------------------------------------------------------------------------
+export const SIMULATION = {
+  /** Conversations in the general report (spread evenly over the four sample businesses). */
+  conversations: 1000,
+  /** Same seed → same conversations → same report. */
+  seed: 20261004,
+  /** Days of traffic simulated per plan, at the plan's full monthly allowance (busier businesses reuse the prompt cache more). */
+  planSampleDays: 3,
+  /**
+   * No tokenizer offline: tokens are estimated from characters, on the
+   * expensive side (French, JSON and ids tokenize densely). Replace with
+   * measured figures from claude_calls once real traffic flows.
+   */
+  inputCharsPerToken: 3.2,
+  outputCharsPerToken: 3,
+  /** Haiku caches a prompt prefix only from this many tokens. */
+  minCacheableTokens: 4096,
+} as const;
+
+/** Recommended prices are rounded up to this many FCFA, recommended allowances down to this many conversations. */
+export const PRICE_ROUNDING_FCFA = 500;
+export const ALLOWANCE_ROUNDING = 50;

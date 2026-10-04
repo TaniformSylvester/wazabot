@@ -342,6 +342,7 @@ mkdirSync("test-results", { recursive: true });
   // The WazaBolt margin report: a 404 for everyone but platform admins.
   ok("margin report is a 404 for business owners", (await page.goto(`${APP}/en/admin/margins`))?.status() === 404);
   ok("businesses list is a 404 for business owners", (await page.goto(`${APP}/en/admin/businesses`))?.status() === 404);
+  ok("pricing is a 404 for business owners", (await page.goto(`${APP}/en/admin/pricing`))?.status() === 404);
   await page.goto(`${APP}/en/dashboard/ai`);
   await main.waitFor({ timeout: 10000 });
   ok("business owners don't see the WazaBolt admin link", (await page.getByRole("link", { name: "WazaBolt admin" }).count()) === 0);
@@ -363,6 +364,20 @@ mkdirSync("test-results", { recursive: true });
     const signupText = (await signup.count()) ? await signup.innerText() : "";
     ok("platform admins reach the businesses list from the dashboard; each sign-up shows its owner, plan and WhatsApp", signupText.includes(U.email) && /free/i.test(signupText) && /Connected|Not connected/.test(signupText), signupText);
     await page.screenshot({ path: "test-results/admin-businesses.png", fullPage: true });
+    // Step 5: simulated plan margins and the pricing calculator.
+    await page.getByRole("link", { name: "Pricing" }).click();
+    await page.getByRole("heading", { name: "Plans at full allowance" }).waitFor({ timeout: 90000 });
+    const planRows = await page.locator("tr[data-plan]").allInnerTexts();
+    ok("pricing: every plan simulated at full allowance, paid plans at or above the margin target", planRows.length === 4 && planRows.filter((r) => /^(starter|business|pro)/i.test(r)).every((r) => /Keep /.test(r)), planRows.join(" | "));
+    await page.getByRole("heading", { name: /Simulation — 1,000 conversations/ }).waitFor({ timeout: 90000 });
+    ok("pricing: the 1,000-conversation simulation report", (await page.getByText("Answered by rules").count()) >= 1 && (await page.getByText("Cache hit rate").count()) === 1);
+    await page.getByLabel("Price (FCFA / month)").fill("5000");
+    await page.getByLabel("AI conversations / month").fill("3000");
+    await page.getByRole("button", { name: "Calculate" }).click();
+    const calc = page.getByTestId("calculation");
+    await calc.waitFor({ timeout: 90000 });
+    ok("pricing calculator: a plan that loses margin is flagged with the lowest safe price", /Below target/.test(await calc.innerText()) && /charge at least/.test(await calc.innerText()), await calc.innerText());
+    await page.screenshot({ path: "test-results/admin-pricing.png", fullPage: true });
     sql(`delete from platform_admins where user_id in (select id from auth.users where email = '${U.email}')`);
   }
 

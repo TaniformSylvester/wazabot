@@ -518,6 +518,17 @@ card; each business pays Meta directly, so they are only used for estimates.
   insert into public.platform_admins (user_id) select id from auth.users where email = 'you@example.com';
   ```
 
+- **Pricing** (`/en/admin/pricing`, Step 5): 1,000 simulated conversations (retail, restaurant,
+  salon, real estate; English, French, Pidgin) run through the real reply pipeline — batching,
+  skips, rules, catalog lookup, prompt and cache, tool calls, summary — with Claude stood in for
+  (`lib/simulation/`; tokens counted from the real requests, on the expensive side). It reports
+  messages per conversation, the share answered by rules, tokens per request, cache hit rate,
+  Claude cost per conversation and how many conversations fit in Meta's free 1,000 messages. Each
+  plan is simulated at its full allowance (busier businesses reuse the cache more) and checked on
+  the monthly and the annual price; a calculator tries any price and allowance. Nothing there
+  changes a price. `npm run simulate` prints the report; `npm test` fails if a paid plan's
+  simulated margin drops below 60%.
+
 ## Before launch
 
 - Replace `public/images/hero-owner.webp` and `product-robe-wax.webp` (low-resolution crops from
