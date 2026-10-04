@@ -140,6 +140,8 @@ begin
   select biz, conv, 'outbound', 'ai', 'text', 'Bonjour', true from ids union all
   select biz, conv, 'outbound', 'ai', 'text', 'Encore', true from ids;
 end $$;
+-- The counting rules from before Step 4 (see margin_protection.sql for the 24-hour windows).
+update public.subscriptions set rules_from = now() + interval '1 day' where business_id = (select biz from ids);
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-e000-00000000000c","role":"authenticated"}', true);

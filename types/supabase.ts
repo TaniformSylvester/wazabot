@@ -3,6 +3,54 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      ai_conversation_windows: {
+        Row: {
+          business_id: string;
+          claude_replies: number;
+          conversation_id: string;
+          created_at: string;
+          ends_at: string;
+          id: string;
+          rule_replies: number;
+          started_at: string;
+        };
+        Insert: {
+          business_id: string;
+          claude_replies?: number;
+          conversation_id: string;
+          created_at?: string;
+          ends_at: string;
+          id?: string;
+          rule_replies?: number;
+          started_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          claude_replies?: number;
+          conversation_id?: string;
+          created_at?: string;
+          ends_at?: string;
+          id?: string;
+          rule_replies?: number;
+          started_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversation_windows_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_conversation_windows_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_settings: {
         Row: {
           after_hours_message: string | null;
@@ -1682,36 +1730,42 @@ export type Database = {
       };
       plan_change_requests: {
         Row: {
+          billing_interval: string;
           business_id: string;
           contact_phone: string | null;
           created_at: string;
           decided_at: string | null;
           from_plan_id: string | null;
           id: string;
+          kind: string;
           note: string | null;
           requested_by: string | null;
           status: string;
           to_plan_id: string;
         };
         Insert: {
+          billing_interval?: string;
           business_id: string;
           contact_phone?: string | null;
           created_at?: string;
           decided_at?: string | null;
           from_plan_id?: string | null;
           id?: string;
+          kind?: string;
           note?: string | null;
           requested_by?: string | null;
           status?: string;
           to_plan_id: string;
         };
         Update: {
+          billing_interval?: string;
           business_id?: string;
           contact_phone?: string | null;
           created_at?: string;
           decided_at?: string | null;
           from_plan_id?: string | null;
           id?: string;
+          kind?: string;
           note?: string | null;
           requested_by?: string | null;
           status?: string;
@@ -1749,6 +1803,7 @@ export type Database = {
           currency: string;
           highlighted: boolean;
           id: string;
+          legacy_conversations_per_month: number | null;
           monthly_price: number;
           name: string;
           sort_order: number;
@@ -1760,6 +1815,7 @@ export type Database = {
           currency?: string;
           highlighted?: boolean;
           id: string;
+          legacy_conversations_per_month?: number | null;
           monthly_price: number;
           name: string;
           sort_order?: number;
@@ -1771,6 +1827,7 @@ export type Database = {
           currency?: string;
           highlighted?: boolean;
           id?: string;
+          legacy_conversations_per_month?: number | null;
           monthly_price?: number;
           name?: string;
           sort_order?: number;
@@ -1791,6 +1848,70 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      platform_alerts: {
+        Row: {
+          business_id: string | null;
+          created_at: string;
+          id: string;
+          kind: string;
+          period_key: string;
+        };
+        Insert: {
+          business_id?: string | null;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          period_key: string;
+        };
+        Update: {
+          business_id?: string | null;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          period_key?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "platform_alerts_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      platform_business_controls: {
+        Row: {
+          ai_paused: boolean;
+          business_id: string;
+          reason: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          ai_paused?: boolean;
+          business_id: string;
+          reason?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          ai_paused?: boolean;
+          business_id?: string;
+          reason?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "platform_business_controls_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: true;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       product_variants: {
         Row: {
@@ -1948,31 +2069,110 @@ export type Database = {
           },
         ];
       };
+      subscription_payments: {
+        Row: {
+          amount: number;
+          billing_interval: string;
+          business_id: string;
+          created_at: string;
+          currency: string;
+          id: string;
+          method: string;
+          period_end: string;
+          period_start: string;
+          plan_id: string;
+          provider: string;
+          recorded_by: string | null;
+          reference: string | null;
+          request_id: string | null;
+        };
+        Insert: {
+          amount: number;
+          billing_interval: string;
+          business_id: string;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          method: string;
+          period_end: string;
+          period_start: string;
+          plan_id: string;
+          provider?: string;
+          recorded_by?: string | null;
+          reference?: string | null;
+          request_id?: string | null;
+        };
+        Update: {
+          amount?: number;
+          billing_interval?: string;
+          business_id?: string;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          method?: string;
+          period_end?: string;
+          period_start?: string;
+          plan_id?: string;
+          provider?: string;
+          recorded_by?: string | null;
+          reference?: string | null;
+          request_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "subscription_payments_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "subscription_payments_request_id_fkey";
+            columns: ["request_id"];
+            isOneToOne: false;
+            referencedRelation: "plan_change_requests";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       subscriptions: {
         Row: {
+          billing_interval: string;
           business_id: string;
           created_at: string;
           current_period_end: string;
           current_period_start: string;
           plan_id: string;
+          rules_from: string;
           status: string;
           updated_at: string;
         };
         Insert: {
+          billing_interval?: string;
           business_id: string;
           created_at?: string;
           current_period_end?: string;
           current_period_start?: string;
           plan_id: string;
+          rules_from?: string;
           status?: string;
           updated_at?: string;
         };
         Update: {
+          billing_interval?: string;
           business_id?: string;
           created_at?: string;
           current_period_end?: string;
           current_period_start?: string;
           plan_id?: string;
+          rules_from?: string;
           status?: string;
           updated_at?: string;
         };
@@ -2110,6 +2310,35 @@ export type Database = {
           },
         ];
       };
+      whatsapp_number_history: {
+        Row: {
+          business_id: string;
+          first_connected_at: string;
+          phone_digits: string | null;
+          phone_number_id: string;
+        };
+        Insert: {
+          business_id: string;
+          first_connected_at?: string;
+          phone_digits?: string | null;
+          phone_number_id: string;
+        };
+        Update: {
+          business_id?: string;
+          first_connected_at?: string;
+          phone_digits?: string | null;
+          phone_number_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_number_history_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       whatsapp_templates: {
         Row: {
           body: string;
@@ -2222,15 +2451,41 @@ export type Database = {
       ai_usage_status: {
         Args: { p_business_id: string };
         Returns: {
+          billing_interval: string;
           conversation_limit: number;
           conversations_used: number;
+          counting: string;
+          current_period_end: string;
+          monthly_price: number;
+          period_end: string;
           period_start: string;
           plan_id: string;
           plan_name: string;
+          rules_from: string;
+          subscription_status: string;
+        }[];
+      };
+      apply_billing_expiry: {
+        Args: { p_grace_days?: number };
+        Returns: {
+          action: string;
+          business_id: string;
+          period_end: string;
+          plan_id: string;
         }[];
       };
       apply_order_stock: { Args: { p_direction: number; p_order_id: string }; Returns: undefined };
-      approve_plan_change: { Args: { p_request_id: string }; Returns: undefined };
+      approve_plan_change: {
+        Args: {
+          p_actor?: string;
+          p_amount?: number;
+          p_grace_days?: number;
+          p_method?: string;
+          p_reference?: string;
+          p_request_id: string;
+        };
+        Returns: undefined;
+      };
       assert_business_default_language: { Args: { target: string }; Returns: undefined };
       available_slots: {
         Args: { p_business_id: string; p_days?: number; p_from?: string; p_service_id: string };
@@ -2252,6 +2507,7 @@ export type Database = {
       };
       business_slug: { Args: { p_id: string; p_name: string }; Returns: string };
       cancel_plan_change: { Args: { p_request_id: string }; Returns: undefined };
+      claude_spend_since: { Args: { p_business_id: string; p_since: string }; Returns: number };
       create_invitation: {
         Args: { p_business_id: string; p_email: string; p_role: string; p_token_hash: string };
         Returns: string;
@@ -2317,6 +2573,30 @@ export type Database = {
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
       prepare_broadcast: { Args: { p_broadcast_id: string }; Returns: number };
+      record_ai_reply: {
+        Args: {
+          p_business_id: string;
+          p_claude: boolean;
+          p_conversation_id: string;
+          p_window_hours?: number;
+        };
+        Returns: {
+          business_id: string;
+          claude_replies: number;
+          conversation_id: string;
+          created_at: string;
+          ends_at: string;
+          id: string;
+          rule_replies: number;
+          started_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "ai_conversation_windows";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       record_whatsapp_send: {
         Args: { p_business_id: string; p_category: string; p_phone_number_id: string };
         Returns: undefined;
@@ -2341,6 +2621,7 @@ export type Database = {
         Args: {
           p_business_id: string;
           p_contact_phone?: string;
+          p_interval?: string;
           p_note?: string;
           p_plan_id: string;
         };

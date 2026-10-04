@@ -59,7 +59,7 @@ describe("margin report", () => {
     expect(reportMonth("2026-13", new Date("2026-10-02T00:00:00Z"))).toBe("2026-10-01");
     expect(reportMonth(undefined, new Date("2026-10-31T23:30:00Z"))).toBe("2026-10-01");
     const db = [
-      { id: "free", monthly_price: 0, ai_conversations_per_month: 50 },
+      { id: "free", monthly_price: 0, ai_conversations_per_month: 30 },
       { id: "starter", monthly_price: 12_000, ai_conversations_per_month: 500 },
       { id: "business", monthly_price: 25_000, ai_conversations_per_month: 2_000 },
     ];

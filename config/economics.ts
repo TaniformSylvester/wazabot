@@ -133,15 +133,18 @@ export type PlanEconomics = {
 
 /** Must match the `plans` table (the admin margin page warns when they differ). */
 export const PLANS: PlanEconomics[] = [
-  // Free goes to 30 conversations with a 300 FCFA budget in Step 4 (approved), together with rules-only fallback.
-  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 50 },
+  // Free: 30 conversations and a 300 FCFA Claude budget, then rules-only (businesses that signed up before Step 4: 50 until 1 Nov 2026).
+  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 30 },
   { id: "starter", monthlyPrice: 10_000, aiConversationsPerMonth: 500 },
   { id: "business", monthlyPrice: 25_000, aiConversationsPerMonth: 2_000, highlighted: true },
   { id: "pro", monthlyPrice: 50_000, aiConversationsPerMonth: 5_000 },
 ];
 
-/** Annual plans: pay this many months, get 12 (Step 4). */
+/** Annual plans: pay this many months, get 12. */
 export const ANNUAL_MONTHS_PAID = 10;
+export type BillingInterval = "month" | "year";
+/** What a plan costs for one billing period. */
+export const periodPrice = (monthlyPrice: number, interval: BillingInterval) => (interval === "year" ? monthlyPrice * ANNUAL_MONTHS_PAID : monthlyPrice);
 
 /** Free plan: Claude spend per business per month before it becomes rules-only — counted as acquisition cost. */
 export const FREE_PLAN_CLAUDE_BUDGET_FCFA = 300;
@@ -151,10 +154,46 @@ export const FREE_PLAN_CLAUDE_BUDGET_FCFA = 300;
  * MARGIN_TARGET after the Mobile Money fee:
  *   price − fee − claude ≥ target × price  ⇒  claude ≤ price × (1 − target − fee)
  */
-export function claudeBudgetFcfa(plan: Pick<PlanEconomics, "id" | "monthlyPrice">): number {
+export function claudeBudgetFcfa(plan: Pick<PlanEconomics, "id" | "monthlyPrice">, interval: BillingInterval = "month"): number {
   if (plan.monthlyPrice === 0) return FREE_PLAN_CLAUDE_BUDGET_FCFA;
-  return Math.floor(plan.monthlyPrice * (1 - MARGIN_TARGET - MOBILE_MONEY_FEE_RATE) + 1e-9);
+  // An annual plan earns less per month (ANNUAL_MONTHS_PAID ÷ 12), so its monthly budget is smaller.
+  const perMonth = interval === "year" ? (plan.monthlyPrice * ANNUAL_MONTHS_PAID) / 12 : plan.monthlyPrice;
+  return Math.floor(perMonth * (1 - MARGIN_TARGET - MOBILE_MONEY_FEE_RATE) + 1e-9);
 }
+
+// ---------------------------------------------------------------------------
+// Protecting the margin (Step 4)
+// ---------------------------------------------------------------------------
+/** One AI conversation = one customer's window of this many hours in which Claude replied. */
+export const AI_CONVERSATION_WINDOW_HOURS = 24;
+/**
+ * Claude budget pacing, per business and usage month (share of the hidden budget):
+ *   saver     from BUDGET_SAVER_AT, or earlier when spending faster than the month
+ *             (once BUDGET_PACE_MIN_SHARE is spent): short replies, less history
+ *   handover  from BUDGET_HANDOVER_AT: new conversations go to the team; ongoing ones continue
+ *   limit     at 100%: rules only, everything else goes to the team (never dropped)
+ */
+export const BUDGET_SAVER_AT = 0.8;
+export const BUDGET_PACE_MIN_SHARE = 0.2;
+export const BUDGET_HANDOVER_AT = 0.95;
+/** History sent to Claude in saver mode (normally HISTORY_MESSAGES). */
+export const SAVER_HISTORY_MESSAGES = 4;
+/** In saver mode the rules layer also answers somewhat longer messages (normally 160 characters). */
+export const SAVER_RULE_MAX_CHARS = 240;
+
+/** Prepaid billing: reminders this many days before a paid period ends; then this many days of grace before Free. */
+export const RENEWAL_REMINDER_DAYS = [5, 1] as const;
+export const PAYMENT_GRACE_DAYS = 3;
+
+/** Alerts to the WazaBolt team (email to the team inbox). */
+export const ALERTS = {
+  /** Yesterday's Claude spend (all businesses) above the day before by more than this share… */
+  dailySpendJump: 0.3,
+  /** …and at least this many FCFA (small numbers jump easily). */
+  dailySpendMinFcfa: 200,
+  /** A business has used this share of its hidden Claude budget. */
+  budgetShare: 0.8,
+} as const;
 
 // ---------------------------------------------------------------------------
 // Simulation and pricing calculator (admin → Pricing, tests/unit/simulation.test.ts)
