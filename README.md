@@ -518,5 +518,5 @@ card; each business pays Meta directly, so they are only used for estimates.
   used by the social image generator (the Instagram story shows the low resolution most).
 - The horizontal/compact logo SVGs use live Plus Jakarta Sans text; outline the text in a design
   tool before print use.
-- Contact, Privacy and Terms pages are placeholders (sign-up links to Terms and Privacy).
+- Privacy and Terms pages are placeholders (sign-up links to Terms and Privacy). Contact details live in `config/site.ts` (`siteConfig.contact`).
 - Set `NEXT_PUBLIC_SITE_URL` in production so canonical URLs, the sitemap and OG links are correct.

@@ -487,6 +487,18 @@ const fr: Messages = {
         help: { title: "Aide et contact", text: "Des questions avant de commencer ? Contactez l'équipe WazaBolt.", cta: "Nous contacter" },
       },
     },
+    contact: {
+      eyebrow: "Contact",
+      title: "Parlez à l'équipe WazaBolt",
+      description: "Une question sur WazaBolt, votre compte ou un partenariat ? Appelez-nous ou écrivez-nous — nous sommes à Bamenda, au Cameroun.",
+      phone: "Téléphone",
+      callUs: "Nous appeler",
+      email: "E-mail",
+      writeUs: "Nous écrire",
+      address: "Adresse",
+      openMap: "Ouvrir dans Google Maps",
+      existingCustomer: "Déjà client de WazaBolt ? Indiquez le nom de votre entreprise pour que nous retrouvions votre compte rapidement.",
+    },
     about: {
       eyebrow: "À propos de WazaBolt",
       title: "Aider les entreprises africaines à aller aussi vite que leurs clients",

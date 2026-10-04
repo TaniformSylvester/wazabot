@@ -17,6 +17,14 @@ export const siteConfig = {
     "WazaBolt is your AI business assistant on WhatsApp. It answers customer questions, shares products and prices, captures orders and hands conversations to your team when needed.",
   /** Set NEXT_PUBLIC_SITE_URL per environment — never hard-code the deployment URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  /** How to reach the WazaBolt team (Contact page). Shown as written — not translated. */
+  contact: {
+    phone: "+237 651 575 933",
+    phoneHref: "tel:+237651575933",
+    email: "contact@wazabolt.com",
+    address: "Mile Six Nkwen, Bamenda, Behind Mawa Hotel, Cameroon",
+    mapUrl: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Mawa Hotel, Mile Six Nkwen, Bamenda, Cameroon"),
+  },
   /** Required wherever WhatsApp is named prominently. */
   trademarkNotice:
     "WazaBolt is an independent product. It is not affiliated with, endorsed by or sponsored by WhatsApp or Meta. WhatsApp is a trademark of its respective owner.",
