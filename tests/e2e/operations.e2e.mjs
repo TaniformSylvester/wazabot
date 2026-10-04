@@ -159,8 +159,11 @@ mkdirSync("test-results", { recursive: true });
   const card = page.locator(`li[data-request-id="${requestId}"]`);
   ok("plan requests page: business, plan and price, requester and phone", /Awa Styles/.test(await card.innerText()) && /Business/.test(await card.innerText()) && /25,000 FCFA/.test(await card.innerText()) && (await card.innerText()).includes(OWNER.email) && (await card.innerText()).includes("+237 670 00 00 00"));
   await page.screenshot({ path: "test-results/admin-plan-requests.png", fullPage: true });
+  ok("the amount due is filled in", (await card.getByLabel("Amount received (FCFA)").inputValue()) === "25000");
+  await card.getByLabel("Reference (optional)").fill("MP261004.1530.A12345");
   await card.getByRole("button", { name: "Approve" }).click();
-  await page.getByText(/Approved — the business is on its new plan/).waitFor({ timeout: 10000 });
+  await page.getByText(/Approved — the payment is recorded/).waitFor({ timeout: 10000 });
+  ok("approving records the payment", sql(`select amount::int || ' ' || method || ' ' || reference from public.subscription_payments where request_id = '${requestId}'`) === "25000 mobile_money MP261004.1530.A12345");
   ok("approved from admin: request recorded as approved", sql(`select status from public.plan_change_requests where id = '${requestId}'`) === "approved");
   const approvedEmail = await waitFor(() => emailTo(OWNER.email, /Your WazaBolt Business plan is active/));
   ok("the customer is emailed that the plan is active", !!approvedEmail && approvedEmail.from === "WazaBolt <noreply@wazabolt.com>" && approvedEmail.html.includes("/en/dashboard"));
@@ -198,7 +201,37 @@ mkdirSync("test-results", { recursive: true });
   await page.getByText(/Declined — the customer has been emailed/).waitFor({ timeout: 10000 });
   const declinedEmail = await waitFor(() => emailTo(OWNER.email, /About your WazaBolt Starter plan request/));
   ok("declined from admin: plan unchanged, customer emailed, no requests waiting", !!declinedEmail && sql(`select plan_id from public.subscriptions where business_id = '${biz.id}'`) === "business" && (await page.getByRole("heading", { name: "Waiting for you (0)" }).count()) === 1);
+  await page.goto(`${APP}/en/dashboard/billing`);
+  ok("the owner sees the payment on Billing", /MP261004\.1530\.A12345/.test(await main.locator('section[aria-labelledby="payments-title"]').innerText()));
+
+  // The kill switch, from the businesses list.
+  await page.goto(`${APP}/en/admin/businesses`);
+  const bizRow = page.locator(`tr[data-business-id="${biz.id}"]`);
+  await bizRow.getByRole("button", { name: "Pause" }).click();
+  await page.getByText(/Assistant paused/).waitFor({ timeout: 10000 });
+  ok("kill switch: paused from WazaBolt admin", sql(`select ai_paused from public.platform_business_controls where business_id = '${biz.id}'`) === "t" && (await bizRow.getByText("Paused").count()) === 1);
+  await bizRow.getByRole("button", { name: "Resume" }).click();
+  await page.getByText(/Assistant switched back on/).waitFor({ timeout: 10000 });
+  ok("kill switch: resumed", sql(`select ai_paused from public.platform_business_controls where business_id = '${biz.id}'`) === "f");
   sql(`delete from public.platform_admins where user_id in (select id from auth.users where email = '${OWNER.email}')`);
+
+  // The daily billing job: renewal reminder, payment due, then Free after the grace days.
+  const cron = () => fetch(`${APP}/api/cron/billing`, { headers: { authorization: `Bearer ${process.env.CRON_SECRET ?? "test-cron"}` } }).then((r) => r.json());
+  ok("billing job refuses calls without the cron secret", (await fetch(`${APP}/api/cron/billing`)).status === 401);
+  sql(`update public.subscriptions set current_period_end = now() + interval '3 days' where business_id = '${biz.id}'`);
+  await cron();
+  const reminder = await waitFor(() => emailTo(OWNER.email, /Your WazaBolt Business plan ends on/));
+  ok("renewal reminder emailed before the period ends (with the price)", !!reminder && reminder.html.includes("25,000 FCFA"), reminder?.subject);
+  await cron();
+  ok("each reminder is sent once", resend.emails.filter((e) => e.to.includes(OWNER.email) && /plan ends on/.test(e.subject)).length === 1);
+  sql(`update public.subscriptions set current_period_end = now() - interval '1 day' where business_id = '${biz.id}'`);
+  await cron();
+  const due = await waitFor(() => emailTo(OWNER.email, /plan has ended: renew by/));
+  ok("period ended: payment due, the owner is emailed", !!due && sql(`select status from public.subscriptions where business_id = '${biz.id}'`) === "past_due");
+  sql(`update public.subscriptions set current_period_end = now() - interval '4 days' where business_id = '${biz.id}'`);
+  await cron();
+  const moved = await waitFor(() => emailTo(OWNER.email, /now on the WazaBolt Free plan/));
+  ok("not renewed after the grace days: moved to Free, the owner is emailed", !!moved && sql(`select plan_id || ' ' || status from public.subscriptions where business_id = '${biz.id}'`) === "free active");
 
   // ---------------------------------------------------------------- invites
   await page.goto(`${APP}/en/dashboard/team`);

@@ -21,6 +21,10 @@ export type BusinessRow = {
   members: number;
   planId: string | null;
   planStatus: string | null;
+  interval: "month" | "year";
+  periodEnd: string | null;
+  /** The WazaBolt kill switch. */
+  aiPaused: boolean;
   whatsapp: { status: string; number: string | null } | null;
 };
 
@@ -34,11 +38,13 @@ export async function listAllBusinesses(admin: Admin, limit = 500): Promise<Busi
   const ids = (businesses ?? []).map((b) => b.id);
   if (!ids.length) return [];
 
-  const [members, subs, wa] = await Promise.all([
+  const [members, subs, wa, controls] = await Promise.all([
     admin.from("business_members").select("business_id, user_id, role").in("business_id", ids),
-    admin.from("subscriptions").select("business_id, plan_id, status").in("business_id", ids),
+    admin.from("subscriptions").select("business_id, plan_id, status, billing_interval, current_period_end").in("business_id", ids),
     admin.from("whatsapp_connections").select("business_id, status, display_phone_number").in("business_id", ids),
+    admin.from("platform_business_controls").select("business_id, ai_paused").eq("ai_paused", true),
   ]);
+  const paused = new Set((controls.data ?? []).map((c) => c.business_id));
   const ownerIds = [...new Set((members.data ?? []).filter((m) => m.role === "owner").map((m) => m.user_id))];
   const { data: users } = ownerIds.length ? await admin.from("users").select("id, full_name, email").in("id", ownerIds) : { data: [] };
   const userById = new Map((users ?? []).map((u) => [u.id, u]));
@@ -60,6 +66,9 @@ export async function listAllBusinesses(admin: Admin, limit = 500): Promise<Busi
       members: team.length,
       planId: sub?.plan_id ?? null,
       planStatus: sub?.status ?? null,
+      interval: sub?.billing_interval === "year" ? "year" : "month",
+      periodEnd: sub?.current_period_end ?? null,
+      aiPaused: paused.has(b.id),
       whatsapp: conn ? { status: conn.status, number: conn.display_phone_number } : null,
     };
   });

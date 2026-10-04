@@ -66,3 +66,14 @@ describe("margin report", () => {
     expect(planConfigDrift(db)).toEqual(["starter", "pro"]);
   });
 });
+
+describe("yearly plans in the margin report", () => {
+  it("count 10/12 of the price as monthly revenue, against the smaller yearly budget", async () => {
+    const { businessMargin } = await import("@/lib/billing/margins");
+    const row = { business_id: "b", business_name: "B", plan_id: "starter", subscription_status: "active", claude_reply_fcfa: 1000, claude_test_fcfa: 0, claude_usd: 0, claude_requests: 1, ai_conversations: 10, service_sent: 0, service_over_free: 0, utility_sent: 0, marketing_sent: 0 };
+    const m = businessMargin(row, "year");
+    expect(m.revenue).toBeCloseTo(8333.33, 1);
+    expect(m.budget).toBe(3083);
+    expect(m.margin).toBeCloseTo((8333.33 - 250 - 1000) / 8333.33, 3);
+  });
+});

@@ -1,6 +1,8 @@
 import "server-only";
 
+import { PAYMENT_GRACE_DAYS, periodPrice, type BillingInterval } from "@/config/economics";
 import { siteConfig } from "@/config/site";
+import type { PaymentRecord } from "@/lib/billing/payments";
 import { emailLayout, esc, sendEmail } from "@/lib/email/send";
 import { logServerError } from "@/lib/log";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -9,8 +11,9 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  * Plan requests for the WazaBolt team: owners ask for a plan on Billing; the
  * team is emailed, sees it in /admin/plan-requests, takes payment (Mobile
  * Money, outside WazaBolt for now) and approves or declines — the customer
- * is emailed either way. Approval runs approve_plan_change (new one-month
- * period from now), as before.
+ * is emailed either way. Approving records the payment and runs
+ * approve_plan_change: a new period (month or year), or for a renewal the
+ * next period after the current one.
  */
 
 type Admin = NonNullable<ReturnType<typeof createAdminClient>>;
@@ -27,6 +30,10 @@ export type PlanRequestRow = {
   to: { id: string; name: string; price: number };
   contactPhone: string | null;
   note: string | null;
+  interval: BillingInterval;
+  kind: "change" | "renewal";
+  /** What the business pays for this request (FCFA). */
+  amountDue: number;
 };
 
 const fcfa = (n: number, lang: Lang = "en") => `${new Intl.NumberFormat(lang === "fr" ? "fr-FR" : "en-US").format(n).replace(/ | /g, " ")} FCFA`;
@@ -40,7 +47,7 @@ export async function pendingPlanRequestCount(admin: Admin) {
 async function loadRequests(admin: Admin, filter: { id?: string; limit?: number }): Promise<PlanRequestRow[]> {
   let q = admin
     .from("plan_change_requests")
-    .select("id, status, created_at, decided_at, business_id, from_plan_id, to_plan_id, contact_phone, note, requested_by")
+    .select("id, status, created_at, decided_at, business_id, from_plan_id, to_plan_id, contact_phone, note, requested_by, billing_interval, kind")
     .order("created_at", { ascending: false })
     .limit(filter.limit ?? 100);
   if (filter.id) q = q.eq("id", filter.id);
@@ -59,6 +66,8 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
   };
   return rows.map((r) => {
     const u = (users.data ?? []).find((x) => x.id === r.requested_by);
+    const to = plan(r.to_plan_id) ?? { id: r.to_plan_id, name: r.to_plan_id, price: 0 };
+    const interval: BillingInterval = r.billing_interval === "year" ? "year" : "month";
     return {
       id: r.id,
       status: r.status,
@@ -67,9 +76,12 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
       business: { id: r.business_id, name: (businesses.data ?? []).find((b) => b.id === r.business_id)?.name ?? "—" },
       requester: u ? { name: u.full_name, email: u.email, locale: u.ui_locale === "fr" ? "fr" : "en" } : null,
       from: plan(r.from_plan_id),
-      to: plan(r.to_plan_id) ?? { id: r.to_plan_id, name: r.to_plan_id, price: 0 },
+      to,
       contactPhone: r.contact_phone,
       note: r.note,
+      interval,
+      kind: r.kind === "renewal" ? "renewal" : "change",
+      amountDue: periodPrice(to.price, interval),
     };
   });
 }
@@ -95,7 +107,7 @@ export async function notifyTeamOfPlanRequest(admin: Admin, requestId: string) {
   const rows: [string, string][] = [
     ["Business", esc(r.business.name)],
     ["Requested by", r.requester ? `${esc(r.requester.name || "—")}${r.requester.email ? ` &lt;${esc(r.requester.email)}&gt;` : ""}` : "—"],
-    ["Plan", `${esc(r.from?.name ?? "—")} → <b>${esc(r.to.name)}</b> (${fcfa(r.to.price)} / month)`],
+    ["Plan", `${r.kind === "renewal" ? `Renewal of <b>${esc(r.to.name)}</b>` : `${esc(r.from?.name ?? "—")} → <b>${esc(r.to.name)}</b>`}, ${r.interval === "year" ? "yearly" : "monthly"}: ${fcfa(r.amountDue)}`],
     ["Phone to call", esc(r.contactPhone ?? "—")],
     ["Note", esc(r.note ?? "—")],
   ];
@@ -109,7 +121,7 @@ export async function notifyTeamOfPlanRequest(admin: Admin, requestId: string) {
       button: { label: "Open plan requests", href: link },
       footer: "You receive this because you are on the WazaBolt team.",
     }),
-    text: `New plan request\n\n${r.business.name}: ${r.from?.name ?? "—"} → ${r.to.name} (${fcfa(r.to.price)} / month)\nRequested by: ${r.requester?.name ?? "—"} ${r.requester?.email ?? ""}\nPhone: ${r.contactPhone ?? "—"}\nNote: ${r.note ?? "—"}\n\n${link}`,
+    text: `New plan request\n\n${r.business.name}: ${r.kind === "renewal" ? `renewal of ${r.to.name}` : `${r.from?.name ?? "—"} → ${r.to.name}`}, ${r.interval === "year" ? "yearly" : "monthly"}: ${fcfa(r.amountDue)}\nRequested by: ${r.requester?.name ?? "—"} ${r.requester?.email ?? ""}\nPhone: ${r.contactPhone ?? "—"}\nNote: ${r.note ?? "—"}\n\n${link}`,
   });
 }
 
@@ -166,10 +178,21 @@ async function emailCustomer(r: PlanRequestRow, decision: "approved" | "rejected
 // Decisions
 // ---------------------------------------------------------------------------
 
-export async function decidePlanRequest(admin: Admin, requestId: string, decision: "approved" | "rejected") {
+/** Approving records the payment received (amount, method, reference) with the plan change. */
+export async function decidePlanRequest(admin: Admin, requestId: string, decision: "approved" | "rejected", payment?: PaymentRecord) {
   const [r] = await loadRequests(admin, { id: requestId });
   if (!r || r.status !== "pending") return { ok: false as const, error: "not_pending" as const };
-  const { error } = await admin.rpc(decision === "approved" ? "approve_plan_change" : "reject_plan_change", { p_request_id: requestId });
+  const { error } =
+    decision === "approved"
+      ? await admin.rpc("approve_plan_change", {
+          p_request_id: requestId,
+          p_amount: payment?.amount,
+          p_method: payment?.method,
+          p_reference: payment?.reference ?? undefined,
+          p_actor: payment?.actorUserId ?? undefined,
+          p_grace_days: PAYMENT_GRACE_DAYS,
+        })
+      : await admin.rpc("reject_plan_change", { p_request_id: requestId });
   if (error) {
     logServerError("admin.planDecision", error);
     return { ok: false as const, error: "failed" as const };
