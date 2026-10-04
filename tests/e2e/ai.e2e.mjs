@@ -341,6 +341,10 @@ mkdirSync("test-results", { recursive: true });
 
   // The WazaBolt margin report: a 404 for everyone but platform admins.
   ok("margin report is a 404 for business owners", (await page.goto(`${APP}/en/admin/margins`))?.status() === 404);
+  ok("businesses list is a 404 for business owners", (await page.goto(`${APP}/en/admin/businesses`))?.status() === 404);
+  await page.goto(`${APP}/en/dashboard/ai`);
+  await main.waitFor({ timeout: 10000 });
+  ok("business owners don't see the WazaBolt admin link", (await page.getByRole("link", { name: "WazaBolt admin" }).count()) === 0);
   if (DB) {
     const bizId = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${U.email}'`);
     sql(`insert into platform_admins (user_id) select id from auth.users where email = '${U.email}'`);
@@ -351,6 +355,14 @@ mkdirSync("test-results", { recursive: true });
     ok("margin report: the business's plan, Claude cost and WhatsApp use", /free/i.test(rowText) && /FCFA/.test(rowText) && /test chat/.test(rowText), rowText);
     ok("margin report: Free counted as acquisition cost; Meta rates flagged unverified", (await page.locator('tr[data-plan="free"]').innerText()).includes("Acquisition cost") && (await page.getByText(/unverified/).count()) === 1);
     await page.screenshot({ path: "test-results/margins.png", fullPage: true });
+    // Every sign-up, with its owner — reached from the dashboard link only platform admins see.
+    await page.goto(`${APP}/en/dashboard/ai`);
+    await page.getByRole("link", { name: "WazaBolt admin" }).first().click();
+    await page.getByRole("heading", { name: "All sign-ups" }).waitFor({ timeout: 15000 });
+    const signup = page.locator(`tr[data-business-id="${bizId}"]`);
+    const signupText = (await signup.count()) ? await signup.innerText() : "";
+    ok("platform admins reach the businesses list from the dashboard; each sign-up shows its owner, plan and WhatsApp", signupText.includes(U.email) && /free/i.test(signupText) && /Connected|Not connected/.test(signupText), signupText);
+    await page.screenshot({ path: "test-results/admin-businesses.png", fullPage: true });
     sql(`delete from platform_admins where user_id in (select id from auth.users where email = '${U.email}')`);
   }
 

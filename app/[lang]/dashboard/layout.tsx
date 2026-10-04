@@ -6,9 +6,10 @@ import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { UserCard, initials } from "@/components/dashboard/user-card";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { TriangleAlert } from "lucide-react";
+import { ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
+import { currentUserIsPlatformAdmin } from "@/lib/admin/access";
 import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/lib/auth/dal";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -29,15 +30,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const user = await requireUser(localizePath(locale, "/dashboard"));
   const business = await getCurrentBusiness();
-  const [whatsapp, usage, businesses] = await Promise.all([
+  const [whatsapp, usage, businesses, platformAdmin] = await Promise.all([
     business ? getWhatsAppConnection(business.id) : null,
     // Owners and admins are warned before the monthly AI allowance runs out.
     business && hasRole(business.role, "admin") ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
     listMyBusinesses(),
+    currentUserIsPlatformAdmin(),
   ]);
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
-  const userCard = <UserCard name={user.fullName} email={user.email} locale={locale} labels={d.userCard} />;
+  // Only the WazaBolt team (platform_admins) sees the way to the admin pages.
+  const userCard = (
+    <>
+      {platformAdmin ? (
+        <Link
+          href={localizePath(locale, "/admin/businesses")}
+          className="mb-3 flex items-center gap-2 rounded-xl border border-gold/40 px-3 py-2 text-sm font-semibold text-gold hover:bg-cream/5"
+        >
+          <ShieldCheck className="size-4" aria-hidden /> {d.nav.platformAdmin}
+        </Link>
+      ) : null}
+      <UserCard name={user.fullName} email={user.email} locale={locale} labels={d.userCard} />
+    </>
+  );
 
   return (
     <div className="flex min-h-full flex-1">

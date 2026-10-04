@@ -500,7 +500,11 @@ card; each business pays Meta directly, so they are only used for estimates.
 - **Owners** see "Free WhatsApp messages this month — N of 1,000 left" on the dashboard home and
   the WhatsApp page (service messages from their number, resetting on the 1st, UTC). Counts only —
   no prices anywhere.
-- **Margin report** (`/en/admin/margins`, WazaBolt team only; everyone else gets a 404): per plan
+- **WazaBolt admin** (`/en/admin/businesses` and `/en/admin/margins`; a "WazaBolt admin" link in the
+  dashboard sidebar appears only for platform admins, everyone else gets a 404). **Businesses** lists
+  every sign-up, newest first: business, owner name and email, plan, whether setup is finished and
+  WhatsApp connected, team size — account facts only, never a business's customers or conversations.
+- **Margin report** (`/en/admin/margins`): per plan
   and per business for a month — revenue (price of active / past-due subscriptions; no payment
   history yet), Claude cost (test chat shown separately), Mobile Money fee, margin, the hidden Claude
   budget, Claude cost per AI conversation, WhatsApp messages by category and an estimate of what

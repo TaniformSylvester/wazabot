@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 
 import { PageHeader, Panel, StatusBadge, TableWrap, td, th } from "@/components/app/ui";
 import { FCFA_PER_USD, MARGIN_TARGET, META_PRICING, MOBILE_MONEY_FEE_RATE } from "@/config/economics";
-import { getCurrentUser } from "@/lib/auth/dal";
-import { getMarginReport, isPlatformAdmin, reportMonth } from "@/lib/billing/margins";
+import { AdminNav } from "@/components/admin/admin-nav";
+import { requirePlatformAdmin } from "@/lib/admin/access";
+import { getMarginReport, reportMonth } from "@/lib/billing/margins";
 import { localizePath } from "@/lib/i18n/paths";
 import { getLocale } from "@/lib/i18n/dictionaries";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Margins", robots: { index: false, follow: false } };
@@ -24,10 +23,7 @@ const int = (v: number) => new Intl.NumberFormat("en-US").format(v);
  */
 export default async function MarginsPage({ searchParams }: PageProps<"/[lang]/admin/margins">) {
   const [locale, params] = await Promise.all([getLocale(), searchParams]);
-  const user = await getCurrentUser();
-  if (!user) redirect(localizePath(locale, `/login?next=${encodeURIComponent(localizePath(locale, "/admin/margins"))}`));
-  const admin = createAdminClient();
-  if (!admin || !(await isPlatformAdmin(admin, user.id))) notFound();
+  const admin = await requirePlatformAdmin(locale, "/admin/margins");
 
   const month = reportMonth(typeof params.month === "string" ? params.month : undefined, new Date());
   const report = await getMarginReport(admin, month);
@@ -40,6 +36,7 @@ export default async function MarginsPage({ searchParams }: PageProps<"/[lang]/a
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <AdminNav locale={locale} active="margins" />
       <PageHeader
         title={`Margins — ${monthLabel}`}
         description={`Target: at least ${pct(MARGIN_TARGET)} gross margin on every paid plan after Claude and Mobile Money fees (${pct(MOBILE_MONEY_FEE_RATE)}). Costs in FCFA at ${FCFA_PER_USD} FCFA = $1.`}

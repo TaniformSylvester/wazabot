@@ -154,8 +154,3 @@ export async function getMarginReport(admin: Admin, month: string) {
   const businesses = (data ?? []).map((r) => businessMargin(r as CostRow));
   return { month, businesses, plans: planMargins(businesses), drift: planConfigDrift(dbPlans ?? []) };
 }
-
-export async function isPlatformAdmin(admin: Admin, userId: string) {
-  const { data } = await admin.from("platform_admins").select("user_id").eq("user_id", userId).maybeSingle();
-  return Boolean(data);
-}

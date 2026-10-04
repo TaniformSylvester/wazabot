@@ -716,6 +716,7 @@ const en = {
       navigation: "Navigation",
       sections: "Dashboard sections",
       groups: { main: "Main", business: "Business", ai: "AI", insights: "Insights", settings: "Settings" },
+      platformAdmin: "WazaBolt admin",
       items: {
         dashboard: "Dashboard",
         conversations: "Conversations",

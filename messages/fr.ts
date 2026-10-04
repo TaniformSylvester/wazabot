@@ -714,6 +714,7 @@ const fr: Messages = {
       navigation: "Navigation",
       sections: "Sections du tableau de bord",
       groups: { main: "Principal", business: "Entreprise", ai: "IA", insights: "Analyses", settings: "Paramètres" },
+      platformAdmin: "Admin WazaBolt",
       items: {
         dashboard: "Tableau de bord",
         conversations: "Conversations",
