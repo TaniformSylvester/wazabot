@@ -58,6 +58,11 @@ mkdirSync("test-results", { recursive: true });
   await fp.goto(`${APP}/`);
   ok("French browser is sent to /fr", fp.url() === `${APP}/fr`, fp.url());
   ok("French home page is in French", (await fp.getByRole("heading", { level: 1 }).innerText()).includes("Boostez votre entreprise"));
+  // Privacy Policy and Terms, linked from sign-up and the footer (Meta's business verification checks them).
+  await page.goto(`${APP}/en/privacy`);
+  ok("privacy policy: the full policy, with the data law and how to reach us", (await page.locator("article section").count()) >= 10 && (await page.getByText(/Law No\. 2024\/017/).count()) >= 1 && (await page.getByText("contact@wazabolt.com").count()) >= 1);
+  await page.goto(`${APP}/fr/terms`);
+  ok("terms of service in French", (await page.getByRole("heading", { level: 1 }).innerText()) === "Conditions d'utilisation" && (await page.getByText(/Dernière mise à jour : /).count()) === 1);
   await fp.locator("header").getByRole("button", { name: "English" }).first().click();
   await fp.waitForURL(`${APP}/en`);
   await fp.getByRole("heading", { level: 1 }).filter({ hasText: "Power your business" }).waitFor();

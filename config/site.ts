@@ -27,6 +27,21 @@ export const siteConfig = {
     address: "Mile Six Nkwen, Bamenda, Behind Mawa Hotel, Cameroon",
     mapUrl: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Mawa Hotel, Mile Six Nkwen, Bamenda, Cameroon"),
   },
+  /**
+   * The legal entity behind WazaBolt, shown on the Privacy Policy and Terms
+   * exactly as written on the registration documents (Meta's business
+   * verification compares them). Leave null until known — never a placeholder.
+   */
+  legal: {
+    /** Registered name, e.g. as on the RCCM certificate. */
+    entityName: null as string | null,
+    /** Trade register number (RCCM). */
+    rccm: null as string | null,
+    /** Taxpayer number (NIU). */
+    niu: null as string | null,
+    /** Where the policies were last changed (ISO date). */
+    updated: "2026-10-05",
+  },
   /** Emails WazaBolt itself sends (via Resend; RESEND_API_KEY in the server environment). */
   email: {
     from: "WazaBolt <noreply@wazabolt.com>",
