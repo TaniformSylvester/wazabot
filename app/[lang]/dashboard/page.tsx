@@ -64,7 +64,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     listNextAppointments(business.id),
     getFreeWhatsAppMessages(business.id),
     getOverview(business.id, business.timezone, showProfit),
-    listSales(business.id, business.timezone, {}),
+    listSales(business.id, business.timezone, {}, showProfit),
   ]);
   const apptTime = new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { timeZone: business.timezone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const done = setupSteps.filter((s) => progress[s.key === "ai" ? "aiConfigured" : s.key]).length;

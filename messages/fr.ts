@@ -1309,6 +1309,7 @@ const fr: Messages = {
         servedBy: "Servi par",
         thanks: "Merci pour votre confiance.",
         powered: "Propulsé par WazaBolt",
+        reference: "Réf.",
         print: "Imprimer",
       },
     },

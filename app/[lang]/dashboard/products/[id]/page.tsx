@@ -20,7 +20,7 @@ export const generateMetadata = dashboardMetadata((d) => d.products.edit);
 export default async function ProductPage({ params, searchParams }: PageProps<"/[lang]/dashboard/products/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/products/${id}`));
-  const [product, movements] = isUuid(id) ? await Promise.all([getProduct(business.id, id), listStockMovements(business.id, id)]) : [null, []];
+  const [product, movements] = isUuid(id) ? await Promise.all([getProduct(business.id, id, canManageBusiness(business.role)), listStockMovements(business.id, id)]) : [null, []];
   if (!product) notFound();
   const d = t.dashboard;
   const p = d.products;
@@ -49,7 +49,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
           <ProductForm
             t={p}
             text={{ errors: d.errors, saved: p.saved, saving: d.common.saving }}
-            product={canEdit ? product : { ...product, cost_price: null }}
+            product={product}
             currency={product.currency}
             locale={locale}
             canEdit={canEdit}

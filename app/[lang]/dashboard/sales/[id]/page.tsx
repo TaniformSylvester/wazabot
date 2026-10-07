@@ -21,7 +21,7 @@ export const generateMetadata = dashboardMetadata((d) => d.sales.title);
 export default async function SalePage({ params, searchParams }: PageProps<"/[lang]/dashboard/sales/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/sales/${id}`));
-  const sale = isUuid(id) ? await getSale(business.id, id) : null;
+  const sale = isUuid(id) ? await getSale(business.id, id, hasRole(business.role, "admin")) : null;
   if (!sale) notFound();
   const { order, payments, staff } = sale;
   const db = await createClient();
@@ -61,7 +61,7 @@ export default async function SalePage({ params, searchParams }: PageProps<"/[la
       <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <Receipt
           r={{
-            business: { name: business.name, phone: business.phone, address: business.address, city: business.city, logoUrl: business.logoUrl, footer: biz?.receipt_footer ?? null },
+            business: { name: business.name, phone: business.phone, email: business.email, address: business.address, city: business.city, logoUrl: business.logoUrl, footer: biz?.receipt_footer ?? null },
             number: order.order_number,
             date: order.created_at,
             customer: customerName,
@@ -74,6 +74,7 @@ export default async function SalePage({ params, searchParams }: PageProps<"/[la
             paid: Number(order.amount_paid),
             currency: order.currency,
             method: order.payment_method,
+            references: [...new Set(payments.map((p) => p.reference).filter((x): x is string => !!x))],
             status: order.payment_status,
           }}
           locale={locale}

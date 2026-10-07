@@ -69,7 +69,8 @@ begin
     raise exception 'FAIL: cash sale %', (select row(status, channel, payment_status, payment_method, total, amount_paid) from public.orders where id = s);
   end if;
   if (select reason || ' ' || quantity_change from public.stock_movements where order_id = s) <> 'sale -2' then raise exception 'FAIL: sale movement'; end if;
-  if (select unit_cost from public.order_items where order_id = s) <> 4500 then raise exception 'FAIL: cost at the time of sale'; end if;
+  if (select unit_cost from public.order_item_costs(b, array[s])) <> 4500 then raise exception 'FAIL: cost at the time of sale'; end if;
+  if (select cost_price from public.product_costs(b, array[p])) <> 4500 then raise exception 'FAIL: owner reads cost prices'; end if;
   -- The same sale submitted twice.
   s2 := public.create_sale(b, '11111111-0000-4000-8000-000000000001', jsonb_build_array(jsonb_build_object('product_id', p, 'quantity', 2)), c, 0,
                            '[{"method":"cash","amount":16000}]'::jsonb);
@@ -159,6 +160,100 @@ begin
   raise notice 'PASS owners set the receipt footer';
 end $$;
 
+-- Several products and quantities, an owner's discount, split Orange Money + bank transfer;
+-- prices always come from the catalog, never from what the screen sends.
+do $$
+declare
+  b uuid := (select biz from ids);
+  p1 uuid;
+  p2 uuid;
+  s uuid;
+  before1 int;
+  before2 int;
+begin
+  insert into public.products (business_id, name, price, cost_price, currency, stock_quantity) values (b, 'Polo', 12000, 7000, 'XAF', 20) returning id into p1;
+  insert into public.products (business_id, name, price, cost_price, currency, stock_quantity) values (b, 'Cap', 5000, 2500, 'XAF', 20) returning id into p2;
+  select stock_quantity into before1 from public.products where id = p1;
+  select stock_quantity into before2 from public.products where id = p2;
+  -- 3 × 12,000 + 2 × 5,000 = 46,000 − 2,000 discount = 44,000 (the 1 FCFA "unit_price" is ignored).
+  s := public.create_sale(b, gen_random_uuid(),
+         jsonb_build_array(jsonb_build_object('product_id', p1, 'quantity', 3, 'unit_price', 1), jsonb_build_object('product_id', p2, 'quantity', 2)),
+         null, 2000,
+         jsonb_build_array(jsonb_build_object('amount', 30000, 'method', 'orange_money', 'reference', 'OM-77'),
+                           jsonb_build_object('amount', 14000, 'method', 'bank_transfer', 'reference', 'BT-12')));
+  if (select total from public.orders where id = s) <> 44000 or (select payment_status from public.orders where id = s) <> 'paid' then
+    raise exception 'FAIL: multi-item discounted sale total %', (select total from public.orders where id = s);
+  end if;
+  if (select string_agg(method || ':' || amount::int || ':' || reference, ',' order by amount desc) from public.order_payments where order_id = s) <> 'orange_money:30000:OM-77,bank_transfer:14000:BT-12' then
+    raise exception 'FAIL: split payment records';
+  end if;
+  if (select stock_quantity from public.products where id = p1) <> before1 - 3 or (select stock_quantity from public.products where id = p2) <> before2 - 2 then
+    raise exception 'FAIL: stock after a multi-item sale';
+  end if;
+  if (select count(*) from public.stock_movements where order_id = s and reason = 'sale') <> 2 then raise exception 'FAIL: one movement per item'; end if;
+  -- Paying more than the total is refused and leaves nothing behind.
+  begin
+    perform public.create_sale(b, gen_random_uuid(), jsonb_build_array(jsonb_build_object('product_id', p2, 'quantity', 1)), null, 0,
+                               jsonb_build_array(jsonb_build_object('amount', 6000, 'method', 'cash')));
+    raise exception 'FAIL: overpayment accepted';
+  exception when others then
+    if sqlerrm like 'FAIL:%' then raise; end if;
+  end;
+  if (select stock_quantity from public.products where id = p2) <> before2 - 2 then raise exception 'FAIL: a refused sale changed stock'; end if;
+  raise notice 'PASS several products and quantities, owner discount, Orange Money + bank transfer; prices from the catalog; a refused sale leaves no trace';
+end $$;
+
+-- The credit example from the V2 brief, then several credit sales and payments down to zero.
+do $$
+declare
+  b uuid := (select biz from ids);
+  p uuid;
+  c uuid;
+  s1 uuid;
+  s2 uuid;
+  owed numeric;
+begin
+  insert into public.products (business_id, name, price, cost_price, currency, stock_quantity)
+  values (b, 'Sewing machine', 50000, 30000, 'XAF', 10) returning id into p;
+  insert into public.customers (business_id, name, whatsapp_phone) values (b, 'Credit Example', '237000000901') returning id into c;
+
+  -- Sale 100,000, paid 40,000 now → owes 60,000.
+  s1 := public.create_sale(b, gen_random_uuid(), jsonb_build_array(jsonb_build_object('product_id', p, 'quantity', 2)), c, 0,
+                           jsonb_build_array(jsonb_build_object('amount', 40000, 'method', 'cash')));
+  select outstanding into owed from public.customer_stats where customer_id = c;
+  if owed <> 60000 or (select payment_status from public.orders where id = s1) <> 'partial' then raise exception 'FAIL: 100,000 − 40,000 should leave 60,000 (got %)', owed; end if;
+
+  -- Customer pays 25,000 → owes 35,000.
+  perform public.record_customer_payment(b, c, 25000, 'orange_money', 'OM-1', gen_random_uuid());
+  select outstanding into owed from public.customer_stats where customer_id = c;
+  if owed <> 35000 then raise exception 'FAIL: 60,000 − 25,000 should leave 35,000 (got %)', owed; end if;
+
+  -- A second sale fully on credit (50,000) → owes 85,000 over two sales.
+  s2 := public.create_sale(b, gen_random_uuid(), jsonb_build_array(jsonb_build_object('product_id', p, 'quantity', 1)), c, 0, '[]'::jsonb);
+  select outstanding into owed from public.customer_stats where customer_id = c;
+  if owed <> 85000 or (select payment_status from public.orders where id = s2) <> 'unpaid' then raise exception 'FAIL: second credit sale (got %)', owed; end if;
+
+  -- 45,000 settles the first sale (35,000) and 10,000 of the second; then 40,000 clears everything.
+  perform public.record_customer_payment(b, c, 45000, 'mtn_momo', 'MOMO-1', gen_random_uuid());
+  if (select payment_status from public.orders where id = s1) <> 'paid' or (select amount_paid from public.orders where id = s2) <> 10000 then
+    raise exception 'FAIL: a payment covering two sales';
+  end if;
+  perform public.record_customer_payment(b, c, 40000, 'bank_transfer', 'BANK-1', gen_random_uuid());
+  select outstanding into owed from public.customer_stats where customer_id = c;
+  if owed <> 0 or (select payment_status from public.orders where id = s2) <> 'paid' then raise exception 'FAIL: balance should be zero (got %)', owed; end if;
+
+  -- Nothing more can be taken once the balance is zero.
+  begin
+    perform public.record_customer_payment(b, c, 1000, 'cash', null, gen_random_uuid());
+    raise exception 'FAIL: payment accepted with nothing owed';
+  exception when others then
+    if sqlerrm like 'FAIL:%' then raise; end if;
+  end;
+  -- The balance comes from the records: total of the sales minus the payments recorded.
+  if (select sum(amount) from public.order_payments where customer_id = c) <> 150000 then raise exception 'FAIL: payment records'; end if;
+  raise notice 'PASS credit: 100,000 − 40,000 = 60,000; − 25,000 = 35,000; more credit and payments across sales down to zero, all from the records';
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- Cashier (agent): sells and takes payments; no stock adjustments, discounts, expenses or reports
 -- ---------------------------------------------------------------------------
@@ -201,6 +296,36 @@ begin
     raise exception 'FAIL: a cashier changed the receipt footer';
   end if;
   raise notice 'PASS cashiers can''t change business settings';
+end $$;
+
+do $$
+declare
+  b uuid := (select biz from ids);
+begin
+  begin
+    perform cost_price from public.products where business_id = b;
+    raise exception 'FAIL: cashier reads products.cost_price';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform unit_cost from public.order_items where business_id = b;
+    raise exception 'FAIL: cashier reads order_items.unit_cost';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.product_costs(b);
+    raise exception 'FAIL: cashier calls product_costs';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.order_item_costs(b, array(select id from public.orders where business_id = b));
+    raise exception 'FAIL: cashier calls order_item_costs';
+  exception when insufficient_privilege then null;
+  end;
+  if not exists (select 1 from public.products where business_id = b and name = 'T-Shirt' and price = 8000) then
+    raise exception 'FAIL: cashier can''t read the catalog';
+  end if;
+  raise notice 'PASS cost prices are private to owners and admins, enforced by the database';
 end $$;
 
 -- ---------------------------------------------------------------------------

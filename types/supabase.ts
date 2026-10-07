@@ -2858,7 +2858,22 @@ export type Database = {
         }[];
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
+      order_item_costs: {
+        Args: { p_business_id: string; p_order_ids: string[] };
+        Returns: {
+          item_id: string;
+          order_id: string;
+          unit_cost: number;
+        }[];
+      };
       prepare_broadcast: { Args: { p_broadcast_id: string }; Returns: number };
+      product_costs: {
+        Args: { p_business_id: string; p_product_ids?: string[] };
+        Returns: {
+          cost_price: number;
+          product_id: string;
+        }[];
+      };
       product_sales: {
         Args: { p_business_id: string; p_from: string; p_to: string };
         Returns: {

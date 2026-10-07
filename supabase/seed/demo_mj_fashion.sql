@@ -15,8 +15,12 @@
 --   3. Run the whole script. Running it again does nothing if the demo exists.
 --   4. In WazaBolt, use the business switcher (top bar) to open the demo shop.
 --
--- To remove it later: delete from public.businesses where id = '<demo id>';
--- (the id is printed in the notices at the end of the run).
+-- To RESET the demo (e.g. after a presentation): set v_reset to true on the
+-- line marked  >>> RESET <<<  and run again. It deletes only this account's
+-- demo shop — recognised by its demo marker, never by name alone — and builds
+-- it again with fresh dates. Real businesses, even one called "MJ Fashion
+-- Cameroon", are never touched.
+-- To remove it for good: set v_reset to true and v_rebuild to false.
 --
 -- Sales go through the same database functions as the app (create_sale,
 -- record_customer_payment, adjust_stock), so totals, stock, payments and
@@ -25,6 +29,10 @@
 do $$
 declare
   v_email text := 'owner@example.com';  -- >>> OWNER EMAIL <<<
+  v_reset boolean := false;              -- >>> RESET <<< true: delete this account's demo shop first
+  v_rebuild boolean := true;             -- with v_reset: false only deletes it
+  v_marker constant text := 'WazaBolt demo shop: clothing, shoes and accessories (fictional data).';
+  v_deleted int;
   v_user uuid;
   v_biz uuid;
   v_products uuid[] := '{}';
@@ -46,11 +54,20 @@ begin
   if v_user is null then
     raise exception 'No WazaBolt account with the email %. Sign up first, then set it in this script.', v_email;
   end if;
-  if exists (
+  if v_reset then
+    delete from public.businesses b
+    using public.business_members m
+    where m.business_id = b.id and m.user_id = v_user and m.role = 'owner' and b.description = v_marker;
+    get diagnostics v_deleted = row_count;
+    raise notice 'Deleted % demo shop(s) of %.', v_deleted, v_email;
+    if not v_rebuild then
+      return;
+    end if;
+  elsif exists (
     select 1 from public.businesses b join public.business_members m on m.business_id = b.id
-    where m.user_id = v_user and b.name = 'MJ Fashion Cameroon'
+    where m.user_id = v_user and b.description = v_marker
   ) then
-    raise notice 'The demo shop already exists for %; nothing to do.', v_email;
+    raise notice 'The demo shop already exists for %; nothing to do (set v_reset to true to rebuild it).', v_email;
     return;
   end if;
 
@@ -62,7 +79,7 @@ begin
   insert into public.businesses (name, country_code, currency, timezone, default_language, industry, city, address, description,
                                  receipt_footer, onboarding_step, onboarding_completed_at)
   values ('MJ Fashion Cameroon', 'CM', 'XAF', 'Africa/Douala', 'fr', 'fashion', 'Douala', 'Akwa (demo address)',
-          'Demo shop: clothing, shoes and accessories.', 'Merci pour votre achat ! / Thank you for shopping with us!', 6, now())
+          v_marker, 'Merci pour votre achat ! / Thank you for shopping with us!', 6, now())
   returning id into v_biz;
   insert into public.business_languages (business_id, language_code, sort_order)
   select v_biz, language_code, sort_order from public.country_pack_languages where country_code = 'CM'

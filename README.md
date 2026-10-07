@@ -533,7 +533,7 @@ database functions (`order_payments.provider` is ready for it).
 
 **Roles**: owner and admin (manager) see everything; agent (cashier) sells, takes payments and
 manages customers but sees no cost prices, profit, expenses or reports; viewer (staff) reads only.
-The database enforces these rules for expenses, reports, discounts, stock changes and settings (RLS, column grants and checks inside the functions). **Known gap:** product cost prices (`products.cost_price`) and sale item costs (`order_items.unit_cost`) are hidden from cashiers in the app, but a cashier who calls the database API directly with their own login could still read them; closing that needs moving costs to an owner/admin-only table.
+The database enforces these rules for expenses, reports, discounts, stock changes and settings (RLS, column grants and checks inside the functions). Cost prices (`products.cost_price`, `order_items.unit_cost`) are not readable by cashiers or staff even through the database API: owners/admins read them via `product_costs()` / `order_item_costs()` (migration `20261014120000_cost_privacy.sql`). A new column on those two tables must be granted to `authenticated` explicitly.
 
 ### Demo shop
 
@@ -541,7 +541,13 @@ The database enforces these rules for expenses, reports, discounts, stock change
 products, 6 made-up customers with invalid phone numbers, ~60 sales over 30 days, credit,
 payments, stock events and expenses) for an existing account. Set the owner's email at the top
 and run it in the Supabase SQL Editor; then switch to the demo shop from the top bar. Running it
-twice does nothing; delete the business to remove it.
+twice does nothing. To reset it after a demo, set `v_reset` to `true` and run again (it deletes only
+that account's demo shop, recognised by its demo marker, then rebuilds it with fresh dates); with
+`v_rebuild` set to `false` it only deletes it.
+
+Sales and payments emit business events (`lib/core/events.ts`: sale completed, payment recorded,
+credit outstanding) for future WhatsApp / SMS / email channels — none is registered yet. The audit
+and phase-by-phase plan is in `docs/v2-implementation-plan.md`.
 
 ## Costs and margins
 

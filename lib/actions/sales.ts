@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { authorize } from "@/lib/auth/dal";
+import { emit } from "@/lib/core/events";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 import { money, normalizeWhatsAppNumber, optionalText } from "@/lib/validation/app";
@@ -92,5 +94,7 @@ export async function createSale(input: SaleInput): Promise<SaleResult> {
     return { ok: false, error: "failed" };
   }
   revalidatePath("/[lang]/dashboard", "layout");
+  const businessId = ctx.business.id;
+  after(() => emit({ type: "sale.completed", businessId, orderId: data, customerId: customerId ?? null }));
   return { ok: true, id: data };
 }

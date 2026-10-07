@@ -106,11 +106,29 @@ export type ProductFilter = { q?: string; category?: string; status?: "active" |
 export const PRODUCT_SORTS = ["name", "newest", "priceHigh", "stockLow"] as const;
 export type ProductSort = (typeof PRODUCT_SORTS)[number];
 
+/**
+ * Cost prices are private to owners and admins: the database only returns them
+ * through product_costs() / order_item_costs(), which check the role. Callers
+ * pass withCost only for those roles; otherwise costs come back as null.
+ */
+export async function productCosts(businessId: string, ids?: string[]) {
+  const db = await createClient();
+  const { data } = await db.rpc("product_costs", { p_business_id: businessId, p_product_ids: ids });
+  return new Map((data ?? []).map((r) => [r.product_id, r.cost_price === null ? null : Number(r.cost_price)]));
+}
+
+export async function orderItemCosts(businessId: string, orderIds: string[]) {
+  if (!orderIds.length) return new Map<string, number | null>();
+  const db = await createClient();
+  const { data } = await db.rpc("order_item_costs", { p_business_id: businessId, p_order_ids: orderIds });
+  return new Map((data ?? []).map((r) => [r.item_id, r.unit_cost === null ? null : Number(r.unit_cost)]));
+}
+
 export async function listProducts(businessId: string, f: ProductFilter = {}) {
   const db = await createClient();
   let q = db
     .from("products")
-    .select("id, name, category, sku, price, cost_price, unit, currency, stock_quantity, low_stock_threshold, image_url, active, updated_at, product_variants(count)", { count: "exact" })
+    .select("id, name, category, sku, price, unit, currency, stock_quantity, low_stock_threshold, image_url, active, updated_at, product_variants(count)", { count: "exact" })
     .eq("business_id", businessId);
   const pattern = searchPattern(f.q);
   if (pattern) q = q.or(`name.ilike.${pattern},sku.ilike.${pattern},category.ilike.${pattern}`);
@@ -133,16 +151,20 @@ export async function listProductCategories(businessId: string) {
   return [...new Set((data ?? []).map((r) => r.category as string))].sort((a, b) => a.localeCompare(b));
 }
 
-export async function getProduct(businessId: string, id: string) {
+export async function getProduct(businessId: string, id: string, withCost = false) {
   const db = await createClient();
   const { data } = await db
     .from("products")
-    .select("*, product_variants(id, name, value, stock_quantity, price_modifier, sort_order)")
+    .select(
+      "id, business_id, name, description, category, sku, price, currency, stock_quantity, image_url, active, created_at, updated_at, low_stock_threshold, stock_low, unit, product_variants(id, name, value, stock_quantity, price_modifier, sort_order)",
+    )
     .eq("business_id", businessId)
     .eq("id", id)
     .maybeSingle();
-  if (data) data.product_variants.sort((a, b) => a.sort_order - b.sort_order);
-  return data;
+  if (!data) return null;
+  data.product_variants.sort((a, b) => a.sort_order - b.sort_order);
+  const cost = withCost ? ((await productCosts(businessId, [id])).get(id) ?? null) : null;
+  return { ...data, cost_price: cost };
 }
 
 /** A product's stock history, newest first, with who made each change. */
@@ -392,14 +414,17 @@ export async function listOrders(businessId: string, f: { status?: string; payme
   return { rows: data ?? [], total: count ?? 0, page };
 }
 
-export async function getOrder(businessId: string, id: string) {
+export async function getOrder(businessId: string, id: string, withCost = false) {
   const db = await createClient();
-  const { data } = await db
+  const { data: row } = await db
     .from("orders")
-    .select("*, customers(id, name, whatsapp_phone), order_items(id, product_id, product_name, variant, quantity, unit_price, total, unit_cost)")
+    .select("*, customers(id, name, whatsapp_phone), order_items(id, product_id, product_name, variant, quantity, unit_price, total)")
     .eq("business_id", businessId)
     .eq("id", id)
     .maybeSingle();
+  if (!row) return null;
+  const costs = withCost ? await orderItemCosts(businessId, [id]) : new Map<string, number | null>();
+  const data = { ...row, order_items: row.order_items.map((i) => ({ ...i, unit_cost: costs.get(i.id) ?? null })) };
   return data;
 }
 
@@ -437,12 +462,12 @@ export type PosProduct = Awaited<ReturnType<typeof listPosProducts>>[number];
 export type SalesFilter = { q?: string; from?: string; to?: string; method?: string; status?: string; customer?: string; page?: number };
 
 /** Completed sales, newest first, with items (for counts and profit), customer and staff. */
-export async function listSales(businessId: string, timezone: string, f: SalesFilter = {}) {
+export async function listSales(businessId: string, timezone: string, f: SalesFilter = {}, withCost = false) {
   const db = await createClient();
   let q = db
     .from("orders")
     .select(
-      "id, order_number, created_at, total, amount_paid, payment_status, payment_method, channel, created_by, customer_id, customers(id, name, whatsapp_phone), order_items(quantity, unit_cost)",
+      "id, order_number, created_at, total, amount_paid, payment_status, payment_method, channel, created_by, customer_id, customers(id, name, whatsapp_phone), order_items(id, quantity)",
       { count: "exact" },
     )
     .eq("business_id", businessId)
@@ -456,11 +481,12 @@ export async function listSales(businessId: string, timezone: string, f: SalesFi
   const page = Math.max(1, f.page ?? 1);
   const { data, count } = await q.order("created_at", { ascending: false }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   const rows = data ?? [];
-  const names = await userNames(rows.map((r) => r.created_by));
+  const [names, costs] = await Promise.all([userNames(rows.map((r) => r.created_by)), withCost ? orderItemCosts(businessId, rows.map((r) => r.id)) : null]);
   return {
     rows: rows.map((r) => {
-      const costKnown = r.order_items.every((i) => i.unit_cost !== null);
-      const cogs = r.order_items.reduce((s, i) => s + i.quantity * Number(i.unit_cost ?? 0), 0);
+      const unitCost = (i: { id: string }) => costs?.get(i.id) ?? null;
+      const costKnown = !!costs && r.order_items.every((i) => unitCost(i) !== null);
+      const cogs = r.order_items.reduce((s, i) => s + i.quantity * Number(unitCost(i) ?? 0), 0);
       return {
         ...r,
         items: r.order_items.reduce((s, i) => s + i.quantity, 0),
@@ -485,8 +511,8 @@ export function localDayStart(date: string, timezone: string, addDays = 0): stri
 }
 
 /** One sale with items, customer, payments and the people involved. */
-export async function getSale(businessId: string, id: string) {
-  const [order, payments] = await Promise.all([getOrder(businessId, id), listOrderPayments(businessId, id)]);
+export async function getSale(businessId: string, id: string, withCost = false) {
+  const [order, payments] = await Promise.all([getOrder(businessId, id, withCost), listOrderPayments(businessId, id)]);
   if (!order) return null;
   const names = await userNames([order.created_by]);
   return { order, payments, staff: order.created_by ? (names.get(order.created_by) ?? null) : null };

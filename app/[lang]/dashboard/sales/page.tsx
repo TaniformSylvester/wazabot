@@ -31,7 +31,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/[lang]/das
     customer: param(sp.customer),
     page: Number(param(sp.page)) || 1,
   };
-  const { rows, total, page } = await listSales(business.id, business.timezone, filters);
+  const { rows, total, page } = await listSales(business.id, business.timezone, filters, hasRole(business.role, "admin"));
   const filtered = !!(filters.q || filters.from || filters.to || filters.method || filters.status || filters.customer);
   const base = localizePath(locale, "/dashboard/sales");
   const isAdmin = hasRole(business.role, "admin");

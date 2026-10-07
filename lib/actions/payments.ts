@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { authorize } from "@/lib/auth/dal";
+import { emit } from "@/lib/core/events";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 import { money, optionalText } from "@/lib/validation/app";
@@ -53,6 +55,8 @@ export async function recordOrderPayment(_prev: FormState, formData: FormData): 
     return paymentError(error);
   }
   revalidatePath("/[lang]/dashboard", "layout");
+  const event = { type: "payment.recorded", businessId: ctx.business.id, customerId: null, orderId: orderId.data, amount: parsed.data.amount } as const;
+  after(() => emit(event));
   return ok(orderId.data);
 }
 
@@ -78,5 +82,7 @@ export async function recordCustomerPayment(_prev: FormState, formData: FormData
     return paymentError(error);
   }
   revalidatePath("/[lang]/dashboard", "layout");
+  const event = { type: "payment.recorded", businessId: ctx.business.id, customerId: customerId.data, orderId: null, amount: parsed.data.amount } as const;
+  after(() => emit(event));
   return ok(customerId.data);
 }

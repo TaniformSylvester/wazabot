@@ -1311,6 +1311,7 @@ const en = {
         servedBy: "Served by",
         thanks: "Thank you for your business.",
         powered: "Powered by WazaBolt",
+        reference: "Ref.",
         print: "Print",
       },
     },

@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 
-import { getStockAlerts, localDayStart, localToday } from "./queries";
+import { getStockAlerts, localDayStart, localToday, productCosts } from "./queries";
 
 /*
  * Business figures for the dashboard and the reports. Everything comes from
@@ -181,14 +181,15 @@ async function bestSellers(businessId: string, timezone: string, from: string, m
 }
 
 /** Active products: how many, low, out of stock, and stock value at selling price and (admins) at cost. */
-async function inventoryStats(businessId: string) {
+async function inventoryStats(businessId: string, withCost: boolean) {
   const db = await createClient();
   const { data } = await db
     .from("products")
-    .select("price, cost_price, stock_quantity, low_stock_threshold, product_variants(stock_quantity, price_modifier)")
+    .select("id, price, stock_quantity, low_stock_threshold, product_variants(stock_quantity, price_modifier)")
     .eq("business_id", businessId)
     .eq("active", true)
     .limit(5000);
+  const costs = withCost ? await productCosts(businessId) : new Map<string, number | null>();
   let low = 0;
   let out = 0;
   let retail = 0;
@@ -205,8 +206,9 @@ async function inventoryStats(businessId: string) {
       if (l.qty === 0) out += 1;
       else if (l.qty <= p.low_stock_threshold) low += 1;
       retail += l.qty * l.price;
-      if (p.cost_price === null) missingCost += l.qty > 0 ? 1 : 0;
-      else cost += l.qty * Number(p.cost_price);
+      const unitCost = costs.get(p.id) ?? null;
+      if (unitCost === null) missingCost += l.qty > 0 ? 1 : 0;
+      else cost += l.qty * unitCost;
     }
   }
   return { products: data?.length ?? 0, low, out, retailValue: retail, costValue: cost, missingCost };
@@ -241,7 +243,7 @@ export async function getOverview(businessId: string, timezone: string, withProf
     db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId),
     db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId).gte("created_at", localDayStart(monthStart, timezone)),
     bestSellers(businessId, timezone, monthStart),
-    inventoryStats(businessId),
+    inventoryStats(businessId, withProfit),
     getStockAlerts(businessId, 6),
     withProfit ? expensesBetween(businessId, monthStart, today) : Promise.resolve([]),
   ]);

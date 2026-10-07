@@ -21,7 +21,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/orders/${id}`));
   const [order, notifications, payments] = isUuid(id)
-    ? await Promise.all([getOrder(business.id, id), listOrderNotifications(business.id, id), listOrderPayments(business.id, id)])
+    ? await Promise.all([getOrder(business.id, id, hasRole(business.role, "admin")), listOrderNotifications(business.id, id), listOrderPayments(business.id, id)])
     : [null, [], []];
   if (!order) notFound();
   const d = t.dashboard;

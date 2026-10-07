@@ -137,6 +137,7 @@ mkdirSync("test-results", { recursive: true });
     await main.getByRole("button", { name: /Complete sale/ }).dblclick();
     await page.waitForURL(/\/dashboard\/sales\/[0-9a-f-]{36}\?new=1/);
     const momoSale = page.url().split("/").pop().split("?")[0];
+    ok("receipt shows the payment method and its transaction reference", /MTN MoMo/.test(await main.getByTestId("receipt").innerText()) && /MP261007\.1432\.C55/.test(await main.getByTestId("receipt").innerText()));
     ok("Test 5 — MTN MoMo sale: method and reference recorded", sql(`select method || ' ' || reference from order_payments where order_id = '${momoSale}'`) === "mtn_momo MP261007.1432.C55");
     ok("a double tap on Complete sale records one sale", Number(sql(`select count(*) from orders where business_id = '${bizId}'`)) === before + 1 && stockOf("Jeans") === 3);
 
@@ -381,15 +382,21 @@ mkdirSync("test-results", { recursive: true });
     await cashCtx.close();
 
     // ---------------------------------------------------------------- Test 11: phone layouts
-    await page.setViewportSize({ width: 390, height: 844 });
     const wide = [];
-    for (const path of ["/dashboard", "/dashboard/sales", `/dashboard/sales/${cashSale}`, "/dashboard/customers", `/dashboard/customers/${customerId}`, "/dashboard/expenses", "/dashboard/reports", "/dashboard/products"]) {
-      await page.goto(`${APP}/en${path}`);
-      await main.waitFor();
-      const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      if (over > 0) wide.push(`${path} +${over}px`);
+    for (const [w, h] of [[390, 844], [768, 1024]]) {
+      await page.setViewportSize({ width: w, height: h });
+      for (const path of ["/dashboard", "/dashboard/sales", "/dashboard/sales/new", `/dashboard/sales/${cashSale}`, "/dashboard/customers", `/dashboard/customers/${customerId}`, "/dashboard/expenses", "/dashboard/reports", "/dashboard/products"]) {
+        await page.goto(`${APP}/en${path}`);
+        await main.waitFor();
+        const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+        if (over > 0) wide.push(`${w}px ${path} +${over}px`);
+      }
     }
-    ok("Test 11 — dashboard, sales, receipt, customers, expenses, reports and products fit a phone screen", wide.length === 0, wide.join(", "));
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto(`${APP}/en/dashboard/sales/new`);
+    await page.screenshot({ path: "test-results/v2-pos-tablet.png", fullPage: false });
+    await page.setViewportSize({ width: 390, height: 844 });
+    ok("Test 11 — dashboard, till, sales, receipt, customers, expenses, reports and products fit a phone (390px) and a tablet (768px)", wide.length === 0, wide.join(", "));
     await page.goto(`${APP}/en/dashboard`);
     await page.screenshot({ path: "test-results/v2-dashboard-phone.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 900 });

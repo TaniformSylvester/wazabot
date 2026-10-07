@@ -3,7 +3,7 @@ import type { Locale } from "@/lib/i18n/config";
 import type { Messages } from "@/messages/en";
 
 export type ReceiptData = {
-  business: { name: string; phone: string | null; address: string | null; city: string | null; logoUrl: string | null; footer: string | null };
+  business: { name: string; phone: string | null; email: string | null; address: string | null; city: string | null; logoUrl: string | null; footer: string | null };
   number: string;
   date: string;
   customer: string | null;
@@ -16,6 +16,8 @@ export type ReceiptData = {
   paid: number;
   currency: string;
   method: string | null;
+  /** MoMo / bank / other references typed when the payments were recorded. */
+  references: string[];
   status: string;
 };
 
@@ -37,6 +39,7 @@ export function Receipt({ r, locale, t, methods, statuses }: { r: ReceiptData; l
         <p className="text-base font-bold uppercase">{r.business.name}</p>
         {[r.business.address, r.business.city].filter(Boolean).length ? <p>{[r.business.address, r.business.city].filter(Boolean).join(", ")}</p> : null}
         {r.business.phone ? <p>{r.business.phone}</p> : null}
+        {r.business.email ? <p>{r.business.email}</p> : null}
       </header>
       {rule}
       <dl className="grid grid-cols-[auto_1fr] gap-x-3">
@@ -96,6 +99,12 @@ export function Receipt({ r, locale, t, methods, statuses }: { r: ReceiptData; l
       <dl className="grid grid-cols-[1fr_auto] gap-x-3">
         <dt>{t.payment}</dt>
         <dd className="text-right">{r.method ? (methods[r.method] ?? r.method) : "—"}</dd>
+        {r.references.length ? (
+          <>
+            <dt>{t.reference}</dt>
+            <dd className="text-right break-all">{r.references.join(", ")}</dd>
+          </>
+        ) : null}
         <dt>{t.paid}</dt>
         <dd className="text-right">{money(r.paid)}</dd>
         {due > 0 ? (
