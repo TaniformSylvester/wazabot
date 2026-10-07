@@ -30,6 +30,12 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const PAYMENT_METHODS = ["cash", "mobile_money", "orange_money", "mtn_momo", "bank_transfer", "card", "other"] as const;
 /** How a payment was received (order_payments.method, expenses). Credit is not a payment: it is what remains unpaid. */
+/** Units a product is sold in (labels in dashboard.products.units). */
+export const PRODUCT_UNITS = ["piece", "pair", "kg", "g", "litre", "box", "pack", "dozen", "metre", "yard", "bottle", "bag"] as const;
+export const STOCK_REASONS = ["opening", "purchase", "sale", "return", "damaged", "lost", "adjustment"] as const;
+export type StockReason = (typeof STOCK_REASONS)[number];
+/** Reasons a person can choose (sales and returns of orders are recorded by the system). */
+export const ADJUST_REASONS = ["purchase", "return", "damaged", "lost", "adjustment"] as const;
 export const RECEIVE_METHODS = ["cash", "mtn_momo", "orange_money", "bank_transfer", "card", "other"] as const;
 export type ReceiveMethod = (typeof RECEIVE_METHODS)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];

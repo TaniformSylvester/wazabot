@@ -6,7 +6,7 @@ import { ActionButton } from "@/components/app/form";
 import { EmptyState, PageHeader, Pagination, Panel, StatusBadge, TableWrap, buttonLink, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { setProductActive } from "@/lib/actions/products";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
-import { PAGE_SIZE, listProductCategories, listProducts } from "@/lib/data/queries";
+import { PAGE_SIZE, PRODUCT_SORTS, listProductCategories, listProducts } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -26,6 +26,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
     category: param(sp.category),
     status: (["active", "inactive"] as const).find((s) => s === param(sp.status)),
     stock: (["low", "out"] as const).find((s) => s === param(sp.stock)),
+    sort: PRODUCT_SORTS.find((s) => s === param(sp.sort)),
     page: Number(param(sp.page)) || 1,
   };
   const [{ rows, total, page }, categories] = await Promise.all([listProducts(business.id, filters), listProductCategories(business.id)]);
@@ -80,12 +81,19 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
             <select name="status" defaultValue={filters.status ?? ""} aria-label={p.filters.status} className={select}>
               <option value="">{p.filters.status}: {d.common.all}</option>
               <option value="active">{d.common.active}</option>
-              <option value="inactive">{d.common.inactive}</option>
+              <option value="inactive">{p.archived}</option>
             </select>
             <select name="stock" defaultValue={filters.stock ?? ""} aria-label={p.filters.stock} className={select}>
               <option value="">{p.filters.stock}: {d.common.all}</option>
               <option value="low">{p.filters.lowStock}</option>
               <option value="out">{p.filters.outOfStock}</option>
+            </select>
+            <select name="sort" defaultValue={filters.sort ?? "name"} aria-label={p.sort.label} className={select}>
+              {PRODUCT_SORTS.map((s) => (
+                <option key={s} value={s}>
+                  {p.sort.label}: {p.sort[s]}
+                </option>
+              ))}
             </select>
             <button type="submit" className={secondaryLink}>
               {d.common.filter}
@@ -137,19 +145,21 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
                         <span className="text-slate">{p.stock.untracked}</span>
                       ) : r.stock_quantity === 0 ? (
                         <StatusBadge tone="red">{p.stock.out}</StatusBadge>
+                      ) : r.stock_quantity <= r.low_stock_threshold ? (
+                        <StatusBadge tone="amber">{format(p.stock.low, { count: `${formatNumber(r.stock_quantity, locale)} ${p.units[r.unit as keyof typeof p.units] ?? r.unit}` })}</StatusBadge>
                       ) : (
-                        <StatusBadge tone={r.stock_quantity <= r.low_stock_threshold ? "amber" : "neutral"}>{format(p.stock.units, { count: formatNumber(r.stock_quantity, locale) })}</StatusBadge>
+                        <StatusBadge tone="neutral">{format(p.stock.units, { count: `${formatNumber(r.stock_quantity, locale)} ${p.units[r.unit as keyof typeof p.units] ?? r.unit}` })}</StatusBadge>
                       )}
                     </td>
                     <td className={td}>
                       <StatusBadge tone={r.active ? "green" : "neutral"} dot>
-                        {r.active ? d.common.active : d.common.inactive}
+                        {r.active ? d.common.active : p.archived}
                       </StatusBadge>
                     </td>
                     {canEdit ? (
                       <td className={`${td} text-right`}>
                         <ActionButton action={setProductActive.bind(null, r.id, !r.active)} errors={d.errors} variant="ghost">
-                          {r.active ? d.common.deactivate : d.common.activate}
+                          {r.active ? p.archive : p.restore}
                         </ActionButton>
                       </td>
                     ) : null}

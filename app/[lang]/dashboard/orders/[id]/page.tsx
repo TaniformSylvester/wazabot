@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionForm, DeleteButton, SelectField, SubmitButton, TextArea, TextField } from "@/components/app/form";
+import { PaymentsPanel } from "@/components/app/payments-panel";
 import { DefinitionList, PageHeader, Panel, StatusBadge, TableWrap, formatDate, formatMoney, orderStatusTone, paymentStatusTone, td, th } from "@/components/app/ui";
 import { isUuid } from "@/lib/actions/form";
 import { deleteOrder, updateOrder } from "@/lib/actions/orders";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getOrder, listOrderNotifications } from "@/lib/data/queries";
+import { getOrder, listOrderNotifications, listOrderPayments } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
@@ -19,7 +20,9 @@ export const generateMetadata = dashboardMetadata((d) => d.orders.title);
 export default async function OrderPage({ params, searchParams }: PageProps<"/[lang]/dashboard/orders/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/orders/${id}`));
-  const [order, notifications] = isUuid(id) ? await Promise.all([getOrder(business.id, id), listOrderNotifications(business.id, id)]) : [null, []];
+  const [order, notifications, payments] = isUuid(id)
+    ? await Promise.all([getOrder(business.id, id), listOrderNotifications(business.id, id), listOrderPayments(business.id, id)])
+    : [null, [], []];
   if (!order) notFound();
   const d = t.dashboard;
   const o = d.orders;
@@ -81,6 +84,15 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
               </div>
             </dl>
           </Panel>
+
+          <PaymentsPanel
+            order={{ id: order.id, total: Number(order.total), paid: Number(order.amount_paid), currency: order.currency, cancelled: order.status === "cancelled" }}
+            payments={payments}
+            canRecord={canEdit}
+            locale={locale}
+            t={d.payments}
+            errors={d.errors}
+          />
 
           <Panel title={o.update}>
             <ActionForm action={updateOrder} text={{ errors: d.errors, saved: o.updated, saving: d.common.saving }} disabled={!canEdit} hidden={{ id: order.id }}>

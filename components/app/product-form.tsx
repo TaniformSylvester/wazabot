@@ -1,9 +1,9 @@
-import { ActionForm, CheckboxField, SubmitButton, TextArea, TextField, type FormText } from "@/components/app/form";
+import { ActionForm, CheckboxField, SelectField, SubmitButton, TextArea, TextField, type FormText } from "@/components/app/form";
 import { Panel } from "@/components/app/ui";
 import { VariantsEditor, type VariantRow } from "@/components/app/variants-editor";
 import { saveProduct } from "@/lib/actions/products";
 import { format } from "@/lib/i18n/format";
-import type { Tables } from "@/types/database";
+import { PRODUCT_UNITS, type Tables } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
 type Product = Tables<"products"> & { product_variants: { id: string; name: string; value: string; stock_quantity: number | null; price_modifier: number }[] };
@@ -39,7 +39,16 @@ export function ProductForm({
       <Panel className="grid gap-5 sm:grid-cols-2">
         <TextField name="name" label={f.name} defaultValue={product?.name ?? ""} required maxLength={160} className="sm:col-span-2" />
         <TextField name="price" label={format(f.price, { currency })} defaultValue={product ? String(Number(product.price)) : ""} inputMode="decimal" required />
-        <TextField name="stock_quantity" label={f.stock} hint={f.stockHint} defaultValue={product?.stock_quantity ?? ""} inputMode="numeric" />
+        <TextField
+          name="cost_price"
+          label={format(f.costPrice, { currency })}
+          hint={f.costHint}
+          defaultValue={product?.cost_price === null || product?.cost_price === undefined ? "" : String(Number(product.cost_price))}
+          inputMode="decimal"
+        />
+        <SelectField name="unit" label={f.unit} defaultValue={product?.unit ?? "piece"} options={PRODUCT_UNITS.map((u) => ({ value: u, label: t.units[u] }))} />
+        {/* Opening stock on creation only; afterwards stock changes through sales and Adjust stock (recorded with a reason). */}
+        {product ? null : <TextField name="stock_quantity" label={f.stock} hint={f.stockHint} defaultValue="" inputMode="numeric" />}
         <TextField name="low_stock_threshold" label={f.lowStock} hint={f.lowStockHint} defaultValue={product?.low_stock_threshold ?? 5} inputMode="numeric" />
         <TextField name="category" label={f.category} defaultValue={product?.category ?? ""} maxLength={80} />
         <TextField name="sku" label={f.sku} defaultValue={product?.sku ?? ""} maxLength={64} />

@@ -25,6 +25,7 @@ export type ActionErrorKey =
   | "whatsapp_send_failed"
   // Stage 4
   | "out_of_stock"
+  | "has_sales"
   | "already_member"
   | "invite_invalid"
   | "invite_wrong_email"
@@ -65,6 +66,8 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "forbidden";
     case "WB409":
       return "out_of_stock";
+    case "WB410":
+      return "has_sales";
     case "23505":
       return "duplicate";
     case "22023":

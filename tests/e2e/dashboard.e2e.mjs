@@ -87,8 +87,8 @@ async function signUp(browser, user, locale) {
   await page.waitForURL(/step=3/);
   ok("step 2 saved → step 3 (products)", true);
   await main.getByLabel("Name").fill("Ankara dress");
-  await main.getByLabel("Price (XAF)").fill("15 000");
-  await main.getByLabel("Stock quantity").fill("3");
+  await main.getByLabel("Selling price (XAF)").fill("15 000");
+  await main.getByLabel("Opening stock").fill("3");
   await main.getByRole("button", { name: "Add a product" }).click();
   await main.getByText("1 products added").waitFor({ timeout: 10000 });
   ok("quick product added during onboarding", (await main.getByText("15,000 XAF").count()) >= 1);
@@ -128,7 +128,7 @@ async function signUp(browser, user, locale) {
   await main.getByText("Please check the highlighted fields.").waitFor({ timeout: 10000 });
   ok("empty product shows field errors", (await main.getByText("This field is required.").count()) >= 1);
   await main.getByLabel("Name").fill("Wax print shirt");
-  await main.getByLabel("Price (XAF)").fill("8500");
+  await main.getByLabel("Selling price (XAF)").fill("8500");
   await main.getByLabel("SKU / reference").fill("WAX-01");
   await main.getByLabel("Category").fill("Shirts");
   await main.getByRole("button", { name: "Add variant" }).click();
@@ -143,7 +143,7 @@ async function signUp(browser, user, locale) {
   const productId = page.url().match(/products\/([0-9a-f-]{36})/)[1];
   ok("product with 2 variants created", (await main.getByLabel("Value", { exact: true }).count()) === 2 && (await main.getByLabel("Value", { exact: true }).nth(1).inputValue()) === "XL");
   await page.goto(`${APP}/en/dashboard/products/${productId}`);
-  await main.getByLabel("Price (XAF)").fill("9000");
+  await main.getByLabel("Selling price (XAF)").fill("9000");
   await main.getByRole("button", { name: "Save" }).click();
   await main.getByText("Product saved.").waitFor({ timeout: 10000 });
   const [prod] = await (await fetch(`${SUPABASE}/rest/v1/products?id=eq.${productId}&select=price,sku,product_variants(value,price_modifier)`, { headers: rest(cTok) })).json();
@@ -156,7 +156,7 @@ async function signUp(browser, user, locale) {
   // Duplicate SKU
   await page.goto(`${APP}/en/dashboard/products/new`);
   await main.getByLabel("Name").fill("Copy");
-  await main.getByLabel("Price (XAF)").fill("1");
+  await main.getByLabel("Selling price (XAF)").fill("1");
   await main.getByLabel("SKU / reference").fill("wax-01");
   await main.getByRole("button", { name: "Save" }).click();
   await main.getByText("Another product already uses this SKU.").waitFor({ timeout: 10000 });
@@ -169,9 +169,34 @@ async function signUp(browser, user, locale) {
   ok("low-stock filter", (await main.getByText("Ankara dress").count()) === 1 && (await main.getByText("Wax print shirt").count()) === 0);
   await page.goto(`${APP}/en/dashboard/products`);
   const row = main.getByRole("row", { name: /Wax print shirt/ });
-  await row.getByRole("button", { name: "Deactivate" }).click();
-  await row.getByText("Inactive").waitFor({ timeout: 10000 });
-  ok("product deactivated from the list", true);
+  await row.getByRole("button", { name: "Archive" }).click();
+  await row.getByText("Archived").waitFor({ timeout: 10000 });
+  ok("product archived from the list", true);
+
+  // Inventory: every stock change has a reason and shows in the history.
+  await main.getByRole("link", { name: /Ankara dress/ }).first().click();
+  await main.getByTestId("stock-level").waitFor({ timeout: 10000 });
+  const adjust = async (reason, field, value) => {
+    await main.getByLabel("Reason").selectOption(reason);
+    await main.getByLabel(field, { exact: true }).fill(value);
+    await main.getByRole("button", { name: "Update stock" }).click();
+    await main.getByText("Stock updated.").waitFor({ timeout: 10000 });
+    await page.reload();
+    await main.getByTestId("stock-level").waitFor({ timeout: 10000 });
+  };
+  await adjust("purchase", "Quantity", "5");
+  await adjust("damaged", "Quantity", "1");
+  ok("stock adjustments: purchase +5, damaged −1 → 7", /^7 piece/.test(await main.getByTestId("stock-level").innerText()), await main.getByTestId("stock-level").innerText());
+  await main.getByLabel("Reason").selectOption("lost");
+  await main.getByLabel("Quantity", { exact: true }).fill("50");
+  await main.getByRole("button", { name: "Update stock" }).click();
+  await main.getByText(/Not enough stock/).waitFor({ timeout: 10000 });
+  ok("stock can't go below zero", true);
+  await page.reload();
+  await adjust("adjustment", "Counted stock", "3");
+  const history = await main.locator('section[aria-labelledby="stock-history-title"]').innerText();
+  ok("stock history: opening, purchase, damaged and count, with before/after", ["Opening stock", "Purchase / restock", "Damaged", "Stock count / adjustment"].every((r) => history.includes(r)) && /^3 piece/.test(await main.getByTestId("stock-level").innerText()), history.slice(0, 400));
+  await page.screenshot({ path: "test-results/v2-product-stock.png", fullPage: true });
   await page.screenshot({ path: "test-results/stage1-products.png", fullPage: true });
 
   // ----------------------------------------------------------------- knowledge
@@ -275,10 +300,26 @@ async function signUp(browser, user, locale) {
   ok("order created with server-side totals", order.order_number === "ORD-00001" && Number(order.subtotal) === expected && Number(order.total) === expected + 1000 && order.conversation_id === convId, JSON.stringify(order));
   ok("order page shows number and total", orderText.includes("ORD-00001") && orderText.includes("Tailoring"));
   await main.getByLabel("Order status").selectOption("confirmed");
-  await main.getByLabel("Payment status").selectOption("paid");
-  await main.getByRole("button", { name: "Save" }).click();
+  await main.getByRole("button", { name: "Save", exact: true }).click();
   await main.getByText("Order updated.").waitFor({ timeout: 10000 });
-  ok("order status + payment updated", true);
+  ok("order status updated", true);
+  // Payments are recorded, not ticked: a deposit, then the rest.
+  await main.getByLabel("Amount received (XAF)").fill("1000");
+  await main.getByLabel("Paid by").selectOption("mtn_momo");
+  await main.getByLabel("Reference (optional)").fill("MP261007.0915.B77");
+  await main.getByRole("button", { name: "Record payment" }).click();
+  await main.getByText("Payment recorded.").waitFor({ timeout: 10000 });
+  await page.reload();
+  const dueText = await main.getByTestId("balance-due").innerText();
+  await main.getByRole("button", { name: "Record payment" }).click();
+  // Paid in full: the form goes away.
+  await main.getByTestId("balance-due").getByText("Paid in full").waitFor({ timeout: 10000 });
+  const [paidOrder] = await (await fetch(`${SUPABASE}/rest/v1/orders?select=payment_status,amount_paid,total`, { headers: rest(cTok) })).json();
+  ok(
+    "order payments: a MoMo deposit leaves a balance, paying the rest settles it",
+    /Balance due/.test(dueText) && paidOrder.payment_status === "paid" && Number(paidOrder.amount_paid) === Number(paidOrder.total) && (await main.getByText("MP261007.0915.B77").count()) === 1,
+    JSON.stringify(paidOrder),
+  );
   await page.screenshot({ path: "test-results/stage1-order.png", fullPage: true });
 
   // ------------------------------------------------ AI, analytics, WhatsApp, billing, team
@@ -297,6 +338,7 @@ async function signUp(browser, user, locale) {
   await main.getByText("Most ordered products").waitFor({ timeout: 15000 });
   ok("analytics shows real counts and no invented AI figures", (await main.getByText("No data yet").count()) >= 2 && (await main.getByText("Most ordered products").count()) === 1);
   await page.goto(`${APP}/en/dashboard/whatsapp`);
+  await main.getByLabel("Phone Number ID").waitFor({ timeout: 15000 });
   ok("WhatsApp page: Not Connected, with the connect form (no fake connection)", (await main.getByText("Not Connected").count()) === 1 && (await main.getByLabel("Phone Number ID").count()) === 1);
   await page.goto(`${APP}/en/dashboard/billing`);
   await main.getByText("Current plan").first().waitFor({ timeout: 10000 }).catch(() => {});

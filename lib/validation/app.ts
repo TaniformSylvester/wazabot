@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { AFTER_HOURS_MODES, DOCUMENT_TYPES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, CONVERSATION_STATUSES } from "@/types/database";
+import { ADJUST_REASONS, AFTER_HOURS_MODES, DOCUMENT_TYPES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, PRODUCT_UNITS, CONVERSATION_STATUSES } from "@/types/database";
 import { REPLY_LENGTHS, TONES } from "@/lib/ai/style";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
 
@@ -27,6 +27,12 @@ export const money = z.preprocess((v) => {
   const cleaned = v.replace(/[\s  ,]/g, "");
   return cleaned === "" ? 0 : Number(cleaned);
 }, z.number({ error: "invalid_number" }).finite("invalid_number").min(0, "invalid_number").max(1_000_000_000, "invalid_number"));
+
+/** An amount or blank (→ null, e.g. "cost not entered"). */
+export const optionalMoney = z.preprocess((v) => {
+  if (v === "" || v === undefined || v === null) return null;
+  return typeof v === "string" ? Number(v.replace(/[\s  ,]/g, "")) : v;
+}, z.number({ error: "invalid_number" }).finite("invalid_number").min(0, "invalid_number").max(1_000_000_000, "invalid_number").nullable());
 
 /** Whole number or blank (→ null, e.g. "stock not tracked"). */
 export const optionalCount = z.preprocess((v) => {
@@ -99,8 +105,12 @@ export const productSchema = z.object({
   category: optionalText(80),
   sku: optionalText(64),
   price: money,
+  /** What one unit costs the business (profit); blank = unknown. */
+  cost_price: optionalMoney,
+  unit: z.preprocess((v) => (v === "" || v === undefined ? "piece" : v), z.enum(PRODUCT_UNITS, { error: "invalid_option" })),
+  /** Opening stock when the product is created; later changes go through adjust_stock(). */
   stock_quantity: optionalCount,
-  /** "Low stock" at or below this many (empty = 5). */
+  /** Minimum stock: "low stock" at or below this many (empty = 5). */
   low_stock_threshold: z.preprocess(
     (v) => (v === "" || v === undefined || v === null ? 5 : typeof v === "string" ? Number(v.replace(/\s/g, "")) : v),
     z.number({ error: "invalid_integer" }).int("invalid_integer").min(0, "invalid_integer").max(100_000, "invalid_integer"),
@@ -116,6 +126,21 @@ export const productSchema = z.object({
   }, z.array(variantSchema).max(50, "too_long")),
 });
 export type ProductInput = z.infer<typeof productSchema>;
+
+/** Adjust stock: a quantity for purchases, returns, damage and losses; the counted stock for an adjustment. */
+export const stockAdjustSchema = z
+  .object({
+    product_id: z.uuid(),
+    variant_id: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
+    reason: z.enum(ADJUST_REASONS, { error: "invalid_option" }),
+    quantity: optionalCount,
+    counted: optionalCount,
+    note: optionalText(300),
+  })
+  .superRefine((v, ctx) => {
+    if (v.reason === "adjustment" && v.counted === null) ctx.addIssue({ code: "custom", path: ["counted"], message: "required" });
+    if (v.reason !== "adjustment" && !v.quantity) ctx.addIssue({ code: "custom", path: ["quantity"], message: "required" });
+  });
 
 export const faqSchema = z.object({
   question: requiredText(500),

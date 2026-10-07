@@ -102,13 +102,15 @@ export async function getSetupProgress(businessId: string, profileDone: boolean,
 // ---------------------------------------------------------------------------
 // Products
 // ---------------------------------------------------------------------------
-export type ProductFilter = { q?: string; category?: string; status?: "active" | "inactive" | "all"; stock?: "low" | "out" | "all"; page?: number };
+export type ProductFilter = { q?: string; category?: string; status?: "active" | "inactive" | "all"; stock?: "low" | "out" | "all"; sort?: ProductSort; page?: number };
+export const PRODUCT_SORTS = ["name", "newest", "priceHigh", "stockLow"] as const;
+export type ProductSort = (typeof PRODUCT_SORTS)[number];
 
 export async function listProducts(businessId: string, f: ProductFilter = {}) {
   const db = await createClient();
   let q = db
     .from("products")
-    .select("id, name, category, sku, price, currency, stock_quantity, low_stock_threshold, image_url, active, updated_at, product_variants(count)", { count: "exact" })
+    .select("id, name, category, sku, price, cost_price, unit, currency, stock_quantity, low_stock_threshold, image_url, active, updated_at, product_variants(count)", { count: "exact" })
     .eq("business_id", businessId);
   const pattern = searchPattern(f.q);
   if (pattern) q = q.or(`name.ilike.${pattern},sku.ilike.${pattern},category.ilike.${pattern}`);
@@ -118,6 +120,9 @@ export async function listProducts(businessId: string, f: ProductFilter = {}) {
   if (f.stock === "out") q = q.eq("stock_quantity", 0);
   if (f.stock === "low") q = q.eq("stock_low", true);
   const page = Math.max(1, f.page ?? 1);
+  if (f.sort === "newest") q = q.order("created_at", { ascending: false });
+  else if (f.sort === "priceHigh") q = q.order("price", { ascending: false });
+  else if (f.sort === "stockLow") q = q.order("stock_quantity", { ascending: true, nullsFirst: false });
   const { data, count } = await q.order("name").range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   return { rows: data ?? [], total: count ?? 0, page };
 }
@@ -138,6 +143,31 @@ export async function getProduct(businessId: string, id: string) {
     .maybeSingle();
   if (data) data.product_variants.sort((a, b) => a.sort_order - b.sort_order);
   return data;
+}
+
+/** A product's stock history, newest first, with who made each change. */
+export async function listStockMovements(businessId: string, productId: string, limit = 50) {
+  const db = await createClient();
+  const { data } = await db
+    .from("stock_movements")
+    .select("id, variant_id, reason, quantity_change, previous_stock, new_stock, order_id, note, created_by, created_at, product_variants(name, value), orders(order_number)")
+    .eq("business_id", businessId)
+    .eq("product_id", productId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(limit);
+  const rows = data ?? [];
+  const names = await userNames(rows.map((r) => r.created_by));
+  return rows.map((r) => ({ ...r, by: r.created_by ? (names.get(r.created_by) ?? null) : null }));
+}
+
+/** Display names of team members (RLS: people who share a business with the viewer). */
+export async function userNames(ids: (string | null)[]) {
+  const unique = [...new Set(ids.filter((x): x is string => !!x))];
+  if (!unique.length) return new Map<string, string>();
+  const db = await createClient();
+  const { data } = await db.from("users").select("id, full_name, email").in("id", unique);
+  return new Map((data ?? []).map((u) => [u.id, u.full_name || u.email || ""]));
 }
 
 /** Active products with variants, for the order form. */
@@ -307,11 +337,25 @@ export async function getOrder(businessId: string, id: string) {
   const db = await createClient();
   const { data } = await db
     .from("orders")
-    .select("*, customers(id, name, whatsapp_phone), order_items(id, product_id, product_name, variant, quantity, unit_price, total)")
+    .select("*, customers(id, name, whatsapp_phone), order_items(id, product_id, product_name, variant, quantity, unit_price, total, unit_cost)")
     .eq("business_id", businessId)
     .eq("id", id)
     .maybeSingle();
   return data;
+}
+
+/** Payments recorded for one order, oldest first, with who recorded them. */
+export async function listOrderPayments(businessId: string, orderId: string) {
+  const db = await createClient();
+  const { data } = await db
+    .from("order_payments")
+    .select("id, amount, method, reference, received_at, recorded_by, provider")
+    .eq("business_id", businessId)
+    .eq("order_id", orderId)
+    .order("received_at");
+  const rows = data ?? [];
+  const names = await userNames(rows.map((r) => r.recorded_by));
+  return rows.map((r) => ({ ...r, by: r.recorded_by ? (names.get(r.recorded_by) ?? null) : null }));
 }
 
 // ---------------------------------------------------------------------------
