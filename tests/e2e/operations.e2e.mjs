@@ -90,7 +90,7 @@ mkdirSync("test-results", { recursive: true });
   const [customer] = await post(tok, "customers", { business_id: biz.id, whatsapp_phone: "237670000555", name: "Brenda" });
   await page.goto(`${APP}/en/dashboard/orders/new?customer=${customer.id}`);
   await main.getByRole("button", { name: "Add product" }).click();
-  await main.getByLabel("Product", { exact: true }).selectOption({ label: "Robe Ankara — 15,000 XAF" });
+  await main.getByLabel("Product", { exact: true }).selectOption({ label: "Robe Ankara — 15,000 FCFA" });
   await main.getByLabel("Qty").first().fill("4");
   await main.getByRole("button", { name: "New order" }).click();
   await main.getByText("Not enough stock for Robe Ankara.", { exact: false }).waitFor({ timeout: 10000 });
@@ -171,7 +171,7 @@ mkdirSync("test-results", { recursive: true });
   ok("operator approval switches the plan and clears the banner", (await main.locator("li").filter({ hasText: "Business" }).getByText("Current plan").count()) === 1 && (await page.getByText(/AI conversations are used up/).count()) === 0);
 
   // Step 4: prepaid billing as the owner sees it.
-  ok("billing: yearly price offered (pay 10 months, get 12)", (await main.getByText("or 250,000 XAF/year: 2 months free").count()) === 1);
+  ok("billing: yearly price offered (pay 10 months, get 12)", (await main.getByText("or 250,000 FCFA/year: 2 months free").count()) === 1);
   ok("billing: paid until the end of the period", /Paid until/.test(await main.getByTestId("billing-state").innerText()));
   sql(`update public.subscriptions set current_period_end = now() + interval '3 days' where business_id = '${biz.id}'`);
   await page.reload();

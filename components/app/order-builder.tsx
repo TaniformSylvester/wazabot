@@ -6,7 +6,7 @@ import { Plus, X } from "lucide-react";
 import { ActionForm, SelectField, SubmitButton, TextArea, TextField, useFieldError, type FormText } from "@/components/app/form";
 import { Button } from "@/components/ui/button";
 import { createOrder } from "@/lib/actions/orders";
-import { formatNumber } from "@/lib/i18n/format";
+import { currencyLabel, formatNumber } from "@/lib/i18n/format";
 import type { Locale } from "@/lib/i18n/config";
 import { PAYMENT_METHODS } from "@/types/database";
 import type { Messages } from "@/messages/en";
@@ -68,7 +68,7 @@ export function OrderBuilder({
       ? { product_id: i.product_id, variant_id: i.variant_id || null, quantity: Math.trunc(toNumber(i.quantity)) }
       : { name: i.name, unit_price: toNumber(i.unit_price), quantity: Math.trunc(toNumber(i.quantity)) },
   );
-  const money = (n: number) => `${formatNumber(n, locale)} ${currency}`;
+  const money = (n: number) => `${formatNumber(n, locale)} ${currencyLabel(currency)}`;
 
   return (
     <ActionForm action={createOrder} text={text} hidden={{ locale, conversation_id: conversationId }}>

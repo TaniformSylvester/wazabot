@@ -359,6 +359,81 @@ export async function listOrderPayments(businessId: string, orderId: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Sales (completed orders: POS sales and delivered orders)
+// ---------------------------------------------------------------------------
+/** Active products for the POS: price, stock, unit, photo and variants. */
+export async function listPosProducts(businessId: string) {
+  const db = await createClient();
+  const { data } = await db
+    .from("products")
+    .select("id, name, sku, category, price, unit, stock_quantity, image_url, product_variants(id, name, value, price_modifier, stock_quantity, sort_order)")
+    .eq("business_id", businessId)
+    .eq("active", true)
+    .order("name")
+    .limit(1000);
+  return (data ?? []).map((p) => ({ ...p, price: Number(p.price), product_variants: [...p.product_variants].sort((a, b) => a.sort_order - b.sort_order).map((v) => ({ ...v, price_modifier: Number(v.price_modifier) })) }));
+}
+export type PosProduct = Awaited<ReturnType<typeof listPosProducts>>[number];
+
+export type SalesFilter = { q?: string; from?: string; to?: string; method?: string; status?: string; customer?: string; page?: number };
+
+/** Completed sales, newest first, with items (for counts and profit), customer and staff. */
+export async function listSales(businessId: string, timezone: string, f: SalesFilter = {}) {
+  const db = await createClient();
+  let q = db
+    .from("orders")
+    .select(
+      "id, order_number, created_at, total, amount_paid, payment_status, payment_method, channel, created_by, customer_id, customers(id, name, whatsapp_phone), order_items(quantity, unit_cost)",
+      { count: "exact" },
+    )
+    .eq("business_id", businessId)
+    .eq("status", "delivered");
+  if (f.q) q = q.ilike("order_number", `%${f.q.replace(/[%_,()*\\]/g, "").trim()}%`);
+  if (f.customer) q = q.eq("customer_id", f.customer);
+  if (f.method) q = q.eq("payment_method", f.method);
+  if (f.status) q = q.eq("payment_status", f.status);
+  if (f.from) q = q.gte("created_at", localDayStart(f.from, timezone));
+  if (f.to) q = q.lt("created_at", localDayStart(f.to, timezone, 1));
+  const page = Math.max(1, f.page ?? 1);
+  const { data, count } = await q.order("created_at", { ascending: false }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  const rows = data ?? [];
+  const names = await userNames(rows.map((r) => r.created_by));
+  return {
+    rows: rows.map((r) => {
+      const costKnown = r.order_items.every((i) => i.unit_cost !== null);
+      const cogs = r.order_items.reduce((s, i) => s + i.quantity * Number(i.unit_cost ?? 0), 0);
+      return {
+        ...r,
+        items: r.order_items.reduce((s, i) => s + i.quantity, 0),
+        profit: costKnown ? Number(r.total) - cogs : null,
+        staff: r.created_by ? (names.get(r.created_by) ?? null) : null,
+      };
+    }),
+    total: count ?? 0,
+    page,
+  };
+}
+
+/** "2026-10-07" (local date) → the UTC instant that day starts in the business's timezone (+ days). */
+export function localDayStart(date: string, timezone: string, addDays = 0): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const guess = Date.UTC(y, (m || 1) - 1, (d || 1) + addDays);
+  // Offset of the timezone at that moment (e.g. Africa/Douala = +1h).
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(guess));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+  const asLocal = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
+  return new Date(guess - (asLocal - guess)).toISOString();
+}
+
+/** One sale with items, customer, payments and the people involved. */
+export async function getSale(businessId: string, id: string) {
+  const [order, payments] = await Promise.all([getOrder(businessId, id), listOrderPayments(businessId, id)]);
+  if (!order) return null;
+  const names = await userNames([order.created_by]);
+  return { order, payments, staff: order.created_by ? (names.get(order.created_by) ?? null) : null };
+}
+
+// ---------------------------------------------------------------------------
 // Settings, billing, WhatsApp, team
 // ---------------------------------------------------------------------------
 export async function getAiSettingsRow(businessId: string) {

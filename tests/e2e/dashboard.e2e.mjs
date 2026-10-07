@@ -87,11 +87,11 @@ async function signUp(browser, user, locale) {
   await page.waitForURL(/step=3/);
   ok("step 2 saved → step 3 (products)", true);
   await main.getByLabel("Name").fill("Ankara dress");
-  await main.getByLabel("Selling price (XAF)").fill("15 000");
+  await main.getByLabel("Selling price (FCFA)").fill("15 000");
   await main.getByLabel("Opening stock").fill("3");
   await main.getByRole("button", { name: "Add a product" }).click();
   await main.getByText("1 products added").waitFor({ timeout: 10000 });
-  ok("quick product added during onboarding", (await main.getByText("15,000 XAF").count()) >= 1);
+  ok("quick product added during onboarding", (await main.getByText("15,000 FCFA").count()) >= 1);
   await saveContinue();
   await page.waitForURL(/step=4/);
   await main.getByLabel("Question").fill("Do you deliver in Douala?");
@@ -128,7 +128,7 @@ async function signUp(browser, user, locale) {
   await main.getByText("Please check the highlighted fields.").waitFor({ timeout: 10000 });
   ok("empty product shows field errors", (await main.getByText("This field is required.").count()) >= 1);
   await main.getByLabel("Name").fill("Wax print shirt");
-  await main.getByLabel("Selling price (XAF)").fill("8500");
+  await main.getByLabel("Selling price (FCFA)").fill("8500");
   await main.getByLabel("SKU / reference").fill("WAX-01");
   await main.getByLabel("Category").fill("Shirts");
   await main.getByRole("button", { name: "Add variant" }).click();
@@ -143,7 +143,7 @@ async function signUp(browser, user, locale) {
   const productId = page.url().match(/products\/([0-9a-f-]{36})/)[1];
   ok("product with 2 variants created", (await main.getByLabel("Value", { exact: true }).count()) === 2 && (await main.getByLabel("Value", { exact: true }).nth(1).inputValue()) === "XL");
   await page.goto(`${APP}/en/dashboard/products/${productId}`);
-  await main.getByLabel("Selling price (XAF)").fill("9000");
+  await main.getByLabel("Selling price (FCFA)").fill("9000");
   await main.getByRole("button", { name: "Save" }).click();
   await main.getByText("Product saved.").waitFor({ timeout: 10000 });
   const [prod] = await (await fetch(`${SUPABASE}/rest/v1/products?id=eq.${productId}&select=price,sku,product_variants(value,price_modifier)`, { headers: rest(cTok) })).json();
@@ -156,7 +156,7 @@ async function signUp(browser, user, locale) {
   // Duplicate SKU
   await page.goto(`${APP}/en/dashboard/products/new`);
   await main.getByLabel("Name").fill("Copy");
-  await main.getByLabel("Selling price (XAF)").fill("1");
+  await main.getByLabel("Selling price (FCFA)").fill("1");
   await main.getByLabel("SKU / reference").fill("wax-01");
   await main.getByRole("button", { name: "Save" }).click();
   await main.getByText("Another product already uses this SKU.").waitFor({ timeout: 10000 });
@@ -284,7 +284,7 @@ async function signUp(browser, user, locale) {
   await main.getByRole("button", { name: "Add product" }).click();
   // Only active products are sellable: the deactivated shirt must not be offered.
   ok("inactive products are not offered in orders", (await main.getByLabel("Product", { exact: true }).locator("option").allInnerTexts()).every((o) => !o.includes("Wax print shirt")));
-  await main.getByLabel("Product", { exact: true }).selectOption({ label: "Ankara dress — 15,000 XAF" });
+  await main.getByLabel("Product", { exact: true }).selectOption({ label: "Ankara dress — 15,000 FCFA" });
   await main.getByLabel("Qty").first().fill("2");
   await main.getByRole("button", { name: "Add custom item" }).click();
   await main.getByLabel("Description").fill("Tailoring");
@@ -304,7 +304,7 @@ async function signUp(browser, user, locale) {
   await main.getByText("Order updated.").waitFor({ timeout: 10000 });
   ok("order status updated", true);
   // Payments are recorded, not ticked: a deposit, then the rest.
-  await main.getByLabel("Amount received (XAF)").fill("1000");
+  await main.getByLabel("Amount received (FCFA)").fill("1000");
   await main.getByLabel("Paid by").selectOption("mtn_momo");
   await main.getByLabel("Reference (optional)").fill("MP261007.0915.B77");
   await main.getByRole("button", { name: "Record payment" }).click();
@@ -342,7 +342,7 @@ async function signUp(browser, user, locale) {
   ok("WhatsApp page: Not Connected, with the connect form (no fake connection)", (await main.getByText("Not Connected").count()) === 1 && (await main.getByLabel("Phone Number ID").count()) === 1);
   await page.goto(`${APP}/en/dashboard/billing`);
   await main.getByText("Current plan").first().waitFor({ timeout: 10000 }).catch(() => {});
-  ok("billing shows plans from the database, Free is current", (await main.locator("li").getByText("Business", { exact: true }).count()) === 1 && (await main.locator("li").getByText("25,000 XAF").count()) === 1 && (await main.getByText("Current plan").count()) >= 1);
+  ok("billing shows plans from the database, Free is current", (await main.locator("li").getByText("Business", { exact: true }).count()) === 1 && (await main.locator("li").getByText("25,000 FCFA").count()) === 1 && (await main.getByText("Current plan").count()) >= 1);
   await page.goto(`${APP}/en/dashboard/team`);
   await main.getByText("You", { exact: true }).waitFor({ timeout: 10000 }).catch(() => {});
   ok("team lists the owner", (await main.getByText("You", { exact: true }).count()) === 1 && (await main.getByText("Owner").count()) >= 1);

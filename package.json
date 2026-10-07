@@ -11,6 +11,7 @@
     "test:e2e:dashboard": "node tests/e2e/dashboard.e2e.mjs",
     "test:e2e:whatsapp": "node tests/e2e/whatsapp.e2e.mjs",
     "test:e2e:operations": "node tests/e2e/operations.e2e.mjs",
+    "test:e2e:pos": "node tests/e2e/pos.e2e.mjs",
     "test:e2e:appointments": "node tests/e2e/appointments.e2e.mjs",
     "test:e2e:notifications": "node tests/e2e/notifications.e2e.mjs",
     "test:e2e:broadcasts": "node tests/e2e/broadcasts.e2e.mjs",

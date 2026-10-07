@@ -15,7 +15,7 @@ import { DEFAULT_OPENING_HOURS, hasOpeningHours } from "@/lib/business/hours";
 import { getWhatsAppConnection, listFaqs, listProducts } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { format } from "@/lib/i18n/format";
+import { currencyLabel, format } from "@/lib/i18n/format";
 import { languageName } from "@/lib/i18n/languages";
 import { localizePath } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
@@ -156,7 +156,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
           <p className="text-sm font-semibold text-deep">{o.addProduct}</p>
           <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
             <TextField name="name" label={p.fields.name} required maxLength={160} />
-            <TextField name="price" label={format(p.fields.price, { currency })} inputMode="decimal" required />
+            <TextField name="price" label={format(p.fields.price, { currency: currencyLabel(currency) })} inputMode="decimal" required />
             <TextField name="stock_quantity" label={p.fields.stock} inputMode="numeric" hint={p.fields.stockHint} />
           </div>
           <TextField name="category" label={p.fields.category} maxLength={80} />

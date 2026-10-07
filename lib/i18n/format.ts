@@ -13,3 +13,8 @@ export function formatNumber(value: number, locale: Locale): string {
 export function formatXaf(amount: number, locale: Locale): string {
   return `${formatNumber(amount, locale)} XAF`;
 }
+
+/** How a currency is written for people: the CFA franc (XAF) is "FCFA" in Cameroon. */
+export function currencyLabel(code: string): string {
+  return code === "XAF" || code === "XOF" ? "FCFA" : code;
+}

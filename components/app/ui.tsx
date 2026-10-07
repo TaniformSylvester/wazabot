@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
 import { intlLocale, type Locale } from "@/lib/i18n/config";
-import { format, formatNumber } from "@/lib/i18n/format";
+import { currencyLabel, format, formatNumber } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
 
 /*
@@ -246,7 +246,7 @@ export function LinkTabs({ tabs, active }: { tabs: { key: string; label: string;
 }
 
 export function formatMoney(amount: number | string, currency: string, locale: Locale) {
-  return `${formatNumber(Number(amount), locale)} ${currency}`;
+  return `${formatNumber(Number(amount), locale)} ${currencyLabel(currency)}`;
 }
 
 export function formatDate(value: string | null | undefined, locale: Locale, withTime = false) {

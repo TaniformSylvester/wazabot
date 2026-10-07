@@ -44,7 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     business ? aiPausedByWazaBolt(business.id) : false,
   ]);
   const billingHref = localizePath(locale, "/dashboard/billing");
-  const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6";
+  const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6 print:hidden";
   const billingState = usage?.billing.state;
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
@@ -70,7 +70,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-full flex-1">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-deep p-5 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-deep p-5 lg:flex print:hidden">
         <Link href={localizePath(locale, "/dashboard")} aria-label={d.title} className="rounded-lg">
           <WazaBoltLogo tone="dark" size="sm" />
         </Link>
@@ -81,7 +81,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-cream/90 px-4 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-cream/90 px-4 backdrop-blur-md sm:px-6 print:hidden">
           <MobileNav footer={userCard} labels={d.nav} />
           <div className="min-w-0 flex-1">
             {business && businesses.length > 1 ? (
@@ -138,8 +138,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             role="status"
             className={
               usage.level === "reached"
-                ? "flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-coral-200 bg-coral-50 px-4 py-2.5 text-sm text-coral-800 sm:px-6"
-                : "flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-gold-200 bg-gold-50 px-4 py-2.5 text-sm text-gold-800 sm:px-6"
+                ? "flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-coral-200 bg-coral-50 px-4 py-2.5 text-sm text-coral-800 sm:px-6 print:hidden"
+                : "flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-gold-200 bg-gold-50 px-4 py-2.5 text-sm text-gold-800 sm:px-6 print:hidden"
             }
           >
             <TriangleAlert className="size-4 shrink-0" aria-hidden />
@@ -166,7 +166,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </div>
         ) : null}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">{children}</main>
       </div>
     </div>
   );

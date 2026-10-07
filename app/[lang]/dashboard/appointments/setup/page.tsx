@@ -7,7 +7,7 @@ import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { getBookingSetup } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { format } from "@/lib/i18n/format";
+import { currencyLabel, format } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { SLOT_MINUTES } from "@/lib/validation/app";
 
@@ -117,7 +117,7 @@ function ServiceFields({
       <div className="grid gap-5 sm:grid-cols-3">
         <TextField name="name" label={a.services.name} defaultValue={defaults?.name ?? ""} required maxLength={160} />
         <TextField name="duration_minutes" label={a.services.duration} defaultValue={defaults?.duration_minutes ?? 60} inputMode="numeric" required />
-        <TextField name="price" label={format(a.services.price, { currency })} hint={a.services.priceHint} defaultValue={defaults?.price === null || defaults?.price === undefined ? "" : String(Number(defaults.price))} inputMode="decimal" />
+        <TextField name="price" label={format(a.services.price, { currency: currencyLabel(currency) })} hint={a.services.priceHint} defaultValue={defaults?.price === null || defaults?.price === undefined ? "" : String(Number(defaults.price))} inputMode="decimal" />
       </div>
       <TextArea name="description" label={a.services.descriptionField} defaultValue={defaults?.description ?? ""} maxLength={2000} rows={2} />
       <CheckboxField name="active" label={a.services.active} defaultChecked={defaults?.active ?? true} />

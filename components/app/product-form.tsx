@@ -2,7 +2,7 @@ import { ActionForm, CheckboxField, SelectField, SubmitButton, TextArea, TextFie
 import { Panel } from "@/components/app/ui";
 import { VariantsEditor, type VariantRow } from "@/components/app/variants-editor";
 import { saveProduct } from "@/lib/actions/products";
-import { format } from "@/lib/i18n/format";
+import { currencyLabel, format } from "@/lib/i18n/format";
 import { PRODUCT_UNITS, type Tables } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
@@ -38,10 +38,10 @@ export function ProductForm({
     <ActionForm action={saveProduct} text={text} disabled={!canEdit} successMessage={t.saved} hidden={{ id: product?.id, locale }}>
       <Panel className="grid gap-5 sm:grid-cols-2">
         <TextField name="name" label={f.name} defaultValue={product?.name ?? ""} required maxLength={160} className="sm:col-span-2" />
-        <TextField name="price" label={format(f.price, { currency })} defaultValue={product ? String(Number(product.price)) : ""} inputMode="decimal" required />
+        <TextField name="price" label={format(f.price, { currency: currencyLabel(currency) })} defaultValue={product ? String(Number(product.price)) : ""} inputMode="decimal" required />
         <TextField
           name="cost_price"
-          label={format(f.costPrice, { currency })}
+          label={format(f.costPrice, { currency: currencyLabel(currency) })}
           hint={f.costHint}
           defaultValue={product?.cost_price === null || product?.cost_price === undefined ? "" : String(Number(product.cost_price))}
           inputMode="decimal"
