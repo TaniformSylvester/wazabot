@@ -28,6 +28,7 @@ const toNumber = (v: string) => Math.max(0, Number(v.replace(/[\s  ,]/g, "")) ||
 export function Pos({
   products,
   customers,
+  defaultCustomer,
   currency,
   locale,
   canDiscount,
@@ -37,6 +38,8 @@ export function Pos({
 }: {
   products: PosProduct[];
   customers: Customer[];
+  /** Customer chosen up front, e.g. from their profile's "New sale" link. */
+  defaultCustomer?: string;
   currency: string;
   locale: Locale;
   canDiscount: boolean;
@@ -49,7 +52,7 @@ export function Pos({
   const p = t.pos;
   const [query, setQuery] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
-  const [customer, setCustomer] = useState<string>("walkin");
+  const [customer, setCustomer] = useState<string>(() => (defaultCustomer && customers.some((c) => c.id === defaultCustomer) ? defaultCustomer : "walkin"));
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [discount, setDiscount] = useState("");

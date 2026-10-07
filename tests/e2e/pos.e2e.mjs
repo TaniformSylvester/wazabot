@@ -184,6 +184,34 @@ mkdirSync("test-results", { recursive: true });
     ok("sales history: filter by payment method", (await main.locator("tbody tr").count()) === 1);
     await page.screenshot({ path: "test-results/v2-sales.png", fullPage: true });
 
+    // ---------------------------------------------------------------- Test 7: customer credit payment
+    await page.goto(`${APP}/en/dashboard/customers?balance=1`);
+    const owing = await main.locator("table").innerText();
+    ok("customers: totals per customer, and a filter for those who owe", (await main.locator("tbody tr").count()) === 2 && /John Paul/.test(owing) && /40,000 FCFA/.test(owing) && /14,000 FCFA/.test(owing) && /Aïcha Bello/.test(owing), owing.replace(/\n/g, " | ").slice(0, 300));
+    await page.goto(`${APP}/en/dashboard/customers/${customerId}`);
+    const outstanding = () => main.getByTestId("customer-outstanding").innerText();
+    ok("customer profile: outstanding balance 14,000", (await outstanding()).includes("14,000 FCFA"), await outstanding());
+    await main.getByLabel("Amount received (FCFA)").fill("5000");
+    await main.getByLabel("Paid by").selectOption("orange_money");
+    await main.getByLabel("Reference (optional)").fill("OM-TEST-7");
+    await main.getByRole("button", { name: "Record payment", exact: true }).click();
+    await main.getByTestId("customer-outstanding").getByText("9,000 FCFA").waitFor({ timeout: 15000 });
+    const paymentsList = await main.getByTestId("customer-payments").innerText();
+    ok(
+      "Test 7 — customer payment recorded: balance 14,000 → 9,000, in the payment history, applied to the unpaid sale",
+      /5,000 FCFA/.test(paymentsList) && /Orange Money/.test(paymentsList) && /OM-TEST-7/.test(paymentsList) &&
+        sql(`select amount_paid::int || ' ' || payment_status from orders where id = '${creditSale}'`) === "15000 partial",
+      paymentsList.replace(/\n/g, " | "),
+    );
+    await main.getByLabel("Amount received (FCFA)").fill("50000");
+    await main.getByRole("button", { name: "Record payment", exact: true }).click();
+    await main.getByText("That's more than what is owed.").waitFor({ timeout: 10000 });
+    ok("customer payment: can't record more than what is owed", sql(`select outstanding::int from customer_stats where customer_id = '${customerId}'`) === "9000");
+    await page.screenshot({ path: "test-results/v2-customer.png", fullPage: true });
+    await main.getByRole("link", { name: "New sale" }).click();
+    await main.getByPlaceholder("Search products by name or SKU").waitFor({ timeout: 15000 });
+    ok("customer profile: New sale opens the till with the customer chosen", (await main.getByLabel("Customer", { exact: true }).inputValue()) === customerId);
+
     // ---------------------------------------------------------------- phone
     await page.setViewportSize({ width: 390, height: 844 });
     await pos();

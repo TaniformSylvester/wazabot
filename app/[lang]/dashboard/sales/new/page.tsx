@@ -1,6 +1,6 @@
 import { FormAlert } from "@/components/auth/form-alert";
 import { Pos } from "@/components/app/pos";
-import { PageHeader } from "@/components/app/ui";
+import { PageHeader, param } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { listCustomerOptions, listPosProducts } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
@@ -10,8 +10,8 @@ import { localizePath } from "@/lib/i18n/paths";
 export const generateMetadata = dashboardMetadata((d) => d.sales.new);
 
 /** The point of sale (agents and up). */
-export default async function NewSalePage() {
-  const [locale, t] = await Promise.all([getLocale(), getMessages()]);
+export default async function NewSalePage({ searchParams }: PageProps<"/[lang]/dashboard/sales/new">) {
+  const [locale, t, sp] = await Promise.all([getLocale(), getMessages(), searchParams]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/sales/new"));
   const d = t.dashboard;
   const canSell = hasRole(business.role, "agent");
@@ -24,6 +24,7 @@ export default async function NewSalePage() {
         <Pos
           products={products}
           customers={customers}
+          defaultCustomer={param(sp.customer)}
           currency={business.currency}
           locale={locale}
           canDiscount={hasRole(business.role, "admin")}
