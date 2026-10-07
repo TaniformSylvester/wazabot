@@ -708,6 +708,8 @@ grant select, insert, update, delete on public.expenses to authenticated;
 -- Receipts
 -- ---------------------------------------------------------------------------
 alter table public.businesses add column receipt_footer text check (char_length(receipt_footer) <= 300);
+-- Updates go through column grants (owners/admins via RLS); add the new column to them.
+grant update (receipt_footer) on public.businesses to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Reports (owners/admins: they include costs and profit)

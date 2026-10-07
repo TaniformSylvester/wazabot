@@ -39,13 +39,15 @@ export function ProductForm({
       <Panel className="grid gap-5 sm:grid-cols-2">
         <TextField name="name" label={f.name} defaultValue={product?.name ?? ""} required maxLength={160} className="sm:col-span-2" />
         <TextField name="price" label={format(f.price, { currency: currencyLabel(currency) })} defaultValue={product ? String(Number(product.price)) : ""} inputMode="decimal" required />
-        <TextField
+        {canEdit ? (
+          <TextField
           name="cost_price"
           label={format(f.costPrice, { currency: currencyLabel(currency) })}
           hint={f.costHint}
           defaultValue={product?.cost_price === null || product?.cost_price === undefined ? "" : String(Number(product.cost_price))}
           inputMode="decimal"
-        />
+          />
+        ) : null}
         <SelectField name="unit" label={f.unit} defaultValue={product?.unit ?? "piece"} options={PRODUCT_UNITS.map((u) => ({ value: u, label: t.units[u] }))} />
         {/* Opening stock on creation only; afterwards stock changes through sales and Adjust stock (recorded with a reason). */}
         {product ? null : <TextField name="stock_quantity" label={f.stock} hint={f.stockHint} defaultValue="" inputMode="numeric" />}

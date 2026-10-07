@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
-import { BusinessProfileForm, OpeningHoursForm } from "@/components/app/business-forms";
+import { BusinessProfileForm, OpeningHoursForm, ReceiptSettingsForm } from "@/components/app/business-forms";
 import { DefinitionList, PageHeader, Panel } from "@/components/app/ui";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
@@ -12,6 +12,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { languageName } from "@/lib/i18n/languages";
 import { localizePath } from "@/lib/i18n/paths";
+import { createClient } from "@/lib/supabase/server";
 
 export const generateMetadata = dashboardMetadata((d) => d.settings.title);
 
@@ -23,6 +24,7 @@ export default async function SettingsPage() {
   const countries: Record<string, string> = s.countries;
   const canEdit = canManageBusiness(business.role);
   const text = { errors: d.errors, saved: d.common.saved, saving: d.common.saving };
+  const { data: receipt } = await (await createClient()).from("businesses").select("receipt_footer").eq("id", business.id).maybeSingle();
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -62,6 +64,10 @@ export default async function SettingsPage() {
             {s.business.manageLanguages} <ArrowRight className="size-4" aria-hidden />
           </Link>
         </div>
+      </Panel>
+
+      <Panel id="receipts" title={s.receipts.title} description={s.receipts.description}>
+        <ReceiptSettingsForm t={s.receipts} text={text} logoUrl={business.logoUrl} footer={receipt?.receipt_footer ?? null} canEdit={canEdit} submitLabel={d.common.save} />
       </Panel>
 
       <Panel id="hours" title={d.business.hours.title}>

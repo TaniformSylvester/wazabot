@@ -75,14 +75,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <WazaBoltLogo tone="dark" size="sm" />
         </Link>
         <div className="-mx-1 mt-6 flex-1 overflow-y-auto px-1">
-          <SidebarNav labels={d.nav} />
+          <SidebarNav labels={d.nav} role={business?.role ?? null} />
         </div>
         {userCard}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-cream/90 px-4 backdrop-blur-md sm:px-6 print:hidden">
-          <MobileNav footer={userCard} labels={d.nav} />
+          <MobileNav footer={userCard} labels={d.nav} role={business?.role ?? null} />
           <div className="min-w-0 flex-1">
             {business && businesses.length > 1 ? (
               <BusinessSwitcher

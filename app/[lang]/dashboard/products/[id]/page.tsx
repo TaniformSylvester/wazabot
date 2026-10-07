@@ -49,7 +49,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
           <ProductForm
             t={p}
             text={{ errors: d.errors, saved: p.saved, saving: d.common.saving }}
-            product={product}
+            product={canEdit ? product : { ...product, cost_price: null }}
             currency={product.currency}
             locale={locale}
             canEdit={canEdit}

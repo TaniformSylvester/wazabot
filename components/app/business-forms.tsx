@@ -1,7 +1,7 @@
 "use client";
 
-import { ActionForm, SelectField, SubmitButton, TextArea, TextField, useFieldError, type FormText } from "@/components/app/form";
-import { saveBusinessProfile, saveOpeningHours } from "@/lib/actions/business";
+import { ActionForm, CheckboxField, SelectField, SubmitButton, TextArea, TextField, useFieldError, type FormText } from "@/components/app/form";
+import { saveBusinessProfile, saveOpeningHours, saveReceiptSettings } from "@/lib/actions/business";
 import { DEFAULT_OPENING_HOURS, WEEKDAYS, type OpeningHours } from "@/lib/business/hours";
 import type { CurrentBusiness } from "@/lib/auth/dal";
 import { format } from "@/lib/i18n/format";
@@ -122,3 +122,46 @@ export function OpeningHoursForm({
   );
 }
 
+
+/** Settings → Receipts: logo and footer. */
+export function ReceiptSettingsForm({
+  t,
+  text,
+  logoUrl,
+  footer,
+  canEdit,
+  submitLabel,
+}: {
+  t: Messages["dashboard"]["settings"]["receipts"];
+  text: FormText;
+  logoUrl: string | null;
+  footer: string | null;
+  canEdit: boolean;
+  submitLabel: string;
+}) {
+  return (
+    <ActionForm action={saveReceiptSettings} text={text} disabled={!canEdit} successMessage={t.saved}>
+      <div className="flex flex-wrap items-center gap-4">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="" className="size-16 rounded-xl border border-border object-contain" data-testid="business-logo" />
+        ) : null}
+        <label className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-deep">
+          {t.logo}
+          <input
+            type="file"
+            name="logo"
+            accept="image/jpeg,image/png,image/webp"
+            className="max-w-full text-sm font-normal text-slate file:mr-3 file:rounded-full file:border-0 file:bg-mint file:px-4 file:py-2 file:text-sm file:font-semibold file:text-deep"
+          />
+          <span className="text-xs font-normal text-slate">{t.logoHint}</span>
+        </label>
+      </div>
+      {logoUrl ? <CheckboxField name="remove_logo" label={t.removeLogo} /> : null}
+      <TextArea name="receipt_footer" label={t.footer} hint={t.footerHint} defaultValue={footer ?? ""} maxLength={300} rows={2} />
+      <div>
+        <SubmitButton>{submitLabel}</SubmitButton>
+      </div>
+    </ActionForm>
+  );
+}

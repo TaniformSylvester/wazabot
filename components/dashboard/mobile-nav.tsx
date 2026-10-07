@@ -6,9 +6,10 @@ import { Menu } from "lucide-react";
 import { WazaBoltLogo } from "@/components/brand/logo";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import type { BusinessRole } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
-export function MobileNav({ footer, labels }: { footer: React.ReactNode; labels: Messages["dashboard"]["nav"] }) {
+export function MobileNav({ footer, labels, role }: { footer: React.ReactNode; labels: Messages["dashboard"]["nav"]; role: BusinessRole | null }) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -26,7 +27,7 @@ export function MobileNav({ footer, labels }: { footer: React.ReactNode; labels:
         <SheetDescription className="sr-only">{labels.sections}</SheetDescription>
         <WazaBoltLogo tone="dark" size="sm" />
         <div className="mt-6 flex-1">
-          <SidebarNav labels={labels} onNavigate={() => setOpen(false)} />
+          <SidebarNav labels={labels} role={role} onNavigate={() => setOpen(false)} />
         </div>
         {footer}
       </SheetContent>

@@ -135,6 +135,7 @@ not affiliated with WhatsApp or Meta, and the WhatsApp logo itself is never used
 | Appointments (Stage 6): services with duration and price, bookable in opening hours (slot step, capacity, notice, horizon); the assistant finds free times and books on WhatsApp; Calendar with confirm / done / no-show / cancel; booking from the dashboard | **Functional** — see "Appointments" below |
 | Customer notifications (Stage 7): order updates, appointment confirmations / cancellations / reminders, follow-up after 24 h; WazaBolt's message templates submitted to Meta with review status | **Functional** — see "Customer notifications" below; goes out once WhatsApp is connected |
 | Broadcasts (Stage 8): promotions to customers who agreed (consent on the customer page or START by WhatsApp, STOP always unsubscribes), each submitted to Meta as a marketing template, audience by tags and language, progress and per-customer results | **Functional** — see "Broadcasts" below |
+| Sales, stock, customers & money (V2): point of sale with printable receipts (cash, MTN MoMo, Orange Money, bank transfer, card, credit — recorded by hand), stock ledger with reasons and alerts, customer credit and payments, expenses, dashboard with estimated profit, reports with CSV export | **Functional** — see "Sales, stock and money (V2)" below; works without WhatsApp |
 | Voice transcription, payments | **Not started** — interfaces only (`lib/messaging/ports.ts`); voice notes get a short notice and are flagged for the team |
 
 ## Multilingual architecture
@@ -279,6 +280,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRE
 # Stage 4 business operations (stock, usage banner, plan requests, invitations, roles).
 # Uses DATABASE_URL directly to play the WazaBolt operator (approving a plan) and simulate AI usage.
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... npm run test:e2e:operations
+
+# V2 sales, stock, customers, expenses, dashboard, reports, CSV, isolation, cashier permissions,
+# phone layout and French (DATABASE_URL is used to check the ledger directly)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... npm run test:e2e:pos
 
 # Regenerate database types after a migration
 DATABASE_URL=postgres://... npm run db:types
@@ -502,6 +507,41 @@ Apply `supabase/migrations/20261009120000_broadcasts.sql`.
   continued by "Resume sending" or by the daily job (`/api/cron/reminders`). Each customer gets it
   once (`broadcast_recipients`).
 - Meta charges the business's WhatsApp Business Account for each marketing message delivered.
+
+## Sales, stock and money (V2)
+
+WazaBolt works as a shop's daily tool even without WhatsApp: the till, stock, customers' credit,
+expenses and profit. Amounts are shown as "25,000 FCFA" (XAF and XOF display as FCFA).
+
+| Where | What |
+| --- | --- |
+| **Sales → New sale** (`/dashboard/sales/new`) | Till: search products, quantities, variants, customer (walk-in, existing or new), discount (owners/admins), payment method and reference, part payment — the rest goes on the customer's credit. One sale is one database transaction (`create_sale`): order, items with their cost at the time of sale, stock movements, payment. Each screen carries a key so a double tap records one sale. |
+| **Sales** (`/dashboard/sales`, `/dashboard/sales/[id]`) | History with filters (dates, method, status, customer); printable receipt (logo and footer from Settings → Receipts); payments; estimated profit for owners/admins. |
+| **Products** | Selling price, cost price, unit, minimum stock; stock only changes through sales or **Update stock** (purchase, return, damaged, lost, count) — every change is in the product's stock history with who did it and why. Products with sales are archived, never deleted. |
+| **Customers** | Purchases, total spent, what they owe, last purchase; "Customers who owe" filter; record a payment (settles the oldest sales first, never more than owed); full payment history. |
+| **Expenses** (owners/admins) | Rent, electricity, internet, transport, salaries, marketing, supplier payments, packaging, delivery, other — by month, with totals per category. |
+| **Dashboard** | Today's sales, money received, estimated profit, credit owed; last 7 days and this month (expenses, estimated net profit); 30-day chart; best sellers; stock and customer figures; alerts; recent sales. |
+| **Reports** (owners/admins) | Any period, by day/week/month: sales, cost of goods, gross and net profit (estimated), products, top customers, who owes, low stock, expenses — each section as CSV. |
+
+**Profit is an estimate**: sales amount minus each item's cost price recorded when it was sold,
+minus expenses. Items sold without a cost price count as zero cost, and the dashboard and reports
+say so.
+
+**Payments are recorded by hand.** WazaBolt doesn't check MTN MoMo or Orange Money yet: the
+method and reference are what the cashier typed. A provider integration would call the same
+database functions (`order_payments.provider` is ready for it).
+
+**Roles**: owner and admin (manager) see everything; agent (cashier) sells, takes payments and
+manages customers but sees no cost prices, profit, expenses or reports; viewer (staff) reads only.
+The database enforces these rules for expenses, reports, discounts, stock changes and settings (RLS, column grants and checks inside the functions). **Known gap:** product cost prices (`products.cost_price`) and sale item costs (`order_items.unit_cost`) are hidden from cashiers in the app, but a cashier who calls the database API directly with their own login could still read them; closing that needs moving costs to an owner/admin-only table.
+
+### Demo shop
+
+`supabase/seed/demo_mj_fashion.sql` creates a separate, fictional **MJ Fashion Cameroon** (8
+products, 6 made-up customers with invalid phone numbers, ~60 sales over 30 days, credit,
+payments, stock events and expenses) for an existing account. Set the owner's email at the top
+and run it in the Supabase SQL Editor; then switch to the demo shop from the top bar. Running it
+twice does nothing; delete the business to remove it.
 
 ## Costs and margins
 

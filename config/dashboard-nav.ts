@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import type { BusinessRole } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
 type Nav = Messages["dashboard"]["nav"];
@@ -32,6 +33,8 @@ export type DashboardNavItem = {
   icon: LucideIcon;
   /** Not built yet — rendered as a disabled item with a "Soon" tag instead of a dead link. */
   soon?: boolean;
+  /** Hidden from roles below this one (the page itself checks the role too). */
+  minRole?: BusinessRole;
 };
 
 export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[] }[] = [
@@ -48,8 +51,8 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
   {
     key: "business",
     items: [
-      { key: "expenses", href: "/dashboard/expenses", icon: Wallet },
-      { key: "reports", href: "/dashboard/reports", icon: FileBarChart },
+      { key: "expenses", href: "/dashboard/expenses", icon: Wallet, minRole: "admin" },
+      { key: "reports", href: "/dashboard/reports", icon: FileBarChart, minRole: "admin" },
       { key: "appointments", href: "/dashboard/appointments", icon: CalendarDays },
     ],
   },

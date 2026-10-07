@@ -122,9 +122,9 @@ const en = {
 
   hero: {
     badge: "Built for African Businesses",
-    title: "Power your business on <hl>WhatsApp.</hl>",
-    subtitle: "Never miss a <u>customer.</u>",
-    lead: "<b>WazaBolt</b> is your AI business assistant on WhatsApp. It answers customer questions, shares products and prices, captures orders and hands conversations to your team when needed.",
+    title: "Manage your business, sales, stock and customers <hl>in one place.</hl>",
+    subtitle: "With an AI assistant on <u>WhatsApp.</u>",
+    lead: "<b>WazaBolt</b> helps you record sales at the till, track stock and customer credit, log expenses and see your estimated profit. On WhatsApp, its AI assistant answers customer questions, shares products and prices, captures orders and hands conversations to your team when needed.",
     trust: {
       setup: { title: "Quick Setup", text: "In minutes, not days" },
       whatsapp: { title: "Works on WhatsApp", text: "No app for customers" },
@@ -244,6 +244,9 @@ const en = {
       takeover: { title: "Human Takeover", text: "A staff member can take over any conversation at any time." },
       knowledge: { title: "Business Knowledge", text: "Teach WazaBolt your FAQs, services and policies." },
       analytics: { title: "Analytics", text: "Understand conversations, customers and orders." },
+      sell: { title: "Sell & Print Receipts", text: "Record sales at the till in cash, MTN MoMo, Orange Money, transfer or on credit." },
+      stock: { title: "Track Stock", text: "Stock goes down with every sale, with low-stock alerts and a full history." },
+      money: { title: "Credit & Profit", text: "See who owes you, record expenses and follow your estimated profit." },
     },
     planned: {
       appointments: "Appointment booking",
@@ -1901,6 +1904,16 @@ const en = {
     },
     settings: {
       title: "Settings",
+      receipts: {
+        title: "Receipts",
+        description: "What appears on the receipts you print or share.",
+        logo: "Logo",
+        logoHint: "PNG, JPG or WebP, up to 2 MB. Shown at the top of receipts.",
+        removeLogo: "Remove the logo",
+        footer: "Receipt footer (optional)",
+        footerHint: "e.g. Thank you! Exchanges within 7 days with this receipt.",
+        saved: "Receipt settings saved.",
+      },
       account: { title: "Account", description: "Your personal login details.", name: "Name", email: "Email" },
       interface: {
         title: "Dashboard language",

@@ -269,3 +269,9 @@ export const expenseSchema = z.object({
   payment_method: z.preprocess((v) => (v === "" ? null : v), z.enum(RECEIVE_METHODS, { error: "invalid_option" }).nullable().optional()).transform((v) => v ?? null),
   reference: optionalText(100),
 });
+
+/** Settings → Receipts. */
+export const receiptSettingsSchema = z.object({
+  receipt_footer: optionalText(300),
+  remove_logo: checkbox,
+});

@@ -12,7 +12,6 @@ import { chromium } from "playwright";
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
 const MAIL = process.env.MAILPIT_URL ?? "http://localhost:54324";
-const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:54321";
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const DB = process.env.DATABASE_URL;
 if (!ANON || !DB) throw new Error("Set NEXT_PUBLIC_SUPABASE_ANON_KEY and DATABASE_URL");
@@ -293,6 +292,124 @@ mkdirSync("test-results", { recursive: true });
     await page.waitForURL(/range=custom/);
     ok("reports: editing a date switches to a custom period", page.url().includes(`from=${lastWeek}`) && /66,000 FCFA/.test(await main.getByTestId("report-summary").innerText()));
     ok("CSV export needs a signed-in owner or admin", outsider.status() !== 200 || !(await outsider.text()).includes("T-Shirt"), String(outsider.status()));
+
+    // ---------------------------------------------------------------- business settings: receipt footer and logo
+    await page.goto(`${APP}/en/dashboard/settings`);
+    const receiptPanel = main.getByRole("region", { name: "Receipts" });
+    await receiptPanel.getByLabel("Receipt footer (optional)").fill("Exchanges within 7 days with this receipt.");
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+    await receiptPanel.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+    await receiptPanel.getByRole("button", { name: "Save" }).click();
+    await receiptPanel.getByText("Receipt settings saved.").waitFor({ timeout: 15000 });
+    await page.goto(`${APP}/en/dashboard/sales/${cashSale}`);
+    const withFooter = await main.getByTestId("receipt").innerText();
+    ok(
+      "settings: the receipt footer and logo appear on receipts",
+      /Exchanges within 7 days/.test(withFooter) && (await main.getByTestId("receipt").locator("img").count()) === 1 && /\/product-images\/[0-9a-f-]+\/logo\//.test(sql(`select logo_url from businesses where id = '${bizId}'`)),
+      withFooter.slice(-120).replace(/\n/g, " "),
+    );
+
+    // ---------------------------------------------------------------- Test 10: business isolation
+    const other = { name: "Other Owner", business: "Other Shop", email: `pos-other+${stamp}@example.com`, password: "Wazabolt2026" };
+    const otherCtx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-US" });
+    const op = await otherCtx.newPage();
+    op.on("pageerror", (e) => errors.push(`other: ${e}`));
+    await register(op, other);
+    // The dashboard streams (loading.tsx), so a missing record shows the not-found screen with a 200 status.
+    const notFound = async (path) => {
+      await op.goto(`${APP}/en${path}`);
+      await op.getByText("Error 404").waitFor({ timeout: 15000 }).catch(() => {});
+      const text = await op.locator("main").innerText();
+      const pass = /Error 404/i.test(text) && !/ORD-0000|John Paul|Shop rent|16,000/.test(text);
+      if (!pass) isolationNotes.push(`${path}: ${text.slice(0, 160).replace(/\n/g, " ")}`);
+      return pass;
+    };
+    const isolationNotes = [];
+    ok(
+      "Test 10 — another business can't open this business's sale, customer or expense",
+      (await notFound(`/dashboard/sales/${cashSale}`)) && (await notFound(`/dashboard/customers/${customerId}`)) &&
+        (await notFound(`/dashboard/expenses/${sql(`select id from expenses where business_id = '${bizId}' limit 1`)}`)),
+      isolationNotes.join(" || "),
+    );
+    await op.goto(`${APP}/en/dashboard/sales`);
+    const otherSales = await op.locator("main").innerText();
+    await op.goto(`${APP}/en/dashboard/reports?range=30d`);
+    const otherReport = await op.locator("main").getByTestId("report-summary").innerText();
+    const otherCsv = await (await op.request.get(`${APP}/en/dashboard/reports/export?type=products&from=2026-01-01&to=2030-01-01`)).text();
+    ok("isolation: the other business sees none of these sales, in its lists, reports or CSV", !/ORD-0000/.test(otherSales) && /Sales amount\s*0 FCFA/.test(otherReport) && !/T-Shirt/.test(otherCsv), otherReport.replace(/\n/g, " "));
+    await otherCtx.close();
+
+    // ---------------------------------------------------------------- permissions: a cashier
+    const cashier = { name: "Cashier Demo", business: "Temp", email: `pos-cashier+${stamp}@example.com`, password: "Wazabolt2026" };
+    const cashCtx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-US" });
+    const cp = await cashCtx.newPage();
+    cp.on("pageerror", (e) => errors.push(`cashier: ${e}`));
+    await register(cp, cashier);
+    sql(`with u as (select id from auth.users where email = '${cashier.email}')
+         , gone as (delete from business_members where user_id = (select id from u) returning 1)
+         insert into business_members (business_id, user_id, role) select '${bizId}', id, 'agent' from u`);
+    const cm = cp.locator("main");
+    await cp.goto(`${APP}/en/dashboard`);
+    await cm.getByTestId("business-overview").waitFor({ timeout: 15000 });
+    const nav = await cp.locator("aside nav").innerText();
+    ok(
+      "permissions: a cashier sees sales but no profit, and no Expenses or Reports",
+      /Sales/.test(nav) && !/Expenses|Reports/.test(nav) && (await cm.getByTestId("today-profit").count()) === 0 && /66,000 FCFA/.test(await cm.getByTestId("today-sales").innerText()),
+      nav.replace(/\n/g, " "),
+    );
+    await cp.goto(`${APP}/en/dashboard/reports`);
+    const cashierReports = await cm.innerText();
+    const cashierCsv = await cp.request.get(`${APP}/en/dashboard/reports/export?type=products&from=2026-01-01&to=2030-01-01`);
+    await cp.goto(`${APP}/en/dashboard/sales/${cashSale}`);
+    await cm.getByTestId("receipt").waitFor({ timeout: 15000 });
+    const cashierSale = await cm.getByTestId("sale-profit").count();
+    await cp.goto(`${APP}/en/dashboard/products/${sql(`select id from products where business_id = '${bizId}' and name = 'T-Shirt'`)}`);
+    await cm.getByTestId("stock-level").waitFor({ timeout: 15000 });
+    const cashierProduct = await cm.innerText();
+    ok(
+      "permissions: reports, CSV, profit and cost prices are closed to a cashier",
+      /Only the owner and admins can see reports/.test(cashierReports) && cashierCsv.status() === 403 && cashierSale === 0 && !/Cost price|4,500/.test(cashierProduct),
+      `csv ${cashierCsv.status()}`,
+    );
+    await cp.goto(`${APP}/en/dashboard/sales/new`);
+    await cm.getByPlaceholder("Search products by name or SKU").waitFor({ timeout: 15000 });
+    await cm.getByRole("button", { name: /^T-Shirt —/ }).click();
+    ok("permissions: a cashier can sell, without the discount field", (await cm.getByLabel(/Discount/).count()) === 0);
+    await cm.getByRole("button", { name: /Complete sale/ }).click();
+    await cp.waitForURL(/\/dashboard\/sales\/[0-9a-f-]{36}\?new=1/);
+    ok("permissions: the cashier's sale is recorded under their name", sql(`select u.email from orders o join auth.users u on u.id = o.created_by where o.id = '${cp.url().split("/").pop().split("?")[0]}'`) === cashier.email);
+    await cashCtx.close();
+
+    // ---------------------------------------------------------------- Test 11: phone layouts
+    await page.setViewportSize({ width: 390, height: 844 });
+    const wide = [];
+    for (const path of ["/dashboard", "/dashboard/sales", `/dashboard/sales/${cashSale}`, "/dashboard/customers", `/dashboard/customers/${customerId}`, "/dashboard/expenses", "/dashboard/reports", "/dashboard/products"]) {
+      await page.goto(`${APP}/en${path}`);
+      await main.waitFor();
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      if (over > 0) wide.push(`${path} +${over}px`);
+    }
+    ok("Test 11 — dashboard, sales, receipt, customers, expenses, reports and products fit a phone screen", wide.length === 0, wide.join(", "));
+    await page.goto(`${APP}/en/dashboard`);
+    await page.screenshot({ path: "test-results/v2-dashboard-phone.png", fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // ---------------------------------------------------------------- Test 12: French
+    await page.goto(`${APP}/fr/dashboard`);
+    await main.getByTestId("business-overview").waitFor({ timeout: 15000 });
+    const frHome = await main.getByTestId("today-sales").innerText();
+    await page.goto(`${APP}/fr/dashboard/reports?range=today`);
+    const frReport = await main.getByTestId("report-summary").innerText();
+    await page.goto(`${APP}/fr/dashboard/sales/${cashSale}`);
+    const frReceipt = await main.getByTestId("receipt").innerText();
+    await page.goto(`${APP}/fr/dashboard/sales/new`);
+    const frPos = await main.innerText();
+    ok(
+      "Test 12 — French: dashboard, reports, receipt and till in French, amounts in FCFA",
+      /Ventes du jour/.test(frHome) && /FCFA/.test(frHome) && /Bénéfice net \(estimé\)/.test(frReport) && /FCFA/.test(frReceipt) && /Espèces/.test(frPos),
+      [frHome, frReport.slice(0, 120), frReceipt.slice(0, 120)].join(" | ").replace(/\n/g, " "),
+    );
+    await page.screenshot({ path: "test-results/v2-pos-fr.png", fullPage: true });
 
     // ---------------------------------------------------------------- phone
     await page.setViewportSize({ width: 390, height: 844 });

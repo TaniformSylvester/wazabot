@@ -150,6 +150,15 @@ begin
   raise notice 'PASS payment status follows recorded payments only';
 end $$;
 
+do $$
+begin
+  update public.businesses set receipt_footer = 'Merci !' where id = (select biz from ids);
+  if (select receipt_footer from public.businesses where id = (select biz from ids)) is distinct from 'Merci !' then
+    raise exception 'FAIL: owner can''t set the receipt footer';
+  end if;
+  raise notice 'PASS owners set the receipt footer';
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- Cashier (agent): sells and takes payments; no stock adjustments, discounts, expenses or reports
 -- ---------------------------------------------------------------------------
@@ -183,6 +192,15 @@ begin
   end;
   perform public.record_customer_payment(b, (select v from t where k = 'customer'), 2000, 'cash');
   raise notice 'PASS cashiers sell and take payments, but can''t give discounts, adjust stock or see expenses and profit';
+end $$;
+
+do $$
+begin
+  update public.businesses set receipt_footer = 'changed by a cashier' where id = (select biz from ids);
+  if (select receipt_footer from public.businesses where id = (select biz from ids)) <> 'Merci !' then
+    raise exception 'FAIL: a cashier changed the receipt footer';
+  end if;
+  raise notice 'PASS cashiers can''t change business settings';
 end $$;
 
 -- ---------------------------------------------------------------------------

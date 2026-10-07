@@ -118,9 +118,9 @@ const fr: Messages = {
 
   hero: {
     badge: "Conçu pour les entreprises africaines",
-    title: "Boostez votre entreprise sur <hl>WhatsApp.</hl>",
-    subtitle: "Ne manquez plus aucun <u>client.</u>",
-    lead: "<b>WazaBolt</b> est votre assistant d'entreprise IA sur WhatsApp. Il répond aux questions de vos clients, partage vos produits et vos prix, enregistre les commandes et passe la main à votre équipe si nécessaire.",
+    title: "Gérez votre activité, vos ventes, votre stock et vos clients <hl>au même endroit.</hl>",
+    subtitle: "Avec un assistant IA sur <u>WhatsApp.</u>",
+    lead: "<b>WazaBolt</b> vous aide à enregistrer vos ventes à la caisse, suivre votre stock et les crédits clients, noter vos dépenses et voir votre bénéfice estimé. Sur WhatsApp, son assistant IA répond aux questions de vos clients, partage vos produits et vos prix, enregistre les commandes et passe la main à votre équipe si nécessaire.",
     trust: {
       setup: { title: "Installation rapide", text: "En quelques minutes" },
       whatsapp: { title: "Fonctionne sur WhatsApp", text: "Aucune appli pour vos clients" },
@@ -241,6 +241,9 @@ const fr: Messages = {
       takeover: { title: "Reprise en main", text: "Un membre de l'équipe peut reprendre n'importe quelle conversation à tout moment." },
       knowledge: { title: "Connaissances de l'entreprise", text: "Apprenez à WazaBolt vos FAQ, vos services et vos conditions." },
       analytics: { title: "Statistiques", text: "Comprenez vos conversations, vos clients et vos commandes." },
+      sell: { title: "Vendez et imprimez des reçus", text: "Enregistrez vos ventes à la caisse : espèces, MTN MoMo, Orange Money, virement ou à crédit." },
+      stock: { title: "Suivez votre stock", text: "Le stock baisse à chaque vente, avec alertes de stock bas et historique complet." },
+      money: { title: "Crédits et bénéfice", text: "Voyez qui vous doit de l'argent, notez vos dépenses et suivez votre bénéfice estimé." },
     },
     planned: {
       appointments: "Prise de rendez-vous",
@@ -1899,6 +1902,16 @@ const fr: Messages = {
     },
     settings: {
       title: "Paramètres",
+      receipts: {
+        title: "Reçus",
+        description: "Ce qui apparaît sur les reçus que vous imprimez ou partagez.",
+        logo: "Logo",
+        logoHint: "PNG, JPG ou WebP, 2 Mo maximum. Affiché en haut des reçus.",
+        removeLogo: "Retirer le logo",
+        footer: "Pied de reçu (facultatif)",
+        footerHint: "Ex. : Merci ! Échange sous 7 jours avec ce reçu.",
+        saved: "Paramètres des reçus enregistrés.",
+      },
       account: { title: "Compte", description: "Vos informations de connexion personnelles.", name: "Nom", email: "E-mail" },
       interface: {
         title: "Langue du tableau de bord",
