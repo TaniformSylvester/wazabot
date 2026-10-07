@@ -181,6 +181,7 @@ mkdirSync("test-results", { recursive: true });
     const history = await main.locator("table").innerText();
     ok("sales history: every sale with customer, payment, status and profit", ["ORD-00001", "ORD-00002", "ORD-00003", "ORD-00004", "John Paul", "Walk-in customer", "MTN MoMo", "Part paid"].every((x) => history.includes(x)), history.slice(0, 300));
     await page.goto(`${APP}/en/dashboard/sales?method=mtn_momo`);
+    await main.locator("tbody tr").first().waitFor({ timeout: 15000 });
     ok("sales history: filter by payment method", (await main.locator("tbody tr").count()) === 1);
     await page.screenshot({ path: "test-results/v2-sales.png", fullPage: true });
 
@@ -253,6 +254,45 @@ mkdirSync("test-results", { recursive: true });
     await main.getByTestId("expenses-month-total").getByText("50,000 FCFA").waitFor({ timeout: 10000 }).catch(() => {});
     ok("expenses: deleted, the total follows (50,000)", (await monthTotal()).includes("50,000 FCFA") && sql(`select count(*) from expenses where business_id = '${bizId}'`) === "1");
     await page.screenshot({ path: "test-results/v2-expenses.png", fullPage: true });
+
+    // ---------------------------------------------------------------- Test 9: dashboard and reports
+    // Sales today: 16,000 + 18,000 + 24,000 + 8,000 = 66,000; cost 9,000 + 11,000 + 13,500 + 4,500 = 38,000.
+    // Received: 16,000 + 18,000 + 10,000 + 5,000 = 49,000. Owed: John Paul 9,000 + Aïcha Bello 8,000.
+    await page.goto(`${APP}/en/dashboard`);
+    await main.getByTestId("business-overview").waitFor({ timeout: 15000 });
+    const card = (id) => main.getByTestId(id).innerText();
+    const home = { sales: await card("today-sales"), received: await card("today-received"), profit: await card("today-profit"), owed: await card("outstanding-credit"), month: await card("period-month") };
+    ok(
+      "Test 9 — dashboard: today's sales, money received, estimated profit and credit from real records",
+      /66,000 FCFA/.test(home.sales) && /4 sale\(s\)/.test(home.sales) && /49,000 FCFA/.test(home.received) && /28,000 FCFA/.test(home.profit) && /17,000 FCFA/.test(home.owed) && /2 customer\(s\)/.test(home.owed),
+      JSON.stringify(home).replace(/\\n/g, " "),
+    );
+    ok("dashboard: this month with expenses and estimated net profit", /Expenses: 50,000 FCFA/.test(home.month) && /Estimated net profit: -22,000 FCFA/.test(home.month), home.month.replace(/\n/g, " "));
+    const best = await card("best-sellers");
+    ok("dashboard: best sellers, stock and customer figures, trend chart", /^1\s*T-Shirt\s*6 sold/.test(best) && /Low stock\s*1/.test(await card("stock-stats")) && /Owe you money\s*2/.test(await card("customer-stats")) && (await main.getByTestId("sales-trend").isVisible()), best.replace(/\n/g, " "));
+    ok("dashboard: recent sales and alerts", /ORD-00004/.test(await card("recent-sales")) && /2 customer\(s\) owe you 17,000 FCFA/.test(await card("business-alerts")));
+    await page.screenshot({ path: "test-results/v2-dashboard.png", fullPage: true });
+
+    await page.goto(`${APP}/en/dashboard/reports?range=today`);
+    const summary = await main.getByTestId("report-summary").innerText();
+    ok(
+      "Test 9 — report for today: sales 66,000, cost 38,000, gross profit 28,000, expenses 50,000, net −22,000",
+      /Sales amount\s*66,000 FCFA/.test(summary) && /Cost of goods sold\s*38,000 FCFA/.test(summary) && /Gross profit \(estimated\)\s*28,000 FCFA/.test(summary) && /Expenses\s*50,000 FCFA/.test(summary) && /Net profit \(estimated\)\s*-22,000 FCFA/.test(summary),
+      summary.replace(/\n/g, " | "),
+    );
+    ok("reports: products, customers who owe, expenses by category", /T-Shirt/.test(await main.getByTestId("report-products").innerText()) && /John Paul/.test(await main.getByTestId("report-owing").innerText()) && /Rent/.test(await main.getByTestId("report-expenses").innerText()));
+    await page.screenshot({ path: "test-results/v2-reports.png", fullPage: true });
+    const csvHref = await main.getByRole("link", { name: "Download CSV" }).nth(1).getAttribute("href");
+    const csvRes = await page.request.get(`${APP}${csvHref}`);
+    const csvText = await csvRes.text();
+    ok("Test 9 — CSV export: products with quantity, amount, cost and profit", csvRes.status() === 200 && /text\/csv/.test(csvRes.headers()["content-type"]) && csvText.includes("T-Shirt,6,48000,27000,21000") && csvText.includes("Jeans,1,18000,11000,7000"), csvText.slice(0, 200));
+    const outsider = await (await browser.newContext()).request.get(`${APP}${csvHref}`, { maxRedirects: 0 });
+    const lastWeek = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    await main.getByLabel("From").fill(lastWeek);
+    await main.getByRole("button", { name: "Show" }).click();
+    await page.waitForURL(/range=custom/);
+    ok("reports: editing a date switches to a custom period", page.url().includes(`from=${lastWeek}`) && /66,000 FCFA/.test(await main.getByTestId("report-summary").innerText()));
+    ok("CSV export needs a signed-in owner or admin", outsider.status() !== 200 || !(await outsider.text()).includes("T-Shirt"), String(outsider.status()));
 
     // ---------------------------------------------------------------- phone
     await page.setViewportSize({ width: 390, height: 844 });

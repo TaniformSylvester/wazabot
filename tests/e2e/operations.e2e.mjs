@@ -330,6 +330,7 @@ mkdirSync("test-results", { recursive: true });
     ok(`no horizontal overflow at 390px on ${p}`, over <= 1, `+${over}px`);
   }
   await page.goto(`${APP}/fr/dashboard/team`);
+  await main.getByRole("heading", { name: "Inviter un membre" }).waitFor({ timeout: 15000 }).catch(() => {});
   ok("team page in French", (await main.getByRole("heading", { name: "Inviter un membre" }).count()) === 1);
 
   ok("no browser errors", errors.length === 0, errors.join(" | "));

@@ -20,11 +20,13 @@ import {
 } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
+import { BusinessOverview } from "@/components/app/business-overview";
 import { FreeMessagesPanel } from "@/components/app/free-messages-panel";
 import { EmptyState, Panel, StatCard, StatusBadge, conversationStatusTone, formatDate, formatMoney, formatPercent, orderStatusTone } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { hasOpeningHours } from "@/lib/business/hours";
-import { getDashboardMetrics, getFreeWhatsAppMessages, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders } from "@/lib/data/queries";
+import { getDashboardMetrics, getFreeWhatsAppMessages, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders, listSales } from "@/lib/data/queries";
+import { getOverview } from "@/lib/data/reports";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -52,7 +54,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     redirect(localizePath(locale, `/dashboard/onboarding?step=1${params.welcome ? "&welcome=1" : ""}`));
   }
 
-  const [metrics, progress, conversations, orders, stock, appointments, freeMessages] = await Promise.all([
+  const showProfit = hasRole(business.role, "admin");
+  const [metrics, progress, conversations, orders, stock, appointments, freeMessages, overview, recentSales] = await Promise.all([
     getDashboardMetrics(business.id),
     getSetupProgress(business.id, !!(business.description || business.industry || business.city), hasOpeningHours(business.openingHours)),
     listConversations(business.id),
@@ -60,6 +63,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     getStockAlerts(business.id),
     listNextAppointments(business.id),
     getFreeWhatsAppMessages(business.id),
+    getOverview(business.id, business.timezone, showProfit),
+    listSales(business.id, business.timezone, {}),
   ]);
   const apptTime = new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { timeZone: business.timezone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const done = setupSteps.filter((s) => progress[s.key === "ai" ? "aiConfigured" : s.key]).length;
@@ -86,17 +91,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
         <h1 className="type-h2">{format(h.welcome, { name: firstName })}</h1>
         <p className="type-body mt-1 text-slate">{format(h.subtitle, { business: business.name })}</p>
       </div>
-
-      <section aria-label={d.analytics.title}>
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {stats.map((s) => (
-            <li key={s.label}>
-              <StatCard label={s.label} value={s.value} icon={s.icon} noData={d.common.noDataYet} />
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs text-slate">{h.metricsNote}</p>
-      </section>
 
       {done < setupSteps.length ? (
         <Panel
@@ -132,6 +126,31 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
           </ol>
         </Panel>
       ) : null}
+
+      <BusinessOverview
+        overview={overview}
+        recent={recentSales.rows.slice(0, 5)}
+        currency={business.currency}
+        locale={locale}
+        t={d}
+        showProfit={showProfit}
+        canSell={hasRole(business.role, "agent")}
+      />
+
+      <section aria-labelledby="whatsapp-title">
+        <h2 id="whatsapp-title" className="type-h3 mb-4">
+          {h.biz.whatsapp}
+        </h2>
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {stats.map((s) => (
+            <li key={s.label}>
+              <StatCard label={s.label} value={s.value} icon={s.icon} noData={d.common.noDataYet} />
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-xs text-slate">{h.metricsNote}</p>
+      </section>
+
 
       {freeMessages ? <FreeMessagesPanel usage={freeMessages} text={h.freeMessages} locale={locale} /> : null}
 
