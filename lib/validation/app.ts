@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ADJUST_REASONS, AFTER_HOURS_MODES, DOCUMENT_TYPES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, PRODUCT_UNITS, CONVERSATION_STATUSES } from "@/types/database";
+import { ADJUST_REASONS, AFTER_HOURS_MODES, DOCUMENT_TYPES, EXPENSE_CATEGORIES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, PRODUCT_UNITS, RECEIVE_METHODS, CONVERSATION_STATUSES } from "@/types/database";
 import { REPLY_LENGTHS, TONES } from "@/lib/ai/style";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
 
@@ -256,3 +256,16 @@ export const appointmentSchema = z.object({
 });
 
 export const APPOINTMENT_STATUSES = ["booked", "confirmed", "completed", "cancelled", "no_show"] as const;
+
+/** An expense (rent, transport, supplier payment…). The date can't be more than a day ahead (time zones). */
+export const expenseSchema = z.object({
+  category: z.enum(EXPENSE_CATEGORIES, { error: "invalid_option" }),
+  amount: money.refine((v) => v > 0, "invalid_number"),
+  spent_on: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "invalid_date")
+    .refine((d) => !Number.isNaN(Date.parse(d)) && Date.parse(d) <= Date.now() + 36 * 3600 * 1000 && d >= "2000-01-01", "invalid_date"),
+  description: optionalText(500),
+  payment_method: z.preprocess((v) => (v === "" ? null : v), z.enum(RECEIVE_METHODS, { error: "invalid_option" }).nullable().optional()).transform((v) => v ?? null),
+  reference: optionalText(100),
+});

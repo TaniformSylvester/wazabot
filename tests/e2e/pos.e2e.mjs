@@ -212,6 +212,48 @@ mkdirSync("test-results", { recursive: true });
     await main.getByPlaceholder("Search products by name or SKU").waitFor({ timeout: 15000 });
     ok("customer profile: New sale opens the till with the customer chosen", (await main.getByLabel("Customer", { exact: true }).inputValue()) === customerId);
 
+    // ---------------------------------------------------------------- Test 8: expenses
+    await page.goto(`${APP}/en/dashboard/expenses`);
+    await main.getByText("No expenses this month").waitFor({ timeout: 15000 });
+    const expenseForm = main.locator("form").filter({ has: page.getByRole("button", { name: "Add an expense" }) });
+    const monthTotal = () => main.getByTestId("expenses-month-total").innerText();
+    const addExpense = async (category, amount, description, date) => {
+      await expenseForm.getByLabel("Category").selectOption(category);
+      await expenseForm.getByLabel("Amount (FCFA)").fill(amount);
+      if (date) await expenseForm.getByLabel("Date").fill(date);
+      await expenseForm.getByLabel("Paid by (optional)").selectOption("cash");
+      await expenseForm.getByLabel("Description (optional)").fill(description);
+      await expenseForm.getByRole("button", { name: "Add an expense" }).click();
+    };
+    await addExpense("rent", "50 000", "Shop rent");
+    await main.getByText("Expense recorded.").waitFor({ timeout: 10000 });
+    await addExpense("transport", "3500", "Fuel for deliveries");
+    await main.getByTestId("expenses-month-total").getByText("53,500 FCFA").waitFor({ timeout: 10000 });
+    ok(
+      "Test 8 — expenses recorded: month total 53,500, by category, who recorded them",
+      sql(`select count(*) || ' ' || sum(amount)::int from expenses where business_id = '${bizId}'`) === "2 53500" &&
+        /Rent/.test(await main.getByTestId("expenses-by-category").innerText()) && /Marie Josée/.test(await main.locator("table").innerText()),
+    );
+    const future = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    await addExpense("other", "1000", "Future", future);
+    await main.getByText("Enter a valid date, not in the future.").waitFor({ timeout: 10000 });
+    ok("expenses: a date in the future is refused", sql(`select count(*) from expenses where business_id = '${bizId}'`) === "2");
+    await main.locator("tr", { hasText: "Fuel for deliveries" }).getByRole("link", { name: "Edit" }).click();
+    await page.waitForURL(/\/dashboard\/expenses\/[0-9a-f-]{36}$/);
+    await main.getByLabel("Amount (FCFA)").fill("4000");
+    await main.getByRole("button", { name: "Save", exact: true }).click();
+    await page.waitForURL(/\/dashboard\/expenses\?month=.*saved=1/);
+    await main.getByTestId("expenses-month-total").getByText("54,000 FCFA").waitFor({ timeout: 10000 }).catch(() => {});
+    ok("expenses: edited, the total follows (54,000)", (await monthTotal()).includes("54,000 FCFA"), (await monthTotal()) + " db=" + sql(`select string_agg(amount::int::text, ',') from expenses where business_id = '${bizId}'`));
+    await main.locator("tr", { hasText: "Fuel for deliveries" }).getByRole("link", { name: "Edit" }).click();
+    await page.waitForURL(/\/dashboard\/expenses\/[0-9a-f-]{36}$/);
+    await main.getByRole("button", { name: "Delete" }).click();
+    await main.getByRole("button", { name: "Yes, delete" }).click();
+    await page.waitForURL(/\/dashboard\/expenses\?deleted=1/);
+    await main.getByTestId("expenses-month-total").getByText("50,000 FCFA").waitFor({ timeout: 10000 }).catch(() => {});
+    ok("expenses: deleted, the total follows (50,000)", (await monthTotal()).includes("50,000 FCFA") && sql(`select count(*) from expenses where business_id = '${bizId}'`) === "1");
+    await page.screenshot({ path: "test-results/v2-expenses.png", fullPage: true });
+
     // ---------------------------------------------------------------- phone
     await page.setViewportSize({ width: 390, height: 844 });
     await pos();

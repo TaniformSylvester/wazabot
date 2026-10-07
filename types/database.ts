@@ -38,6 +38,8 @@ export type StockReason = (typeof STOCK_REASONS)[number];
 export const ADJUST_REASONS = ["purchase", "return", "damaged", "lost", "adjustment"] as const;
 export const RECEIVE_METHODS = ["cash", "mtn_momo", "orange_money", "bank_transfer", "card", "other"] as const;
 export type ReceiveMethod = (typeof RECEIVE_METHODS)[number];
+export const EXPENSE_CATEGORIES = ["rent", "electricity", "internet", "transport", "salaries", "marketing", "supplier", "packaging", "delivery", "other"] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const INDUSTRIES = ["retail", "restaurant", "hotel", "fashion", "beauty", "real_estate", "school", "services", "other"] as const;

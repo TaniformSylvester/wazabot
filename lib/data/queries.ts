@@ -786,3 +786,60 @@ export async function listCustomerTags(businessId: string) {
   for (const c of data ?? []) for (const t of c.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([tag]) => tag);
 }
+
+// ---------------------------------------------------------------------------
+// Expenses (owners and admins; RLS hides them from other roles)
+// ---------------------------------------------------------------------------
+/** First day of the month after "YYYY-MM". */
+function nextMonth(month: string) {
+  const [y, m] = month.split("-").map(Number);
+  return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+}
+
+/** One month of expenses, newest first, with the month's total and the total per category. */
+export async function listExpenses(businessId: string, f: { month: string; category?: string; page?: number }) {
+  const db = await createClient();
+  const from = `${f.month}-01`;
+  const to = nextMonth(f.month);
+  const page = Math.max(1, f.page ?? 1);
+  let q = db
+    .from("expenses")
+    .select("id, category, amount, spent_on, description, payment_method, reference, created_by, created_at", { count: "exact" })
+    .eq("business_id", businessId)
+    .gte("spent_on", from)
+    .lt("spent_on", to);
+  if (f.category) q = q.eq("category", f.category);
+  const [{ data, count }, { data: all }] = await Promise.all([
+    q
+      .order("spent_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+    db.from("expenses").select("category, amount").eq("business_id", businessId).gte("spent_on", from).lt("spent_on", to).limit(10000),
+  ]);
+  const byCategory = new Map<string, number>();
+  for (const e of all ?? []) byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + Number(e.amount));
+  const rows = data ?? [];
+  const names = await userNames(rows.map((r) => r.created_by));
+  return {
+    rows: rows.map((r) => ({ ...r, by: r.created_by ? (names.get(r.created_by) ?? null) : null })),
+    total: count ?? 0,
+    page,
+    monthTotal: [...byCategory.values()].reduce((a, b) => a + b, 0),
+    byCategory: [...byCategory.entries()].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount),
+  };
+}
+
+export async function getExpense(businessId: string, id: string) {
+  const db = await createClient();
+  const { data } = await db.from("expenses").select("*").eq("business_id", businessId).eq("id", id).maybeSingle();
+  return data;
+}
+
+/** Today's date (YYYY-MM-DD) in the business's time zone. */
+export function localToday(timezone: string, at = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+  } catch {
+    return at.toISOString().slice(0, 10);
+  }
+}
