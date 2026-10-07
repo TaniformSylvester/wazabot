@@ -52,7 +52,9 @@ async function latestMail(to, subjectIncludes) {
 const linkFrom = (mail) => (mail?.HTML.match(/href="([^"]*\/auth\/confirm[^"]*)"/) || [])[1]?.replace(/&amp;/g, "&");
 const restHeaders = (tok) => ({ apikey: ANON, authorization: `Bearer ${tok}`, "content-type": "application/json", prefer: "return=representation" });
 const get = async (tok, path) => (await fetch(`${SUPABASE}/rest/v1/${path}`, { headers: restHeaders(tok) })).json();
-const post = async (tok, path, body) => (await fetch(`${SUPABASE}/rest/v1/${path}`, { method: "POST", headers: restHeaders(tok), body: JSON.stringify(body) })).json();
+// products / order_items: cost columns are private, so ask for named columns, never *.
+const returning = (path) => (/^(products|order_items)(\?|$)/.test(path) && !path.includes("select=") ? `${path}${path.includes("?") ? "&" : "?"}select=id,business_id,name,price,currency,stock_quantity,active` : path);
+const post = async (tok, path, body) => (await fetch(`${SUPABASE}/rest/v1/${returning(path)}`, { method: "POST", headers: restHeaders(tok), body: JSON.stringify(body) })).json();
 // Tomorrow's date in Douala (the business's timezone).
 const tomorrow = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(Date.now() + 86_400_000));
 

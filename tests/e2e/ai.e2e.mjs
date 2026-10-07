@@ -57,7 +57,9 @@ const RUN_STARTED = new Date().toISOString();
 const sql = (q) => (DB ? execFileSync("psql", [DB, "-v", "ON_ERROR_STOP=1", "-qtAc", q], { encoding: "utf8" }).trim() : null);
 const get = async (tok, path) => (await fetch(`${SUPABASE}/rest/v1/${path}`, { headers: restHeaders(tok) })).json();
 const patch = (tok, path, body) => fetch(`${SUPABASE}/rest/v1/${path}`, { method: "PATCH", headers: restHeaders(tok), body: JSON.stringify(body) });
-const post = (tok, path, body) => fetch(`${SUPABASE}/rest/v1/${path}`, { method: "POST", headers: restHeaders(tok, { prefer: "return=representation" }), body: JSON.stringify(body) });
+// products / order_items: cost columns are private, so ask for named columns, never *.
+const returning = (path) => (/^(products|order_items)(\?|$)/.test(path) && !path.includes("select=") ? `${path}${path.includes("?") ? "&" : "?"}select=id,business_id,name,price,currency,stock_quantity,active` : path);
+const post = (tok, path, body) => fetch(`${SUPABASE}/rest/v1/${returning(path)}`, { method: "POST", headers: restHeaders(tok, { prefer: "return=representation" }), body: JSON.stringify(body) });
 
 let seq = 0;
 async function deliver(message, from = "237670000123", name = "Chantal") {

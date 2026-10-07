@@ -47,8 +47,10 @@ async function latestMail(to, subjectIncludes) {
 const linkFrom = (mail) => (mail?.HTML.match(/href="([^"]*\/auth\/confirm[^"]*)"/) || [])[1]?.replace(/&amp;/g, "&");
 const restHeaders = (tok, extra = {}) => ({ apikey: ANON, authorization: `Bearer ${tok}`, "content-type": "application/json", ...extra });
 const get = async (tok, path) => (await fetch(`${SUPABASE}/rest/v1/${path}`, { headers: restHeaders(tok) })).json();
+// products / order_items: cost columns are private, so ask for named columns, never *.
+const returning = (path) => (/^(products|order_items)(\?|$)/.test(path) && !path.includes("select=") ? `${path}${path.includes("?") ? "&" : "?"}select=id,business_id,name,price,currency,stock_quantity,active` : path);
 const post = async (tok, path, body) =>
-  (await fetch(`${SUPABASE}/rest/v1/${path}`, { method: "POST", headers: restHeaders(tok, { prefer: "return=representation" }), body: JSON.stringify(body) })).json();
+  (await fetch(`${SUPABASE}/rest/v1/${returning(path)}`, { method: "POST", headers: restHeaders(tok, { prefer: "return=representation" }), body: JSON.stringify(body) })).json();
 const token = async (email, password) =>
   (await (await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, { method: "POST", headers: { "content-type": "application/json", apikey: ANON }, body: JSON.stringify({ email, password }) })).json()).access_token;
 

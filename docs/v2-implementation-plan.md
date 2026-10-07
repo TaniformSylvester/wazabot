@@ -66,7 +66,10 @@ database from the catalog, never taken from the screen.
 - **Profit is an estimate**: items sold without a cost price count as zero
   cost (flagged on the dashboard and in reports).
 - **Column grants**: a new column on `products` / `order_items` must be
-  granted to `authenticated` explicitly (see the cost-privacy migration).
+  granted to `authenticated` explicitly (see the cost-privacy migration), and
+  signed-in reads of those tables must name their columns — `select *` (or an
+  insert asking for the whole row back) is refused. The app always names
+  columns; the e2e helpers were updated the same way.
 - **Deploy order** for the cost-privacy migration: deploy the code first, then
   run the migration (the new code works with or without it; the old code
   would lose access to product pages once it runs).

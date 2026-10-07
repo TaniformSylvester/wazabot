@@ -365,7 +365,8 @@ async function signUp(browser, user, locale) {
   ok("tenant D gets the not-found page for C's conversation", !(await pd.content()).includes("Brenda"));
   const dTok = await token(D.email, D.password);
   for (const table of ["products", "faqs", "knowledge_documents", "customers", "conversations", "orders", "order_items", "product_variants"]) {
-    const rows = await (await fetch(`${SUPABASE}/rest/v1/${table}?select=*`, { headers: rest(dTok) })).json();
+    // Named columns: products / order_items keep their cost columns private (select=* is refused).
+    const rows = await (await fetch(`${SUPABASE}/rest/v1/${table}?select=id,business_id`, { headers: rest(dTok) })).json();
     ok(`REST: D sees none of C's ${table}`, Array.isArray(rows) && rows.length === 0, JSON.stringify(rows).slice(0, 120));
   }
   const ins = await fetch(`${SUPABASE}/rest/v1/products`, { method: "POST", headers: rest(dTok), body: JSON.stringify({ business_id: biz.id, name: "Injected", price: 1 }) });
