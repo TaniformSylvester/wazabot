@@ -12,7 +12,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
-import { ORDER_STATUSES, PAYMENT_METHODS, PAYMENT_STATUSES } from "@/types/database";
+import { ORDER_STATUSES, PAYMENT_METHODS } from "@/types/database";
 
 export const generateMetadata = dashboardMetadata((d) => d.orders.title);
 
@@ -86,7 +86,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
             <ActionForm action={updateOrder} text={{ errors: d.errors, saved: o.updated, saving: d.common.saving }} disabled={!canEdit} hidden={{ id: order.id }}>
               <div className="grid gap-5 sm:grid-cols-2">
                 <SelectField name="status" label={o.fields.status} defaultValue={order.status} options={ORDER_STATUSES.map((s) => ({ value: s, label: o.statuses[s] }))} />
-                <SelectField name="payment_status" label={o.fields.paymentStatus} defaultValue={order.payment_status} options={PAYMENT_STATUSES.map((s) => ({ value: s, label: o.payment[s] }))} />
                 <SelectField
                   name="payment_method"
                   label={o.fields.paymentMethod}

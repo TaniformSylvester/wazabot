@@ -1122,7 +1122,7 @@ const en = {
         delivered: "Delivered",
         cancelled: "Cancelled",
       },
-      payment: { unpaid: "Unpaid", pending: "Payment pending", paid: "Paid", refunded: "Refunded", failed: "Failed" },
+      payment: { unpaid: "Unpaid", partial: "Part paid", paid: "Paid", pending: "Payment pending", refunded: "Refunded", failed: "Failed" },
       methods: {
         cash: "Cash",
         mobile_money: "Mobile Money",

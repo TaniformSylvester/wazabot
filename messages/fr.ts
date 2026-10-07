@@ -1120,7 +1120,7 @@ const fr: Messages = {
         delivered: "Livrée",
         cancelled: "Annulée",
       },
-      payment: { unpaid: "Non payée", pending: "Paiement en attente", paid: "Payée", refunded: "Remboursée", failed: "Échoué" },
+      payment: { unpaid: "Non payée", partial: "Payée en partie", paid: "Payée", pending: "Paiement en attente", refunded: "Remboursée", failed: "Échoué" },
       methods: {
         cash: "Espèces",
         mobile_money: "Mobile Money",

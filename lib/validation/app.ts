@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { AFTER_HOURS_MODES, DOCUMENT_TYPES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, PAYMENT_STATUSES, CONVERSATION_STATUSES } from "@/types/database";
+import { AFTER_HOURS_MODES, DOCUMENT_TYPES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, CONVERSATION_STATUSES } from "@/types/database";
 import { REPLY_LENGTHS, TONES } from "@/lib/ai/style";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
 
@@ -175,7 +175,6 @@ export const orderSchema = z.object({
 
 export const orderUpdateSchema = z.object({
   status: z.enum(ORDER_STATUSES, { error: "invalid_option" }),
-  payment_status: z.enum(PAYMENT_STATUSES, { error: "invalid_option" }),
   payment_method: enumOrNull(PAYMENT_METHODS),
   delivery_address: optionalText(500),
   notes: optionalText(2000),

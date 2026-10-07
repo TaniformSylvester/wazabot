@@ -24,10 +24,14 @@ export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
 export const ORDER_STATUSES = ["pending", "confirmed", "processing", "ready", "out_for_delivery", "delivered", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-export const PAYMENT_STATUSES = ["unpaid", "pending", "paid", "refunded", "failed"] as const;
+/** Follows the recorded payments (V2): unpaid / partial / paid. pending, refunded and failed are kept for older orders. */
+export const PAYMENT_STATUSES = ["unpaid", "partial", "paid", "pending", "refunded", "failed"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const PAYMENT_METHODS = ["cash", "mobile_money", "orange_money", "mtn_momo", "bank_transfer", "card", "other"] as const;
+/** How a payment was received (order_payments.method, expenses). Credit is not a payment: it is what remains unpaid. */
+export const RECEIVE_METHODS = ["cash", "mtn_momo", "orange_money", "bank_transfer", "card", "other"] as const;
+export type ReceiveMethod = (typeof RECEIVE_METHODS)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const INDUSTRIES = ["retail", "restaurant", "hotel", "fashion", "beauty", "real_estate", "school", "services", "other"] as const;

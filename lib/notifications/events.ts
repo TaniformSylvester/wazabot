@@ -51,7 +51,8 @@ export async function notifyOrderStatus(admin: Admin, businessId: string, orderI
     .eq("business_id", businessId)
     .maybeSingle();
   const kind = o ? ORDER_KINDS[o.status] : undefined;
-  if (!o || !kind) return null;
+  // Walk-in sales have no customer to tell.
+  if (!o || !kind || !o.customer_id) return null;
   if (!(await settingsFor(admin, businessId)).order_updates) return null;
   const language = templateLanguageFor(o.customers?.preferred_language, o.businesses?.default_language ?? "en");
   return notify(admin, {

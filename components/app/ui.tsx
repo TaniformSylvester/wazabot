@@ -158,7 +158,7 @@ export const orderStatusTone: Record<string, BadgeTone> = {
   delivered: "green",
   cancelled: "red",
 };
-export const paymentStatusTone: Record<string, BadgeTone> = { unpaid: "neutral", pending: "amber", paid: "green", refunded: "neutral", failed: "red" };
+export const paymentStatusTone: Record<string, BadgeTone> = { unpaid: "neutral", partial: "amber", pending: "amber", paid: "green", refunded: "neutral", failed: "red" };
 export const conversationStatusTone: Record<string, BadgeTone> = { open: "green", pending: "amber", resolved: "neutral", archived: "neutral" };
 
 export function DefinitionList({ rows }: { rows: { label: string; value: React.ReactNode }[] }) {

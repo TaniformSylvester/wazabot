@@ -114,7 +114,10 @@ begin
     raise exception 'FAIL: order numbering';
   end if;
 
-  update public.orders set status = 'confirmed', payment_status = 'paid', payment_method = 'mtn_momo' where id = o;
+  update public.orders set status = 'confirmed', payment_method = 'mtn_momo' where id = o;
+  -- Payment status follows recorded payments (V2: pos_inventory.sql).
+  perform public.record_order_payment(b, o, (select total from public.orders where id = o), 'mtn_momo');
+  if (select payment_status from public.orders where id = o) <> 'paid' then raise exception 'FAIL: paid once the payment is recorded'; end if;
   begin
     update public.orders set total = 1 where id = o;
     raise exception 'FAIL: order totals must not be editable';

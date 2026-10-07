@@ -255,6 +255,13 @@ export type Database = {
             foreignKeyName: "appointments_business_id_customer_id_fkey";
             columns: ["business_id", "customer_id"];
             isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
+          },
+          {
+            foreignKeyName: "appointments_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["business_id", "id"];
           },
@@ -391,6 +398,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "broadcasts";
             referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "broadcast_recipients_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
           },
           {
             foreignKeyName: "broadcast_recipients_business_id_customer_id_fkey";
@@ -637,6 +651,7 @@ export type Database = {
           onboarding_step: number;
           opening_hours: NonNullable<Json>;
           phone: string | null;
+          receipt_footer: string | null;
           slug: string;
           status: string;
           timezone: string;
@@ -660,6 +675,7 @@ export type Database = {
           onboarding_step?: number;
           opening_hours?: NonNullable<Json>;
           phone?: string | null;
+          receipt_footer?: string | null;
           slug: string;
           status?: string;
           timezone?: string;
@@ -683,6 +699,7 @@ export type Database = {
           onboarding_step?: number;
           opening_hours?: NonNullable<Json>;
           phone?: string | null;
+          receipt_footer?: string | null;
           slug?: string;
           status?: string;
           timezone?: string;
@@ -831,6 +848,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "conversations_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
+          },
           {
             foreignKeyName: "conversations_business_id_customer_id_fkey";
             columns: ["business_id", "customer_id"];
@@ -1010,6 +1034,56 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "languages";
             referencedColumns: ["code"];
+          },
+        ];
+      };
+      expenses: {
+        Row: {
+          amount: number;
+          business_id: string;
+          category: string;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          id: string;
+          payment_method: string | null;
+          reference: string | null;
+          spent_on: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          category: string;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          payment_method?: string | null;
+          reference?: string | null;
+          spent_on?: string;
+          updated_at?: string;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          category?: string;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          payment_method?: string | null;
+          reference?: string | null;
+          spent_on?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "expenses_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -1557,6 +1631,13 @@ export type Database = {
             foreignKeyName: "notifications_business_id_customer_id_fkey";
             columns: ["business_id", "customer_id"];
             isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
+          },
+          {
+            foreignKeyName: "notifications_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["business_id", "id"];
           },
@@ -1585,6 +1666,7 @@ export type Database = {
           product_name: string;
           quantity: number;
           total: number;
+          unit_cost: number | null;
           unit_price: number;
           variant: string | null;
           variant_id: string | null;
@@ -1597,6 +1679,7 @@ export type Database = {
           product_name: string;
           quantity: number;
           total: number;
+          unit_cost?: number | null;
           unit_price: number;
           variant?: string | null;
           variant_id?: string | null;
@@ -1609,6 +1692,7 @@ export type Database = {
           product_name?: string;
           quantity?: number;
           total?: number;
+          unit_cost?: number | null;
           unit_price?: number;
           variant?: string | null;
           variant_id?: string | null;
@@ -1637,14 +1721,84 @@ export type Database = {
           },
         ];
       };
+      order_payments: {
+        Row: {
+          amount: number;
+          business_id: string;
+          created_at: string;
+          customer_id: string | null;
+          group_id: string;
+          id: string;
+          method: string;
+          order_id: string;
+          provider: string;
+          received_at: string;
+          recorded_by: string | null;
+          reference: string | null;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          created_at?: string;
+          customer_id?: string | null;
+          group_id?: string;
+          id?: string;
+          method: string;
+          order_id: string;
+          provider?: string;
+          received_at?: string;
+          recorded_by?: string | null;
+          reference?: string | null;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          created_at?: string;
+          customer_id?: string | null;
+          group_id?: string;
+          id?: string;
+          method?: string;
+          order_id?: string;
+          provider?: string;
+          received_at?: string;
+          recorded_by?: string | null;
+          reference?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_payments_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
+          },
+          {
+            foreignKeyName: "order_payments_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "order_payments_business_id_order_id_fkey";
+            columns: ["business_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
       orders: {
         Row: {
+          amount_paid: number;
           business_id: string;
+          channel: string;
+          client_key: string | null;
           conversation_id: string | null;
           created_at: string;
           created_by: string | null;
           currency: string;
-          customer_id: string;
+          customer_id: string | null;
           delivery_address: string | null;
           delivery_fee: number;
           discount: number;
@@ -1661,12 +1815,15 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          amount_paid?: number;
           business_id: string;
+          channel?: string;
+          client_key?: string | null;
           conversation_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           currency?: string;
-          customer_id: string;
+          customer_id?: string | null;
           delivery_address?: string | null;
           delivery_fee?: number;
           discount?: number;
@@ -1683,12 +1840,15 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          amount_paid?: number;
           business_id?: string;
+          channel?: string;
+          client_key?: string | null;
           conversation_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           currency?: string;
-          customer_id?: string;
+          customer_id?: string | null;
           delivery_address?: string | null;
           delivery_fee?: number;
           discount?: number;
@@ -1711,6 +1871,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "conversations";
             referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
           },
           {
             foreignKeyName: "orders_business_id_customer_id_fkey";
@@ -1962,6 +2129,7 @@ export type Database = {
           active: boolean;
           business_id: string;
           category: string | null;
+          cost_price: number | null;
           created_at: string;
           currency: string;
           description: string | null;
@@ -1973,12 +2141,14 @@ export type Database = {
           sku: string | null;
           stock_low: boolean | null;
           stock_quantity: number | null;
+          unit: string;
           updated_at: string;
         };
         Insert: {
           active?: boolean;
           business_id: string;
           category?: string | null;
+          cost_price?: number | null;
           created_at?: string;
           currency?: string;
           description?: string | null;
@@ -1990,12 +2160,14 @@ export type Database = {
           sku?: string | null;
           stock_low?: never;
           stock_quantity?: number | null;
+          unit?: string;
           updated_at?: string;
         };
         Update: {
           active?: boolean;
           business_id?: string;
           category?: string | null;
+          cost_price?: number | null;
           created_at?: string;
           currency?: string;
           description?: string | null;
@@ -2007,6 +2179,7 @@ export type Database = {
           sku?: string | null;
           stock_low?: never;
           stock_quantity?: number | null;
+          unit?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -2066,6 +2239,73 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "businesses";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      stock_movements: {
+        Row: {
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          new_stock: number;
+          note: string | null;
+          order_id: string | null;
+          previous_stock: number;
+          product_id: string;
+          quantity_change: number;
+          reason: string;
+          variant_id: string | null;
+        };
+        Insert: {
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          new_stock: number;
+          note?: string | null;
+          order_id?: string | null;
+          previous_stock: number;
+          product_id: string;
+          quantity_change: number;
+          reason: string;
+          variant_id?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          new_stock?: number;
+          note?: string | null;
+          order_id?: string | null;
+          previous_stock?: number;
+          product_id?: string;
+          quantity_change?: number;
+          reason?: string;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_business_id_order_id_fkey";
+            columns: ["business_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "stock_movements_business_id_product_id_fkey";
+            columns: ["business_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "stock_movements_business_id_variant_id_fkey";
+            columns: ["business_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["business_id", "id"];
           },
         ];
       };
@@ -2426,10 +2666,41 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      customer_stats: {
+        Row: {
+          amount_paid: number | null;
+          business_id: string | null;
+          customer_id: string | null;
+          last_purchase_at: string | null;
+          orders_count: number | null;
+          outstanding: number | null;
+          total_spent: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customers_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string };
+      adjust_stock: {
+        Args: {
+          p_business_id: string;
+          p_new_stock?: number;
+          p_note?: string;
+          p_product_id: string;
+          p_quantity?: number;
+          p_reason: string;
+          p_variant_id?: string;
+        };
+        Returns: number;
+      };
       admin_cost_report: {
         Args: { p_free_service: number; p_month: string };
         Returns: {
@@ -2515,6 +2786,8 @@ export type Database = {
       create_order: {
         Args: {
           p_business_id: string;
+          p_channel?: string;
+          p_client_key?: string;
           p_conversation_id?: string;
           p_customer_id: string;
           p_delivery_address?: string;
@@ -2523,6 +2796,19 @@ export type Database = {
           p_items: Json;
           p_notes?: string;
           p_payment_method?: string;
+          p_status?: string;
+        };
+        Returns: string;
+      };
+      create_sale: {
+        Args: {
+          p_business_id: string;
+          p_client_key: string;
+          p_customer_id?: string;
+          p_discount?: number;
+          p_items: Json;
+          p_notes?: string;
+          p_payments?: Json;
         };
         Returns: string;
       };
@@ -2573,6 +2859,17 @@ export type Database = {
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
       prepare_broadcast: { Args: { p_broadcast_id: string }; Returns: number };
+      product_sales: {
+        Args: { p_business_id: string; p_from: string; p_to: string };
+        Returns: {
+          cogs: number;
+          items_without_cost: number;
+          product_id: string;
+          product_name: string;
+          quantity: number;
+          revenue: number;
+        }[];
+      };
       record_ai_reply: {
         Args: {
           p_business_id: string;
@@ -2596,6 +2893,28 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      record_customer_payment: {
+        Args: {
+          p_amount: number;
+          p_business_id: string;
+          p_client_key?: string;
+          p_customer_id: string;
+          p_method: string;
+          p_reference?: string;
+        };
+        Returns: string;
+      };
+      record_order_payment: {
+        Args: {
+          p_amount: number;
+          p_business_id: string;
+          p_client_key?: string;
+          p_method: string;
+          p_order_id: string;
+          p_reference?: string;
+        };
+        Returns: string;
       };
       record_whatsapp_send: {
         Args: { p_business_id: string; p_category: string; p_phone_number_id: string };
@@ -2629,6 +2948,17 @@ export type Database = {
       };
       revoke_invitation: { Args: { p_invitation_id: string }; Returns: undefined };
       role_rank: { Args: { r: string }; Returns: number };
+      sales_by_day: {
+        Args: { p_business_id: string; p_from: string; p_to: string };
+        Returns: {
+          cogs: number;
+          day: string;
+          discounts: number;
+          items_without_cost: number;
+          revenue: number;
+          sales: number;
+        }[];
+      };
       set_ui_locale: { Args: { p_locale: string }; Returns: undefined };
       shares_business_with: { Args: { other_user: string }; Returns: boolean };
       token_sha256: { Args: { p_token: string }; Returns: string };
