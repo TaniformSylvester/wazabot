@@ -4,40 +4,77 @@ Copy everything below the line into Claude Cowork.
 
 ---
 
-You are helping me make a screen-recorded video that shows how to use **WazaBolt**
-(www.wazabolt.com), a web app that helps small shops in Cameroon manage sales, stock,
-customers, credit, expenses and profit. You will drive the browser on my computer
-step by step while **I record the screen myself**. You also write the narration and
-on-screen captions.
+You are making a finished video, recording included, that shows how to use
+**WazaBolt** (www.wazabolt.com), a web app that helps small shops in Cameroon manage
+sales, stock, customers, credit, expenses and profit. **You drive the browser, record
+it, edit the clips and deliver the final video files.** I only step in when you need
+a password or an email confirmation.
+
+## How to record (choose in this order)
+
+**Method A — scripted browser recording (preferred).** Use your code tools:
+- Write a Playwright script that opens WazaBolt in Chromium with video recording on
+  (`recordVideo`).
+- Record **two formats**:
+  - **Landscape** for Facebook/YouTube: viewport 1280 × 800.
+  - **Vertical** for WhatsApp Status/TikTok: viewport 390 × 844, mobile.
+- Make it look human:
+  - Use `slowMo` of about 400 ms.
+  - Type with a delay of about 60 ms per character.
+  - Wait 1.5–2 s after each important click so viewers can follow.
+  - Scroll smoothly.
+  - Headless recordings don't show a mouse pointer, so inject a visible cursor dot
+    and a click ripple into the page.
+- Record **one clip per scene**. Then, with ffmpeg:
+  - convert the clips to MP4 (H.264, 30 fps)
+  - add a short title card before each scene
+  - burn in the caption for each scene (white text on a dark band, large enough for a
+    phone)
+  - join everything into the final videos
+- Colours for cards and caption bands:
+  - background `#102a2a`
+  - green `#16b878`
+  - gold `#ffc83d`
+  - text `#fffdf8`
+- WazaBolt's logo is at `https://www.wazabolt.com/logo/wazabolt-icon-512.png`.
+
+**Method B — if you can't run code or can't reach the site from your tools.** Use
+computer use on my computer:
+- Start the system screen recorder yourself (Mac: Cmd + Shift + 5 → Record Selected
+  Portion; Windows: Win + Alt + R).
+- Perform the scenes in my browser, and stop the recorder after each scene.
+- Then edit the clips as in Method A if you can, or tell me where the raw recordings
+  are.
+
+Before starting, tell me which method you'll use and why.
 
 ## Ground rules (follow them strictly)
 
-1. **Passwords:** never ask me to type a password in the chat and never read one aloud.
-   When a login is needed, stop and say "Please sign in now", then wait until I
-   tell you I'm done.
-2. **Accounts:** only use the two accounts I name below. Never touch my main business
-   account.
+1. **Passwords and sign-in:** these two accounts are demo accounts with no real data.
+   I'll give you their passwords one of two ways, as you prefer:
+   - (a) in a file named `wazabolt-video.env` in our shared folder:
+     ```
+     TUTORIAL_EMAIL=...
+     TUTORIAL_PASSWORD=...
+     DEMO_EMAIL=...
+     DEMO_PASSWORD=...
+     ```
+   - (b) for Method B, I type them myself when you say "Please sign in now".
+
+   Never write the passwords into captions, scripts, logs or the final video. Password
+   fields must appear only as dots.
+2. **Accounts:** only use the two accounts below. Never touch my main business account.
 3. **Don't change** billing, plans, team members or WhatsApp settings, and don't
    connect WhatsApp. Don't delete anything.
 4. **No real people:** use only the invented names and numbers given in this prompt.
-5. **Recording pace:** before every scene, tell me "Scene N — start recording" and
-   wait for me to say **go**. Move slowly: pause about 2 seconds after each click,
-   type at a natural speed, and scroll gently. At the end of a scene say
-   "Scene N done — stop recording", and wait.
-6. **When something differs** from what I describe (a button has another name, a page
-   looks different, an error appears), stop and tell me. Don't improvise work-arounds.
-7. The app is in English at `https://www.wazabolt.com/en`. If I ask for a French
+5. **When something differs** from what I describe (a button has another name, a page
+   looks different, an error appears), stop and tell me. Don't improvise
+   work-arounds. If a scene goes wrong, re-record that scene only.
+6. The app is in English at `https://www.wazabolt.com/en`. If I ask for a French
    version, use `https://www.wazabolt.com/fr` and the French button names on screen.
-
-## Recording setup (tell me this at the start)
-
-- **For Facebook / YouTube (landscape):** browser window around 1280 × 800, zoom 110%.
-- **For WhatsApp Status / TikTok (vertical):** open the browser's device toolbar or
-  resize the window to about 400 × 850, so it looks like a phone.
-- **How I record:**
-  - Windows: Win + Alt + R (Xbox Game Bar) or the Snipping Tool's video mode.
-  - Mac: Cmd + Shift + 5.
-- Close other tabs and turn off notifications before recording.
+7. **Data the scenes create:** Scenes 1–7 create real records in the tutorial account
+   (products, a customer, sales, an expense). That's expected. If you need to record a
+   scene again, use new names (e.g. "T-Shirt coton 2") rather than deleting anything.
 
 ## The two accounts
 
@@ -58,11 +95,14 @@ on-screen captions.
    - **Your name:** "Demo Tutorial"
    - **Business name:** "Boutique Démo Tutoriel"
    - **Email:** the alias I give you
-3. At the **Password** field, stop and let me type it myself.
-4. Click **Create account**. The page shows **Check your email**.
+3. **Password:** use `TUTORIAL_PASSWORD` (it shows as dots) or let me type it.
+4. Click **Create account**. The page shows **Check your email**. End the clip here.
 5. Tell me: "Open the confirmation email and click the link, then tell me." Wait.
-6. After I confirm, the setup guide opens. Show it briefly, then click
-   **Skip for now** to reach the dashboard.
+   Don't record this part.
+6. Start a new clip:
+   - Sign in at `https://www.wazabolt.com/en/login` with the tutorial account.
+   - The setup guide opens. Show it briefly, then click **Skip for now** to reach the
+     dashboard.
 
 ### Scene 2 — Add a product with its stock (Account A)
 1. Open **Products** in the left menu (on a phone-sized window, open the ☰ menu
@@ -133,9 +173,10 @@ on-screen captions.
    - **Paid by (optional):** Cash
 2. Click **Add an expense**. Show the monthly total.
 
-### Scene 8 — Sign out, then sign in to the demo shop (Account B)
+### Scene 8 — Switch to the demo shop (Account B)
 1. Log out of Account A (**Log out** at the bottom of the menu).
-2. Say "Please sign in to the demo account now" and wait.
+2. Sign in to the demo account. Don't show its email address on screen for long; cut
+   the login out of the final video if you can.
 
 ### Scene 9 — The dashboard (Account B, MJ Fashion Cameroon)
 1. Check the top bar shows **MJ Fashion Cameroon**. If not, switch to it in the top
@@ -165,16 +206,30 @@ Return to the **Dashboard** and hold still for 5 seconds for the end caption.
 
 ## What to give me at the end
 
-1. **Narration script**, one paragraph per scene, in three versions: **French**,
+Put everything in a folder called `WazaBolt video` in our shared folder:
+
+1. **Final videos (MP4):**
+   - `wazabolt-tutorial-landscape.mp4`: all scenes, for Facebook/YouTube.
+   - `wazabolt-tutorial-vertical.mp4`: all scenes, phone format.
+   - `wazabolt-status-30s.mp4`: a 30-second vertical cut of the 4 strongest moments
+     (suggestion: sale → receipt → customer owes → dashboard). Keep it under 30 seconds
+     so it fits one WhatsApp Status.
+   - **Each video ends with a 4-second end card** using the end card text below.
+2. **The raw clips,** one per scene, so I can re-edit.
+3. **Voice-over:**
+   - If you have a text-to-speech tool, add a French voice-over track to the landscape
+     video and also deliver a version without voice.
+   - If you don't, deliver the videos with captions only and say so. Don't add music
+     unless it's royalty-free and you tell me its source.
+4. **Narration script**, one paragraph per scene, in three versions: **French**,
    **English** and **Cameroonian Pidgin**. Use simple, friendly sentences, about
    15–25 seconds of speech per scene.
-2. **On-screen captions**: one short line per scene (max 8 words), in French and
+5. **On-screen captions**: one short line per scene (max 8 words), in French and
    English, e.g. "Ajoutez vos produits et votre stock / Add your products and stock".
-3. **A 30-second short version** for WhatsApp Status, choosing the 4 strongest moments
-   (suggestion: sale → receipt → customer owes → dashboard), with its own captions.
-4. **End card text:** "WazaBolt — Ventes, stock, clients et crédits au même endroit.
+6. **Captions for the 30-second Status version.**
+7. **End card text:** "WazaBolt — Ventes, stock, clients et crédits au même endroit.
    Gratuit pour commencer · wazabolt.com · WhatsApp +237 651 575 933".
-5. **A list of any problems** you noticed during the scenes (slow pages, confusing
+8. **A list of any problems** you noticed during the scenes (slow pages, confusing
    labels, errors), so I can fix them before publishing.
 
 ## Honesty rules for the narration
