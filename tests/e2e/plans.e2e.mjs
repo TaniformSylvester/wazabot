@@ -109,6 +109,7 @@ mkdirSync("test-results", { recursive: true });
     await main.getByTestId("business-overview").waitFor({ timeout: 15000 });
     ok("Free: the dashboard shows no profit, and says where to get it", (await main.getByTestId("today-profit").count()) === 0 && /Estimated profit and expenses are included from the Boutique plan/.test(await main.innerText()));
     await page.goto(`${APP}/en/dashboard/reports?range=30d`);
+    await main.getByText(/reports cover the last 7 days/).waitFor({ timeout: 15000 }).catch(() => {});
     const report = await main.innerText();
     ok(
       "Free: reports cover the last 7 days, without costs or profit",
@@ -131,6 +132,7 @@ mkdirSync("test-results", { recursive: true });
     await page.getByTestId("plan-grace-notice").waitFor({ timeout: 15000 });
     ok("grace: existing shops see when the Free limits start, with the Boutique price", /From 1 Dec 2026/.test(await page.getByTestId("plan-grace-notice").innerText()) && /5,000 FCFA/.test(await page.getByTestId("plan-grace-notice").innerText()), await page.getByTestId("plan-grace-notice").innerText());
     await page.goto(`${APP}/en/dashboard/expenses`);
+    await main.getByRole("button", { name: "Add an expense" }).waitFor({ timeout: 15000 }).catch(() => {});
     ok("grace: expenses still available until then", (await main.getByRole("button", { name: "Add an expense" }).count()) === 1);
 
     // ---------------------------------------------------------------- Boutique: unlimited products and sales, expenses and profit, still 1 user

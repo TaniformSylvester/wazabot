@@ -164,6 +164,7 @@ mkdirSync("test-results", { recursive: true });
     const summary = await main.getByTestId("orders-summary").innerText();
     ok("totals: order value, payments received (money collected) and balance due shown apart", /62,000/.test(summary) && /42,000/.test(summary) && /20,000/.test(summary), summary.replace(/\n/g, " | "));
     await page.goto(`${APP}/en/dashboard/orders?q=CUS-000001`);
+    await main.locator("tbody tr").first().waitFor({ timeout: 15000 }).catch(() => {});
     ok("orders can be searched by customer ID", (await main.locator("tbody tr").count()) === 1, (await main.innerText()).slice(0, 900).replace(/\n/g, " | "));
     await page.goto(`${APP}/en/dashboard/orders?q=CUS-000002`);
     ok("…and the other Paul has none", (await main.locator("tbody tr").count()) === 0);
