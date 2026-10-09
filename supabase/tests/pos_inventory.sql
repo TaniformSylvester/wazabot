@@ -10,6 +10,8 @@ create temp table ids on commit drop as
 select (select business_id from public.business_members where user_id = '00000000-0000-4000-a920-00000000000a') as biz,
        (select business_id from public.business_members where user_id = '00000000-0000-4000-a920-00000000000c') as other;
 -- The cashier also works for MJ Test (role agent).
+-- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
+update public.businesses set free_limits_from = '2099-01-01' where id in (select biz from ids);
 insert into public.business_members (business_id, user_id, role) select biz, '00000000-0000-4000-a920-00000000000b', 'agent' from ids;
 create temp table t (k text primary key, v uuid) on commit drop;
 grant select on ids to authenticated, service_role;

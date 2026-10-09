@@ -14,6 +14,11 @@ export type Plan = {
   /** Metered AI conversations included per month. Never "unlimited". */
   aiConversationsPerMonth: number;
   highlighted?: boolean;
+  maxProducts: number | null;
+  maxMonthlySales: number | null;
+  maxMembers: number;
+  reportDays: number | null;
+  hasProfit: boolean;
 };
 
 export const plans: Plan[] = PLANS.map((p) => ({
@@ -21,5 +26,10 @@ export const plans: Plan[] = PLANS.map((p) => ({
   monthlyPrice: p.monthlyPrice,
   currency: "XAF",
   aiConversationsPerMonth: p.aiConversationsPerMonth,
+  maxProducts: p.maxProducts,
+  maxMonthlySales: p.maxMonthlySales,
+  maxMembers: p.maxMembers,
+  reportDays: p.reportDays,
+  hasProfit: p.hasProfit,
   ...(p.highlighted ? { highlighted: true } : {}),
 }));

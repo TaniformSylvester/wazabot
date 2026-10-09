@@ -643,6 +643,7 @@ export type Database = {
           default_language: string;
           description: string | null;
           email: string | null;
+          free_limits_from: string;
           id: string;
           industry: string | null;
           logo_url: string | null;
@@ -667,6 +668,7 @@ export type Database = {
           default_language?: string;
           description?: string | null;
           email?: string | null;
+          free_limits_from?: string;
           id?: string;
           industry?: string | null;
           logo_url?: string | null;
@@ -691,6 +693,7 @@ export type Database = {
           default_language?: string;
           description?: string | null;
           email?: string | null;
+          free_limits_from?: string;
           id?: string;
           industry?: string | null;
           logo_url?: string | null;
@@ -1968,11 +1971,16 @@ export type Database = {
           ai_conversations_per_month: number;
           created_at: string;
           currency: string;
+          has_profit: boolean;
           highlighted: boolean;
           id: string;
           legacy_conversations_per_month: number | null;
+          max_members: number | null;
+          max_monthly_sales: number | null;
+          max_products: number | null;
           monthly_price: number;
           name: string;
+          report_days: number | null;
           sort_order: number;
         };
         Insert: {
@@ -1980,11 +1988,16 @@ export type Database = {
           ai_conversations_per_month: number;
           created_at?: string;
           currency?: string;
+          has_profit?: boolean;
           highlighted?: boolean;
           id: string;
           legacy_conversations_per_month?: number | null;
+          max_members?: number | null;
+          max_monthly_sales?: number | null;
+          max_products?: number | null;
           monthly_price: number;
           name: string;
+          report_days?: number | null;
           sort_order?: number;
         };
         Update: {
@@ -1992,11 +2005,16 @@ export type Database = {
           ai_conversations_per_month?: number;
           created_at?: string;
           currency?: string;
+          has_profit?: boolean;
           highlighted?: boolean;
           id?: string;
           legacy_conversations_per_month?: number | null;
+          max_members?: number | null;
+          max_monthly_sales?: number | null;
+          max_products?: number | null;
           monthly_price?: number;
           name?: string;
+          report_days?: number | null;
           sort_order?: number;
         };
         Relationships: [];
@@ -2688,6 +2706,19 @@ export type Database = {
       };
     };
     Functions: {
+      _plan_limits: {
+        Args: { p_business_id: string };
+        Returns: {
+          enforced: boolean;
+          has_profit: boolean;
+          limits_from: string;
+          max_members: number;
+          max_monthly_sales: number;
+          max_products: number;
+          plan_id: string;
+          report_days: number;
+        }[];
+      };
       accept_invitation: { Args: { p_token: string }; Returns: string };
       adjust_stock: {
         Args: {
@@ -2775,6 +2806,22 @@ export type Database = {
           p_starts_at: string;
         };
         Returns: string;
+      };
+      business_plan_limits: {
+        Args: { p_business_id: string };
+        Returns: {
+          enforced: boolean;
+          has_profit: boolean;
+          limits_from: string;
+          max_members: number;
+          max_monthly_sales: number;
+          max_products: number;
+          members_used: number;
+          plan_id: string;
+          products_used: number;
+          report_days: number;
+          sales_this_month: number;
+        }[];
       };
       business_slug: { Args: { p_id: string; p_name: string }; Returns: string };
       cancel_plan_change: { Args: { p_request_id: string }; Returns: undefined };

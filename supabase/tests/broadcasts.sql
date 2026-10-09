@@ -10,6 +10,8 @@ create temp table ids on commit drop as
 select (select business_id from public.business_members where user_id = '00000000-0000-4000-a800-00000000000a') as biz,
        (select business_id from public.business_members where user_id = '00000000-0000-4000-a800-00000000000c') as other;
 grant select on ids to authenticated, service_role;
+-- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
+update public.businesses set free_limits_from = '2099-01-01' where id in (select biz from ids);
 insert into public.business_members (business_id, user_id, role) select biz, '00000000-0000-4000-a800-00000000000b', 'agent' from ids;
 
 insert into public.customers (business_id, whatsapp_phone, name, tags, preferred_language, marketing_opt_in, preferred_language_source)

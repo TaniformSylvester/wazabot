@@ -418,7 +418,7 @@ mkdirSync("test-results", { recursive: true });
     await page.getByRole("link", { name: "Pricing" }).click();
     await page.getByRole("heading", { name: "Plans at full allowance" }).waitFor({ timeout: 90000 });
     const planRows = await page.locator("tr[data-plan]").allInnerTexts();
-    ok("pricing: every plan simulated at full allowance, paid plans at or above the margin target", planRows.length === 4 && planRows.filter((r) => /^(starter|business|pro)/i.test(r)).every((r) => /Keep /.test(r)), planRows.join(" | "));
+    ok("pricing: every plan simulated at full allowance, paid plans at or above the margin target", planRows.length === 5 && planRows.filter((r) => /^(boutique|starter|business|pro)/i.test(r)).every((r) => /Keep /.test(r)), planRows.join(" | "));
     await page.getByRole("heading", { name: /Simulation — 1,000 conversations/ }).waitFor({ timeout: 90000 });
     ok("pricing: the 1,000-conversation simulation report", (await page.getByText("Answered by rules").count()) >= 1 && (await page.getByText("Cache hit rate").count()) === 1);
     await page.getByLabel("Price (FCFA / month)").fill("5000");

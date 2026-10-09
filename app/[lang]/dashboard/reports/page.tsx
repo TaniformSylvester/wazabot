@@ -6,7 +6,9 @@ import { BarChart } from "@/components/app/bar-chart";
 import { ReportPeriodForm } from "@/components/app/report-period-form";
 import { PageHeader, Panel, StatusBadge, TableWrap, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { REPORT_GROUPS, REPORT_RANGES, getReport, groupDays, resolvePeriod } from "@/lib/data/reports";
+import { REPORT_GROUPS, REPORT_RANGES, addDays, getReport, groupDays, resolvePeriod } from "@/lib/data/reports";
+import { getPlanLimits, profitAllowed, reportDaysAllowed } from "@/lib/data/queries";
+import { PlanUpsell } from "@/components/app/plan-upsell";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -31,6 +33,15 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
     );
   }
   const period = resolvePeriod(business.timezone, { range: param(sp.range), from: param(sp.from), to: param(sp.to), group: param(sp.group) });
+  // Free plan: the last few days only, and no costs or profit.
+  const limits = await getPlanLimits(business.id);
+  const withProfit = profitAllowed(limits);
+  const maxDays = reportDaysAllowed(limits);
+  if (maxDays) {
+    const earliest = addDays(period.today, -(maxDays - 1));
+    if (period.from < earliest) period.from = earliest;
+    if (period.to < earliest) period.to = period.today;
+  }
   const data = await getReport(business.id, business.timezone, period.from, period.to);
   const money = (v: number) => formatMoney(v, business.currency, locale);
   const n = (v: number) => formatNumber(v, locale);
@@ -54,10 +65,14 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
   const summary = [
     { key: "sales", label: r.summary.sales, value: n(tot.sales) },
     { key: "revenue", label: r.summary.revenue, value: money(tot.revenue) },
-    { key: "cogs", label: r.summary.cogs, value: money(tot.cogs) },
-    { key: "gross", label: r.summary.gross, value: money(tot.grossProfit) },
-    { key: "expenses", label: r.summary.expenses, value: money(tot.expenses) },
-    { key: "net", label: r.summary.net, value: money(tot.netProfit), strong: true },
+    ...(withProfit
+      ? [
+          { key: "cogs", label: r.summary.cogs, value: money(tot.cogs) },
+          { key: "gross", label: r.summary.gross, value: money(tot.grossProfit) },
+          { key: "expenses", label: r.summary.expenses, value: money(tot.expenses) },
+          { key: "net", label: r.summary.net, value: money(tot.netProfit), strong: true },
+        ]
+      : []),
   ];
 
   return (
@@ -103,6 +118,10 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
         </p>
       </Panel>
 
+      {maxDays || !withProfit ? (
+        <PlanUpsell text={maxDays ? format(d.plan.reportsLimited, { days: n(maxDays) }) : d.plan.profitLocked} cta={d.plan.upgrade} locale={locale} compact />
+      ) : null}
+
       <section aria-label={r.summary.revenue}>
         <dl className="grid grid-cols-2 gap-3 md:grid-cols-3" data-testid="report-summary">
           {summary.map((s) => (
@@ -113,10 +132,10 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
           ))}
         </dl>
         <p className="mt-2 text-xs text-slate">
-          {r.estimated}
+          {withProfit ? r.estimated : null}
           {tot.discounts > 0 ? ` ${r.summary.discounts}: ${money(tot.discounts)}.` : ""}
         </p>
-        {tot.itemsWithoutCost > 0 ? (
+        {withProfit && tot.itemsWithoutCost > 0 ? (
           <div className="mt-3">
             <FormAlert tone="info">{format(r.missingCost, { count: n(tot.itemsWithoutCost) })}</FormAlert>
           </div>
@@ -140,7 +159,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
             <TableWrap>
               <thead>
                 <tr>
-                  {[r.sales.period, r.sales.sales, r.sales.revenue, r.sales.cogs, r.sales.profit].map((h) => (
+                  {[r.sales.period, r.sales.sales, r.sales.revenue, ...(withProfit ? [r.sales.cogs, r.sales.profit] : [])].map((h) => (
                     <th key={h} className={th}>
                       {h}
                     </th>
@@ -153,8 +172,8 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
                     <td className={`${td} whitespace-nowrap`}>{periodLabel(g.day)}</td>
                     <td className={td}>{n(g.sales)}</td>
                     <td className={`${td} whitespace-nowrap`}>{money(g.revenue)}</td>
-                    <td className={`${td} whitespace-nowrap text-slate`}>{money(g.cogs)}</td>
-                    <td className={`${td} font-semibold whitespace-nowrap`}>{money(g.revenue - g.cogs)}</td>
+                    {withProfit ? <td className={`${td} whitespace-nowrap text-slate`}>{money(g.cogs)}</td> : null}
+                    {withProfit ? <td className={`${td} font-semibold whitespace-nowrap`}>{money(g.revenue - g.cogs)}</td> : null}
                   </tr>
                 ))}
               </tbody>
@@ -174,7 +193,9 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
                 ["revenue", r.products.topRevenue, (p: (typeof data.products)[number]) => money(p.revenue)],
                 ["profit", r.products.topProfit, (p: (typeof data.products)[number]) => money(p.profit)],
               ] as const
-            ).map(([key, title, value]) => (
+            )
+              .filter(([key]) => withProfit || key !== "profit")
+              .map(([key, title, value]) => (
               <div key={key}>
                 <h3 className="mb-2 text-sm font-semibold text-deep">{title}</h3>
                 <ol className="divide-y divide-border text-sm">
@@ -247,7 +268,8 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
         </Panel>
       </div>
 
-      <Panel title={r.expenses.title} actions={csvLink("expenses")}>
+      {withProfit ? (
+        <Panel title={r.expenses.title} actions={csvLink("expenses")}>
         {data.expenses.length ? (
           <div className="grid gap-6 lg:grid-cols-2" data-testid="report-expenses">
             <div>
@@ -285,7 +307,8 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
         ) : (
           <p className="text-sm text-slate">{r.expenses.empty}</p>
         )}
-      </Panel>
+        </Panel>
+      ) : null}
     </div>
   );
 }

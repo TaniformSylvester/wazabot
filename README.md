@@ -549,6 +549,29 @@ Sales and payments emit business events (`lib/core/events.ts`: sale completed, p
 credit outstanding) for future WhatsApp / SMS / email channels — none is registered yet. The audit
 and phase-by-phase plan is in `docs/v2-implementation-plan.md`.
 
+## Plans and limits
+
+WazaBolt earns money without WhatsApp too: the business tools are limited on Free, and the Boutique
+plan sells them without the AI assistant. Prices and limits live in the `plans` table (the database
+enforces them) and are mirrored in `config/economics.ts` for the website.
+
+| Plan | FCFA / month | Products | Sales / month | Users | Reports | Expenses & profit | AI conversations |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Free | 0 | 30 | 100 | 1 | last 7 days | – | 30 |
+| Boutique | 5,000 | unlimited | unlimited | 1 | full + CSV | ✓ | – |
+| Starter | 10,000 | unlimited | unlimited | 2 | full + CSV | ✓ | 500 |
+| Business | 25,000 | unlimited | unlimited | 5 | full + CSV | ✓ | 2,000 |
+| Pro | 50,000 | unlimited | unlimited | 10 | full + CSV | ✓ | 5,000 |
+
+- "Sales" are the sales and orders the team records (till and dashboard); orders the WhatsApp
+  assistant records don't count. Archived products don't count.
+- Over a limit nothing is deleted: the shop just can't add more, and gets a message pointing to
+  Billing. The database refuses it whatever the way in (errors `WB411`–`WB414`).
+- Businesses that existed before the limits keep full access until **1 December 2026**
+  (`businesses.free_limits_from`); they see a notice in the dashboard. New businesses get the Free
+  limits at once. The demo shop is exempt (`free_limits_from = 2099-12-31`).
+- Billing shows each plan's limits and the business's usage; the pricing page lists them too.
+
 ## Costs and margins
 
 Apply `supabase/migrations/20261010120000_cost_tracking.sql`.

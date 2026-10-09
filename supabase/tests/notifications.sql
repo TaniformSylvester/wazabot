@@ -10,6 +10,8 @@ insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, c
 create temp table ids on commit drop as
 select (select business_id from public.business_members where user_id = '00000000-0000-4000-a700-00000000000a') as biz;
 grant select on ids to authenticated;
+-- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
+update public.businesses set free_limits_from = '2099-01-01' where id in (select biz from ids);
 insert into public.business_members (business_id, user_id, role) select biz, '00000000-0000-4000-a700-00000000000b', 'agent' from ids;
 insert into public.whatsapp_templates (business_id, kind, name, language, body) select biz, 'order_ready', 'wazabolt_order_ready', 'en', 'Hello {{1}}' from ids;
 insert into public.customers (business_id, whatsapp_phone) select biz, '237670009999' from ids;

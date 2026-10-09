@@ -9,7 +9,7 @@ import { Receipt } from "@/components/app/receipt";
 import { DefinitionList, PageHeader, Panel, StatusBadge, buttonLink, formatMoney, paymentStatusTone, secondaryLink } from "@/components/app/ui";
 import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getSale } from "@/lib/data/queries";
+import { getPlanLimits, getSale, profitAllowed } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
@@ -21,7 +21,8 @@ export const generateMetadata = dashboardMetadata((d) => d.sales.title);
 export default async function SalePage({ params, searchParams }: PageProps<"/[lang]/dashboard/sales/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/sales/${id}`));
-  const sale = isUuid(id) ? await getSale(business.id, id, hasRole(business.role, "admin")) : null;
+  const isAdmin = hasRole(business.role, "admin") && profitAllowed(await getPlanLimits(business.id));
+  const sale = isUuid(id) ? await getSale(business.id, id, isAdmin) : null;
   if (!sale) notFound();
   const { order, payments, staff } = sale;
   const db = await createClient();
@@ -29,7 +30,6 @@ export default async function SalePage({ params, searchParams }: PageProps<"/[la
   const d = t.dashboard;
   const s = d.sales;
   const money = (v: number) => formatMoney(v, order.currency, locale);
-  const isAdmin = hasRole(business.role, "admin");
   const costKnown = order.order_items.every((i) => i.unit_cost !== null);
   const cogs = order.order_items.reduce((n, i) => n + i.quantity * Number(i.unit_cost ?? 0), 0);
   const customerName = order.customers ? order.customers.name || `+${order.customers.whatsapp_phone}` : null;

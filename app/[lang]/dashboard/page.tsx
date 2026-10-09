@@ -22,10 +22,11 @@ import {
 import { FormAlert } from "@/components/auth/form-alert";
 import { BusinessOverview } from "@/components/app/business-overview";
 import { FreeMessagesPanel } from "@/components/app/free-messages-panel";
+import { PlanUpsell } from "@/components/app/plan-upsell";
 import { EmptyState, Panel, StatCard, StatusBadge, conversationStatusTone, formatDate, formatMoney, formatPercent, orderStatusTone } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { hasOpeningHours } from "@/lib/business/hours";
-import { getDashboardMetrics, getFreeWhatsAppMessages, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders, listSales } from "@/lib/data/queries";
+import { getDashboardMetrics, getFreeWhatsAppMessages, getPlanLimits, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders, listSales, profitAllowed } from "@/lib/data/queries";
 import { getOverview } from "@/lib/data/reports";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -54,7 +55,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     redirect(localizePath(locale, `/dashboard/onboarding?step=1${params.welcome ? "&welcome=1" : ""}`));
   }
 
-  const showProfit = hasRole(business.role, "admin");
+  const isAdmin = hasRole(business.role, "admin");
+  const planAllowsProfit = profitAllowed(await getPlanLimits(business.id));
+  const showProfit = isAdmin && planAllowsProfit;
   const [metrics, progress, conversations, orders, stock, appointments, freeMessages, overview, recentSales] = await Promise.all([
     getDashboardMetrics(business.id),
     getSetupProgress(business.id, !!(business.description || business.industry || business.city), hasOpeningHours(business.openingHours)),
@@ -127,6 +130,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
         </Panel>
       ) : null}
 
+      {isAdmin && !planAllowsProfit ? <PlanUpsell text={d.plan.profitLocked} cta={d.plan.upgrade} locale={locale} compact /> : null}
       <BusinessOverview
         overview={overview}
         recent={recentSales.rows.slice(0, 5)}

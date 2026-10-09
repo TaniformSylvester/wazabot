@@ -23,11 +23,6 @@ select
   (select business_id from public.business_members where user_id = '00000000-0000-4000-f000-00000000000b') as biz_b;
 grant select on ids to authenticated;
 
-insert into public.business_members (business_id, user_id, role)
-select biz_a, '00000000-0000-4000-f000-00000000000c'::uuid, 'agent'::public.business_role from ids
-union all
-select biz_a, '00000000-0000-4000-f000-00000000000d'::uuid, 'viewer'::public.business_role from ids;
-
 do $$
 declare b uuid;
 begin
@@ -44,6 +39,14 @@ begin
   end if;
   raise notice 'PASS new business gets slug, free plan, WhatsApp state and profile email';
 end $$;
+
+-- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
+update public.businesses set free_limits_from = '2099-01-01' where id in (select biz_a from ids);
+insert into public.business_members (business_id, user_id, role)
+select biz_a, '00000000-0000-4000-f000-00000000000c'::uuid, 'agent'::public.business_role from ids
+union all
+select biz_a, '00000000-0000-4000-f000-00000000000d'::uuid, 'viewer'::public.business_role from ids;
+
 
 -- ---------------------------------------------------------------------------
 -- Owner A works in the dashboard
@@ -152,8 +155,8 @@ begin
   exception when insufficient_privilege then null;
   end;
 
-  select count(*) into n from public.plans;
-  if n <> 4 then raise exception 'FAIL: plans not readable'; end if;
+  select count(*) into n from public.plans where id in ('free', 'boutique', 'starter', 'business', 'pro');
+  if n <> 5 then raise exception 'FAIL: plans not readable'; end if;
   raise notice 'PASS owner manages profile, catalog, knowledge, customers, takeover, orders and AI settings';
 end $$;
 
@@ -260,7 +263,7 @@ reset role;
 set local role anon;
 do $$
 begin
-  if (select count(*) from public.plans) <> 4 then raise exception 'FAIL: plans should be public'; end if;
+  if (select count(*) from public.plans where id in ('free', 'boutique', 'starter', 'business', 'pro')) <> 5 then raise exception 'FAIL: plans should be public'; end if;
   begin
     perform 1 from public.products;
     raise exception 'FAIL: anon can read products';

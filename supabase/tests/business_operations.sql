@@ -20,6 +20,8 @@ select
   (select business_id from public.business_members where user_id = '00000000-0000-4000-e000-00000000000a') as biz,
   (select business_id from public.business_members where user_id = '00000000-0000-4000-e000-00000000000d') as other_biz;
 grant select on ids to anon, authenticated, service_role;
+-- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
+update public.businesses set free_limits_from = '2099-01-01' where id in (select biz from ids);
 insert into public.business_members (business_id, user_id, role)
 select biz, '00000000-0000-4000-e000-00000000000b'::uuid, 'admin'::public.business_role from ids union all
 select biz, '00000000-0000-4000-e000-00000000000c'::uuid, 'agent'::public.business_role from ids;

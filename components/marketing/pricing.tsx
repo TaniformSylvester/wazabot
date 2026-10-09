@@ -18,7 +18,7 @@ export async function Pricing() {
           description={t.description}
         />
 
-        <ul className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {plans.map((plan) => (
             <li key={plan.id}>
               <PricingCard plan={plan} locale={locale} t={t} startFree={messages.common.nav.startFree} recommended={messages.common.badges.recommended} />

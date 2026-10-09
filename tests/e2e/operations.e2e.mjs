@@ -86,6 +86,8 @@ mkdirSync("test-results", { recursive: true });
   const tok = await token(OWNER.email, OWNER.password);
   const [biz] = await get(tok, "businesses?select=id");
   sql(`update public.businesses set onboarding_step = 6, onboarding_completed_at = now() where id = '${biz.id}'`);
+  // This suite isn't about plan limits (plans.e2e.mjs is): keep this business outside the Free limits.
+  sql(`update public.businesses set free_limits_from = '2099-12-31' where id = '${biz.id}'`);
 
   // ------------------------------------------------------------------ stock
   const [dress] = await post(tok, "products", { business_id: biz.id, name: "Robe Ankara", price: 15000, stock_quantity: 3, low_stock_threshold: 2 });

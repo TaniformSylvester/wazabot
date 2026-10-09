@@ -120,7 +120,7 @@ export const META_PAYMENT_PROMPT_AT = 800;
 // ---------------------------------------------------------------------------
 // Plans (customer-facing prices — change only with the owner's approval)
 // ---------------------------------------------------------------------------
-export type PlanId = "free" | "starter" | "business" | "pro";
+export type PlanId = "free" | "boutique" | "starter" | "business" | "pro";
 
 export type PlanEconomics = {
   id: PlanId;
@@ -129,16 +129,31 @@ export type PlanEconomics = {
   /** AI conversations included per month. Never "unlimited". */
   aiConversationsPerMonth: number;
   highlighted?: boolean;
+  /** Business-tool limits; null = unlimited. Enforced by the database (plans table). */
+  maxProducts: number | null;
+  /** Sales and orders the team records per calendar month (the WhatsApp assistant's orders don't count). */
+  maxMonthlySales: number | null;
+  /** Team members, the owner included. */
+  maxMembers: number;
+  /** How far back reports go; null = any period. */
+  reportDays: number | null;
+  /** Expenses, cost-based profit and margins. */
+  hasProfit: boolean;
 };
 
 /** Must match the `plans` table (the admin margin page warns when they differ). */
 export const PLANS: PlanEconomics[] = [
   // Free: 30 conversations and a 300 FCFA Claude budget, then rules-only (businesses that signed up before Step 4: 50 until 1 Nov 2026).
-  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 30 },
-  { id: "starter", monthlyPrice: 10_000, aiConversationsPerMonth: 500 },
-  { id: "business", monthlyPrice: 25_000, aiConversationsPerMonth: 2_000, highlighted: true },
-  { id: "pro", monthlyPrice: 50_000, aiConversationsPerMonth: 5_000 },
+  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 30, maxProducts: 30, maxMonthlySales: 100, maxMembers: 1, reportDays: 7, hasProfit: false },
+  // Boutique: the business tools without WhatsApp AI, for very small shops.
+  { id: "boutique", monthlyPrice: 5_000, aiConversationsPerMonth: 0, maxProducts: null, maxMonthlySales: null, maxMembers: 1, reportDays: null, hasProfit: true },
+  { id: "starter", monthlyPrice: 10_000, aiConversationsPerMonth: 500, maxProducts: null, maxMonthlySales: null, maxMembers: 2, reportDays: null, hasProfit: true },
+  { id: "business", monthlyPrice: 25_000, aiConversationsPerMonth: 2_000, highlighted: true, maxProducts: null, maxMonthlySales: null, maxMembers: 5, reportDays: null, hasProfit: true },
+  { id: "pro", monthlyPrice: 50_000, aiConversationsPerMonth: 5_000, maxProducts: null, maxMonthlySales: null, maxMembers: 10, reportDays: null, hasProfit: true },
 ];
+
+/** Businesses that existed before the plan limits keep full access on Free until this date (businesses.free_limits_from). */
+export const FREE_LIMITS_GRACE_UNTIL = "2026-12-01";
 
 /** Annual plans: pay this many months, get 12. */
 export const ANNUAL_MONTHS_PAID = 10;

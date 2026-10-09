@@ -5,7 +5,9 @@ import { FormAlert } from "@/components/auth/form-alert";
 import { ExpenseForm } from "@/components/app/expense-form";
 import { PageHeader, Pagination, Panel, StatCard, TableWrap, formatDate, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { PAGE_SIZE, listExpenses, localToday } from "@/lib/data/queries";
+import { PAGE_SIZE, getPlanLimits, listExpenses, localToday, profitAllowed } from "@/lib/data/queries";
+import { PlanUpsell } from "@/components/app/plan-upsell";
+import { PLANS } from "@/config/economics";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -27,6 +29,15 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/[lang]/
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <PageHeader title={e.title} description={e.description} />
         <FormAlert tone="info">{e.adminOnly}</FormAlert>
+      </div>
+    );
+  }
+  if (!profitAllowed(await getPlanLimits(business.id))) {
+    const price = formatMoney(PLANS.find((p) => p.id === "boutique")?.monthlyPrice ?? 0, business.currency, locale);
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <PageHeader title={e.title} description={e.description} />
+        <PlanUpsell title={d.plan.expensesLocked.title} text={format(d.plan.expensesLocked.text, { price })} cta={d.plan.upgrade} locale={locale} />
       </div>
     );
   }

@@ -62,6 +62,8 @@ mkdirSync("test-results", { recursive: true });
     await register(page, OWNER);
     const bizId = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${OWNER.email}'`);
     sql(`update public.businesses set onboarding_step = 6, onboarding_completed_at = now() where id = '${bizId}'`);
+    // This suite isn't about plan limits (plans.e2e.mjs is): keep this business outside the Free limits.
+    sql(`update public.businesses set free_limits_from = '2099-12-31' where id = '${bizId}'`);
     const stockOf = (name) => Number(sql(`select stock_quantity from products where business_id = '${bizId}' and name = '${name}'`));
 
     // ---------------------------------------------------------------- Test 1: create products

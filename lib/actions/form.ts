@@ -37,7 +37,12 @@ export type ActionErrorKey =
   | "template_not_approved"
   | "follow_up_already_sent"
   // Stage 8
-  | "broadcast_already_sent";
+  | "broadcast_already_sent"
+  // Plan limits
+  | "plan_limit_products"
+  | "plan_limit_sales"
+  | "plan_limit_members"
+  | "plan_limit_feature";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -68,6 +73,14 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "out_of_stock";
     case "WB410":
       return "has_sales";
+    case "WB411":
+      return "plan_limit_products";
+    case "WB412":
+      return "plan_limit_sales";
+    case "WB413":
+      return "plan_limit_members";
+    case "WB414":
+      return "plan_limit_feature";
     case "23505":
       return "duplicate";
     case "22023":

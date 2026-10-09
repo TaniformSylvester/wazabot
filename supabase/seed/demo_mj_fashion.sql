@@ -87,6 +87,8 @@ begin
   insert into public.business_languages (business_id, language_code, sort_order) values (v_biz, 'fr', 0) on conflict do nothing;
   insert into public.ai_settings (business_id) values (v_biz) on conflict do nothing;
   insert into public.business_members (business_id, user_id, role) values (v_biz, v_user, 'owner');
+  -- A demo shows every feature: keep it outside the Free-plan limits (no paid plan, no billing).
+  update public.businesses set free_limits_from = '2099-12-31' where id = v_biz;
 
   -- ---------------------------------------------------------------- products
   -- name, selling price, cost price (demo), opening stock, minimum stock, category

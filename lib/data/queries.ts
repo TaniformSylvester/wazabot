@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { META_PRICING } from "@/config/economics";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { oneOf, CONVERSATION_STATUSES, ORDER_STATUSES, PAYMENT_STATUSES, WHATSAPP_STATUSES } from "@/types/database";
@@ -869,3 +870,48 @@ export function localToday(timezone: string, at = new Date()): string {
     return at.toISOString().slice(0, 10);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Plan limits (the database enforces them; this is for showing them)
+// ---------------------------------------------------------------------------
+export type PlanLimits = {
+  planId: string;
+  maxProducts: number | null;
+  maxMonthlySales: number | null;
+  maxMembers: number | null;
+  reportDays: number | null;
+  hasProfit: boolean;
+  /** False while a Free business is in its grace period. */
+  enforced: boolean;
+  /** Free plan: when the limits start (or started) for this business. */
+  limitsFrom: string | null;
+  productsUsed: number;
+  salesThisMonth: number;
+  membersUsed: number;
+};
+
+/** The current business's plan limits and usage (once per request). */
+export const getPlanLimits = cache(async (businessId: string): Promise<PlanLimits | null> => {
+  const db = await createClient();
+  const { data } = await db.rpc("business_plan_limits", { p_business_id: businessId });
+  const r = data?.[0];
+  if (!r) return null;
+  return {
+    planId: r.plan_id,
+    maxProducts: r.max_products,
+    maxMonthlySales: r.max_monthly_sales,
+    maxMembers: r.max_members,
+    reportDays: r.report_days,
+    hasProfit: r.has_profit,
+    enforced: r.enforced,
+    limitsFrom: r.limits_from,
+    productsUsed: r.products_used,
+    salesThisMonth: r.sales_this_month,
+    membersUsed: r.members_used,
+  };
+});
+
+/** Expenses, cost-based profit and margins are available (a paid plan, or Free still in its grace period). */
+export const profitAllowed = (l: PlanLimits | null) => !l || !l.enforced || l.hasProfit;
+/** How many days back reports may go, or null for any period. */
+export const reportDaysAllowed = (l: PlanLimits | null) => (l && l.enforced ? l.reportDays : null);

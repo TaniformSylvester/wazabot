@@ -1,5 +1,6 @@
 import { authorize } from "@/lib/auth/dal";
-import { expensesBetween, groupDays, productSales, resolvePeriod, salesByDay, topCustomers, type ReportGroup } from "@/lib/data/reports";
+import { getPlanLimits, profitAllowed, reportDaysAllowed } from "@/lib/data/queries";
+import { addDays, expensesBetween, groupDays, productSales, resolvePeriod, salesByDay, topCustomers, type ReportGroup } from "@/lib/data/reports";
 import { isLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/load";
 import { toCsv, type Cell } from "@/lib/reports/csv";
@@ -20,12 +21,23 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
   const url = new URL(request.url);
   const type = TYPES.find((t) => t === url.searchParams.get("type"));
   if (!type) return new Response("Unknown report", { status: 400 });
-  const { from, to, group } = resolvePeriod(business.timezone, {
+  const period = resolvePeriod(business.timezone, {
     range: "custom",
     from: url.searchParams.get("from") ?? undefined,
     to: url.searchParams.get("to") ?? undefined,
     group: url.searchParams.get("group") ?? undefined,
   });
+  // Same plan rules as the reports page: Free = recent days only, no costs or profit.
+  const limits = await getPlanLimits(business.id);
+  const withProfit = profitAllowed(limits);
+  const maxDays = reportDaysAllowed(limits);
+  if (maxDays) {
+    const earliest = addDays(period.today, -(maxDays - 1));
+    if (period.from < earliest) period.from = earliest;
+    if (period.to < earliest) period.to = period.today;
+  }
+  if (type === "expenses" && !withProfit) return new Response("Needs a paid plan", { status: 403 });
+  const { from, to, group } = period;
   const r = (await getDictionary(lang)).dashboard;
   const rep = r.reports;
   const cur = business.currency;
@@ -35,14 +47,18 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
   switch (type) {
     case "sales": {
       const days = groupDays(await salesByDay(business.id, from, to), group as ReportGroup);
-      header = [rep.sales.period, rep.sales.sales, `${rep.sales.revenue} (${cur})`, `${rep.sales.cogs} (${cur})`, `${rep.sales.profit} (${cur})`, `${rep.summary.discounts} (${cur})`];
-      rows = days.map((d) => [d.day, d.sales, d.revenue, d.cogs, d.revenue - d.cogs, d.discounts]);
+      header = withProfit
+        ? [rep.sales.period, rep.sales.sales, `${rep.sales.revenue} (${cur})`, `${rep.sales.cogs} (${cur})`, `${rep.sales.profit} (${cur})`, `${rep.summary.discounts} (${cur})`]
+        : [rep.sales.period, rep.sales.sales, `${rep.sales.revenue} (${cur})`, `${rep.summary.discounts} (${cur})`];
+      rows = days.map((d) => (withProfit ? [d.day, d.sales, d.revenue, d.cogs, d.revenue - d.cogs, d.discounts] : [d.day, d.sales, d.revenue, d.discounts]));
       break;
     }
     case "products": {
       const products = await productSales(business.id, from, to);
-      header = [rep.products.product, rep.products.quantity, `${rep.products.revenue} (${cur})`, `${rep.products.cost} (${cur})`, `${rep.products.profit} (${cur})`];
-      rows = products.map((p) => [p.name, p.quantity, p.revenue, p.cogs, p.profit]);
+      header = withProfit
+        ? [rep.products.product, rep.products.quantity, `${rep.products.revenue} (${cur})`, `${rep.products.cost} (${cur})`, `${rep.products.profit} (${cur})`]
+        : [rep.products.product, rep.products.quantity, `${rep.products.revenue} (${cur})`];
+      rows = products.map((p) => (withProfit ? [p.name, p.quantity, p.revenue, p.cogs, p.profit] : [p.name, p.quantity, p.revenue]));
       break;
     }
     case "customers": {

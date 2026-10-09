@@ -8,7 +8,7 @@ import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, formatMoney, for
 import { adjustStock, deleteProduct } from "@/lib/actions/products";
 import { isUuid } from "@/lib/actions/form";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
-import { getProduct, listStockMovements } from "@/lib/data/queries";
+import { getPlanLimits, getProduct, listStockMovements, profitAllowed } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -26,6 +26,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   const p = d.products;
   const inv = p.inventory;
   const canEdit = canManageBusiness(business.role);
+  const showMargin = canEdit && profitAllowed(await getPlanLimits(business.id));
   const n = (v: number) => formatNumber(v, locale);
   const money = (v: number) => formatMoney(v, product.currency, locale);
   const unit = p.units[product.unit as keyof typeof p.units] ?? product.unit;
@@ -77,7 +78,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
                 </p>
               </div>
             )}
-            {canEdit ? (
+            {showMargin ? (
               <p className="mt-3 border-t border-border pt-3 text-sm text-slate">
                 {inv.margin}:{" "}
                 {cost === null ? (

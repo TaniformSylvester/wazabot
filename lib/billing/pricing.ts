@@ -90,6 +90,7 @@ export function recommendation(c: PlanCheck): string {
       ? `Fits the ${fmt(c.budget)} FCFA Free budget (covers about ${fmt(c.maxConversations)} conversations).`
       : `Over the ${fmt(c.budget)} FCFA Free budget: it covers about ${fmt(c.maxConversations)} conversations, not ${fmt(c.conversations)}.`;
   }
+  if (c.ok && c.conversations === 0) return `Keep ${fmt(c.price)} FCFA: no AI conversations, so no Claude cost.`;
   if (c.ok) return `Keep ${fmt(c.price)} FCFA for ${fmt(c.conversations)} conversations: room for ${(c.headroom ?? 0).toFixed(1)}× the simulated cost.`;
   return `Below ${Math.round(MARGIN_TARGET * 100)}%: charge at least ${fmt(c.minPrice)} FCFA, or include at most ${fmt(c.maxConversations)} conversations.`;
 }

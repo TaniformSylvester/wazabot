@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, ActionForm, SelectField, SubmitButton, TextField } from "@/components/app/form";
@@ -6,7 +6,7 @@ import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, formatMoney, td,
 import { periodPrice } from "@/config/economics";
 import { cancelPlanChange, requestPlanChange } from "@/lib/actions/billing";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getBilling } from "@/lib/data/queries";
+import { getBilling, getPlanLimits } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -23,8 +23,9 @@ export const generateMetadata = dashboardMetadata((d) => d.billing.title);
 export default async function BillingPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/billing"));
-  const { plans, subscription, usage, pendingRequest, payments } = await getBilling(business.id);
+  const [{ plans, subscription, usage, pendingRequest, payments }, limits] = await Promise.all([getBilling(business.id), getPlanLimits(business.id)]);
   const b = t.dashboard.billing;
+  const pf = t.pricing.features;
   const d = t.dashboard;
   const canRequest = hasRole(business.role, "admin");
   const current = subscription?.plans ?? null;
@@ -85,7 +86,41 @@ export default async function BillingPage() {
         </Panel>
       </div>
 
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {limits && (limits.maxProducts !== null || limits.maxMonthlySales !== null || limits.maxMembers !== null) ? (
+        <Panel title={d.plan.usage.title} description={!limits.enforced && limits.limitsFrom ? format(d.plan.grace, {
+          date: formatDate(`${limits.limitsFrom}T12:00:00Z`, locale),
+          products: formatNumber(limits.maxProducts ?? 0, locale),
+          sales: formatNumber(limits.maxMonthlySales ?? 0, locale),
+          price: formatMoney(Number(plans.find((x) => x.id === "boutique")?.monthly_price ?? 0), business.currency, locale),
+        }) : undefined}>
+          <dl className="grid gap-3 sm:grid-cols-3" data-testid="plan-usage">
+            {(
+              [
+                [d.plan.usage.products, limits.productsUsed, limits.maxProducts],
+                [d.plan.usage.sales, limits.salesThisMonth, limits.maxMonthlySales],
+                [d.plan.usage.members, limits.membersUsed, limits.maxMembers],
+              ] as const
+            ).map(([label, used, max]) => {
+              const full = limits.enforced && max !== null && used >= max;
+              return (
+                <div key={label} className="rounded-2xl bg-surface p-4">
+                  <dt className="text-sm text-slate">{label}</dt>
+                  <dd className={cn("mt-1 font-display text-xl font-bold", full ? "text-coral-700" : "text-deep")}>
+                    {max === null ? format(d.plan.usage.unlimited, { used: formatNumber(used, locale) }) : format(d.plan.usage.of, { used: formatNumber(used, locale), max: formatNumber(max, locale) })}
+                  </dd>
+                  {max !== null ? (
+                    <div className="mt-2 h-1.5 rounded-full bg-border">
+                      <div className={cn("h-1.5 rounded-full", full ? "bg-coral-600" : "bg-waza-600")} style={{ width: `${Math.min(100, Math.round((used / max) * 100))}%` }} />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </dl>
+        </Panel>
+      ) : null}
+
+      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {plans.map((p) => {
           const isCurrent = subscription?.plan_id === p.id;
           const price = Number(p.monthly_price);
@@ -104,7 +139,23 @@ export default async function BillingPage() {
                 <span className="text-sm font-normal text-slate">{b.perMonth}</span>
               </p>
               {price > 0 ? <p className="text-xs text-slate">{format(b.annualOffer, { price: formatMoney(periodPrice(price, "year"), p.currency, locale) })}</p> : null}
-              <p className="mt-2 text-sm text-slate">{format(b.conversations, { count: formatNumber(p.ai_conversations_per_month, locale) })}</p>
+              <p className="mt-2 text-sm text-slate">{p.ai_conversations_per_month > 0 ? format(b.conversations, { count: formatNumber(p.ai_conversations_per_month, locale) }) : t.pricing.noAi}</p>
+              <ul className="mt-3 flex flex-col gap-1.5 text-sm">
+                {[
+                  { label: p.max_products === null ? pf.productsUnlimited : format(pf.products, { count: formatNumber(p.max_products, locale) }), on: true },
+                  { label: p.max_monthly_sales === null ? pf.salesUnlimited : format(pf.sales, { count: formatNumber(p.max_monthly_sales, locale) }), on: true },
+                  { label: format(p.max_members === 1 ? pf.members : pf.membersPlural, { count: formatNumber(p.max_members ?? 0, locale) }), on: p.max_members !== null },
+                  { label: p.report_days === null ? pf.reportsFull : format(pf.reportsDays, { count: formatNumber(p.report_days, locale) }), on: true },
+                  { label: pf.profit, on: p.has_profit },
+                ]
+                  .filter((f) => f.on || f.label === pf.profit)
+                  .map((f) => (
+                    <li key={f.label} className={cn("flex items-start gap-2", !f.on && "text-slate/70")}>
+                      {f.on ? <Check className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden /> : <Minus className="mt-0.5 size-4 shrink-0" aria-hidden />}
+                      {f.label}
+                    </li>
+                  ))}
+              </ul>
             </li>
           );
         })}

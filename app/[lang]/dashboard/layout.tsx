@@ -11,11 +11,12 @@ import { Info, PauseCircle, ShieldCheck, TriangleAlert } from "lucide-react";
 import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 import { currentUserIsPlatformAdmin, pendingRequestsForAdmin } from "@/lib/admin/access";
 import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/lib/auth/dal";
-import { formatDate } from "@/components/app/ui";
-import { PLANS } from "@/config/economics";
+import { formatDate, formatMoney } from "@/components/app/ui";
+import { FREE_LIMITS_GRACE_UNTIL, PLANS } from "@/config/economics";
 import { siteConfig } from "@/config/site";
 import { aiPausedByWazaBolt } from "@/lib/billing/controls";
 import { getUsageStatus } from "@/lib/billing/usage";
+import { getPlanLimits } from "@/lib/data/queries";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { createClient } from "@/lib/supabase/server";
 import { getWhatsAppConnection } from "@/lib/data/queries";
@@ -46,6 +47,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const billingHref = localizePath(locale, "/dashboard/billing");
   const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6 print:hidden";
   const billingState = usage?.billing.state;
+  // Existing Free businesses: the plan limits start after a grace period — say so to owners/admins.
+  const planLimits = business && hasRole(business.role, "admin") ? await getPlanLimits(business.id) : null;
+  // Only the standard grace date is announced (a later date is a deliberate exemption, e.g. the demo shop).
+  const freeGrace =
+    planLimits && planLimits.planId === "free" && !planLimits.enforced && planLimits.limitsFrom && planLimits.limitsFrom <= FREE_LIMITS_GRACE_UNTIL ? planLimits : null;
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
   // Only the WazaBolt team (platform_admins) sees the way to the admin pages.
@@ -152,6 +158,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </p>
             <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
               {usage.level === "reached" ? d.usageBanner.upgrade : d.usageBanner.cta}
+            </Link>
+          </div>
+        ) : null}
+        {freeGrace ? (
+          <div role="status" data-testid="plan-grace-notice" className={`${bar} border-gold-200 bg-gold-50 text-deep`}>
+            <Info className="size-4 shrink-0 text-gold-800" aria-hidden />
+            <p className="min-w-0 flex-1">
+              {format(d.plan.grace, {
+                date: formatDate(`${freeGrace.limitsFrom}T12:00:00Z`, locale),
+                products: formatNumber(freeGrace.maxProducts ?? 0, locale),
+                sales: formatNumber(freeGrace.maxMonthlySales ?? 0, locale),
+                price: formatMoney(PLANS.find((p) => p.id === "boutique")?.monthlyPrice ?? 0, business?.currency ?? "XAF", locale),
+              })}
+            </p>
+            <Link href={billingHref} className="font-semibold underline underline-offset-2">
+              {d.plan.upgrade}
             </Link>
           </div>
         ) : null}

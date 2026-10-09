@@ -18,6 +18,8 @@ select
   (select business_id from public.business_members where user_id = '00000000-0000-4000-f000-00000000000c') as other_biz,
   (now() at time zone 'Africa/Douala')::date + 1 as tomorrow;
 grant select on ids to authenticated, service_role;
+-- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
+update public.businesses set free_limits_from = '2099-01-01' where id in (select biz from ids);
 insert into public.business_members (business_id, user_id, role)
 select biz, '00000000-0000-4000-f000-00000000000b'::uuid, 'viewer'::public.business_role from ids;
 

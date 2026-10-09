@@ -18,6 +18,8 @@ select
   (select business_id from public.business_members where user_id = '00000000-0000-4000-d000-00000000000a') as biz_a,
   (select business_id from public.business_members where user_id = '00000000-0000-4000-d000-00000000000b') as biz_b;
 grant select on ids to authenticated, service_role;
+-- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
+update public.businesses set free_limits_from = '2099-01-01' where id in (select biz_a from ids);
 insert into public.business_members (business_id, user_id, role)
 select biz_a, '00000000-0000-4000-d000-00000000000c'::uuid, 'agent'::public.business_role from ids;
 

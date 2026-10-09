@@ -3,7 +3,7 @@ import { Plus, Receipt, Search } from "lucide-react";
 
 import { EmptyState, PageHeader, Pagination, Panel, StatusBadge, TableWrap, buttonLink, formatDate, formatMoney, param, paymentStatusTone, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { PAGE_SIZE, listSales } from "@/lib/data/queries";
+import { PAGE_SIZE, getPlanLimits, listSales, profitAllowed } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -31,10 +31,11 @@ export default async function SalesPage({ searchParams }: PageProps<"/[lang]/das
     customer: param(sp.customer),
     page: Number(param(sp.page)) || 1,
   };
-  const { rows, total, page } = await listSales(business.id, business.timezone, filters, hasRole(business.role, "admin"));
+  const isAdmin = hasRole(business.role, "admin") && profitAllowed(await getPlanLimits(business.id));
+  const { rows, total, page } = await listSales(business.id, business.timezone, filters, isAdmin);
   const filtered = !!(filters.q || filters.from || filters.to || filters.method || filters.status || filters.customer);
   const base = localizePath(locale, "/dashboard/sales");
-  const isAdmin = hasRole(business.role, "admin");
+  // Profit column: owners/admins on a plan with profit tracking.
   const canSell = hasRole(business.role, "agent");
   const money = (v: number) => formatMoney(v, business.currency, locale);
   const newSale = canSell ? (

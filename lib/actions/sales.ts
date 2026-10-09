@@ -39,7 +39,7 @@ const saleSchema = z.object({
   notes: optionalText(500),
 });
 export type SaleInput = z.input<typeof saleSchema>;
-export type SaleError = "forbidden" | "invalid" | "empty" | "customer" | "out_of_stock" | "credit_needs_customer" | "discount_not_allowed" | "too_much" | "failed";
+export type SaleError = "forbidden" | "invalid" | "empty" | "customer" | "out_of_stock" | "credit_needs_customer" | "discount_not_allowed" | "too_much" | "plan_limit_sales" | "failed";
 export type SaleResult = { ok: true; id: string } | { ok: false; error: SaleError; item?: string };
 
 export async function createSale(input: SaleInput): Promise<SaleResult> {
@@ -90,6 +90,7 @@ export async function createSale(input: SaleInput): Promise<SaleResult> {
     if (m.includes("discount")) return { ok: false, error: "discount_not_allowed" };
     if (m.includes("credit needs a customer")) return { ok: false, error: "credit_needs_customer" };
     if (m.includes("more than the total")) return { ok: false, error: "too_much" };
+    if (error?.code === "WB412") return { ok: false, error: "plan_limit_sales" };
     if (error?.code === "42501") return { ok: false, error: "forbidden" };
     return { ok: false, error: "failed" };
   }
