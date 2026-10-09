@@ -13,7 +13,7 @@ export function CopyText({ value, label, copiedLabel, className }: { value: stri
         type="button"
         aria-label={copied ? copiedLabel : label}
         title={copied ? copiedLabel : label}
-        className="inline-flex size-6 items-center justify-center rounded-md text-slate hover:bg-mint/60 hover:text-deep focus-visible:ring-2 focus-visible:ring-waza-500/40 focus-visible:outline-none print:hidden"
+        className="-my-1.5 inline-flex size-8 items-center justify-center rounded-md sm:my-0 sm:size-6 text-slate hover:bg-mint/60 hover:text-deep focus-visible:ring-2 focus-visible:ring-waza-500/40 focus-visible:outline-none print:hidden"
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(value);

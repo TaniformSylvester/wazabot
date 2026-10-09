@@ -57,14 +57,14 @@ export function ConversationList({
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate" aria-hidden />
           <input id="conv-search" name="q" defaultValue={q} placeholder={t.searchPlaceholder} className="h-10 w-full rounded-xl border border-input bg-card pr-3 pl-9 text-sm" />
         </form>
-        <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 pb-1">
+        <div className="-mx-1 mt-2 flex flex-wrap gap-1.5 px-1 pb-1">
           {CONVERSATION_FILTERS.map((f) => (
             <Link
               key={f}
               href={localizePath(locale, `/dashboard/conversations${qs(f)}`)}
               aria-current={f === filter ? "true" : undefined}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1 text-xs font-semibold",
+                "inline-flex min-h-8 shrink-0 items-center rounded-full px-3 text-xs font-semibold",
                 f === filter ? "bg-deep text-cream" : "bg-surface text-slate hover:bg-mint hover:text-deep",
               )}
             >
@@ -88,7 +88,7 @@ export function ConversationList({
                 >
                   <span className="flex items-center gap-2">
                     <span className={cn("min-w-0 flex-1 truncate text-sm text-deep", r.unread_count > 0 ? "font-bold" : "font-semibold")}>{name}</span>
-                    <span className="shrink-0 text-[0.6875rem] text-slate">{formatDate(r.last_message_at ?? r.created_at, locale)}</span>
+                    <span className="shrink-0 text-xs text-slate">{formatDate(r.last_message_at ?? r.created_at, locale)}</span>
                   </span>
                   <span className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge tone={r.ai_enabled ? "blue" : "amber"}>{r.ai_enabled ? t.aiOnline : t.humanMode}</StatusBadge>

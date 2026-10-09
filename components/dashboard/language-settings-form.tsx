@@ -119,7 +119,7 @@ export function LanguageSettingsForm({
                       <button
                         type="button"
                         onClick={() => makeDefault(code)}
-                        className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-deep hover:bg-white"
+                        className="inline-flex min-h-8 items-center rounded-full border border-border px-3 text-xs font-semibold text-deep hover:bg-white"
                       >
                         {t.replyLanguages.setDefault}
                       </button>

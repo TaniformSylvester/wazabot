@@ -38,7 +38,7 @@ export default async function PlanRequestsPage({ searchParams }: PageProps<"/[la
   const notice = key ? NOTICES[key] : null;
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 px-4 py-8 sm:px-6">
       <AdminNav locale={locale} active="plan-requests" pendingPlanRequests={waiting} />
       <PageHeader title="Plan requests" description="Businesses asking for a plan or a renewal, monthly or yearly. Approve once they have paid, with the amount received: a new plan starts now; a renewal follows on from the current period. The customer gets an email." />
       {notice ? (

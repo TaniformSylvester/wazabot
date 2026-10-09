@@ -118,7 +118,7 @@ export function PaymentsPanel({
       ) : null}
       {canManage && valid.length ? (
         <details className="mt-5 border-t border-border pt-5" data-testid="void-payment">
-          <summary className="cursor-pointer text-sm font-semibold text-slate hover:text-deep">{t.void.title}</summary>
+          <summary className="flex min-h-8 cursor-pointer items-center text-sm font-semibold text-slate hover:text-deep">{t.void.title}</summary>
           <p className="my-3 text-sm text-slate">{t.void.text}</p>
           <VoidPaymentForm
             payments={valid.map((p) => ({

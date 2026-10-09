@@ -55,7 +55,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
   const tot = data.totals;
   const csv = (type: string) => withQuery(localizePath(locale, "/dashboard/reports/export"), { type, from: period.from, to: period.to, group: period.group });
   const csvLink = (type: string) => (
-    <a href={csv(type)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-waza-700 hover:underline" download>
+    <a href={csv(type)} className="inline-flex min-h-8 items-center gap-1.5 text-sm font-semibold text-waza-700 hover:underline" download>
       <Download className="size-4" aria-hidden /> {r.csv}
     </a>
   );

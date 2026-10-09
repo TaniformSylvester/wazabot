@@ -36,7 +36,7 @@ export default async function MarginsPage({ searchParams }: PageProps<"/[lang]/a
   const active = report.businesses.filter((b) => b.claude > 0 || b.revenue > 0 || b.whatsapp.service + b.whatsapp.utility + b.whatsapp.marketing > 0);
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 px-4 py-8 sm:px-6">
       <AdminNav locale={locale} active="margins" pendingPlanRequests={waiting} />
       <PageHeader
         title={`Margins — ${monthLabel}`}

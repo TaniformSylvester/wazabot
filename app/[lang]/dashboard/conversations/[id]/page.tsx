@@ -95,7 +95,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <Link href={localizePath(locale, `/dashboard/conversations${filter !== "all" ? `?filter=${filter}` : ""}`)} className="inline-flex items-center gap-1 text-sm font-semibold text-waza-700 hover:underline lg:hidden">
+      <Link href={localizePath(locale, `/dashboard/conversations${filter !== "all" ? `?filter=${filter}` : ""}`)} className="inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-waza-700 hover:underline lg:hidden">
         <ChevronLeft className="size-4" aria-hidden /> {c.backToList}
       </Link>
       <div className="grid overflow-hidden rounded-3xl border border-border bg-card shadow-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[20rem_1fr] xl:grid-cols-[20rem_1fr_19rem]">
@@ -126,14 +126,14 @@ export default async function ConversationPage({ params, searchParams }: PagePro
             {canAct && customer ? (
               <Link
                 href={localizePath(locale, `/dashboard/orders/new?customer=${customer.id}&conversation=${conversation.id}`)}
-                className="w-fit text-sm font-semibold text-waza-700 hover:underline"
+                className="inline-flex min-h-8 w-fit items-center text-sm font-semibold text-waza-700 hover:underline"
               >
                 + {d.customers.profile.newOrder}
               </Link>
             ) : null}
             {customerDetails ? (
               <details className="rounded-2xl border border-border p-3 xl:hidden">
-                <summary className="cursor-pointer text-sm font-semibold text-deep">{c.showCustomer}</summary>
+                <summary className="flex min-h-8 cursor-pointer items-center text-sm font-semibold text-deep">{c.showCustomer}</summary>
                 <div className="mt-3">{customerDetails}</div>
               </details>
             ) : null}

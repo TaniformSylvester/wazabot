@@ -40,7 +40,7 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
   ];
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 px-4 py-8 sm:px-6">
       <AdminNav locale={locale} active="businesses" pendingPlanRequests={waiting} />
       <PageHeader title="Businesses" description="Everyone who signed up for WazaBolt, newest first. Times are Cameroon time. Pause stops a business's assistant (kill switch) until you switch it back on." />
       {notice ? (
@@ -63,7 +63,7 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
           <TableWrap>
             <thead>
               <tr>
-                {["Signed up", "Business", "Owner", "Plan", "Setup", "WhatsApp", "Team", "Assistant"].map((h) => (
+                {["Business", "Signed up", "Owner", "Plan", "Setup", "WhatsApp", "Team", "Assistant"].map((h) => (
                   <th key={h} className={th}>
                     {h}
                   </th>
@@ -73,17 +73,17 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
             <tbody>
               {rows.map((b) => (
                 <tr key={b.id} data-business-id={b.id}>
-                  <td className={`${td} whitespace-nowrap text-slate`}>{when.format(new Date(b.createdAt))}</td>
                   <td className={td}>
                     <span className="font-semibold">{b.name}</span>
                     {b.city || b.industry ? <span className="block text-xs text-slate">{[b.industry, b.city].filter(Boolean).join(" · ")}</span> : null}
                   </td>
+                  <td className={`${td} whitespace-nowrap text-slate`}>{when.format(new Date(b.createdAt))}</td>
                   <td className={td}>
                     {b.owner ? (
                       <>
                         <span>{b.owner.name || "—"}</span>
                         {b.owner.email ? (
-                          <a href={`mailto:${b.owner.email}`} className="block text-xs text-waza-700 hover:underline">
+                          <a href={`mailto:${b.owner.email}`} className="block py-1 text-xs text-waza-700 hover:underline">
                             {b.owner.email}
                           </a>
                         ) : null}
@@ -119,8 +119,8 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
                         type="submit"
                         className={
                           b.aiPaused
-                            ? "rounded-full bg-waza-500 px-3 py-1 text-xs font-bold text-deep hover:bg-waza-600"
-                            : "rounded-full border border-border px-3 py-1 text-xs font-semibold text-slate hover:border-coral-500 hover:text-coral-700"
+                            ? "inline-flex min-h-8 items-center rounded-full bg-waza-500 px-3.5 text-xs font-bold text-deep hover:bg-waza-600"
+                            : "inline-flex min-h-8 items-center rounded-full border border-border px-3.5 text-xs font-semibold text-slate hover:border-coral-500 hover:text-coral-700"
                         }
                       >
                         {b.aiPaused ? "Resume" : "Pause"}

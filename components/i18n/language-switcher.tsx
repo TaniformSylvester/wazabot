@@ -59,7 +59,7 @@ export function LanguageSwitcher({
         className,
       )}
     >
-      {compact ? null : <Languages className="mx-1.5 size-3.5" aria-hidden />}
+      {compact ? null : <Languages className="mx-1.5 hidden size-3.5 sm:block" aria-hidden />}
       {LOCALES.map((l) => {
         const active = l === locale;
         return (
@@ -72,7 +72,7 @@ export function LanguageSwitcher({
             aria-pressed={active}
             title={t.common.language.names[l]}
             className={cn(
-              "rounded-full px-2.5 py-1 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-waza-500/50",
+              "inline-flex h-8 min-w-9 items-center justify-center rounded-full px-2.5 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-waza-500/50",
               active
                 ? tone === "dark"
                   ? "bg-waza-500 text-deep"

@@ -292,3 +292,31 @@
     transform: none;
   }
 }
+
+/*
+ * Data tables on phones: each row is a card (see TableWrap). The first cell is
+ * the card's title; every other cell shows its column name (set per table)
+ * on the left and the value on the right.
+ */
+@media (width < 40rem) {
+  .stack-table, .stack-table tbody { display: block; }
+  .stack-table thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .stack-table tr { display: block; padding: 0.875rem 1.25rem; border-bottom: 1px solid var(--color-border); }
+  .stack-table td {
+    display: block; border: 0 !important; padding: 0.1875rem 0 !important; text-align: right;
+    white-space: normal !important; overflow-wrap: anywhere;
+  }
+  .stack-table td::after { content: ""; display: table; clear: both; }
+  .stack-table td::before {
+    float: left; margin-right: 1rem; max-width: 50%; text-align: left;
+    font-size: 0.75rem; line-height: 1.5rem; font-weight: 600; letter-spacing: 0.02em; color: var(--color-slate);
+  }
+  .stack-table td > .flex, .stack-table td > div, .stack-table td > form { justify-content: flex-end; }
+  .stack-table td:first-child { text-align: left; font-size: 0.9375rem; padding-bottom: 0.375rem !important; }
+  .stack-table td:first-child > .flex, .stack-table td:first-child > div { justify-content: flex-start; }
+  .stack-table td:empty { display: none; }
+  /* Easier to tick with a finger. */
+  input[type="checkbox"], input[type="radio"] { min-width: 1.25rem; min-height: 1.25rem; }
+}

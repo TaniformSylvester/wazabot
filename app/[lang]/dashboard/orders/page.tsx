@@ -184,7 +184,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/[lang]/da
                     </td>
                     <td className={`${td} whitespace-nowrap text-slate`}>{formatDate(r.created_at, locale)}</td>
                     <td className={`${td} text-right`}>
-                      <Link href={localizePath(locale, `/dashboard/orders/${r.id}`)} className="inline-flex items-center gap-1 text-sm font-semibold whitespace-nowrap text-waza-700 hover:underline">
+                      <Link href={localizePath(locale, `/dashboard/orders/${r.id}`)} className="inline-flex min-h-8 items-center gap-1 text-sm font-semibold whitespace-nowrap text-waza-700 hover:underline">
                         {o.view} <ArrowRight className="size-3.5" aria-hidden />
                       </Link>
                     </td>

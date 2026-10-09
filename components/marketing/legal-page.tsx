@@ -44,7 +44,7 @@ export function LegalPage({ doc, locale }: { doc: LegalDoc; locale: Locale }) {
           <ol className="mt-3 space-y-1.5 text-sm">
             {doc.sections.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className="text-slate hover:text-deep hover:underline">
+                <a href={`#${s.id}`} className="inline-block py-1 text-slate hover:text-deep hover:underline">
                   {s.heading}
                 </a>
               </li>

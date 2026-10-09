@@ -26,7 +26,7 @@ export async function Problem() {
         />
 
         <div className="mt-14 grid items-center gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
-          <div className="relative mx-auto w-full max-w-sm" aria-hidden>
+          <div className="relative mx-auto w-full max-w-sm min-w-0" aria-hidden>
             <div className="bg-geo-light rounded-[2rem] bg-deep p-5 pb-8 shadow-float">
               <div className="flex items-center justify-between text-cream/80">
                 <span className="flex items-center gap-1.5 text-xs"><BellRing className="size-3.5" /> {t.unanswered}</span>
@@ -52,7 +52,7 @@ export async function Problem() {
             </div>
           </div>
 
-          <ul className="grid gap-4 sm:grid-cols-2">
+          <ul className="grid min-w-0 gap-4 sm:grid-cols-2">
             {problems.map(({ key, icon: Icon }, i) => (
               <Reveal as="li" key={key} delay={i * 60}>
                 <div className="flex h-full gap-4 rounded-2xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-float">

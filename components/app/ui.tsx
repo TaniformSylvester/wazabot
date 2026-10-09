@@ -1,3 +1,4 @@
+import { Children, isValidElement } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
@@ -25,7 +26,7 @@ export function PageHeader({
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         {back ? (
-          <Link href={back.href} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-waza-700 hover:underline">
+          <Link href={back.href} className="mb-1 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-waza-700 hover:underline">
             <ChevronLeft className="size-4" aria-hidden /> {back.label}
           </Link>
         ) : null}
@@ -54,7 +55,7 @@ export function Panel({
 }) {
   const headingId = id ? `${id}-title` : undefined;
   return (
-    <section aria-labelledby={headingId} className={cn("rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6", className)}>
+    <section aria-labelledby={headingId} className={cn("min-w-0 rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6", className)}>
       {title ? (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -109,7 +110,7 @@ export function StatCard({
   noData: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+    <div className="min-w-0 rounded-2xl border border-border bg-card p-5 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-slate">{label}</p>
         <Icon className="size-4.5 shrink-0 text-slate" aria-hidden />
@@ -117,7 +118,7 @@ export function StatCard({
       {value === null ? (
         <p className="mt-3 text-sm font-semibold text-slate">{noData}</p>
       ) : (
-        <p className="mt-2 font-display text-3xl font-bold text-deep">{value}</p>
+        <p className="mt-2 font-display text-xl leading-tight font-bold text-deep sm:text-3xl">{value}</p>
       )}
       {hint ? <p className="mt-1 text-xs text-slate">{hint}</p> : null}
     </div>
@@ -176,10 +177,45 @@ export function DefinitionList({ rows }: { rows: { label: string; value: React.R
 }
 
 /** Horizontally scrollable table wrapper, so wide tables never overflow the page on phones. */
+/** Plain text of a header cell ("" for screen-reader-only text, e.g. an actions column). */
+function cellText(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(cellText).join("");
+  if (isValidElement<{ children?: React.ReactNode; className?: string }>(node)) {
+    if (typeof node.props.className === "string" && node.props.className.includes("sr-only")) return "";
+    return cellText(node.props.children);
+  }
+  return "";
+}
+
+/** The header labels of a table (thead > tr > th), in order. */
+function headerLabels(children: React.ReactNode): string[] {
+  const thead = Children.toArray(children).find((c) => isValidElement(c) && c.type === "thead");
+  if (!isValidElement<{ children?: React.ReactNode }>(thead)) return [];
+  const tr = Children.toArray(thead.props.children).find((c) => isValidElement(c) && c.type === "tr");
+  if (!isValidElement<{ children?: React.ReactNode }>(tr)) return [];
+  return Children.toArray(tr.props.children)
+    .filter((c) => isValidElement(c) && c.type === "th")
+    .map((th) => cellText((th as React.ReactElement<{ children?: React.ReactNode }>).props.children).trim());
+}
+
+/**
+ * A data table. On a phone (under 640px) each row becomes a card: the first
+ * cell is its title, the others show the column name on the left and the
+ * value on the right (labels taken from the table's header) — no sideways
+ * scrolling. From 640px it is a normal table that scrolls if it must.
+ */
 export function TableWrap({ children }: { children: React.ReactNode }) {
+  const labels = headerLabels(children);
+  const scope = `st-${labels.join("|").split("").reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7).toString(36)}`;
+  const css = labels
+    .map((l, i) => (i === 0 || !l ? "" : `.${scope} td:nth-child(${i + 1})::before{content:${JSON.stringify(l)}}`))
+    .join("");
   return (
     <div className="relative -mx-5 overflow-x-auto sm:mx-0">
-      <table className="w-full min-w-[40rem] border-collapse text-left text-sm">{children}</table>
+      {css ? <style>{css}</style> : null}
+      <table className={cn("stack-table w-full border-collapse text-left text-sm sm:min-w-[40rem]", scope)}>{children}</table>
     </div>
   );
 }

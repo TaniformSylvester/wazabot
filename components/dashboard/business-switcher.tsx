@@ -29,7 +29,7 @@ export function BusinessSwitcher({
           const id = e.target.value;
           startTransition(() => switchBusiness(id, locale));
         }}
-        className="max-w-full cursor-pointer appearance-none truncate rounded-lg bg-transparent py-0.5 pl-1 pr-6 font-display text-base font-bold text-deep outline-none [field-sizing:content] hover:bg-surface focus-visible:ring-2 focus-visible:ring-waza-500"
+        className="max-w-full cursor-pointer appearance-none truncate rounded-lg bg-transparent py-1.5 pl-1 pr-6 font-display text-base font-bold text-deep outline-none [field-sizing:content] hover:bg-surface focus-visible:ring-2 focus-visible:ring-waza-500"
       >
         {businesses.map((b) => (
           <option key={b.id} value={b.id}>

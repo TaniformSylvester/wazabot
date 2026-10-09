@@ -21,10 +21,10 @@ export async function SiteFooter() {
           {footerNav.map((group) => (
             <nav key={group.key} aria-label={t.common.footer[group.key]}>
               <p className="type-label text-waza-400">{t.common.footer[group.key]}</p>
-              <ul className="mt-4 space-y-2.5">
+              <ul className="mt-3 space-y-0.5">
                 {group.links.map((link) => (
                   <li key={link.href}>
-                    <Link href={localizePath(locale, link.href)} className="text-sm text-cream/70 transition-colors hover:text-waza-400">
+                    <Link href={localizePath(locale, link.href)} className="inline-block py-1.5 text-sm text-cream/70 transition-colors hover:text-waza-400">
                       {t.common.nav[link.key]}
                     </Link>
                   </li>

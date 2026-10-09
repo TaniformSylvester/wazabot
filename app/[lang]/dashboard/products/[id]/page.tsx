@@ -139,7 +139,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
                     <span className="font-semibold">{inv.reasons[m.reason as StockReason] ?? m.reason}</span>
                     {m.product_variants ? <span className="block text-xs text-slate">{`${m.product_variants.name}: ${m.product_variants.value}`}</span> : null}
                     {m.orders && m.order_id ? (
-                      <Link href={localizePath(locale, `/dashboard/sales/${m.order_id}`)} className="block text-xs font-semibold text-waza-700 hover:underline">
+                      <Link href={localizePath(locale, `/dashboard/sales/${m.order_id}`)} className="block py-1 text-xs font-semibold text-waza-700 hover:underline">
                         {m.orders.order_number}
                       </Link>
                     ) : null}

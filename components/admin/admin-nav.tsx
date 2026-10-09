@@ -21,14 +21,14 @@ export function AdminNav({ locale, active, pendingPlanRequests = 0 }: { locale: 
             key={t.key}
             href={localizePath(locale, t.href)}
             aria-current={active === t.key ? "page" : undefined}
-            className={cn("rounded-full px-3 py-1.5 text-sm font-semibold", active === t.key ? "bg-deep text-cream" : "text-slate hover:bg-mint")}
+            className={cn("inline-flex min-h-9 items-center rounded-full px-3 text-sm font-semibold", active === t.key ? "bg-deep text-cream" : "text-slate hover:bg-mint")}
           >
             {t.label}
             {t.badge ? <span className="ml-1.5 rounded-full bg-coral-500 px-1.5 py-0.5 text-[0.6875rem] font-bold text-white">{t.badge}</span> : null}
           </Link>
         ))}
       </div>
-      <Link href={localizePath(locale, "/dashboard")} className="text-sm font-semibold text-waza-700 hover:underline">
+      <Link href={localizePath(locale, "/dashboard")} className="inline-flex min-h-8 items-center text-sm font-semibold text-waza-700 hover:underline">
         ← Back to my dashboard
       </Link>
     </nav>

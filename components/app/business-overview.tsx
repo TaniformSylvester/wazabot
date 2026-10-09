@@ -121,7 +121,7 @@ export function BusinessOverview({
                 <li key={p.productId ?? p.name} className="flex items-center gap-3 py-2.5 text-sm">
                   <span className="w-4 text-slate">{i + 1}</span>
                   {p.productId ? (
-                    <Link href={href(`/dashboard/products/${p.productId}`)} className="min-w-0 flex-1 truncate font-semibold hover:underline">
+                    <Link href={href(`/dashboard/products/${p.productId}`)} className="min-w-0 flex-1 truncate py-1.5 font-semibold hover:underline">
                       {p.name}
                     </Link>
                   ) : (

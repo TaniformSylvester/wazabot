@@ -14,6 +14,7 @@
     "test:e2e:pos": "node tests/e2e/pos.e2e.mjs",
     "test:e2e:plans": "node tests/e2e/plans.e2e.mjs",
     "test:e2e:customers-orders": "node tests/e2e/customers-orders.e2e.mjs",
+    "test:e2e:mobile": "node tests/e2e/mobile.e2e.mjs",
     "test:e2e:appointments": "node tests/e2e/appointments.e2e.mjs",
     "test:e2e:notifications": "node tests/e2e/notifications.e2e.mjs",
     "test:e2e:broadcasts": "node tests/e2e/broadcasts.e2e.mjs",

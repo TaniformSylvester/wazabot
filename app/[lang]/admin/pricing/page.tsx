@@ -44,7 +44,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/[lang]/a
   const self = localizePath(locale, "/admin/pricing");
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 px-4 py-8 sm:px-6">
       <AdminNav locale={locale} active="pricing" pendingPlanRequests={waiting} />
       <PageHeader
         title="Pricing"
