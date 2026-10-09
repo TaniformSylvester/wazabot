@@ -317,7 +317,7 @@ async function signUp(browser, user, locale) {
   const [paidOrder] = await (await fetch(`${SUPABASE}/rest/v1/orders?select=payment_status,amount_paid,total`, { headers: rest(cTok) })).json();
   ok(
     "order payments: a MoMo deposit leaves a balance, paying the rest settles it",
-    /Balance due/.test(dueText) && paidOrder.payment_status === "paid" && Number(paidOrder.amount_paid) === Number(paidOrder.total) && (await main.getByText("MP261007.0915.B77").count()) === 1,
+    /Balance due/.test(dueText) && paidOrder.payment_status === "paid" && Number(paidOrder.amount_paid) === Number(paidOrder.total) && (await main.getByTestId("payment-rows").getByText("MP261007.0915.B77").count()) === 1,
     JSON.stringify(paidOrder),
   );
   await page.screenshot({ path: "test-results/stage1-order.png", fullPage: true });
