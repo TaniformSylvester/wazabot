@@ -9,7 +9,7 @@ import { Receipt } from "@/components/app/receipt";
 import { DefinitionList, PageHeader, Panel, StatusBadge, buttonLink, formatMoney, paymentStatusTone, secondaryLink } from "@/components/app/ui";
 import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getPlanLimits, getSale, profitAllowed } from "@/lib/data/queries";
+import { getPlanLimits, getSale, localToday, profitAllowed } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
@@ -121,9 +121,11 @@ export default async function SalePage({ params, searchParams }: PageProps<"/[la
           ) : null}
 
           <PaymentsPanel
-            order={{ id: order.id, total: Number(order.total), paid: Number(order.amount_paid), currency: order.currency, cancelled: order.status === "cancelled" }}
+            order={{ id: order.id, total: Number(order.total), paid: Number(order.amount_paid), refunded: Number(order.amount_refunded), currency: order.currency, closed: order.status === "cancelled" || order.status === "returned" }}
             payments={payments}
             canRecord={hasRole(business.role, "agent")}
+            canManage={hasRole(business.role, "admin")}
+            today={localToday(business.timezone)}
             locale={locale}
             t={d.payments}
             errors={d.errors}

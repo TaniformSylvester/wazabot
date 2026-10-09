@@ -549,6 +549,28 @@ Sales and payments emit business events (`lib/core/events.ts`: sale completed, p
 credit outstanding) for future WhatsApp / SMS / email channels — none is registered yet. The audit
 and phase-by-phase plan is in `docs/v2-implementation-plan.md`.
 
+## Customers and orders
+
+- **Customer IDs** (`CUS-000001`): given by the database when a customer is created (by hand, at the till or by a first WhatsApp message), per business, from a locked counter, so two customers created at the same moment never share one. They are never edited or reused (a deleted customer's number is skipped). The internal id stays the key every order points to; the ID is for people (shown, copied, searched).
+- **Order numbers** (`ORD-00001`): unchanged format, from the same kind of counter; past 99,999 they grow (`ORD-100000`) instead of being cut.
+- **Orders ↔ customers**: an order points to its customer's internal id within the same business (database foreign key). Only till sales may have no customer ("Walk-in customer"); an owner/admin can link such a sale to the right customer once (audited). A customer with orders can't be deleted. Same-name customers stay separate; their profiles show a "possible duplicates" warning, nothing is merged.
+- **Payments** are recorded by hand (cash, MTN MoMo, Orange Money, bank transfer, card, other) with the date received, a reference and a note; WazaBolt doesn't process or verify them. Each payment is its own record; the same form submitted twice counts once. Payments can't be edited: an owner/admin voids one recorded by mistake, with a reason (it stays in the history). Refunds: owners/admins, for cancelled or returned orders, up to what was paid.
+- **Statuses**: order status (pending → … → delivered, cancelled, returned) and payment status (unpaid, part paid, paid, part refunded, refunded) are separate. "Returned" is only for delivered orders. Every status change is kept with who and when.
+- **Stock**: one rule — an order takes its items when it is created; cancelling or returning it gives them back once (stock movements record each change).
+- **Invoice / receipt**: printable (Save as PDF) from the order page. The invoice asks for payment and is not proof of payment; the receipt lists the valid payments recorded. Numbers follow the order (`INV-00067`, `RCT-00067`). No tax is recorded on orders.
+
+**Definitions** (same everywhere — `customer_stats`, the Customers and Orders pages):
+
+| Term | Meaning |
+| --- | --- |
+| Purchases | Orders delivered to the customer (till sales are delivered at once). Cancelled and returned orders don't count. |
+| Total spent | Value of those purchases (totals after discounts, with delivery fees). |
+| Amount paid / payments received | Money actually collected: valid payments minus refunds (voided ones excluded). |
+| Owes | What delivered orders still owe (total − paid). Deposits on orders not delivered yet reduce what they will owe. |
+| Balance due (per order) | Total − paid; 0 for cancelled and returned orders. A customer's "owes" equals the balances of their delivered orders. |
+| Order value (Orders page) | Totals of the orders shown, cancelled and returned excluded. |
+| Last contact | Latest message (either way), order or payment. |
+
 ## Plans and limits
 
 WazaBolt earns money without WhatsApp too: the business tools are limited on Free, and the Boutique

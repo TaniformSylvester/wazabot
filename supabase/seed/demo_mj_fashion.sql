@@ -171,7 +171,10 @@ begin
   end if;
 
   -- ---------------------------------------------------------------- stock events
-  perform public.adjust_stock(v_biz, v_products[7], 'damaged', 1, null, null, 'Torn strap (demo)');
+  -- (only if the random sales above left one to damage)
+  if (select stock_quantity from public.products where id = v_products[7]) >= 1 then
+    perform public.adjust_stock(v_biz, v_products[7], 'damaged', 1, null, null, 'Torn strap (demo)');
+  end if;
   -- Leave Sandals out of stock and Cap low, so the alerts have something to show.
   perform public.adjust_stock(v_biz, v_products[8], 'adjustment', null, 0, null, 'Stock count (demo)');
   perform public.adjust_stock(v_biz, v_products[6], 'adjustment', null, 3, null, 'Stock count (demo)');

@@ -38,6 +38,7 @@ delivered order), so WhatsApp orders and till sales share one ledger.
 | `20261013120000_pos_inventory.sql` | `products.cost_price`, `unit`; `stock_movements` + trigger (every stock change, with reason, before/after, user); `adjust_stock`; `order_items.unit_cost` (cost at the time of sale); `orders.channel`, `amount_paid`, `client_key` (no duplicate sales); `order_payments` (+ status derived from them); `create_sale` (one transaction); `record_order_payment`, `record_customer_payment` (oldest first, never more than owed); `customer_stats` view; `expenses`; `businesses.receipt_footer`; `sales_by_day`, `product_sales` |
 | `20261014120000_cost_privacy.sql` | Cost prices readable only by owners/admins at the database level (column grants + `product_costs`, `order_item_costs`) |
 | `20261015120000_plan_limits.sql` | Boutique plan (5,000 FCFA, no AI); per-plan limits (products, monthly sales, users, report days, expenses/profit) enforced by triggers; `business_plan_limits()` for the dashboard; grace until 1 Dec 2026 for existing businesses |
+| `20261016120000_customer_order_management.sql` | Customer IDs (CUS-000001) with backfill; returns, refunds, payment voids, payment date/note; delivery details; order status history; SKU on order items; link a customer to a walk-in sale; last contact from messages/orders/payments; `balance_due` |
 
 Money is `numeric(14,2)`; sale prices and costs are copied onto each item when
 sold, so later price changes don't rewrite history. Totals are computed in the

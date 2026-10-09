@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { META_PRICING } from "@/config/economics";
 import { getUsageStatus } from "@/lib/billing/usage";
-import { oneOf, CONVERSATION_STATUSES, ORDER_STATUSES, PAYMENT_STATUSES, WHATSAPP_STATUSES } from "@/types/database";
+import { oneOf, CLOSED_ORDER_STATUSES, CONVERSATION_STATUSES, ORDER_STATUSES, PAYMENT_STATUSES, WHATSAPP_STATUSES } from "@/types/database";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -256,6 +256,16 @@ function toStats(r: { orders_count: number | null; total_spent: number | null; a
   };
 }
 
+/**
+ * Search pattern for customers: the text as typed, or the digits of a phone
+ * number typed with spaces or a + ("+237 670 00 00 01" finds 237670000001).
+ */
+function customerPattern(q: string | undefined | null): string | null {
+  const trimmed = (q ?? "").trim();
+  if (/^\+?[0-9][0-9 .-]{5,}$/.test(trimmed)) return searchPattern(trimmed.replace(/[^0-9]/g, ""));
+  return searchPattern(trimmed);
+}
+
 export async function listCustomers(businessId: string, f: { q?: string; language?: string; tag?: string; balance?: boolean; page?: number } = {}) {
   const db = await createClient();
   const page = Math.max(1, f.page ?? 1);
@@ -267,10 +277,10 @@ export async function listCustomers(businessId: string, f: { q?: string; languag
   }
   let q = db
     .from("customers")
-    .select("id, name, whatsapp_phone, preferred_language, city, tags, last_contact_at, created_at", { count: "exact" })
+    .select("id, reference, name, whatsapp_phone, preferred_language, city, tags, last_contact_at, created_at", { count: "exact" })
     .eq("business_id", businessId);
-  const pattern = searchPattern(f.q);
-  if (pattern) q = q.or(`name.ilike.${pattern},whatsapp_phone.ilike.${pattern},city.ilike.${pattern},email.ilike.${pattern}`);
+  const pattern = customerPattern(f.q);
+  if (pattern) q = q.or(`name.ilike.${pattern},whatsapp_phone.ilike.${pattern},city.ilike.${pattern},email.ilike.${pattern},reference.ilike.${pattern}`);
   if (f.language && isLanguageCode(f.language)) q = q.eq("preferred_language", f.language);
   if (f.tag) q = q.contains("tags", [f.tag.toLowerCase()]);
   if (owing) q = q.in("id", owing);
@@ -315,7 +325,7 @@ export async function getCustomer(businessId: string, id: string) {
     db.from("customer_stats").select("orders_count, total_spent, amount_paid, outstanding, last_purchase_at").eq("business_id", businessId).eq("customer_id", id).maybeSingle(),
     db
       .from("order_payments")
-      .select("group_id, amount, method, reference, received_at, recorded_by")
+      .select("group_id, kind, amount, method, reference, note, received_at, recorded_by, voided_at, void_reason")
       .eq("business_id", businessId)
       .eq("customer_id", id)
       .order("received_at", { ascending: false })
@@ -323,18 +333,42 @@ export async function getCustomer(businessId: string, id: string) {
   ]);
   if (!customer.data) return null;
   // One payment the customer made can settle several purchases; show it once.
-  const grouped = new Map<string, { id: string; amount: number; method: string; reference: string | null; received_at: string; recorded_by: string | null; orders: number }>();
+  type Row = { id: string; kind: string; amount: number; method: string; reference: string | null; note: string | null; received_at: string; recorded_by: string | null; voided_at: string | null; void_reason: string | null; orders: number };
+  const grouped = new Map<string, Row>();
   for (const p of payments.data ?? []) {
     const g = grouped.get(p.group_id);
     if (g) {
       g.amount += Number(p.amount);
       g.orders += 1;
-    } else grouped.set(p.group_id, { id: p.group_id, amount: Number(p.amount), method: p.method, reference: p.reference, received_at: p.received_at, recorded_by: p.recorded_by, orders: 1 });
+    } else
+      grouped.set(p.group_id, {
+        id: p.group_id,
+        kind: p.kind,
+        amount: Number(p.amount),
+        method: p.method,
+        reference: p.reference,
+        note: p.note,
+        received_at: p.received_at,
+        recorded_by: p.recorded_by,
+        voided_at: p.voided_at,
+        void_reason: p.void_reason,
+        orders: 1,
+      });
   }
   const list = [...grouped.values()];
-  const names = await userNames(list.map((p) => p.recorded_by));
+  const c = customer.data;
+  // Same name (any case) or same email: shown as a warning, never merged.
+  const name = c.name.trim();
+  const dupFilters = [name.length >= 3 ? `name.ilike.${name.replace(/[%_,()*\\]/g, "")}` : null, c.email ? `email.ilike.${c.email.replace(/[%_,()*\\]/g, "")}` : null].filter(Boolean);
+  const [names, dups] = await Promise.all([
+    userNames(list.map((p) => p.recorded_by)),
+    dupFilters.length
+      ? db.from("customers").select("id, reference, name, whatsapp_phone").eq("business_id", businessId).neq("id", id).or(dupFilters.join(",")).limit(5)
+      : Promise.resolve({ data: [] as { id: string; reference: string; name: string; whatsapp_phone: string }[] }),
+  ]);
   return {
-    customer: customer.data,
+    customer: c,
+    duplicates: dups.data ?? [],
     conversations: conversations.data ?? [],
     orders: orders.data ?? [],
     stats: toStats(stats.data),
@@ -344,7 +378,7 @@ export async function getCustomer(businessId: string, id: string) {
 
 export async function listCustomerOptions(businessId: string) {
   const db = await createClient();
-  const { data } = await db.from("customers").select("id, name, whatsapp_phone").eq("business_id", businessId).order("name").limit(1000);
+  const { data } = await db.from("customers").select("id, reference, name, whatsapp_phone").eq("business_id", businessId).order("name").limit(1000);
   return data ?? [];
 }
 
@@ -400,26 +434,65 @@ export async function getConversation(businessId: string, id: string) {
 // ---------------------------------------------------------------------------
 // Orders
 // ---------------------------------------------------------------------------
-export async function listOrders(businessId: string, f: { status?: string; payment?: string; q?: string; page?: number } = {}) {
+export type OrderFilter = { status?: string; payment?: string; q?: string; from?: string; to?: string; customer?: string; balance?: boolean; page?: number };
+
+/** Customers whose name, phone or reference match the search box (for the orders search). */
+async function matchingCustomerIds(businessId: string, q: string | undefined) {
+  const pattern = customerPattern(q);
+  if (!pattern) return { pattern, ids: [] as string[] };
   const db = await createClient();
-  let q = db
-    .from("orders")
-    .select("id, order_number, status, payment_status, total, currency, created_at, customers(id, name, whatsapp_phone)", { count: "exact" })
-    .eq("business_id", businessId);
-  if (f.status && (ORDER_STATUSES as readonly string[]).includes(f.status)) q = q.eq("status", f.status);
-  if (f.payment && (PAYMENT_STATUSES as readonly string[]).includes(f.payment)) q = q.eq("payment_status", f.payment);
-  const pattern = searchPattern(f.q);
-  if (pattern) q = q.ilike("order_number", pattern);
+  const { data } = await db.from("customers").select("id").eq("business_id", businessId).or(`name.ilike.${pattern},whatsapp_phone.ilike.${pattern},reference.ilike.${pattern}`).limit(200);
+  return { pattern, ids: (data ?? []).map((c) => c.id) };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** Totals are added up over at most this many orders (shown on the page when reached). */
+export const ORDER_SUMMARY_CAP = 5000;
+
+export async function listOrders(businessId: string, timezone: string, f: OrderFilter = {}) {
+  const db = await createClient();
   const page = Math.max(1, f.page ?? 1);
-  const { data, count } = await q.order("created_at", { ascending: false }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
-  return { rows: data ?? [], total: count ?? 0, page };
+  const search = await matchingCustomerIds(businessId, f.q);
+  // The same filters for the list and its totals. The search box matches the order number, or a customer's name, phone or reference.
+  const filtered = <Q extends { eq: (c: string, v: string) => Q; gt: (c: string, v: number) => Q; gte: (c: string, v: string) => Q; lt: (c: string, v: string) => Q; or: (f: string) => Q; ilike: (c: string, p: string) => Q }>(q: Q) => {
+    if (f.status && (ORDER_STATUSES as readonly string[]).includes(f.status)) q = q.eq("status", f.status);
+    if (f.payment && (PAYMENT_STATUSES as readonly string[]).includes(f.payment)) q = q.eq("payment_status", f.payment);
+    if (f.customer && UUID_RE.test(f.customer)) q = q.eq("customer_id", f.customer);
+    if (f.balance) q = q.gt("balance_due", 0);
+    if (f.from && DATE_RE.test(f.from)) q = q.gte("created_at", localDayStart(f.from, timezone));
+    if (f.to && DATE_RE.test(f.to)) q = q.lt("created_at", localDayStart(f.to, timezone, 1));
+    if (search.pattern) q = search.ids.length ? q.or(`order_number.ilike.${search.pattern},customer_id.in.(${search.ids.join(",")})`) : q.ilike("order_number", search.pattern);
+    return q;
+  };
+  const [list, sums] = await Promise.all([
+    filtered(
+      db
+        .from("orders")
+        .select("id, order_number, status, payment_status, channel, total, amount_paid, amount_refunded, balance_due, currency, created_at, customer_id, customers(id, reference, name, whatsapp_phone)", { count: "exact" })
+        .eq("business_id", businessId),
+    )
+      .order("created_at", { ascending: false })
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+    filtered(db.from("orders").select("status, total, amount_paid, amount_refunded, balance_due").eq("business_id", businessId)).limit(ORDER_SUMMARY_CAP),
+  ]);
+  const summaryRows = sums.data ?? [];
+  const open = summaryRows.filter((r) => !(CLOSED_ORDER_STATUSES as readonly string[]).includes(r.status));
+  const summary = {
+    orders: list.count ?? 0,
+    value: open.reduce((n, r) => n + Number(r.total), 0),
+    collected: summaryRows.reduce((n, r) => n + Number(r.amount_paid) - Number(r.amount_refunded), 0),
+    outstanding: summaryRows.reduce((n, r) => n + Number(r.balance_due ?? 0), 0),
+    capped: summaryRows.length >= ORDER_SUMMARY_CAP,
+  };
+  return { rows: list.data ?? [], total: list.count ?? 0, page, summary };
 }
 
 export async function getOrder(businessId: string, id: string, withCost = false) {
   const db = await createClient();
   const { data: row } = await db
     .from("orders")
-    .select("*, customers(id, name, whatsapp_phone), order_items(id, product_id, product_name, variant, quantity, unit_price, total)")
+    .select("*, customers(id, reference, name, whatsapp_phone, email, city), order_items(id, product_id, product_name, variant, sku, quantity, unit_price, total)")
     .eq("business_id", businessId)
     .eq("id", id)
     .maybeSingle();
@@ -429,18 +502,33 @@ export async function getOrder(businessId: string, id: string, withCost = false)
   return data;
 }
 
+/** Status changes of one order, oldest first, with who made them. */
+export async function listOrderStatusEvents(businessId: string, orderId: string) {
+  const db = await createClient();
+  const { data } = await db
+    .from("order_status_events")
+    .select("id, from_status, to_status, changed_by, created_at")
+    .eq("business_id", businessId)
+    .eq("order_id", orderId)
+    .order("created_at")
+    .limit(100);
+  const rows = data ?? [];
+  const names = await userNames(rows.map((r) => r.changed_by));
+  return rows.map((r) => ({ ...r, by: r.changed_by ? (names.get(r.changed_by) ?? null) : null }));
+}
+
 /** Payments recorded for one order, oldest first, with who recorded them. */
 export async function listOrderPayments(businessId: string, orderId: string) {
   const db = await createClient();
   const { data } = await db
     .from("order_payments")
-    .select("id, amount, method, reference, received_at, recorded_by, provider")
+    .select("id, group_id, kind, amount, method, reference, note, received_at, recorded_by, provider, voided_at, voided_by, void_reason")
     .eq("business_id", businessId)
     .eq("order_id", orderId)
     .order("received_at");
   const rows = data ?? [];
-  const names = await userNames(rows.map((r) => r.recorded_by));
-  return rows.map((r) => ({ ...r, by: r.recorded_by ? (names.get(r.recorded_by) ?? null) : null }));
+  const names = await userNames(rows.flatMap((r) => [r.recorded_by, r.voided_by]));
+  return rows.map((r) => ({ ...r, by: r.recorded_by ? (names.get(r.recorded_by) ?? null) : null, voidedBy: r.voided_by ? (names.get(r.voided_by) ?? null) : null }));
 }
 
 // ---------------------------------------------------------------------------

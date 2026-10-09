@@ -38,6 +38,14 @@ export async function createOrder(_prev: FormState, formData: FormData): Promise
     p_delivery_address: o.delivery_address ?? undefined,
     p_payment_method: o.payment_method ?? undefined,
     p_notes: o.notes ?? undefined,
+    p_delivery: {
+      method: o.delivery_method,
+      recipient_name: o.recipient_name,
+      recipient_phone: o.recipient_phone,
+      pickup_location: o.pickup_location,
+      reference: o.delivery_reference,
+      notes: o.delivery_notes,
+    },
   });
   if (error || !data) {
     logServerError("orders.create", error);
@@ -51,7 +59,11 @@ export async function createOrder(_prev: FormState, formData: FormData): Promise
   return ok(data);
 }
 
-/** Status, payment status (recorded by hand), delivery address and notes. Amounts are fixed once created. */
+/**
+ * Status, payment method, delivery details and notes. Amounts are fixed once
+ * created; payment status follows the payments recorded. "Returned" is only
+ * for delivered orders; an order with a refund stays cancelled or returned.
+ */
 export async function updateOrder(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
   if (!ctx) return fail("forbidden");
@@ -63,6 +75,8 @@ export async function updateOrder(_prev: FormState, formData: FormData): Promise
   const { data, error } = await supabase.from("orders").update(parsed.data).eq("id", id).eq("business_id", ctx.business.id).select("id");
   if (error) {
     logServerError("orders.update", error);
+    if (error.message?.includes("only a delivered order")) return fail("invalid", { status: ["return_not_delivered"] });
+    if (error.message?.includes("has a refund")) return fail("invalid", { status: ["refunded_stays_closed"] });
     return dbFail(error);
   }
   if (!data?.length) return fail("not_found");
@@ -85,4 +99,22 @@ export async function deleteOrder(orderId: string, locale: string): Promise<Form
   revalidatePath("/[lang]/dashboard", "layout");
   if (isLocale(locale)) redirect(localizePath(locale, "/dashboard/orders?deleted=1"));
   return ok();
+}
+
+/** Owners/admins: a sale recorded without a customer (walk-in) is linked to the customer who bought it. Once only. */
+export async function linkOrderCustomer(_prev: FormState, formData: FormData): Promise<FormState> {
+  const ctx = await authorize("admin");
+  if (!ctx) return fail("forbidden");
+  const orderId = String(formData.get("order_id") ?? "");
+  const customerId = String(formData.get("customer_id") ?? "");
+  if (!isUuid(orderId)) return fail("invalid");
+  if (!isUuid(customerId)) return fail("invalid", { customer_id: ["required"] });
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("link_order_customer", { p_business_id: ctx.business.id, p_order_id: orderId, p_customer_id: customerId });
+  if (error) {
+    logServerError("orders.link_customer", error);
+    return fail(dbError(error));
+  }
+  revalidatePath("/[lang]/dashboard", "layout");
+  return ok(orderId);
 }

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { createOrder } from "@/lib/actions/orders";
 import { currencyLabel, formatNumber } from "@/lib/i18n/format";
 import type { Locale } from "@/lib/i18n/config";
-import { PAYMENT_METHODS } from "@/types/database";
+import { DELIVERY_METHODS, PAYMENT_METHODS } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
 type O = Messages["dashboard"]["orders"];
@@ -39,7 +39,7 @@ export function OrderBuilder({
 }: {
   t: O;
   text: FormText;
-  customers: { id: string; name: string; whatsapp_phone: string }[];
+  customers: { id: string; reference: string; name: string; whatsapp_phone: string }[];
   products: SellableProduct[];
   currency: string;
   locale: Locale;
@@ -80,7 +80,7 @@ export function OrderBuilder({
             label={f.customer}
             defaultValue={defaultCustomerId ?? ""}
             placeholder={f.chooseCustomer}
-            options={customers.map((c) => ({ value: c.id, label: c.name ? `${c.name} (+${c.whatsapp_phone})` : `+${c.whatsapp_phone}` }))}
+            options={customers.map((c) => ({ value: c.id, label: `${c.name || `+${c.whatsapp_phone}`} · ${c.reference} · +${c.whatsapp_phone}` }))}
             required
           />
         ) : (
@@ -146,7 +146,12 @@ export function OrderBuilder({
         <TextField name="delivery_fee" label={f.deliveryFee} inputMode="decimal" value={fee} onChange={(e) => setFee(e.target.value)} />
         <TextField name="discount" label={f.discount} inputMode="decimal" value={discount} onChange={(e) => setDiscount(e.target.value)} />
         <SelectField name="payment_method" label={f.paymentMethod} defaultValue="" placeholder={f.noMethod} options={PAYMENT_METHODS.map((m) => ({ value: m, label: t.methods[m] }))} />
+        <SelectField name="delivery_method" label={f.deliveryMethod} defaultValue="" placeholder={f.noDeliveryMethod} options={DELIVERY_METHODS.map((m) => ({ value: m, label: f.deliveryMethods[m] }))} />
         <TextField name="delivery_address" label={f.deliveryAddress} maxLength={500} />
+        <TextField name="recipient_name" label={f.recipientName} maxLength={120} />
+        <TextField name="recipient_phone" label={f.recipientPhone} maxLength={24} type="tel" />
+        <TextField name="pickup_location" label={f.pickupLocation} maxLength={300} />
+        <TextField name="delivery_notes" label={f.deliveryNotes} maxLength={1000} />
         <TextArea name="notes" label={f.notes} maxLength={2000} rows={2} className="sm:col-span-2" />
         <p className="text-xs text-slate sm:col-span-2">{t.paymentNote}</p>
       </div>

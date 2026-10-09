@@ -21,11 +21,14 @@ export const ROLE_RANK: Record<BusinessRole, number> = { owner: 4, admin: 3, age
 export const CONVERSATION_STATUSES = ["open", "pending", "resolved", "archived"] as const;
 export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
 
-export const ORDER_STATUSES = ["pending", "confirmed", "processing", "ready", "out_for_delivery", "delivered", "cancelled"] as const;
+export const ORDER_STATUSES = ["pending", "confirmed", "processing", "ready", "out_for_delivery", "delivered", "cancelled", "returned"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-/** Follows the recorded payments (V2): unpaid / partial / paid. pending, refunded and failed are kept for older orders. */
-export const PAYMENT_STATUSES = ["unpaid", "partial", "paid", "pending", "refunded", "failed"] as const;
+/** Follows the recorded payments and refunds: unpaid / partial / paid / partially_refunded / refunded. pending and failed are kept for older orders. */
+export const PAYMENT_STATUSES = ["unpaid", "partial", "paid", "partially_refunded", "refunded", "pending", "failed"] as const;
+/** Orders that are over without a sale: they owe nothing and are not purchases. */
+export const CLOSED_ORDER_STATUSES = ["cancelled", "returned"] as const;
+export const DELIVERY_METHODS = ["pickup", "delivery"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const PAYMENT_METHODS = ["cash", "mobile_money", "orange_money", "mtn_momo", "bank_transfer", "card", "other"] as const;

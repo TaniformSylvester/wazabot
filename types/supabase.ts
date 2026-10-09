@@ -498,14 +498,17 @@ export type Database = {
       business_counters: {
         Row: {
           business_id: string;
+          customer_seq: number;
           order_seq: number;
         };
         Insert: {
           business_id: string;
+          customer_seq?: number;
           order_seq?: number;
         };
         Update: {
           business_id?: string;
+          customer_seq?: number;
           order_seq?: number;
         };
         Relationships: [
@@ -970,6 +973,7 @@ export type Database = {
           preferred_language: string | null;
           preferred_language_source: string | null;
           preferred_language_updated_at: string | null;
+          reference: string;
           tags: string[];
           updated_at: string;
           whatsapp_phone: string;
@@ -991,6 +995,7 @@ export type Database = {
           preferred_language?: string | null;
           preferred_language_source?: string | null;
           preferred_language_updated_at?: string | null;
+          reference?: string;
           tags?: string[];
           updated_at?: string;
           whatsapp_phone: string;
@@ -1012,6 +1017,7 @@ export type Database = {
           preferred_language?: string | null;
           preferred_language_source?: string | null;
           preferred_language_updated_at?: string | null;
+          reference?: string;
           tags?: string[];
           updated_at?: string;
           whatsapp_phone?: string;
@@ -1668,6 +1674,7 @@ export type Database = {
           product_id: string | null;
           product_name: string;
           quantity: number;
+          sku: string | null;
           total: number;
           unit_cost: number | null;
           unit_price: number;
@@ -1681,6 +1688,7 @@ export type Database = {
           product_id?: string | null;
           product_name: string;
           quantity: number;
+          sku?: string | null;
           total: number;
           unit_cost?: number | null;
           unit_price: number;
@@ -1694,6 +1702,7 @@ export type Database = {
           product_id?: string | null;
           product_name?: string;
           quantity?: number;
+          sku?: string | null;
           total?: number;
           unit_cost?: number | null;
           unit_price?: number;
@@ -1732,12 +1741,17 @@ export type Database = {
           customer_id: string | null;
           group_id: string;
           id: string;
+          kind: string;
           method: string;
+          note: string | null;
           order_id: string;
           provider: string;
           received_at: string;
           recorded_by: string | null;
           reference: string | null;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
         };
         Insert: {
           amount: number;
@@ -1746,12 +1760,17 @@ export type Database = {
           customer_id?: string | null;
           group_id?: string;
           id?: string;
+          kind?: string;
           method: string;
+          note?: string | null;
           order_id: string;
           provider?: string;
           received_at?: string;
           recorded_by?: string | null;
           reference?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
         };
         Update: {
           amount?: number;
@@ -1760,12 +1779,17 @@ export type Database = {
           customer_id?: string | null;
           group_id?: string;
           id?: string;
+          kind?: string;
           method?: string;
+          note?: string | null;
           order_id?: string;
           provider?: string;
           received_at?: string;
           recorded_by?: string | null;
           reference?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
         };
         Relationships: [
           {
@@ -1791,9 +1815,49 @@ export type Database = {
           },
         ];
       };
+      order_status_events: {
+        Row: {
+          business_id: string;
+          changed_by: string | null;
+          created_at: string;
+          from_status: string | null;
+          id: string;
+          order_id: string;
+          to_status: string;
+        };
+        Insert: {
+          business_id: string;
+          changed_by?: string | null;
+          created_at?: string;
+          from_status?: string | null;
+          id?: string;
+          order_id: string;
+          to_status: string;
+        };
+        Update: {
+          business_id?: string;
+          changed_by?: string | null;
+          created_at?: string;
+          from_status?: string | null;
+          id?: string;
+          order_id?: string;
+          to_status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_status_events_business_id_order_id_fkey";
+            columns: ["business_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
       orders: {
         Row: {
           amount_paid: number;
+          amount_refunded: number;
+          balance_due: number | null;
           business_id: string;
           channel: string;
           client_key: string | null;
@@ -1804,12 +1868,18 @@ export type Database = {
           customer_id: string | null;
           delivery_address: string | null;
           delivery_fee: number;
+          delivery_method: string | null;
+          delivery_notes: string | null;
+          delivery_reference: string | null;
           discount: number;
           id: string;
           notes: string | null;
           order_number: string;
           payment_method: string | null;
           payment_status: string;
+          pickup_location: string | null;
+          recipient_name: string | null;
+          recipient_phone: string | null;
           status: string;
           stock_applied: boolean;
           stock_managed: boolean;
@@ -1819,6 +1889,8 @@ export type Database = {
         };
         Insert: {
           amount_paid?: number;
+          amount_refunded?: number;
+          balance_due?: never;
           business_id: string;
           channel?: string;
           client_key?: string | null;
@@ -1829,12 +1901,18 @@ export type Database = {
           customer_id?: string | null;
           delivery_address?: string | null;
           delivery_fee?: number;
+          delivery_method?: string | null;
+          delivery_notes?: string | null;
+          delivery_reference?: string | null;
           discount?: number;
           id?: string;
           notes?: string | null;
           order_number: string;
           payment_method?: string | null;
           payment_status?: string;
+          pickup_location?: string | null;
+          recipient_name?: string | null;
+          recipient_phone?: string | null;
           status?: string;
           stock_applied?: boolean;
           stock_managed?: boolean;
@@ -1844,6 +1922,8 @@ export type Database = {
         };
         Update: {
           amount_paid?: number;
+          amount_refunded?: number;
+          balance_due?: never;
           business_id?: string;
           channel?: string;
           client_key?: string | null;
@@ -1854,12 +1934,18 @@ export type Database = {
           customer_id?: string | null;
           delivery_address?: string | null;
           delivery_fee?: number;
+          delivery_method?: string | null;
+          delivery_notes?: string | null;
+          delivery_reference?: string | null;
           discount?: number;
           id?: string;
           notes?: string | null;
           order_number?: string;
           payment_method?: string | null;
           payment_status?: string;
+          pickup_location?: string | null;
+          recipient_name?: string | null;
+          recipient_phone?: string | null;
           status?: string;
           stock_applied?: boolean;
           stock_managed?: boolean;
@@ -2706,6 +2792,7 @@ export type Database = {
       };
     };
     Functions: {
+      _payment_time: { Args: { p_received_at: string }; Returns: string };
       _plan_limits: {
         Args: { p_business_id: string };
         Returns: {
@@ -2837,6 +2924,7 @@ export type Database = {
           p_client_key?: string;
           p_conversation_id?: string;
           p_customer_id: string;
+          p_delivery?: Json;
           p_delivery_address?: string;
           p_delivery_fee?: number;
           p_discount?: number;
@@ -2860,6 +2948,10 @@ export type Database = {
         Returns: string;
       };
       delivery_status_rank: { Args: { s: string }; Returns: number };
+      format_reference: {
+        Args: { p_n: number; p_prefix: string; p_width: number };
+        Returns: string;
+      };
       get_invitation: {
         Args: { p_token: string };
         Returns: {
@@ -2905,6 +2997,10 @@ export type Database = {
         }[];
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
+      link_order_customer: {
+        Args: { p_business_id: string; p_customer_id: string; p_order_id: string };
+        Returns: undefined;
+      };
       order_item_costs: {
         Args: { p_business_id: string; p_order_ids: string[] };
         Returns: {
@@ -2963,6 +3059,8 @@ export type Database = {
           p_client_key?: string;
           p_customer_id: string;
           p_method: string;
+          p_note?: string;
+          p_received_at?: string;
           p_reference?: string;
         };
         Returns: string;
@@ -2973,7 +3071,22 @@ export type Database = {
           p_business_id: string;
           p_client_key?: string;
           p_method: string;
+          p_note?: string;
           p_order_id: string;
+          p_received_at?: string;
+          p_reference?: string;
+        };
+        Returns: string;
+      };
+      record_order_refund: {
+        Args: {
+          p_amount: number;
+          p_business_id: string;
+          p_client_key?: string;
+          p_method: string;
+          p_note?: string;
+          p_order_id: string;
+          p_received_at?: string;
           p_reference?: string;
         };
         Returns: string;
@@ -3042,6 +3155,10 @@ export type Database = {
       update_member_role: {
         Args: { p_business_id: string; p_role: string; p_user_id: string };
         Returns: undefined;
+      };
+      void_payment: {
+        Args: { p_business_id: string; p_group_id: string; p_reason: string };
+        Returns: number;
       };
       whatsapp_free_usage: {
         Args: { p_business_id: string };

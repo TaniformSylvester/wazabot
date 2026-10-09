@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ADJUST_REASONS, AFTER_HOURS_MODES, DOCUMENT_TYPES, EXPENSE_CATEGORIES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, PRODUCT_UNITS, RECEIVE_METHODS, CONVERSATION_STATUSES } from "@/types/database";
+import { ADJUST_REASONS, AFTER_HOURS_MODES, DELIVERY_METHODS, DOCUMENT_TYPES, EXPENSE_CATEGORIES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, PRODUCT_UNITS, RECEIVE_METHODS, CONVERSATION_STATUSES } from "@/types/database";
 import { REPLY_LENGTHS, TONES } from "@/lib/ai/style";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
 
@@ -181,6 +181,16 @@ export const orderItemSchema = z.union([
   z.object({ name: z.string().trim().min(1).max(200), unit_price: z.number().min(0).max(1_000_000_000), quantity: z.number().int().min(1).max(100000) }),
 ]);
 
+/** Delivery details of an order (all optional; none for a customer who collects). */
+export const deliverySchema = z.object({
+  delivery_method: enumOrNull(DELIVERY_METHODS),
+  recipient_name: optionalText(120),
+  recipient_phone: optionalText(24),
+  pickup_location: optionalText(300),
+  delivery_reference: optionalText(100),
+  delivery_notes: optionalText(1000),
+});
+
 export const orderSchema = z.object({
   customer_id: z.uuid({ error: "required" }),
   conversation_id: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
@@ -196,14 +206,17 @@ export const orderSchema = z.object({
   delivery_address: optionalText(500),
   payment_method: enumOrNull(PAYMENT_METHODS),
   notes: optionalText(2000),
+  ...deliverySchema.shape,
 });
 
-export const orderUpdateSchema = z.object({
-  status: z.enum(ORDER_STATUSES, { error: "invalid_option" }),
-  payment_method: enumOrNull(PAYMENT_METHODS),
-  delivery_address: optionalText(500),
-  notes: optionalText(2000),
-});
+export const orderUpdateSchema = z
+  .object({
+    status: z.enum(ORDER_STATUSES, { error: "invalid_option" }),
+    payment_method: enumOrNull(PAYMENT_METHODS),
+    delivery_address: optionalText(500),
+    notes: optionalText(2000),
+  })
+  .extend(deliverySchema.shape);
 
 export const conversationStatusSchema = z.enum(CONVERSATION_STATUSES);
 

@@ -62,7 +62,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     getDashboardMetrics(business.id),
     getSetupProgress(business.id, !!(business.description || business.industry || business.city), hasOpeningHours(business.openingHours)),
     listConversations(business.id),
-    listOrders(business.id),
+    listOrders(business.id, business.timezone),
     getStockAlerts(business.id),
     listNextAppointments(business.id),
     getFreeWhatsAppMessages(business.id),
@@ -261,7 +261,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
                   <Link href={href(`/dashboard/orders/${o.id}`)} className="flex items-center gap-3 py-3 hover:bg-mint/30">
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold text-deep">{o.order_number}</span>
-                      <span className="block truncate text-xs text-slate">{o.customers?.name || `+${o.customers?.whatsapp_phone ?? ""}`}</span>
+                      <span className="block truncate text-xs text-slate">{o.customers ? o.customers.name || `+${o.customers.whatsapp_phone}` : o.channel === "pos" ? d.orders.walkIn : d.orders.notLinked}</span>
                     </span>
                     <span className="text-sm font-semibold text-deep">{formatMoney(o.total, o.currency, locale)}</span>
                     <StatusBadge tone={orderStatusTone[o.status]}>{d.orders.statuses[o.status as keyof typeof d.orders.statuses] ?? o.status}</StatusBadge>

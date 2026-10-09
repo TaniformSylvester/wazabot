@@ -2,13 +2,14 @@ import Link from "next/link";
 import { Plus, Search, Users } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
+import { CopyText } from "@/components/app/copy-button";
 import { EmptyState, PageHeader, Pagination, Panel, StatusBadge, TableWrap, buttonLink, formatDate, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { PAGE_SIZE, listCustomers } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { LANGUAGE_CODES, languageName } from "@/lib/i18n/languages";
-import { formatNumber } from "@/lib/i18n/format";
+import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 
 export const generateMetadata = dashboardMetadata((d) => d.customers.title);
@@ -75,6 +76,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
               <thead>
                 <tr>
                   <th className={th}>{c.columns.name}</th>
+                  <th className={th}>{c.columns.reference}</th>
                   <th className={th}>{c.columns.phone}</th>
                   <th className={th}>{c.columns.orders}</th>
                   <th className={th}>{c.columns.spent}</th>
@@ -87,11 +89,14 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="hover:bg-mint/30" data-customer={r.name ?? r.whatsapp_phone}>
+                  <tr key={r.id} className="hover:bg-mint/30" data-customer={r.name ?? r.whatsapp_phone} data-reference={r.reference}>
                     <td className={td}>
                       <Link href={localizePath(locale, `/dashboard/customers/${r.id}`)} className="font-semibold hover:underline">
                         {r.name || c.unnamed}
                       </Link>
+                    </td>
+                    <td className={`${td} text-slate`}>
+                      <CopyText value={r.reference} label={format(c.copyReference, { reference: r.reference })} copiedLabel={c.copied} />
                     </td>
                     <td className={`${td} whitespace-nowrap text-slate`}>+{r.whatsapp_phone}</td>
                     <td className={`${td} text-slate`}>{formatNumber(r.stats.orders_count, locale)}</td>
@@ -110,6 +115,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
               </tbody>
             </TableWrap>
           )}
+          {rows.length ? <p className="mt-3 text-xs text-slate">{c.metricsNote}</p> : null}
           <Pagination page={page} total={total} pageSize={PAGE_SIZE} labels={d.common} hrefFor={(n) => withQuery(base, { ...filters, page: n })} />
         </Panel>
       )}
