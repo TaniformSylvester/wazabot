@@ -47,8 +47,8 @@ export function PricingCard({
       ) : null}
       <h3 className={cn("type-h3 text-xl", featured && "text-white")}>{name}</h3>
       <p className={cn("mt-1 min-h-10 text-sm", featured ? "text-white/70" : "text-slate")}>{description}</p>
-      <p className="mt-5 flex items-baseline gap-1.5">
-        <span className="font-display text-3xl font-extrabold tracking-tight">{formatXaf(plan.monthlyPrice, locale)}</span>
+      <p className="mt-5 flex flex-wrap items-baseline gap-x-1.5">
+        <span className="font-display text-3xl font-extrabold tracking-tight whitespace-nowrap xl:text-2xl 2xl:text-3xl">{formatXaf(plan.monthlyPrice, locale)}</span>
         <span className={cn("text-sm", featured ? "text-white/70" : "text-slate")}>{t.perMonth}</span>
       </p>
       <p className={cn("mt-4 flex flex-col rounded-xl px-4 py-3", featured ? "bg-white/10" : "bg-mint")}>
@@ -78,7 +78,7 @@ export function PricingCard({
           </li>
         ))}
       </ul>
-      <Button asChild variant={featured ? "default" : "outline"} className="mt-6 w-full">
+      <Button asChild variant={featured ? "default" : "outline"} className="mt-6 h-auto min-h-11 w-full px-4 py-2.5 text-center leading-snug whitespace-normal">
         <Link href={localizePath(locale, `/register?plan=${plan.id}`)}>
           {plan.monthlyPrice === 0 ? startFree : format(t.choose, { plan: name })}
         </Link>

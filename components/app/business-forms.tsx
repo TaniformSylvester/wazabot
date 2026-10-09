@@ -71,11 +71,11 @@ function DayRow({ day, label, value, t }: { day: (typeof WEEKDAYS)[number]; labe
         {t.closed}
       </label>
       <label className="flex min-w-0 items-center gap-2 text-xs text-slate">
-        <span className="w-12 shrink-0">{t.opens}</span>
+        <span className="w-16 shrink-0">{t.opens}</span>
         <input type="time" name={`hours.${day}.open`} defaultValue={v.open} aria-invalid={error ? true : undefined} aria-label={`${label} — ${t.opens}`} className={input} />
       </label>
       <label className="flex min-w-0 items-center gap-2 text-xs text-slate">
-        <span className="w-12 shrink-0">{t.closes}</span>
+        <span className="w-16 shrink-0">{t.closes}</span>
         <input type="time" name={`hours.${day}.close`} defaultValue={v.close} aria-invalid={error ? true : undefined} aria-label={`${label} — ${t.closes}`} className={input} />
       </label>
       {error ? (

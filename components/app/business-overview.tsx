@@ -137,7 +137,7 @@ export function BusinessOverview({
         </Panel>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <Panel title={b.stock} actions={<Link href={href("/dashboard/products")} className={link}>{b.viewAll}</Link>}>
           <dl className="grid grid-cols-3 gap-2 text-center" data-testid="stock-stats">
             {[
@@ -146,7 +146,7 @@ export function BusinessOverview({
               { label: b.out, value: o.stock.out, tone: o.stock.out ? "text-coral-700" : "" },
             ].map((s) => (
               <div key={s.label} className="rounded-xl bg-surface p-2">
-                <dt className="text-xs text-slate">{s.label}</dt>
+                <dt className="text-xs leading-tight [overflow-wrap:anywhere] hyphens-auto text-slate">{s.label}</dt>
                 <dd className={`font-display text-xl font-bold ${s.tone}`}>{n(s.value)}</dd>
               </div>
             ))}
@@ -170,7 +170,7 @@ export function BusinessOverview({
               { label: b.owing, value: o.customers.owing },
             ].map((s) => (
               <div key={s.label} className="rounded-xl bg-surface p-2">
-                <dt className="text-xs text-slate">{s.label}</dt>
+                <dt className="text-xs leading-tight [overflow-wrap:anywhere] hyphens-auto text-slate">{s.label}</dt>
                 <dd className="font-display text-xl font-bold">{n(s.value)}</dd>
               </div>
             ))}
