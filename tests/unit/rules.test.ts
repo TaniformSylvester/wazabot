@@ -94,6 +94,13 @@ describe("rules layer: left to Claude", () => {
     expect(ask(text)).toBeNull();
   });
 
+  it("colours and sizes: the values in stock; prices that vary by combination go to Claude", () => {
+    const tee = product("t", "T-shirt coton", 5000, { options: [{ name: "Couleur", values: ["Rouge", "Noir"], soldOut: ["Bleu"] }, { name: "Taille", values: ["M", "L"] }] });
+    expect(answerWithRules({ text: "c'est combien le t-shirt coton ?", language: "fr", business, catalog: [tee] })?.text).toBe("T-shirt coton : 5 000 FCFA. Disponible en : Couleur: Rouge, Noir; Taille: M, L.");
+    const varies = { ...tee, pricesVary: true as const };
+    expect(answerWithRules({ text: "c'est combien le t-shirt coton ?", language: "fr", business, catalog: [varies] })).toBeNull();
+  });
+
   it("two products match as well → Claude asks which one", () => {
     const two = [product("a", "Robe wax rouge", 15000), product("b", "Robe wax bleue", 15000)];
     expect(answerWithRules({ text: "combien la robe wax ?", language: "fr", business, catalog: two })).toBeNull();

@@ -4,10 +4,12 @@ import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 
 import { ActionForm, SelectField, SubmitButton, TextArea, TextField, useFieldError, type FormText } from "@/components/app/form";
+import { OptionPicker } from "@/components/app/option-picker";
 import { Button } from "@/components/ui/button";
 import { createOrder } from "@/lib/actions/orders";
-import { currencyLabel, formatNumber } from "@/lib/i18n/format";
+import { currencyLabel, format, formatNumber } from "@/lib/i18n/format";
 import type { Locale } from "@/lib/i18n/config";
+import { findVariant, usesOptions, variantAvailable, variantLabel, type Combination, type ProductOption } from "@/lib/products/options";
 import { DELIVERY_METHODS, PAYMENT_METHODS } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
@@ -17,10 +19,11 @@ export type SellableProduct = {
   name: string;
   price: number;
   stock_quantity: number | null;
-  product_variants: { id: string; name: string; value: string; price_modifier: number; stock_quantity: number | null }[];
+  options: ProductOption[];
+  product_variants: { id: string; name: string; value: string; options: unknown; price_modifier: number; stock_quantity: number | null }[];
 };
 type Item =
-  | { key: number; kind: "product"; product_id: string; variant_id: string; quantity: string }
+  | { key: number; kind: "product"; product_id: string; variant_id: string; choice?: Combination; quantity: string }
   | { key: number; kind: "custom"; name: string; unit_price: string; quantity: string };
 
 const toNumber = (v: string) => Number(v.replace(/[\s,]/g, "")) || 0;
@@ -36,6 +39,7 @@ export function OrderBuilder({
   locale,
   defaultCustomerId,
   conversationId,
+  picker,
 }: {
   t: O;
   text: FormText;
@@ -45,6 +49,7 @@ export function OrderBuilder({
   locale: Locale;
   defaultCustomerId?: string;
   conversationId?: string;
+  picker: Messages["dashboard"]["products"]["picker"];
 }) {
   const f = t.fields;
   const [items, setItems] = useState<Item[]>([]);
@@ -96,7 +101,7 @@ export function OrderBuilder({
             <li key={i.key} className="grid grid-cols-2 gap-2 rounded-2xl border border-border p-2 sm:grid-cols-[2fr_1.5fr_5rem_7rem_2.5rem] sm:items-center">
               {i.kind === "product" ? (
                 <>
-                  <select aria-label={f.product} value={i.product_id} onChange={(e) => update(i.key, { product_id: e.target.value, variant_id: "" })} className={`${input} col-span-2 sm:col-span-1`}>
+                  <select aria-label={f.product} value={i.product_id} onChange={(e) => update(i.key, { product_id: e.target.value, variant_id: "", choice: {} })} className={`${input} col-span-2 sm:col-span-1`}>
                     <option value="">{f.chooseProduct}</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -104,19 +109,29 @@ export function OrderBuilder({
                       </option>
                     ))}
                   </select>
-                  {byId.get(i.product_id)?.product_variants.length ? (
-                    <select aria-label={f.variant} value={i.variant_id} onChange={(e) => update(i.key, { variant_id: e.target.value })} className={`${input} col-span-2 sm:col-span-1`}>
-                      <option value="">{f.variant}</option>
-                      {byId.get(i.product_id)!.product_variants.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name}: {v.value}
-                          {Number(v.price_modifier) ? ` (${Number(v.price_modifier) > 0 ? "+" : ""}${formatNumber(Number(v.price_modifier), locale)})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="hidden sm:block" />
-                  )}
+                  {(() => {
+                    const p = byId.get(i.product_id);
+                    if (!p?.product_variants.length) return <span className="hidden sm:block" />;
+                    if (usesOptions(p.options, p.product_variants)) {
+                      const v = p.product_variants.find((x) => x.id === i.variant_id);
+                      return (
+                        <span className={`col-span-2 self-center text-sm sm:col-span-1 ${v ? "font-semibold text-deep" : "text-slate"}`} data-testid="order-item-choice">
+                          {v ? variantLabel(v, p.options) : format(picker.choose, { option: p.options.map((o) => o.name).join(", ") })}
+                        </span>
+                      );
+                    }
+                    return (
+                      <select aria-label={f.variant} value={i.variant_id} onChange={(e) => update(i.key, { variant_id: e.target.value })} className={`${input} col-span-2 sm:col-span-1`}>
+                        <option value="">{f.variant}</option>
+                        {p.product_variants.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.name}: {v.value}
+                            {Number(v.price_modifier) ? ` (${Number(v.price_modifier) > 0 ? "+" : ""}${formatNumber(Number(v.price_modifier), locale)})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  })()}
                 </>
               ) : (
                 <>
@@ -129,6 +144,22 @@ export function OrderBuilder({
               <Button type="button" variant="ghost" size="icon" aria-label={f.remove} className="col-span-2 size-10 justify-self-end sm:col-span-1" onClick={() => setItems((r) => r.filter((x) => x.key !== i.key))}>
                 <X aria-hidden />
               </Button>
+              {i.kind === "product" && byId.get(i.product_id) && usesOptions(byId.get(i.product_id)!.options, byId.get(i.product_id)!.product_variants) ? (
+                <div className="col-span-2 rounded-xl bg-surface p-2 sm:col-span-5">
+                  <OptionPicker
+                    options={byId.get(i.product_id)!.options}
+                    variants={byId.get(i.product_id)!.product_variants}
+                    productStock={byId.get(i.product_id)!.stock_quantity}
+                    value={i.choice ?? {}}
+                    onChange={(choice) => {
+                      const p = byId.get(i.product_id)!;
+                      const v = findVariant(p.options, p.product_variants, choice);
+                      update(i.key, { choice, variant_id: v && variantAvailable(v, p.stock_quantity) ? v.id : "" });
+                    }}
+                    outLabel={picker.out}
+                  />
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

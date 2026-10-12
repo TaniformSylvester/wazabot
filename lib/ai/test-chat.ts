@@ -9,6 +9,7 @@ import { prepareImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { answerWithRules } from "@/lib/ai/rules";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
+import { resolveCatalogPhoto } from "@/lib/ai/tools/registry";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
 import { authorize } from "@/lib/auth/dal";
 import { logClaudeCalls, type ClaudeCallUsage } from "@/lib/billing/costs";
@@ -58,6 +59,8 @@ export type TestChatResult =
       summary: string | null;
       /** Answered by the rules layer (no Claude call), as it would be on WhatsApp. */
       ruled?: boolean;
+      /** The catalog photo that would be sent after the reply. */
+      photo?: { url: string; caption: string } | null;
     }
   | { ok: false; error: TestChatError };
 
@@ -169,9 +172,11 @@ async function runTestMessage(input: unknown): Promise<TestChatResult> {
       .single();
     if (admin) await logClaudeCalls(admin, businessId, calls, { source: "test_chat", aiUsageId: logged?.data?.id });
     const open = isOpenAt(business.business.openingHours, business.business.timezone, now);
+    const photo = result.reply.send_photo && result.productIds.has(result.reply.send_photo.product_id) ? await resolveCatalogPhoto(db, businessId, result.reply.send_photo) : null;
     return {
       ok: true,
       reply: result.reply.reply,
+      photo,
       language: isLanguageCode(result.reply.reply_language) ? result.reply.reply_language : analysis.decision.language,
       needsHuman: result.reply.needs_human,
       handoffReason: result.reply.handoff_reason,

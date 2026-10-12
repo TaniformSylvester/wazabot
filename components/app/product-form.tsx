@@ -1,12 +1,14 @@
 import { ActionForm, CheckboxField, SelectField, SubmitButton, TextArea, TextField, type FormText } from "@/components/app/form";
 import { Panel } from "@/components/app/ui";
-import { VariantsEditor, type VariantRow } from "@/components/app/variants-editor";
+import { OptionsEditor } from "@/components/app/options-editor";
+import type { VariantRow } from "@/components/app/variants-editor";
 import { saveProduct } from "@/lib/actions/products";
 import { currencyLabel, format } from "@/lib/i18n/format";
+import { parseCombination, parseOptions } from "@/lib/products/options";
 import { PRODUCT_UNITS, type Tables } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
-type Product = Tables<"products"> & { product_variants: { id: string; name: string; value: string; stock_quantity: number | null; price_modifier: number }[] };
+type Product = Omit<Tables<"products">, "options"> & { options: unknown; product_variants: { id: string; name: string; value: string; options: unknown; stock_quantity: number | null; price_modifier: number }[] };
 
 /** Create/edit product form (server component shell around client fields). */
 export function ProductForm({
@@ -27,13 +29,23 @@ export function ProductForm({
   submitLabel: string;
 }) {
   const f = t.fields;
-  const variants: VariantRow[] = (product?.product_variants ?? []).map((v) => ({
-    id: v.id,
-    name: v.name,
-    value: v.value,
-    stock_quantity: v.stock_quantity === null ? "" : String(v.stock_quantity),
-    price_modifier: String(Number(v.price_modifier)),
-  }));
+  const options = parseOptions(product?.options);
+  const all = product?.product_variants ?? [];
+  const legacy: VariantRow[] = all
+    .filter((v) => !options.length || parseCombination(v.options) === null)
+    .map((v) => ({
+      id: v.id,
+      name: v.name,
+      value: v.value,
+      stock_quantity: v.stock_quantity === null ? "" : String(v.stock_quantity),
+      price_modifier: String(Number(v.price_modifier)),
+    }));
+  const combos = options.length
+    ? all.flatMap((v) => {
+        const c = parseCombination(v.options);
+        return c ? [{ options: c, stock_quantity: v.stock_quantity, price_modifier: Number(v.price_modifier) }] : [];
+      })
+    : [];
   return (
     <ActionForm action={saveProduct} text={text} disabled={!canEdit} successMessage={t.saved} hidden={{ id: product?.id, locale }}>
       <Panel className="grid gap-5 sm:grid-cols-2">
@@ -58,8 +70,9 @@ export function ProductForm({
         <CheckboxField name="active" label={f.active} defaultChecked={product?.active ?? true} className="sm:col-span-2" />
       </Panel>
 
-      <Panel title={t.variants.title} description={t.variants.text}>
-        <VariantsEditor t={t.variants} initial={variants} />
+      <Panel title={t.options.title} description={t.options.text}>
+        {/* Remounts after each save so photos uploaded just now show (and are kept on the next save). */}
+        <OptionsEditor key={product?.updated_at ?? "new"} t={t.options} tv={t.variants} initialOptions={options} initialCombinations={combos} legacy={legacy} />
       </Panel>
 
       <Panel title={f.image}>

@@ -21,6 +21,14 @@ export const assistantReplySchema = z.object({
   catalog_product_ids: z
     .array(z.string())
     .describe("Ids of catalog products (from searchProducts / checkProductStock) whose details the reply states. Empty if none."),
+  send_photo: z
+    .object({
+      product_id: z.string().describe("A product id from searchProducts / checkProductOptions."),
+      colour: z.string().nullable().describe("The colour value as listed in the product's options (its own photo, if it has one), or null for the main photo."),
+    })
+    .nullable()
+    .optional()
+    .describe("Only when the customer asks to see a product or a colour: its catalog photo is sent right after your message. Only for hasPhoto true or a colour listed in withPhoto. Otherwise null."),
   needs_human: z.boolean().describe("True when a person from the business must take over."),
   handoff_reason: z.string().nullable().describe("Short internal reason for the handoff, or null."),
   summary: z

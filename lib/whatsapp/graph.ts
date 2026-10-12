@@ -100,6 +100,20 @@ export class WhatsAppGraphClient {
     return { messageId };
   }
 
+  /** An image by public URL (WhatsApp fetches it), with an optional caption. */
+  async sendImage(phoneNumberId: string, to: string, link: string, caption?: string): Promise<{ messageId: string }> {
+    const r = await this.request<{ messages?: { id: string }[] }>("POST", `${encodeURIComponent(phoneNumberId)}/messages`, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "image",
+      image: { link, ...(caption ? { caption } : {}) },
+    });
+    const messageId = r.messages?.[0]?.id;
+    if (!messageId) throw new GraphApiError(502, null, "no message id returned");
+    return { messageId };
+  }
+
   /**
    * A message template, outside the 24-hour window (Stage 7). Parameters fill
    * {{1}}, {{2}} … of the approved body in order.

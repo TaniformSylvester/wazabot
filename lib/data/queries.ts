@@ -6,6 +6,7 @@ import { getUsageStatus } from "@/lib/billing/usage";
 import { oneOf, CLOSED_ORDER_STATUSES, CONVERSATION_STATUSES, ORDER_STATUSES, PAYMENT_STATUSES, WHATSAPP_STATUSES } from "@/types/database";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
 import { createClient } from "@/lib/supabase/server";
+import { parseOptions, variantLabel } from "@/lib/products/options";
 
 /*
  * Read models for the dashboard. Every query runs with the signed-in user's
@@ -157,7 +158,7 @@ export async function getProduct(businessId: string, id: string, withCost = fals
   const { data } = await db
     .from("products")
     .select(
-      "id, business_id, name, description, category, sku, price, currency, stock_quantity, image_url, active, created_at, updated_at, low_stock_threshold, stock_low, unit, product_variants(id, name, value, stock_quantity, price_modifier, sort_order)",
+      "id, business_id, name, description, category, sku, price, currency, stock_quantity, image_url, active, created_at, updated_at, low_stock_threshold, stock_low, unit, options, product_variants(id, name, value, options, stock_quantity, price_modifier, sort_order)",
     )
     .eq("business_id", businessId)
     .eq("id", id)
@@ -173,7 +174,7 @@ export async function listStockMovements(businessId: string, productId: string, 
   const db = await createClient();
   const { data } = await db
     .from("stock_movements")
-    .select("id, variant_id, reason, quantity_change, previous_stock, new_stock, order_id, note, created_by, created_at, product_variants(name, value), orders(order_number)")
+    .select("id, variant_id, reason, quantity_change, previous_stock, new_stock, order_id, note, created_by, created_at, product_variants(name, value, options), orders(order_number)")
     .eq("business_id", businessId)
     .eq("product_id", productId)
     .order("created_at", { ascending: false })
@@ -198,12 +199,12 @@ export async function listSellableProducts(businessId: string) {
   const db = await createClient();
   const { data } = await db
     .from("products")
-    .select("id, name, price, currency, stock_quantity, product_variants(id, name, value, price_modifier, stock_quantity)")
+    .select("id, name, price, currency, stock_quantity, options, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
     .eq("business_id", businessId)
     .eq("active", true)
     .order("name")
     .limit(500);
-  return data ?? [];
+  return (data ?? []).map((p) => ({ ...p, options: parseOptions(p.options), product_variants: [...p.product_variants].sort((a, b) => a.sort_order - b.sort_order) }));
 }
 
 // ---------------------------------------------------------------------------
@@ -539,12 +540,12 @@ export async function listPosProducts(businessId: string) {
   const db = await createClient();
   const { data } = await db
     .from("products")
-    .select("id, name, sku, category, price, unit, stock_quantity, image_url, product_variants(id, name, value, price_modifier, stock_quantity, sort_order)")
+    .select("id, name, sku, category, price, unit, stock_quantity, image_url, options, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
     .eq("business_id", businessId)
     .eq("active", true)
     .order("name")
     .limit(1000);
-  return (data ?? []).map((p) => ({ ...p, price: Number(p.price), product_variants: [...p.product_variants].sort((a, b) => a.sort_order - b.sort_order).map((v) => ({ ...v, price_modifier: Number(v.price_modifier) })) }));
+  return (data ?? []).map((p) => ({ ...p, price: Number(p.price), options: parseOptions(p.options), product_variants: [...p.product_variants].sort((a, b) => a.sort_order - b.sort_order).map((v) => ({ ...v, price_modifier: Number(v.price_modifier) })) }));
 }
 export type PosProduct = Awaited<ReturnType<typeof listPosProducts>>[number];
 
@@ -751,7 +752,7 @@ export async function getStockAlerts(businessId: string, max = 8): Promise<{ ale
   const db = await createClient();
   const { data } = await db
     .from("products")
-    .select("id, name, stock_quantity, low_stock_threshold, product_variants(name, value, stock_quantity)")
+    .select("id, name, stock_quantity, low_stock_threshold, options, product_variants(name, value, options, stock_quantity)")
     .eq("business_id", businessId)
     .eq("active", true)
     .limit(2000);
@@ -760,7 +761,7 @@ export async function getStockAlerts(businessId: string, max = 8): Promise<{ ale
     const tracked = p.product_variants.filter((v) => v.stock_quantity !== null);
     for (const v of tracked) {
       if (v.stock_quantity! <= p.low_stock_threshold) {
-        alerts.push({ productId: p.id, name: p.name, variant: `${v.name}: ${v.value}`, quantity: v.stock_quantity!, out: v.stock_quantity === 0 });
+        alerts.push({ productId: p.id, name: p.name, variant: variantLabel(v, p.options), quantity: v.stock_quantity!, out: v.stock_quantity === 0 });
       }
     }
     if (p.stock_quantity !== null && p.stock_quantity <= p.low_stock_threshold) {

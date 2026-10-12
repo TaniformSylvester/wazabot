@@ -13,6 +13,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { variantLabel } from "@/lib/products/options";
 import { ADJUST_REASONS, type StockReason } from "@/types/database";
 
 export const generateMetadata = dashboardMetadata((d) => d.products.edit);
@@ -99,7 +100,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
                     name="variant_id"
                     label={inv.adjust.variant}
                     defaultValue=""
-                    options={[{ value: "", label: inv.adjust.wholeProduct }, ...product.product_variants.map((v) => ({ value: v.id, label: `${v.name}: ${v.value}` }))]}
+                    options={[{ value: "", label: inv.adjust.wholeProduct }, ...product.product_variants.map((v) => ({ value: v.id, label: variantLabel(v, product.options) }))]}
                   />
                 ) : null}
                 <div className="grid grid-cols-2 gap-3">
@@ -137,7 +138,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
                   <td className={`${td} whitespace-nowrap text-slate`}>{formatDate(m.created_at, locale, true)}</td>
                   <td className={td}>
                     <span className="font-semibold">{inv.reasons[m.reason as StockReason] ?? m.reason}</span>
-                    {m.product_variants ? <span className="block text-xs text-slate">{`${m.product_variants.name}: ${m.product_variants.value}`}</span> : null}
+                    {m.product_variants ? <span className="block text-xs text-slate">{variantLabel(m.product_variants, product.options)}</span> : null}
                     {m.orders && m.order_id ? (
                       <Link href={localizePath(locale, `/dashboard/sales/${m.order_id}`)} className="block py-1 text-xs font-semibold text-waza-700 hover:underline">
                         {m.orders.order_number}

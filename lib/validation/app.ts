@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ADJUST_REASONS, AFTER_HOURS_MODES, DELIVERY_METHODS, DOCUMENT_TYPES, EXPENSE_CATEGORIES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, PRODUCT_UNITS, RECEIVE_METHODS, CONVERSATION_STATUSES } from "@/types/database";
 import { REPLY_LENGTHS, TONES } from "@/lib/ai/style";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
+import { combinationCount, combinationKey, MAX_COMBINATIONS, MAX_OPTION_VALUES, MAX_OPTIONS, OPTION_NAME_MAX, OPTION_VALUE_MAX } from "@/lib/products/options";
 
 /*
  * Dashboard form schemas, shared by forms (field hints) and Server Actions
@@ -91,10 +92,37 @@ export const businessProfileSchema = z.object({
 });
 export type BusinessProfileInput = z.infer<typeof businessProfileSchema>;
 
+function parseJsonField(v: unknown) {
+  if (typeof v !== "string" || v.trim() === "") return [];
+  try {
+    return JSON.parse(v);
+  } catch {
+    return null;
+  }
+}
+
+/** One product option (Colour, Size …) with its values; a colour value may have a swatch and a photo. */
+export const productOptionSchema = z.object({
+  name: requiredText(OPTION_NAME_MAX),
+  colour: z.boolean().optional().transform((v) => v === true),
+  values: z
+    .array(
+      z.object({
+        value: requiredText(OPTION_VALUE_MAX),
+        hex: z.preprocess((v) => (v === "" || v === undefined ? null : v), z.string().regex(/^#[0-9a-fA-F]{6}$/, "invalid_option").nullable()),
+        image_url: z.preprocess((v) => (v === "" || v === undefined ? null : v), z.string().max(500, "too_long").nullable()),
+      }),
+    )
+    .min(1, "required")
+    .max(MAX_OPTION_VALUES, "too_long"),
+});
+
 export const variantSchema = z.object({
   id: z.uuid().optional(),
   name: requiredText(60),
   value: requiredText(80),
+  /** A combination of the product's options, e.g. { Colour: "Red", Size: "M" }; absent for single-option variants. */
+  options: z.record(z.string(), z.string().max(OPTION_VALUE_MAX)).nullable().optional(),
   stock_quantity: optionalCount,
   price_modifier: z.preprocess((v) => (v === "" || v === undefined ? 0 : Number(String(v).replace(/[\s,]/g, ""))), z.number({ error: "invalid_number" }).finite().min(-1_000_000_000).max(1_000_000_000)),
 });
@@ -116,14 +144,37 @@ export const productSchema = z.object({
     z.number({ error: "invalid_integer" }).int("invalid_integer").min(0, "invalid_integer").max(100_000, "invalid_integer"),
   ),
   active: checkbox,
-  variants: z.preprocess((v) => {
-    if (typeof v !== "string" || v.trim() === "") return [];
-    try {
-      return JSON.parse(v);
-    } catch {
-      return null;
+  options: z.preprocess(parseJsonField, z.array(productOptionSchema).max(MAX_OPTIONS, "too_long")),
+  variants: z.preprocess(parseJsonField, z.array(variantSchema).max(MAX_COMBINATIONS, "too_long")),
+}).superRefine((p, ctx) => {
+  const lower = (s: string) => s.trim().toLowerCase();
+  const names = p.options.map((o) => lower(o.name));
+  const valuesRepeat = p.options.some((o) => new Set(o.values.map((v) => lower(v.value))).size !== o.values.length);
+  if (new Set(names).size !== names.length || valuesRepeat || p.options.filter((o) => o.colour).length > 1) {
+    ctx.addIssue({ code: "custom", path: ["options"], message: "options_duplicate" });
+    return;
+  }
+  if (combinationCount(p.options) > MAX_COMBINATIONS) {
+    ctx.addIssue({ code: "custom", path: ["options"], message: "options_too_many" });
+    return;
+  }
+  if (!p.options.length) {
+    if (p.variants.length > 50) ctx.addIssue({ code: "custom", path: ["variants"], message: "too_long" });
+    return;
+  }
+  // With options, every variant is one combination of them, each at most once.
+  const seen = new Set<string>();
+  for (const v of p.variants) {
+    const c = v.options ?? {};
+    const valid =
+      Object.keys(c).length === p.options.length && p.options.every((o) => o.values.some((x) => x.value === c[o.name]));
+    const key = combinationKey(c, p.options);
+    if (!valid || seen.has(key)) {
+      ctx.addIssue({ code: "custom", path: ["variants"], message: "options_mismatch" });
+      return;
     }
-  }, z.array(variantSchema).max(50, "too_long")),
+    seen.add(key);
+  }
 });
 export type ProductInput = z.infer<typeof productSchema>;
 

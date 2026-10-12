@@ -9,6 +9,9 @@
  *   "parler à quelqu'un"      → send_reply with needs_human
  *   a photo                   → searchProducts, viewProductPhotos, then "we have it"
  *   "rendez-vous"             → findAvailableSlots, bookAppointment (first free time), confirmation
+ *   "couleurs … en M"         → checkProductOptions for that size, then the colours in stock
+ *   "montrez-moi la rouge"    → send_reply with send_photo (that colour's photo)
+ *   "je prends N rouge en m"  → checkProductOptions for the combination, createOrder with its variantId
  *   anything else             → a greeting
  */
 import { createServer } from "node:http";
@@ -96,10 +99,34 @@ function respond(body) {
   if (/parler à quelqu'un|un humain/.test(text)) {
     return [sendReply({ reply: "Bien sûr, je transmets votre demande à l'équipe.", needs_human: true, handoff_reason: "customer asked for a person" })];
   }
+  // Colours and sizes (products sold in combinations list their options).
+  if (product?.options) {
+    const [colourOpt, sizeOpt] = product.options;
+    const check = results.checkProductOptions;
+    const size = text.match(/couleurs?\b.* en (\w+)/)?.[1];
+    if (size) {
+      if (!check) return [call("checkProductOptions", { productId: product.productId, choose: { [sizeOpt.name]: size } })];
+      const colours = check.options.find((o) => o.name === colourOpt.name).available;
+      return [sendReply({ reply: `En ${size.toUpperCase()}, nous avons : ${colours.join(", ")}.`, catalog_product_ids: [product.productId] })];
+    }
+    const show = text.match(/montrez-moi (?:la |le )?(\w+)/)?.[1];
+    if (show) {
+      const value = [...colourOpt.values, ...(colourOpt.soldOut ?? [])].find((v) => v.toLowerCase() === show) ?? show;
+      return [sendReply({ reply: `Voici le ${product.name} en ${value}.`, catalog_product_ids: [product.productId], send_photo: { product_id: product.productId, colour: value } })];
+    }
+    const combo = text.match(/je prends (\d+) (\w+) en (\w+)/);
+    if (combo) {
+      if (!check) return [call("checkProductOptions", { productId: product.productId, choose: { [colourOpt.name]: combo[2], [sizeOpt.name]: combo[3] } })];
+      if (!check.combination?.inStock) return [sendReply({ reply: "Désolé, cette combinaison n'est plus disponible.", catalog_product_ids: [product.productId] })];
+      if (!order) return [call("createOrder", { items: [{ productId: product.productId, variantId: check.combination.variantId, quantity: Number(combo[1]) }] })];
+      return [sendReply({ reply: `Commande ${order.orderNumber} : ${check.combination.label}, ${order.total} ${order.currency}.`, catalog_product_ids: [product.productId] })];
+    }
+  }
   const qty = Number(text.match(/je prends (\d+)/)?.[1] ?? 0);
   if (qty) {
     if (!product) return [call("searchProducts", { query: "Ankara" })];
     if (!order) return [call("createOrder", { items: [{ productId: product.productId, quantity: qty }] })];
+    if (!order.ok) return [sendReply({ reply: `Impossible : ${order.reason}.`, catalog_product_ids: [product.productId] })];
     return [sendReply({ reply: `C'est noté ! Votre commande ${order.orderNumber} est enregistrée : ${order.total} ${order.currency}.`, catalog_product_ids: [product.productId] })];
   }
   if (/combien|prix/.test(text)) {

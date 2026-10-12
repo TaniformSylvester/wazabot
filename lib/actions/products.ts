@@ -8,6 +8,7 @@ import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
+import { combinationKey, combinationNameValue, parseCombination, type ProductOption } from "@/lib/products/options";
 import { productSchema, stockAdjustSchema } from "@/lib/validation/app";
 
 import { dbError, dbFail, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
@@ -22,7 +23,7 @@ export async function saveProduct(_prev: FormState, formData: FormData): Promise
   if (!ctx) return fail("forbidden");
   const parsed = productSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
-  const { variants, ...fields } = parsed.data;
+  const { variants, options: optionInput, ...fields } = parsed.data;
   const businessId = ctx.business.id;
   const existingId = typeof formData.get("id") === "string" && formData.get("id") ? String(formData.get("id")) : null;
   if (existingId && !isUuid(existingId)) return fail("invalid");
@@ -51,16 +52,56 @@ export async function saveProduct(_prev: FormState, formData: FormData): Promise
     productId = data.id;
   }
 
+  // Options: a colour photo is either one already in this business's storage folder or a new upload.
+  const ownFolder = storageFolderUrl(businessId);
+  const options: ProductOption[] = [];
+  let photoError: "image_invalid" | "storage_unavailable" | null = null;
+  for (const o of optionInput) {
+    const values = [];
+    for (const v of o.values) {
+      let image_url = o.colour && v.image_url && ownFolder && v.image_url.startsWith(ownFolder) ? v.image_url : null;
+      const file = o.colour ? formData.get(`colour_image__${v.value}`) : null;
+      if (file instanceof File && file.size > 0) {
+        // A photo that can't be uploaded doesn't stop the rest from being saved; it's reported at the end.
+        const uploaded = await uploadFile(businessId, productId!, file);
+        if (uploaded.ok) image_url = uploaded.url;
+        else photoError ??= uploaded.error;
+      }
+      values.push({ value: v.value, ...(o.colour ? { hex: v.hex, image_url } : {}) });
+    }
+    options.push({ name: o.name, ...(o.colour ? { colour: true } : {}), values });
+  }
+  const { error: optionsError } = await supabase.from("products").update({ options }).eq("id", productId!).eq("business_id", businessId);
+  if (optionsError) {
+    logServerError("products.options", optionsError);
+    return { ...fail(dbError(optionsError)), id: productId! };
+  }
+
   // Variants: keep the ones still listed, update them, add new ones, remove the rest.
-  const keep = variants.filter((v) => v.id).map((v) => v.id!);
+  // With options, rows are matched by combination (one row per combination).
+  const { data: current } = await supabase.from("product_variants").select("id, options").eq("product_id", productId!).eq("business_id", businessId);
+  const byCombination = new Map(
+    (current ?? []).flatMap((v) => {
+      const c = parseCombination(v.options);
+      return c && options.length ? [[combinationKey(c, options), v.id] as const] : [];
+    }),
+  );
+  const ownIds = new Set((current ?? []).map((v) => v.id));
+  const rows = variants.map((v, index) => {
+    if (options.length) {
+      const c = Object.fromEntries(options.map((o) => [o.name, v.options![o.name]]));
+      return { id: byCombination.get(combinationKey(c, options)), row: { ...combinationNameValue(c, options), options: c, stock_quantity: v.stock_quantity, price_modifier: v.price_modifier, sort_order: index } };
+    }
+    return { id: v.id && ownIds.has(v.id) ? v.id : undefined, row: { name: v.name, value: v.value, options: null, stock_quantity: v.stock_quantity, price_modifier: v.price_modifier, sort_order: index } };
+  });
+  const keep = rows.flatMap((r) => (r.id ? [r.id] : []));
   let del = supabase.from("product_variants").delete().eq("product_id", productId!).eq("business_id", businessId);
   if (keep.length) del = del.not("id", "in", `(${keep.join(",")})`);
   const { error: delError } = await del;
   if (delError) logServerError("products.variants.delete", delError);
-  for (const [index, v] of variants.entries()) {
-    const row = { name: v.name, value: v.value, stock_quantity: v.stock_quantity, price_modifier: v.price_modifier, sort_order: index };
-    const { error } = v.id
-      ? await supabase.from("product_variants").update(row).eq("id", v.id).eq("business_id", businessId)
+  for (const { id, row } of rows) {
+    const { error } = id
+      ? await supabase.from("product_variants").update(row).eq("id", id).eq("business_id", businessId)
       : await supabase.from("product_variants").insert({ ...row, product_id: productId!, business_id: businessId });
     if (error) {
       logServerError("products.variants.save", error);
@@ -73,6 +114,10 @@ export async function saveProduct(_prev: FormState, formData: FormData): Promise
     const imageResult = await uploadImage(businessId, productId!, image);
     if (imageResult) return { ...fail(imageResult), id: productId! };
   }
+  if (photoError) {
+    revalidatePath("/[lang]/dashboard", "layout");
+    return { ...fail(photoError), id: productId! };
+  }
 
   revalidatePath("/[lang]/dashboard", "layout");
   const locale = formData.get("locale");
@@ -80,23 +125,36 @@ export async function saveProduct(_prev: FormState, formData: FormData): Promise
   return ok(productId!);
 }
 
+/** Public URL prefix of this business's folder in the product-images bucket. */
+function storageFolderUrl(businessId: string) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return base ? `${base.replace(/\/$/, "")}/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/${businessId}/` : null;
+}
+
 /**
  * Uploads to the public `product-images` bucket under <business_id>/<product_id>/
  * with the signed-in user's session: Storage policies allow owners/admins to
  * write only inside their own business folder.
  */
-async function uploadImage(businessId: string, productId: string, file: File) {
+async function uploadFile(businessId: string, productId: string, file: File) {
   const ext = IMAGE_TYPES[file.type];
-  if (!ext || file.size > MAX_IMAGE_BYTES) return "image_invalid" as const;
+  if (!ext || file.size > MAX_IMAGE_BYTES) return { ok: false as const, error: "image_invalid" as const };
   const supabase = await createClient();
   const path = `${businessId}/${productId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
   if (error) {
     logServerError("products.image.upload", error);
-    return "storage_unavailable" as const;
+    return { ok: false as const, error: "storage_unavailable" as const };
   }
-  const { data } = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path);
-  const { error: updateError } = await supabase.from("products").update({ image_url: data.publicUrl }).eq("id", productId).eq("business_id", businessId);
+  return { ok: true as const, url: supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl };
+}
+
+/** The product's main photo. */
+async function uploadImage(businessId: string, productId: string, file: File) {
+  const uploaded = await uploadFile(businessId, productId, file);
+  if (!uploaded.ok) return uploaded.error;
+  const supabase = await createClient();
+  const { error: updateError } = await supabase.from("products").update({ image_url: uploaded.url }).eq("id", productId).eq("business_id", businessId);
   if (updateError) {
     logServerError("products.image.save", updateError);
     return "unknown" as const;

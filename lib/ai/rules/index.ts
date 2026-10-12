@@ -77,6 +77,8 @@ export function answerWithRules({ text, language, business, catalog, maxChars = 
     case "price":
     case "stock": {
       const product = singleProduct(catalog, tokens);
+      // Prices that differ by colour/size need the exact combination: Claude asks or checks.
+      if (product?.pricesVary) return null;
       if (!product) return null;
       return { intent: main, text: productAnswer(product, language, business.settings.salesMode), productIds: [product.productId] };
     }
@@ -163,10 +165,12 @@ function money(amount: number, currency: string, language: LanguageCode) {
 function productAnswer(p: CatalogMatchItem, language: LanguageCode, salesMode: boolean) {
   const t = TEXT[language];
   const price = money(p.price, p.currency, language);
-  const variants = p.variants.filter((v) => v.inStock !== false).map((v) => (v.label.split(": ")[1] ?? v.label) + (v.price !== p.price ? ` (${money(v.price, p.currency, language)})` : ""));
+  const variants = p.options
+    ? p.options.filter((o) => o.values.length).map((o) => `${o.name}: ${o.values.join(", ")}`)
+    : p.variants.filter((v) => v.inStock !== false).map((v) => (v.label.split(": ")[1] ?? v.label) + (v.price !== p.price ? ` (${money(v.price, p.currency, language)})` : ""));
   const out = p.inStock === false && !variants.length;
   const parts = [out ? t.outOfStock(p.name, price) : t.price(p.name, price)];
-  if (!out && p.variants.length && variants.length) parts.push(t.options(variants.join(", ")));
+  if (!out && variants.length) parts.push(t.options(variants.join(p.options ? "; " : ", ")));
   if (!out && salesMode) parts.push(t.orderPrompt);
   return parts.join(" ");
 }

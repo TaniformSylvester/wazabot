@@ -271,6 +271,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=
 # Start the app with ANTHROPIC_API_KEY=test-key ANTHROPIC_BASE_URL=http://localhost:4020 AI_DEBOUNCE_MS=1500 too.
 # The photo checks need Supabase Storage (included in `npx supabase start`).
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... npm run test:e2e:ai
+# Colours and sizes: product page, till, order form, assistant (fake Graph + fake Anthropic).
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:product-options
 # Stage 6 appointments (fake Graph + fake Anthropic, like the AI suite)
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:appointments
 # Stage 7 notifications (fake Graph with templates); start the app with CRON_SECRET=test-cron too
@@ -570,6 +572,14 @@ and phase-by-phase plan is in `docs/v2-implementation-plan.md`.
 | Balance due (per order) | Total − paid; 0 for cancelled and returned orders. A customer's "owes" equals the balances of their delivered orders. |
 | Order value (Orders page) | Totals of the orders shown, cancelled and returned excluded. |
 | Last contact | Latest message (either way), order or payment. |
+
+## Colours and sizes (product options)
+
+- **Product page → Colours and sizes**: add up to 3 options (e.g. Colour, Size); WazaBolt makes every combination (up to 100), each with its own stock (empty = not counted) and price difference. Colour values can have a swatch and their own photo. Without options, the older one-option variants ("Size: L") work as before.
+- **Storage**: `products.options` holds the options in order (`[{name, colour, values: [{value, hex, image_url}]}]`); each combination is a `product_variants` row with `options = {"Colour": "Red", "Size": "M"}` (its `name`/`value` stay filled, "Colour / Size", "Red / M"). Stock, the stock history, `create_order` and `create_sale` treat a combination like any variant.
+- **Orders**: each line records "Colour: Red · Size: M" (a snapshot). A product sold by combinations can't be ordered without one (the database refuses it).
+- **Till and order form**: pick the colour, then the size; combinations out of stock are greyed out.
+- **WhatsApp assistant**: `checkProductOptions` answers "which colours in M?" from real stock and gives the exact combination for `createOrder`; `send_photo` sends the catalog photo of the colour asked for (only photos in WazaBolt's own product-images storage), right after the reply.
 
 ## Plans and limits
 

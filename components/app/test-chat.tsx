@@ -158,6 +158,13 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
                   <p className={cn("mb-1 text-[0.6875rem] font-semibold", turn.meta.blocked ? "text-slate" : "text-cream/70")}>{t.assistant}</p>
                   <p className="whitespace-pre-line break-words">{turn.text}</p>
                 </div>
+                {turn.meta.photo ? (
+                  <figure className="max-w-[85%] rounded-2xl rounded-br-md bg-deep p-1.5 text-sm text-cream shadow-sm sm:max-w-[70%]" data-testid="test-chat-photo">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- catalog photo from Supabase Storage */}
+                    <img src={turn.meta.photo.url} alt={turn.meta.photo.caption} className="max-h-56 rounded-xl object-contain" />
+                    <figcaption className="px-2 pt-1 pb-0.5 text-xs">{turn.meta.photo.caption}</figcaption>
+                  </figure>
+                ) : null}
                 <div className="flex max-w-[85%] flex-col items-end gap-1 text-right text-[0.6875rem] text-slate sm:max-w-[70%]">
                   <span>{format(t.language, { language: languageNames[turn.meta.language] ?? turn.meta.language })}</span>
                   {turn.meta.tools.length ? (

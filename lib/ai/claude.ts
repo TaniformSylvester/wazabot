@@ -192,6 +192,7 @@ function catalogBlock(catalog: NonNullable<GenerateInput["catalog"]>) {
     currency: p.currency,
     inStock: p.inStock,
     ...(p.hasPhoto ? { hasPhoto: true } : {}),
+    ...(p.options ? { options: p.options, ...(p.pricesVary ? { pricesVary: true } : {}) } : {}),
     ...(p.variants.length ? { variants: p.variants.map((v) => ({ variantId: v.variantId, label: v.label, ...(v.price !== p.price ? { price: v.price } : {}), inStock: v.inStock })) } : {}),
   }));
   return `<catalog_matches>\n${JSON.stringify(items)}\n</catalog_matches>`;
@@ -371,7 +372,7 @@ function collectProductIds(name: string, input: unknown, result: unknown, ids: S
   if (name === "searchProducts" && Array.isArray(result)) {
     for (const p of result) if (p && typeof p === "object" && "productId" in p) ids.add(String((p as { productId: string }).productId));
   }
-  if (name === "checkProductStock" && result && typeof result === "object" && (result as { found?: boolean }).found) {
+  if ((name === "checkProductStock" || name === "checkProductOptions") && result && typeof result === "object" && (result as { found?: boolean }).found) {
     const productId = (input as { productId?: string } | null)?.productId;
     if (productId) ids.add(productId);
   }

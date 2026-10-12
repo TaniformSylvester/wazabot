@@ -242,6 +242,8 @@ function MessageBubble({ m, c, locale, mediaUrls }: { m: Msg; c: Messages["dashb
   const sender = (m.sender_type in c.sender ? m.sender_type : "system") as keyof typeof c.sender;
   const type = m.message_type as keyof typeof MEDIA_ICONS | "text";
   const Icon = type !== "text" ? MEDIA_ICONS[type] : null;
+  // A catalog photo the assistant sent (public product-images URL; not a customer's private file).
+  const catalogPhoto = !inbound && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) && typeof (m.payload as Record<string, unknown>).catalog_image_url === "string" ? String((m.payload as Record<string, unknown>).catalog_image_url) : null;
   const location = type === "location" && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) ? locationFromPayload(m.payload as Record<string, unknown>) : null;
   return (
     <li className={cn("flex", inbound ? "justify-start" : "justify-end")}>
@@ -252,7 +254,13 @@ function MessageBubble({ m, c, locale, mediaUrls }: { m: Msg; c: Messages["dashb
         )}
       >
         <p className={cn("mb-1 text-[0.6875rem] font-semibold", sender === "ai" && !inbound ? "text-cream/70" : "text-slate")}>{c.sender[sender]}</p>
-        {Icon ? (
+        {catalogPhoto ? (
+          <div className="flex flex-col gap-1">
+            {/* eslint-disable-next-line @next/next/no-img-element -- catalog photo from Supabase Storage */}
+            <img src={catalogPhoto} alt={m.caption ?? ""} className="max-h-60 rounded-xl border border-border object-contain" />
+            {m.caption ? <p className="whitespace-pre-line">{m.caption}</p> : null}
+          </div>
+        ) : Icon ? (
           <div className="flex flex-col gap-1">
             <p className="flex items-start gap-2 italic">
               <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />

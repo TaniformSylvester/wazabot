@@ -32,6 +32,7 @@ export default async function NewOrderPage({ searchParams }: PageProps<"/[lang]/
         locale={locale}
         defaultCustomerId={isUuid(customer) ? customer : undefined}
         conversationId={isUuid(conversation) ? conversation : undefined}
+        picker={d.products.picker}
       />
     </div>
   );

@@ -2190,6 +2190,7 @@ export type Database = {
           created_at: string;
           id: string;
           name: string;
+          options: Json | null;
           price_modifier: number;
           product_id: string;
           sort_order: number;
@@ -2201,6 +2202,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           name: string;
+          options?: Json | null;
           price_modifier?: number;
           product_id: string;
           sort_order?: number;
@@ -2212,6 +2214,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           name?: string;
+          options?: Json | null;
           price_modifier?: number;
           product_id?: string;
           sort_order?: number;
@@ -2241,6 +2244,7 @@ export type Database = {
           image_url: string | null;
           low_stock_threshold: number;
           name: string;
+          options: NonNullable<Json>;
           price: number;
           sku: string | null;
           stock_low: boolean | null;
@@ -2260,6 +2264,7 @@ export type Database = {
           image_url?: string | null;
           low_stock_threshold?: number;
           name: string;
+          options?: NonNullable<Json>;
           price?: number;
           sku?: string | null;
           stock_low?: never;
@@ -2279,6 +2284,7 @@ export type Database = {
           image_url?: string | null;
           low_stock_threshold?: number;
           name?: string;
+          options?: NonNullable<Json>;
           price?: number;
           sku?: string | null;
           stock_low?: never;

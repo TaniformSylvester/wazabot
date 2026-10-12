@@ -18,6 +18,7 @@ import { answerWithRules } from "@/lib/ai/rules";
 import { loadMessageImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
+import { resolveCatalogPhoto } from "@/lib/ai/tools/registry";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage } from "@/lib/ai/service";
 import { sendBudgetAlert } from "@/lib/billing/alerts";
 import { claudeCostUsd, logClaudeCalls, usdToFcfa, type ClaudeCallUsage } from "@/lib/billing/costs";
@@ -242,6 +243,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
     const handOver = reply.needs_human && business.settings.humanHandoverEnabled;
     const replyLang = isLanguageCode(reply.reply_language) ? reply.reply_language : analysis.decision.language;
     const sent = await sendAssistantMessage(ctx, reply.reply, replyLang, { model: result.model, languageReason: analysis.decision.reason });
+    if (sent && reply.send_photo && result.productIds.has(reply.send_photo.product_id)) await sendCatalogPhoto(ctx, reply.send_photo, replyLang, result.model);
     if (handOver) {
       await admin.from("conversations").update({ ai_enabled: false, human_requested: true, status: "pending" }).eq("id", job.conversationId).eq("business_id", job.businessId);
     }
@@ -319,6 +321,42 @@ async function sendAssistantMessage(ctx: Ctx, text: string, language: LanguageCo
   return wamid ? (data?.id ?? null) : null;
 }
 
+/** The catalog photo the assistant chose to show, sent right after its message (see resolveCatalogPhoto). */
+async function sendCatalogPhoto(ctx: Ctx, photo: { product_id: string; colour: string | null }, language: LanguageCode, model: string) {
+  const { admin } = ctx.deps;
+  const found = await resolveCatalogPhoto(admin, ctx.job.businessId, photo);
+  if (!found) return;
+  const { url, caption } = found;
+  const now = ctx.deps.now().toISOString();
+  let wamid: string | null = null;
+  let error: string | null = null;
+  try {
+    wamid = (await ctx.wa.client.sendImage(ctx.wa.phoneNumberId, ctx.customerPhone, url, caption)).messageId;
+  } catch (e) {
+    error = e instanceof GraphApiError ? e.summary : "send failed";
+    logServerError("ai.sendPhoto", e instanceof GraphApiError ? { code: String(e.code ?? e.status), message: e.title } : e);
+  }
+  await admin.from("messages").insert({
+    business_id: ctx.job.businessId,
+    conversation_id: ctx.job.conversationId,
+    direction: "outbound",
+    sender_type: "ai",
+    message_type: "image",
+    caption,
+    payload: { catalog_image_url: url, product_id: photo.product_id },
+    ai_generated: true,
+    ai_model: `${model}:photo`.slice(0, 80),
+    language,
+    whatsapp_message_id: wamid,
+    wa_category: "service",
+    delivery_status: wamid ? "sent" : "failed",
+    delivery_error: error,
+    status_updated_at: now,
+    processing_status: "processed",
+  });
+  if (wamid) await recordWhatsAppSend(admin, ctx.job.businessId, ctx.wa.phoneNumberId, "service");
+}
+
 async function overCustomerLimit(admin: Admin, job: AiJob, now: Date) {
   const { count } = await admin
     .from("messages")
@@ -326,6 +364,7 @@ async function overCustomerLimit(admin: Admin, job: AiJob, now: Date) {
     .eq("business_id", job.businessId)
     .eq("conversation_id", job.conversationId)
     .eq("ai_generated", true)
+    .eq("message_type", "text") // a catalog photo goes with a reply; it isn't another one
     .gte("created_at", new Date(now.getTime() - 3_600_000).toISOString());
   return (count ?? 0) >= CUSTOMER_AI_REPLIES_PER_HOUR;
 }

@@ -4,11 +4,13 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Package, Plus, Search, Trash2 } from "lucide-react";
 
+import { OptionPicker } from "@/components/app/option-picker";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { createSale, type SaleError, type SaleInput } from "@/lib/actions/sales";
 import type { PosProduct } from "@/lib/data/queries";
 import type { Locale } from "@/lib/i18n/config";
 import { currencyLabel, format, formatNumber } from "@/lib/i18n/format";
+import { colourOf, findVariant, usesOptions, variantAvailable, variantLabel, type Combination } from "@/lib/products/options";
 import { cn } from "@/lib/utils";
 import type { Messages } from "@/messages/en";
 import { RECEIVE_METHODS } from "@/types/database";
@@ -34,6 +36,7 @@ export function Pos({
   canDiscount,
   t,
   payments,
+  picker,
   productsHref,
 }: {
   products: PosProduct[];
@@ -45,6 +48,7 @@ export function Pos({
   canDiscount: boolean;
   t: Messages["dashboard"]["sales"];
   payments: Messages["dashboard"]["payments"];
+  picker: Messages["dashboard"]["products"]["picker"];
   productsHref: string;
 }) {
   const router = useRouter();
@@ -60,6 +64,7 @@ export function Pos({
   const [amount, setAmount] = useState<string | null>(null);
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  const [choices, setChoices] = useState<Record<string, Combination>>({});
   const [clientKey, setClientKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -93,7 +98,7 @@ export function Pos({
           productId: product.id,
           variantId: variant?.id ?? null,
           name: product.name,
-          detail: variant ? `${variant.name}: ${variant.value}` : null,
+          detail: variant ? variantLabel(variant, product.options) : null,
           price: Math.max(0, product.price + (variant?.price_modifier ?? 0)),
           qty: 1,
           max: tracked,
@@ -157,9 +162,15 @@ export function Pos({
         {shown.length ? (
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {shown.map((prod) => {
-              const out = prod.stock_quantity !== null && prod.stock_quantity <= 0 && !prod.product_variants.some((v) => v.stock_quantity === null || v.stock_quantity > 0);
+              const byOptions = usesOptions(prod.options, prod.product_variants);
+              const out = byOptions
+                ? !prod.product_variants.some((v) => variantAvailable(v, prod.stock_quantity))
+                : prod.stock_quantity !== null && prod.stock_quantity <= 0 && !prod.product_variants.some((v) => v.stock_quantity === null || v.stock_quantity > 0);
+              const chosen = choices[prod.id] ?? {};
+              const picked = byOptions ? findVariant(prod.options, prod.product_variants, chosen) : null;
+              const photo = (byOptions ? colourOf(chosen, prod.options)?.image_url : null) ?? prod.image_url;
               return (
-                <li key={prod.id} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+                <li key={prod.id} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card" data-testid="pos-product">
                   <button
                     type="button"
                     onClick={() => (prod.product_variants.length ? undefined : add(prod))}
@@ -167,9 +178,9 @@ export function Pos({
                     aria-label={`${prod.name} — ${money(prod.price)}`}
                     className="flex flex-1 flex-col text-left enabled:hover:bg-mint/40 disabled:cursor-default"
                   >
-                    {prod.image_url ? (
+                    {photo ? (
                       // eslint-disable-next-line @next/next/no-img-element -- user-uploaded image
-                      <img src={prod.image_url} alt="" className="aspect-[4/3] w-full object-cover" />
+                      <img src={photo} alt="" className="aspect-[4/3] w-full object-cover" />
                     ) : (
                       <span className="grid aspect-[4/3] w-full place-items-center bg-surface text-slate">
                         <Package className="size-6" aria-hidden />
@@ -177,13 +188,33 @@ export function Pos({
                     )}
                     <span className="flex flex-1 flex-col gap-0.5 p-3">
                       <span className="line-clamp-2 text-sm font-semibold text-deep">{prod.name}</span>
-                      <span className="font-display text-base font-bold text-deep">{money(prod.price)}</span>
+                      <span className="font-display text-base font-bold text-deep">{money(picked ? Math.max(0, prod.price + picked.price_modifier) : prod.price)}</span>
                       <span className={cn("text-xs", out ? "font-semibold text-coral-700" : "text-slate")}>
-                        {out ? p.out : prod.stock_quantity === null ? "" : format(p.left, { count: formatNumber(prod.stock_quantity, locale) })}
+                        {out ? p.out : picked?.stock_quantity != null ? format(p.left, { count: formatNumber(picked.stock_quantity, locale) }) : prod.stock_quantity === null || byOptions ? "" : format(p.left, { count: formatNumber(prod.stock_quantity, locale) })}
                       </span>
                     </span>
                   </button>
-                  {prod.product_variants.length ? (
+                  {byOptions && !out ? (
+                    <div className="flex flex-col gap-2 border-t border-border p-2">
+                      <OptionPicker
+                        options={prod.options}
+                        variants={prod.product_variants}
+                        productStock={prod.stock_quantity}
+                        value={chosen}
+                        onChange={(next) => setChoices((c) => ({ ...c, [prod.id]: next }))}
+                        outLabel={picker.out}
+                        size="sm"
+                      />
+                      <button
+                        type="button"
+                        disabled={!picked || !variantAvailable(picked, prod.stock_quantity)}
+                        onClick={() => picked && add(prod, picked)}
+                        className="flex h-9 items-center justify-center gap-1 rounded-full bg-primary text-xs font-bold text-primary-foreground disabled:opacity-40"
+                      >
+                        <Plus className="size-3.5" aria-hidden /> {picker.add}
+                      </button>
+                    </div>
+                  ) : prod.product_variants.length ? (
                     <div className="flex flex-wrap gap-1.5 border-t border-border p-2">
                       {prod.product_variants.map((v) => {
                         const vOut = v.stock_quantity !== null ? v.stock_quantity <= 0 : prod.stock_quantity !== null && prod.stock_quantity <= 0;

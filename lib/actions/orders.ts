@@ -51,6 +51,7 @@ export async function createOrder(_prev: FormState, formData: FormData): Promise
     logServerError("orders.create", error);
     const key = dbError(error);
     if (key === "out_of_stock") return dbFail(error);
+    if (error?.message?.startsWith("choose options")) return fail("invalid", { items: ["options_choose"] });
     return fail(key, key === "invalid" && error?.message?.includes("discount") ? { discount: ["discount_too_large"] } : undefined);
   }
   revalidatePath("/[lang]/dashboard", "layout");

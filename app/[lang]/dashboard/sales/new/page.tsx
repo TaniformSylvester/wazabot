@@ -29,6 +29,7 @@ export default async function NewSalePage({ searchParams }: PageProps<"/[lang]/d
           locale={locale}
           canDiscount={hasRole(business.role, "admin")}
           t={d.sales}
+          picker={d.products.picker}
           payments={d.payments}
           productsHref={localizePath(locale, "/dashboard/products/new")}
         />

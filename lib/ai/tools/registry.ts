@@ -7,6 +7,7 @@ import type { Database } from "@/types/database";
 import { CATALOG_PHOTO_EDGE, MAX_IMAGE_INPUT_BYTES, prepareImage, type InputImage } from "@/lib/ai/images";
 import { isOpenAt, parseOpeningHours } from "@/lib/business/hours";
 import { LOCAL_DATE, LOCAL_STAMP, localDate, localStamp, localTime, localWeekday } from "@/lib/business/time";
+import { availableValues, colourOf, findVariant, parseCombination, parseOptions, usesOptions, variantAvailable, variantLabel, type Combination, type ProductOption } from "@/lib/products/options";
 
 import { searchWords } from "./search-words";
 
@@ -63,14 +64,15 @@ export const searchProducts = tool({
   name: "searchProducts",
   description:
     "Search active products by words in the name, category, description or SKU (any word may match; best matches first). " +
-    "For a customer's photo, search with words describing it (type, colour, pattern, material). Only facts returned here may be told to customers.",
+    "For a customer's photo, search with words describing it (type, colour, pattern, material). Only facts returned here may be told to customers. " +
+    "Products sold in combinations (e.g. colour × size) list their options with the values in stock; call checkProductOptions for what is available in a given colour or size, the exact price and the variantId.",
   input: z.object({ query: z.string().trim().min(1).max(100), limit: z.number().int().min(1).max(10).default(5) }),
   async run(ctx, { query, limit }) {
     const words = searchWords(query);
     if (!words.length) return [];
     const { data } = await ctx.db
       .from("products")
-      .select("id, name, description, category, sku, price, currency, stock_quantity, image_url, product_variants(id, name, value, price_modifier, stock_quantity)")
+      .select("id, name, description, category, sku, price, currency, stock_quantity, image_url, options, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
       .eq("business_id", ctx.businessId)
       .eq("active", true)
       .or(words.flatMap((w) => [`name.ilike.%${w}%`, `category.ilike.%${w}%`, `description.ilike.%${w}%`, `sku.ilike.%${w}%`]).join(","))
@@ -87,22 +89,99 @@ export const searchProducts = tool({
       .map((p) => ({ p, s: score(p) }))
       .sort((a, b) => b.s - a.s || a.p.name.localeCompare(b.p.name))
       .slice(0, limit)
-      .map(({ p }) => ({
-        productId: p.id,
-        name: p.name,
-        description: p.description,
-        category: p.category,
-        price: Number(p.price),
-        currency: p.currency,
-        inStock: p.stock_quantity === null ? null : p.stock_quantity > 0,
-        hasPhoto: catalogPhotoUrl(p.image_url) !== null,
-        variants: p.product_variants.map((v) => ({
-          variantId: v.id,
-          label: `${v.name}: ${v.value}`,
-          price: Math.max(0, Number(p.price) + Number(v.price_modifier)),
-          inStock: v.stock_quantity === null ? null : v.stock_quantity > 0,
-        })),
-      }));
+      .map(({ p }) => {
+        const options = parseOptions(p.options);
+        const variants = [...p.product_variants].sort((a, b) => a.sort_order - b.sort_order);
+        const combos = usesOptions(options, variants);
+        return {
+          productId: p.id,
+          name: p.name,
+          description: p.description,
+          category: p.category,
+          price: Number(p.price),
+          currency: p.currency,
+          inStock: combos ? variants.some((v) => variantAvailable(v, p.stock_quantity)) : p.stock_quantity === null ? null : p.stock_quantity > 0,
+          hasPhoto: catalogPhotoUrl(p.image_url) !== null,
+          ...(combos ? { options: optionSummary(options, variants, p.stock_quantity), ...(variants.some((v) => Number(v.price_modifier) !== 0) ? { pricesVary: true } : {}) } : {}),
+          variants: combos
+            ? []
+            : variants.map((v) => ({
+                variantId: v.id,
+                label: `${v.name}: ${v.value}`,
+                price: Math.max(0, Number(p.price) + Number(v.price_modifier)),
+                inStock: v.stock_quantity === null ? null : v.stock_quantity > 0,
+              })),
+        };
+      });
+  },
+});
+
+type OptionSummary = { name: string; values: string[]; soldOut?: string[]; withPhoto?: string[] };
+
+/** Each option with the values that are in stock in at least one combination (and, for colours, which have their own photo). */
+function optionSummary(options: ProductOption[], variants: { options: unknown; stock_quantity: number | null; price_modifier: number }[], productStock: number | null): OptionSummary[] {
+  const rows = variants.map((v) => ({ ...v, id: "", price_modifier: Number(v.price_modifier) }));
+  const available = availableValues(options, rows, productStock, {});
+  return options.map((o) => {
+    const inStock = o.values.filter((v) => available[o.name]?.has(v.value)).map((v) => v.value);
+    const soldOut = o.values.filter((v) => !available[o.name]?.has(v.value)).map((v) => v.value);
+    const withPhoto = o.colour ? o.values.filter((v) => catalogPhotoUrl(v.image_url)).map((v) => v.value) : [];
+    return { name: o.name, values: inStock, ...(soldOut.length ? { soldOut } : {}), ...(withPhoto.length ? { withPhoto } : {}) };
+  });
+}
+
+/** The customer's words ("red", "m") → the product's own option names and values, case-insensitively. */
+function matchChoice(options: ProductOption[], choose: Record<string, string>) {
+  const chosen: Combination = {};
+  const unknown: string[] = [];
+  for (const [k, v] of Object.entries(choose)) {
+    const o = options.find((x) => x.name.toLowerCase() === k.trim().toLowerCase());
+    const value = o?.values.find((x) => x.value.toLowerCase() === v.trim().toLowerCase());
+    if (o && value) chosen[o.name] = value.value;
+    else unknown.push(`${k}: ${v}`);
+  }
+  return { chosen, unknown };
+}
+
+export const checkProductOptions = tool({
+  name: "checkProductOptions",
+  description:
+    "For a product sold in combinations (options listed by searchProducts): which values are in stock given what the customer chose, " +
+    "e.g. choose {\"Size\": \"M\"} → the colours available in M. When every option is chosen, returns the exact combination: variantId (for createOrder), price and stock. " +
+    "Use the option names and values exactly as listed.",
+  input: z.object({ productId: z.uuid(), choose: z.record(z.string().max(40), z.string().max(40)).optional() }),
+  async run(ctx, { productId, choose }) {
+    const { data } = await ctx.db
+      .from("products")
+      .select("name, active, price, currency, stock_quantity, image_url, options, product_variants(id, name, value, options, price_modifier, stock_quantity)")
+      .eq("business_id", ctx.businessId)
+      .eq("id", productId)
+      .maybeSingle();
+    if (!data || !data.active) return { found: false as const };
+    const options = parseOptions(data.options);
+    const variants = data.product_variants.map((v) => ({ ...v, price_modifier: Number(v.price_modifier) }));
+    if (!usesOptions(options, variants)) return { found: true as const, name: data.name, hasOptions: false as const };
+    const { chosen, unknown } = matchChoice(options, choose ?? {});
+    const available = availableValues(options, variants, data.stock_quantity, chosen);
+    const match = findVariant(options, variants, chosen);
+    const colour = colourOf(chosen, options);
+    return {
+      found: true as const,
+      name: data.name,
+      ...(unknown.length ? { unknown } : {}),
+      options: options.map((o) => ({ name: o.name, ...(chosen[o.name] ? { chosen: chosen[o.name] } : {}), available: o.values.filter((v) => available[o.name]?.has(v.value)).map((v) => v.value) })),
+      combination: match
+        ? {
+            variantId: match.id,
+            label: variantLabel(match, options),
+            price: Math.max(0, Number(data.price) + match.price_modifier),
+            currency: data.currency,
+            inStock: variantAvailable(match, data.stock_quantity),
+            quantity: match.stock_quantity ?? data.stock_quantity,
+            hasPhoto: catalogPhotoUrl(colour?.image_url) !== null || catalogPhotoUrl(data.image_url) !== null,
+          }
+        : null,
+    };
   },
 });
 
@@ -114,6 +193,20 @@ export function catalogPhotoUrl(url: string | null | undefined): string | null {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!url || !base) return null;
   return url.startsWith(`${base.replace(/\/$/, "")}/storage/v1/object/public/product-images/`) ? url : null;
+}
+
+/**
+ * The photo to send for send_photo: the colour's own photo, or the product's
+ * main photo when no colour was named. A colour without its own photo gives
+ * none (the main photo may show another colour).
+ */
+export async function resolveCatalogPhoto(db: SupabaseClient<Database>, businessId: string, photo: { product_id: string; colour: string | null }) {
+  const { data } = await db.from("products").select("name, image_url, options, active").eq("business_id", businessId).eq("id", photo.product_id).maybeSingle();
+  if (!data?.active) return null;
+  const wanted = photo.colour?.trim().toLowerCase();
+  const colour = wanted ? (parseOptions(data.options).find((o) => o.colour)?.values.find((v) => v.value.toLowerCase() === wanted) ?? null) : null;
+  const url = wanted ? catalogPhotoUrl(colour?.image_url) : catalogPhotoUrl(data.image_url);
+  return url ? { url, caption: colour ? `${data.name} — ${colour.value}` : data.name } : null;
 }
 
 /** A catalog photo the model can look at (converted to an image block by the responder). */
@@ -158,14 +251,14 @@ export const checkProductStock = tool({
   async run(ctx, { productId, variantId }) {
     const { data } = await ctx.db
       .from("products")
-      .select("name, active, stock_quantity, product_variants(id, name, value, stock_quantity)")
+      .select("name, active, stock_quantity, options, product_variants(id, name, value, options, stock_quantity)")
       .eq("business_id", ctx.businessId)
       .eq("id", productId)
       .maybeSingle();
     if (!data || !data.active) return { found: false as const };
     const variant = variantId ? data.product_variants.find((v) => v.id === variantId) : undefined;
     const qty = variant ? variant.stock_quantity : data.stock_quantity;
-    return { found: true as const, name: data.name, variant: variant ? `${variant.name}: ${variant.value}` : null, inStock: qty === null ? null : qty > 0, quantity: qty };
+    return { found: true as const, name: data.name, variant: variant ? variantLabel(variant, data.options) : null, inStock: qty === null ? null : qty > 0, quantity: qty };
   },
 });
 
@@ -218,7 +311,8 @@ export const createOrder = tool({
   name: "createOrder",
   description:
     "Create an order for the current customer from catalog products. Prices come from the catalog. Only after the customer confirmed items and quantities. " +
-    "Fails with reason out_of_stock (and the item) when there isn't enough stock: tell the customer and offer what is available.",
+    "Fails with reason out_of_stock (and the item) when there isn't enough stock: tell the customer and offer what is available. " +
+    "A product sold in combinations needs the variantId of the exact combination (checkProductOptions); without it the order fails with choose_options.",
   input: z.object({
     items: z.array(z.object({ productId: z.uuid(), variantId: z.uuid().optional(), quantity: z.number().int().min(1).max(1000) })).min(1).max(30),
     deliveryAddress: z.string().trim().max(500).optional(),
@@ -238,6 +332,7 @@ export const createOrder = tool({
     if (error?.code === "WB409") {
       return { ok: false as const, reason: "out_of_stock", item: error.message.replace(/^insufficient stock:\s*/, "").slice(0, 200) };
     }
+    if (error?.message?.startsWith("choose options")) return { ok: false as const, reason: "choose_options", item: error.message.replace(/^choose options for\s*/, "").slice(0, 200) };
     if (error || !data) return { ok: false as const, reason: "rejected" };
     const { data: order } = await ctx.db.from("orders").select("order_number, total, currency").eq("id", data).eq("business_id", ctx.businessId).single();
     return { ok: true as const, orderNumber: order?.order_number, total: Number(order?.total ?? 0), currency: order?.currency };
@@ -378,7 +473,7 @@ export const cancelAppointment = tool({
 async function estimateOrder(ctx: ToolContext, items: { productId: string; variantId?: string; quantity: number }[]) {
   const { data } = await ctx.db
     .from("products")
-    .select("id, name, price, currency, active, stock_quantity, product_variants(id, name, value, price_modifier, stock_quantity)")
+    .select("id, name, price, currency, active, stock_quantity, options, product_variants(id, name, value, options, price_modifier, stock_quantity)")
     .eq("business_id", ctx.businessId)
     .in("id", items.map((i) => i.productId));
   const byId = new Map((data ?? []).map((p) => [p.id, p]));
@@ -391,11 +486,12 @@ async function estimateOrder(ctx: ToolContext, items: { productId: string; varia
     if (!p || !p.active) return { ok: false as const, reason: "rejected" };
     const variant = item.variantId ? p.product_variants.find((v) => v.id === item.variantId) : null;
     if (item.variantId && !variant) return { ok: false as const, reason: "rejected" };
+    if (!variant && p.product_variants.some((v) => parseCombination(v.options))) return { ok: false as const, reason: "choose_options", item: p.name };
     const tracked = variant && variant.stock_quantity !== null ? { key: `v:${variant.id}`, stock: variant.stock_quantity } : p.stock_quantity !== null ? { key: `p:${p.id}`, stock: p.stock_quantity } : null;
     if (tracked) {
       const qty = (wanted.get(tracked.key) ?? 0) + item.quantity;
       wanted.set(tracked.key, qty);
-      if (qty > tracked.stock) return { ok: false as const, reason: "out_of_stock", item: variant ? `${p.name} (${variant.name}: ${variant.value})` : p.name };
+      if (qty > tracked.stock) return { ok: false as const, reason: "out_of_stock", item: variant ? `${p.name} (${variantLabel(variant, p.options)})` : p.name };
     }
     total += Math.max(0, Number(p.price) + Number(variant?.price_modifier ?? 0)) * item.quantity;
     currency = p.currency;
@@ -409,6 +505,7 @@ export const TOOLS = {
   searchProducts,
   viewProductPhotos,
   checkProductStock,
+  checkProductOptions,
   getBusinessHours,
   getDeliveryFee,
   createCustomer,
