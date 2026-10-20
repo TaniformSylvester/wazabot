@@ -1,0 +1,4 @@
+Les Stories n'ont pas de légende. Ajoutez ces stickers :
+- story-fr-1-intro : aucun sticker. Publiez-la en premier.
+- story-fr-2-poll : sticker Sondage « Répondez-vous aux clients après 22 h ? » → Oui / Non.
+- story-fr-3-link : sticker Lien → https://www.wazabolt.com/fr/register, texte « Créer un compte ».

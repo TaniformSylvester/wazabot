@@ -1,0 +1,6 @@
+Highlight names (Instagram, under the bio):
+highlight-start.png  → Démarrer
+highlight-prices.png → Prix
+highlight-tips.png   → Astuces
+highlight-demo.png   → Démo
+highlight-faq.png    → FAQ

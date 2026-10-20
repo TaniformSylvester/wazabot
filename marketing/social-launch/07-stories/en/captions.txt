@@ -1,0 +1,4 @@
+Stories have no caption. Add these stickers:
+- story-en-1-intro: no sticker. Post it first.
+- story-en-2-poll: Poll sticker “Do you reply to customers after 10 p.m.?” → Yes / No.
+- story-en-3-link: Link sticker → https://www.wazabolt.com/en/register, text “Create an account”.
