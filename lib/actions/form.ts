@@ -40,6 +40,9 @@ export type ActionErrorKey =
   | "broadcast_already_sent"
   // Docs
   | "document_locked"
+  | "receipt_exists"
+  | "invoice_exists"
+  | "invoice_has_payments"
   // Plan limits
   | "plan_limit_products"
   | "plan_limit_sales"

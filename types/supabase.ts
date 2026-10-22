@@ -1152,6 +1152,8 @@ export type Database = {
           due_date: string | null;
           duplicated_from: string | null;
           id: string;
+          invoice_id: string | null;
+          invoice_payment_id: string | null;
           issue_date: string;
           issued_at: string | null;
           issued_by: string | null;
@@ -1160,8 +1162,11 @@ export type Database = {
           notes: string | null;
           number: string | null;
           number_year: number | null;
+          order_id: string | null;
+          order_payment_id: string | null;
           payment_method: string | null;
           payment_reference: string | null;
+          related: Json | null;
           seq: number | null;
           status: string;
           status_changed_at: string | null;
@@ -1191,6 +1196,8 @@ export type Database = {
           due_date?: string | null;
           duplicated_from?: string | null;
           id?: string;
+          invoice_id?: string | null;
+          invoice_payment_id?: string | null;
           issue_date?: string;
           issued_at?: string | null;
           issued_by?: string | null;
@@ -1199,8 +1206,11 @@ export type Database = {
           notes?: string | null;
           number?: string | null;
           number_year?: number | null;
+          order_id?: string | null;
+          order_payment_id?: string | null;
           payment_method?: string | null;
           payment_reference?: string | null;
+          related?: Json | null;
           seq?: number | null;
           status?: string;
           status_changed_at?: string | null;
@@ -1230,6 +1240,8 @@ export type Database = {
           due_date?: string | null;
           duplicated_from?: string | null;
           id?: string;
+          invoice_id?: string | null;
+          invoice_payment_id?: string | null;
           issue_date?: string;
           issued_at?: string | null;
           issued_by?: string | null;
@@ -1238,8 +1250,11 @@ export type Database = {
           notes?: string | null;
           number?: string | null;
           number_year?: number | null;
+          order_id?: string | null;
+          order_payment_id?: string | null;
           payment_method?: string | null;
           payment_reference?: string | null;
+          related?: Json | null;
           seq?: number | null;
           status?: string;
           status_changed_at?: string | null;
@@ -1282,6 +1297,34 @@ export type Database = {
             columns: ["duplicated_from"];
             isOneToOne: false;
             referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "documents_invoice_fk";
+            columns: ["business_id", "invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "documents_invoice_payment_fk";
+            columns: ["business_id", "invoice_payment_id"];
+            isOneToOne: false;
+            referencedRelation: "invoice_payments";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "documents_order_fk";
+            columns: ["business_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "documents_order_payment_fk";
+            columns: ["order_payment_id"];
+            isOneToOne: false;
+            referencedRelation: "order_payments";
             referencedColumns: ["id"];
           },
         ];
@@ -1397,6 +1440,89 @@ export type Database = {
           key?: string;
         };
         Relationships: [];
+      };
+      invoice_payments: {
+        Row: {
+          amount: number;
+          business_id: string;
+          client_key: string;
+          created_at: string;
+          customer_id: string | null;
+          document_id: string;
+          id: string;
+          method: string;
+          note: string | null;
+          received_at: string;
+          recorded_by: string | null;
+          reference: string | null;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          client_key?: string;
+          created_at?: string;
+          customer_id?: string | null;
+          document_id: string;
+          id?: string;
+          method: string;
+          note?: string | null;
+          received_at?: string;
+          recorded_by?: string | null;
+          reference?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          client_key?: string;
+          created_at?: string;
+          customer_id?: string | null;
+          document_id?: string;
+          id?: string;
+          method?: string;
+          note?: string | null;
+          received_at?: string;
+          recorded_by?: string | null;
+          reference?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
+          },
+          {
+            foreignKeyName: "invoice_payments_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "invoice_payments_business_id_document_id_fkey";
+            columns: ["business_id", "document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "invoice_payments_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       knowledge_documents: {
         Row: {
@@ -3056,6 +3182,11 @@ export type Database = {
       };
     };
     Functions: {
+      _business_today: { Args: { p_business_id: string }; Returns: string };
+      _customer_snapshot: {
+        Args: { p_address?: string; p_business_id: string; p_customer_id: string };
+        Returns: Json;
+      };
       _payment_time: { Args: { p_received_at: string }; Returns: string };
       _plan_limits: {
         Args: { p_business_id: string };
@@ -3070,6 +3201,7 @@ export type Database = {
           report_days: number;
         }[];
       };
+      _refresh_invoice_paid: { Args: { p_document_id: string }; Returns: undefined };
       accept_invitation: { Args: { p_token: string }; Returns: string };
       adjust_stock: {
         Args: {
@@ -3199,6 +3331,126 @@ export type Database = {
         };
         Returns: string;
       };
+      create_order_invoice: {
+        Args: {
+          p_business_snapshot: Json;
+          p_due_date?: string;
+          p_language?: string;
+          p_notes?: string;
+          p_order_id: string;
+          p_template?: string;
+          p_terms?: string;
+        };
+        Returns: {
+          amount_paid: number | null;
+          business_id: string;
+          business_snapshot: NonNullable<Json>;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_id: string | null;
+          customer_snapshot: NonNullable<Json>;
+          discount: number;
+          doc_type: string;
+          due_date: string | null;
+          duplicated_from: string | null;
+          id: string;
+          invoice_id: string | null;
+          invoice_payment_id: string | null;
+          issue_date: string;
+          issued_at: string | null;
+          issued_by: string | null;
+          items: NonNullable<Json>;
+          language: string;
+          notes: string | null;
+          number: string | null;
+          number_year: number | null;
+          order_id: string | null;
+          order_payment_id: string | null;
+          payment_method: string | null;
+          payment_reference: string | null;
+          related: Json | null;
+          seq: number | null;
+          status: string;
+          status_changed_at: string | null;
+          subtotal: number;
+          tax_amount: number;
+          tax_label: string | null;
+          tax_rate: number;
+          template: string;
+          terms: string | null;
+          total: number;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "documents";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      create_payment_receipt: {
+        Args: {
+          p_business_snapshot: Json;
+          p_language?: string;
+          p_payment_id: string;
+          p_source: string;
+          p_template?: string;
+        };
+        Returns: {
+          amount_paid: number | null;
+          business_id: string;
+          business_snapshot: NonNullable<Json>;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_id: string | null;
+          customer_snapshot: NonNullable<Json>;
+          discount: number;
+          doc_type: string;
+          due_date: string | null;
+          duplicated_from: string | null;
+          id: string;
+          invoice_id: string | null;
+          invoice_payment_id: string | null;
+          issue_date: string;
+          issued_at: string | null;
+          issued_by: string | null;
+          items: NonNullable<Json>;
+          language: string;
+          notes: string | null;
+          number: string | null;
+          number_year: number | null;
+          order_id: string | null;
+          order_payment_id: string | null;
+          payment_method: string | null;
+          payment_reference: string | null;
+          related: Json | null;
+          seq: number | null;
+          status: string;
+          status_changed_at: string | null;
+          subtotal: number;
+          tax_amount: number;
+          tax_label: string | null;
+          tax_rate: number;
+          template: string;
+          terms: string | null;
+          total: number;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "documents";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       create_sale: {
         Args: {
           p_business_id: string;
@@ -3278,6 +3530,8 @@ export type Database = {
           due_date: string | null;
           duplicated_from: string | null;
           id: string;
+          invoice_id: string | null;
+          invoice_payment_id: string | null;
           issue_date: string;
           issued_at: string | null;
           issued_by: string | null;
@@ -3286,8 +3540,11 @@ export type Database = {
           notes: string | null;
           number: string | null;
           number_year: number | null;
+          order_id: string | null;
+          order_payment_id: string | null;
           payment_method: string | null;
           payment_reference: string | null;
+          related: Json | null;
           seq: number | null;
           status: string;
           status_changed_at: string | null;
@@ -3371,6 +3628,18 @@ export type Database = {
           p_business_id: string;
           p_client_key?: string;
           p_customer_id: string;
+          p_method: string;
+          p_note?: string;
+          p_received_at?: string;
+          p_reference?: string;
+        };
+        Returns: string;
+      };
+      record_invoice_payment: {
+        Args: {
+          p_amount: number;
+          p_client_key?: string;
+          p_document_id: string;
           p_method: string;
           p_note?: string;
           p_received_at?: string;
@@ -3463,6 +3732,8 @@ export type Database = {
           due_date: string | null;
           duplicated_from: string | null;
           id: string;
+          invoice_id: string | null;
+          invoice_payment_id: string | null;
           issue_date: string;
           issued_at: string | null;
           issued_by: string | null;
@@ -3471,8 +3742,11 @@ export type Database = {
           notes: string | null;
           number: string | null;
           number_year: number | null;
+          order_id: string | null;
+          order_payment_id: string | null;
           payment_method: string | null;
           payment_reference: string | null;
+          related: Json | null;
           seq: number | null;
           status: string;
           status_changed_at: string | null;
@@ -3533,6 +3807,8 @@ export type Database = {
           due_date: string | null;
           duplicated_from: string | null;
           id: string;
+          invoice_id: string | null;
+          invoice_payment_id: string | null;
           issue_date: string;
           issued_at: string | null;
           issued_by: string | null;
@@ -3541,8 +3817,11 @@ export type Database = {
           notes: string | null;
           number: string | null;
           number_year: number | null;
+          order_id: string | null;
+          order_payment_id: string | null;
           payment_method: string | null;
           payment_reference: string | null;
+          related: Json | null;
           seq: number | null;
           status: string;
           status_changed_at: string | null;
@@ -3564,6 +3843,10 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      void_invoice_payment: {
+        Args: { p_payment_id: string; p_reason: string };
+        Returns: undefined;
       };
       void_payment: {
         Args: { p_business_id: string; p_group_id: string; p_reason: string };

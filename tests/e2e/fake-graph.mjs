@@ -25,19 +25,22 @@ export function startFakeGraph(port = 4010) {
   const sent = [];
   const reads = [];
   const templates = [];
+  const uploads = [];
   let n = 0;
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${port}`);
-    const body = await new Promise((r) => {
-      let b = "";
-      req.on("data", (c) => (b += c));
-      req.on("end", () => r(b ? JSON.parse(b) : null));
+    const raw = await new Promise((r) => {
+      const chunks = [];
+      req.on("data", (c) => chunks.push(c));
+      req.on("end", () => r(Buffer.concat(chunks)));
     });
+    const isJson = (req.headers["content-type"] ?? "").includes("json");
+    const body = raw.length && isJson ? JSON.parse(raw.toString("utf8")) : null;
     const json = (status, data) => {
       res.writeHead(status, { "content-type": "application/json" });
       res.end(JSON.stringify(data));
     };
-    if (url.pathname === "/__sent") return json(200, { sent, reads, templates });
+    if (url.pathname === "/__sent") return json(200, { sent, reads, templates, uploads });
     // Test hook: Meta approves every template under review.
     if (url.pathname === "/__approve") {
       for (const t of templates) if (t.status === "PENDING") t.status = "APPROVED";
@@ -66,6 +69,22 @@ export function startFakeGraph(port = 4010) {
     if (req.method === "GET" && id === FAKE.phoneNumberId && !edge) {
       return json(200, { id, display_phone_number: FAKE.display, verified_name: FAKE.verifiedName, quality_rating: "GREEN" });
     }
+    // Media upload (multipart): keeps what a test needs to check (type, file name, PDF bytes).
+    if (req.method === "POST" && edge === "media") {
+      const text = raw.toString("latin1");
+      const field = (name) => text.match(new RegExp(`name="${name}"\\r\\n\\r\\n([^\\r]*)`))?.[1] ?? null;
+      const upload = {
+        id: `media_up_${uploads.length + 1}`,
+        phoneNumberId: id,
+        product: field("messaging_product"),
+        type: field("type"),
+        filename: text.match(/name="file"; filename="([^"]*)"/)?.[1] ?? null,
+        isPdf: text.includes("%PDF-"),
+        size: raw.length,
+      };
+      uploads.push(upload);
+      return json(200, { id: upload.id });
+    }
     if (req.method === "POST" && edge === "messages") {
       if (body?.status === "read") {
         reads.push(body.message_id);
@@ -85,7 +104,7 @@ export function startFakeGraph(port = 4010) {
     server.listen(port, () =>
       resolve({
         close: () => server.close(),
-        sent: () => ({ sent, reads }),
+        sent: () => ({ sent, reads, uploads }),
         templates: () => templates,
         approveAll: () => templates.forEach((t) => (t.status = t.status === "PENDING" ? "APPROVED" : t.status)),
       }),

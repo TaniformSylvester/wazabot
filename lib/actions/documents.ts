@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { authorize } from "@/lib/auth/dal";
-import { getDocument, getDocumentSettings } from "@/lib/data/documents";
+import { businessSnapshot, getDocument, getDocumentSettings } from "@/lib/data/documents";
 import { computeTotals } from "@/lib/documents/calc";
 import type { SubmitResult } from "@/lib/documents/editor-state";
 import { BUSINESS_MAX_ITEMS, documentSchema } from "@/lib/documents/schema";
@@ -45,14 +45,7 @@ export async function saveDocument(locale: string, id: string | null, input: unk
   }
 
   const settings = await getDocumentSettings(b.id);
-  const business = {
-    name: b.name,
-    reference: settings.business_reference,
-    address: [b.address, b.city].filter(Boolean).join(", ") || null,
-    phone: b.phone,
-    email: b.email,
-    website: b.website,
-  };
+  const business = businessSnapshot(b, settings);
   const totals = computeTotals({ ...d, currency: b.currency as typeof d.currency });
   const row = {
     template: d.template,
@@ -113,7 +106,7 @@ async function rpcAction(name: "issue_document" | "void_document" | "set_quotati
   const { error } = await supabase.rpc(name, args as never);
   if (error) {
     logServerError(`documents.${name}`, error);
-    return fail(dbError(error));
+    return fail(error.message?.includes("this invoice has payments") ? "invoice_has_payments" : dbError(error));
   }
   revalidatePath("/[lang]/dashboard/documents", "layout");
   return ok(args.p_document_id);
@@ -157,6 +150,8 @@ export async function duplicateDocument(id: string, locale: string): Promise<For
   if (!ctx) return fail("forbidden");
   const src = await getDocument(ctx.business.id, id);
   if (!src) return fail("not_found");
+  // An order's invoice is remade from the order; a payment's receipt from the payment.
+  if (src.order_id || src.order_payment_id || src.invoice_payment_id) return fail("document_locked");
   const settings = await getDocumentSettings(ctx.business.id);
   const today = new Date().toISOString().slice(0, 10);
   const days = src.doc_type === "quotation" ? 30 : settings.default_due_days;
@@ -182,7 +177,7 @@ export async function duplicateDocument(id: string, locale: string): Promise<For
       subtotal: src.subtotal,
       tax_amount: src.tax_amount,
       total: src.total,
-      amount_paid: src.amount_paid,
+      amount_paid: src.doc_type === "receipt" ? src.amount_paid : null,
       payment_method: src.payment_method,
       payment_reference: null,
       notes: src.notes,

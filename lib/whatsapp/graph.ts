@@ -52,12 +52,13 @@ export class WhatsAppGraphClient {
   }
 
   private async request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+    const form = body instanceof FormData;
     const res = await (this.options.fetchImpl ?? fetch)(this.url(path), {
       method,
-      headers: { Authorization: `Bearer ${this.accessToken}`, ...(body ? { "Content-Type": "application/json" } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
+      headers: { Authorization: `Bearer ${this.accessToken}`, ...(body && !form ? { "Content-Type": "application/json" } : {}) },
+      body: form ? body : body ? JSON.stringify(body) : undefined,
       cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(form ? 30_000 : 15_000),
     });
     const json = (await res.json().catch(() => ({}))) as { error?: { code?: number; message?: string; error_user_title?: string } } & T;
     if (!res.ok || json.error) {
@@ -108,6 +109,31 @@ export class WhatsAppGraphClient {
       to,
       type: "image",
       image: { link, ...(caption ? { caption } : {}) },
+    });
+    const messageId = r.messages?.[0]?.id;
+    if (!messageId) throw new GraphApiError(502, null, "no message id returned");
+    return { messageId };
+  }
+
+  /** Uploads a file (e.g. a PDF made by the document engine) to WhatsApp; returns the media id to send. */
+  async uploadMedia(phoneNumberId: string, bytes: Uint8Array, mimeType: string, fileName: string): Promise<{ id: string }> {
+    const form = new FormData();
+    form.append("messaging_product", "whatsapp");
+    form.append("type", mimeType);
+    form.append("file", new Blob([new Uint8Array(bytes)], { type: mimeType }), fileName);
+    const r = await this.request<{ id?: string }>("POST", `${encodeURIComponent(phoneNumberId)}/media`, form);
+    if (!r.id) throw new GraphApiError(502, null, "no media id returned");
+    return { id: r.id };
+  }
+
+  /** A document (uploaded media id) with its file name and an optional caption — inside the 24-hour window. */
+  async sendDocument(phoneNumberId: string, to: string, mediaId: string, fileName: string, caption?: string): Promise<{ messageId: string }> {
+    const r = await this.request<{ messages?: { id: string }[] }>("POST", `${encodeURIComponent(phoneNumberId)}/messages`, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "document",
+      document: { id: mediaId, filename: fileName, ...(caption ? { caption } : {}) },
     });
     const messageId = r.messages?.[0]?.id;
     if (!messageId) throw new GraphApiError(502, null, "no message id returned");

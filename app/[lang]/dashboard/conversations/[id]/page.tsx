@@ -244,6 +244,9 @@ function MessageBubble({ m, c, locale, mediaUrls }: { m: Msg; c: Messages["dashb
   const Icon = type !== "text" ? MEDIA_ICONS[type] : null;
   // A catalog photo the assistant sent (public product-images URL; not a customer's private file).
   const catalogPhoto = !inbound && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) && typeof (m.payload as Record<string, unknown>).catalog_image_url === "string" ? String((m.payload as Record<string, unknown>).catalog_image_url) : null;
+  // A PDF the team sent from WazaBolt Docs (document or statement).
+  const sentFile = !inbound && type === "document" && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) ? (m.payload as Record<string, unknown>) : null;
+  const sentDocument = sentFile && typeof sentFile.document_file === "string" ? { file: sentFile.document_file, id: typeof sentFile.document_id === "string" ? sentFile.document_id : null } : null;
   const location = type === "location" && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) ? locationFromPayload(m.payload as Record<string, unknown>) : null;
   return (
     <li className={cn("flex", inbound ? "justify-start" : "justify-end")}>
@@ -258,6 +261,20 @@ function MessageBubble({ m, c, locale, mediaUrls }: { m: Msg; c: Messages["dashb
           <div className="flex flex-col gap-1">
             {/* eslint-disable-next-line @next/next/no-img-element -- catalog photo from Supabase Storage */}
             <img src={catalogPhoto} alt={m.caption ?? ""} className="max-h-60 rounded-xl border border-border object-contain" />
+            {m.caption ? <p className="whitespace-pre-line">{m.caption}</p> : null}
+          </div>
+        ) : sentDocument ? (
+          <div className="flex flex-col gap-1" data-testid="sent-document">
+            <p className="flex items-start gap-2 font-semibold">
+              <FileText className="mt-0.5 size-4 shrink-0" aria-hidden />
+              {sentDocument.id ? (
+                <Link href={localizePath(locale, `/dashboard/documents/${sentDocument.id}`)} className="underline">
+                  {sentDocument.file}
+                </Link>
+              ) : (
+                <span>{sentDocument.file}</span>
+              )}
+            </p>
             {m.caption ? <p className="whitespace-pre-line">{m.caption}</p> : null}
           </div>
         ) : Icon ? (

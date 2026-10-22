@@ -176,11 +176,16 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
           <Panel
             title={d.documents.title}
             actions={
-              canEdit ? (
-                <Link href={href(`/dashboard/documents/new?type=invoice&customer=${customer.id}`)} className="text-sm font-semibold text-waza-700 hover:underline">
-                  {d.documents.new.invoice}
+              <span className="flex flex-wrap gap-x-4 gap-y-1">
+                <Link href={href(`/dashboard/customers/${customer.id}/statement`)} className="text-sm font-semibold text-waza-700 hover:underline" data-testid="customer-statement-link">
+                  {d.statements.link}
                 </Link>
-              ) : null
+                {canEdit ? (
+                  <Link href={href(`/dashboard/documents/new?type=invoice&customer=${customer.id}`)} className="text-sm font-semibold text-waza-700 hover:underline">
+                    {d.documents.new.invoice}
+                  </Link>
+                ) : null}
+              </span>
             }
           >
             {documents.rows.length ? (

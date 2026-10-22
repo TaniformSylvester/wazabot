@@ -73,6 +73,8 @@ None new. The guest rate limit uses the existing `SUPABASE_SERVICE_ROLE_KEY` (se
 
 ## 7. Known limitations
 
+(Phase 2 has since added payments, order links, statements and WhatsApp sending: see `docs/wazabolt-docs-phase2.md`.)
+
 - Invoices don't record payments yet (Phase 2): Partly paid / Paid statuses exist in the database but aren't reachable from the UI; a receipt is a standalone document issued by an owner or admin.
 - Documents aren't linked to orders yet (Phase 2); the existing per-order printable invoice and receipt still work as before.
 - No "send by WhatsApp / email" yet (Phase 2 and 4): download and print only.

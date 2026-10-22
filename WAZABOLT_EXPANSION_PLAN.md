@@ -37,7 +37,7 @@ and payments.
 - RPCs: `issue_document`, `void_document`, `set_document_status` (quotation sent / accepted / rejected), `duplicate_document`. Each checks the caller's role, writes `audit_logs`.
 - `guest_document_requests` + `guest_document_allowed()` for the guest rate limit (service role only).
 
-Statuses: invoices `draft → issued → (partially_paid → paid, Phase 2) | voided`, overdue shown when past the due date and not paid; quotations `draft → sent → accepted | rejected`, expired shown after the valid-until date; receipts `issued | voided`.
+Statuses: invoices `draft → issued → partially_paid → paid | voided` (from recorded payments), overdue shown when past the due date and not paid; quotations `draft → sent → accepted | rejected`, expired shown after the valid-until date; receipts `issued | voided`.
 
 Permissions: viewers read; agents create drafts, issue invoices and quotations; owners and admins issue receipts and void documents (a receipt states that money was received, so only people allowed to record payments can issue one).
 
@@ -51,7 +51,7 @@ Permissions: viewers read; agents create drafts, issue invoices and quotations; 
 3. Dashboard → Documents: list with search and filters, editor (existing customers, products with variants, services), save draft, issue, duplicate, void, PDF download and print, settings for numbering and defaults.
 4. Tests: unit (calculations, rounding, long content, multi-page PDF), SQL (numbering, immutability, permissions, tenant isolation), end-to-end (guest and business flows).
 
-**Phase 2 — business integration.** Create an invoice from an order; record payments against an invoice (reusing order payments where the invoice comes from an order); receipts generated only from recorded payments; statements per customer; send a document on WhatsApp (as a PDF message, inside the 24-hour window or with an approved template).
+**Phase 2 — business integration.** Built (22 Oct 2026): see `docs/wazabolt-docs-phase2.md` (sending outside the 24-hour window with a template is still to do). Create an invoice from an order; record payments against an invoice (reusing order payments where the invoice comes from an order); receipts generated only from recorded payments; statements per customer; send a document on WhatsApp (as a PDF message, inside the 24-hour window or with an approved template).
 
 **Phase 3 — schools.** Module switch per business (`business_modules`), adaptive navigation (a school sees Students, Classes, Subjects, Results, Report cards, Fees, Documents). Configurable grading (out of 20 / 100, coefficients, weights, grade boundaries, terms) in a tested calculation module; marks entry by teachers; results published explicitly before parents can see them; report cards through the Docs engine (individual and bulk); fees reuse documents and payments. New roles or role scopes for teachers.
 

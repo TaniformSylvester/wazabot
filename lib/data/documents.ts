@@ -1,9 +1,11 @@
 import "server-only";
 
 import type { CatalogChoice, CustomerChoice } from "@/lib/documents/editor-state";
-import { DOCUMENT_STATUSES, DOCUMENT_TYPES, type DocumentData, type DocumentLine, type DocumentStatus, type DocumentType, type ReceiptMethod } from "@/lib/documents/types";
+import { DOCUMENT_STATUSES, DOCUMENT_TYPES, type DocumentData, type DocumentLine, type DocumentRelated, type DocumentStatus, type DocumentType, type ReceiptMethod } from "@/lib/documents/types";
 import { parseOptions, variantLabel } from "@/lib/products/options";
+import type { CurrentBusiness } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
+import { windowOpen } from "@/lib/whatsapp/service";
 import type { Tables } from "@/types/database";
 
 /*
@@ -55,6 +57,24 @@ export async function getDocumentSettings(businessId: string): Promise<DocumentS
     default_language: data.default_language === "en" || data.default_language === "fr" ? data.default_language : null,
     default_tax_rate: Number(data.default_tax_rate),
   };
+}
+
+/** The business as printed on its documents: from the business profile (never from the browser) plus the NIU / RCCM set in Documents settings. */
+export function businessSnapshot(b: Pick<CurrentBusiness, "name" | "address" | "city" | "phone" | "email" | "website">, settings: Pick<DocumentSettings, "business_reference">) {
+  return {
+    name: b.name,
+    reference: settings.business_reference,
+    address: [b.address, b.city].filter(Boolean).join(", ") || null,
+    phone: b.phone,
+    email: b.email,
+    website: b.website,
+  };
+}
+
+/** The document language for a business: the documents setting, else the business's language when it is French or English. */
+export function documentLanguage(settings: Pick<DocumentSettings, "default_language">, business: Pick<CurrentBusiness, "defaultLanguage">, preferred?: string | null): "en" | "fr" {
+  if (preferred === "en" || preferred === "fr") return preferred;
+  return settings.default_language ?? (business.defaultLanguage === "fr" ? "fr" : "en");
 }
 
 export type DocumentFilter = { q?: string; type?: string; status?: string; customerId?: string; page?: number };
@@ -131,8 +151,17 @@ export function rowToDocument(row: DocumentRow): DocumentData {
     notes: row.notes,
     terms: row.terms,
     payment: row.doc_type === "receipt" && row.payment_method ? { method: row.payment_method as ReceiptMethod, reference: row.payment_reference, amountPaid: Number(row.amount_paid ?? 0) } : null,
-    stamp: row.status === "draft" ? "draft" : row.status === "voided" ? "voided" : null,
+    invoicePaid: row.doc_type === "invoice" && row.status !== "draft" ? Number(row.amount_paid ?? 0) : null,
+    related: related(row.related),
+    stamp: row.status === "draft" ? "draft" : row.status === "voided" ? "voided" : row.status === "paid" ? "paid" : null,
   };
+}
+
+const amount = (v: unknown) => (v === null || v === undefined || v === "" || !Number.isFinite(Number(v)) ? null : Number(v));
+function related(v: unknown): DocumentRelated | null {
+  const o = (v && typeof v === "object" ? v : null) as Record<string, unknown> | null;
+  if (!o || (o.kind !== "invoice" && o.kind !== "order") || typeof o.number !== "string") return null;
+  return { kind: o.kind, number: o.number, total: amount(o.total), paidToDate: amount(o.paidToDate), balance: amount(o.balance) };
 }
 
 /** Customers to pick from in the editor. */
@@ -160,4 +189,76 @@ export async function listDocumentCatalog(businessId: string): Promise<CatalogCh
   }
   for (const s of services ?? []) out.push({ key: `s:${s.id}`, label: s.name, unitPrice: Number(s.price ?? 0), serviceId: s.id });
   return out;
+}
+
+/** Payments recorded against an invoice without an order (newest last), with who recorded them. */
+export async function listInvoicePayments(businessId: string, documentId: string) {
+  const db = await createClient();
+  const { data } = await db
+    .from("invoice_payments")
+    .select("id, amount, method, reference, note, received_at, recorded_by, voided_at, void_reason")
+    .eq("business_id", businessId)
+    .eq("document_id", documentId)
+    .order("received_at");
+  return data ?? [];
+}
+
+/** Live receipts by the payment they were made from (order or invoice payment id → receipt). */
+export async function receiptsForPayments(businessId: string, source: "order" | "invoice", paymentIds: string[]) {
+  const map = new Map<string, { id: string; number: string | null }>();
+  if (!paymentIds.length) return map;
+  const db = await createClient();
+  const column = source === "order" ? "order_payment_id" : "invoice_payment_id";
+  for (let i = 0; i < paymentIds.length; i += 150) {
+    const { data } = await db
+      .from("documents")
+      .select("id, number, order_payment_id, invoice_payment_id")
+      .eq("business_id", businessId)
+      .eq("doc_type", "receipt")
+      .neq("status", "voided")
+      .in(column, paymentIds.slice(i, i + 150));
+    for (const r of data ?? []) {
+      const key = source === "order" ? r.order_payment_id : r.invoice_payment_id;
+      if (key) map.set(key, { id: r.id, number: r.number });
+    }
+  }
+  return map;
+}
+
+/** The order's live invoice, if it has one. */
+export async function orderInvoice(businessId: string, orderId: string) {
+  const db = await createClient();
+  const { data } = await db
+    .from("documents")
+    .select("id, number, status")
+    .eq("business_id", businessId)
+    .eq("order_id", orderId)
+    .eq("doc_type", "invoice")
+    .neq("status", "voided")
+    .maybeSingle();
+  return data;
+}
+
+/** Can a document go to this customer on WhatsApp right now? (Shown before sending; the send checks again.) */
+export async function whatsappSendState(businessId: string, customerId: string | null) {
+  if (!customerId) return { customer: null, connected: false, windowOpen: false };
+  const db = await createClient();
+  const [{ data: customer }, { data: connection }, { data: conversation }] = await Promise.all([
+    db.from("customers").select("id, name, whatsapp_phone").eq("business_id", businessId).eq("id", customerId).maybeSingle(),
+    db.from("whatsapp_connections").select("status").eq("business_id", businessId).maybeSingle(),
+    db
+      .from("conversations")
+      .select("last_customer_message_at")
+      .eq("business_id", businessId)
+      .eq("customer_id", customerId)
+      .neq("status", "archived")
+      .order("last_customer_message_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  return {
+    customer: customer ? { id: customer.id, name: customer.name || `+${customer.whatsapp_phone}`, phone: customer.whatsapp_phone } : null,
+    connected: connection?.status === "connected",
+    windowOpen: windowOpen(conversation?.last_customer_message_at),
+  };
 }

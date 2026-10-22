@@ -23,7 +23,7 @@ export function roundMoney(value: number, currency: string): number {
 const toMinor = (v: number, digits: number) => Math.round(Number((v * 10 ** digits).toPrecision(15)));
 const halfUp = (v: number) => Math.sign(v) * Math.round(Number(Math.abs(v).toPrecision(15)));
 
-export function computeTotals(doc: Pick<DocumentData, "items" | "discount" | "taxRate" | "currency" | "type" | "payment">): DocumentTotals {
+export function computeTotals(doc: Pick<DocumentData, "items" | "discount" | "taxRate" | "currency" | "type" | "payment" | "invoicePaid">): DocumentTotals {
   const d = currencyDigits(doc.currency);
   const f = 10 ** d;
   const lines: ComputedLine[] = doc.items.map((it) => {
@@ -39,7 +39,12 @@ export function computeTotals(doc: Pick<DocumentData, "items" | "discount" | "ta
   const rate = Math.min(100, Math.max(0, doc.taxRate ?? 0));
   const tax = halfUp((taxable * rate) / 100);
   const total = taxable + tax;
-  const paid = doc.type === "receipt" ? Math.max(0, toMinor(doc.payment?.amountPaid ?? total / f, d)) : null;
+  const paid =
+    doc.type === "receipt"
+      ? Math.max(0, toMinor(doc.payment?.amountPaid ?? total / f, d))
+      : doc.type === "invoice" && (doc.invoicePaid ?? 0) > 0
+        ? toMinor(doc.invoicePaid ?? 0, d)
+        : null;
   const major = (v: number) => v / f;
   return {
     lines: lines.map((l) => ({ gross: major(l.gross), discount: major(l.discount), total: major(l.total) })),

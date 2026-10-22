@@ -1,5 +1,6 @@
 import { computeTotals } from "@/lib/documents/calc";
-import { DOCUMENT_LABELS, formatDocDate, formatDocMoney, formatQuantity } from "@/lib/documents/labels";
+import { DOCUMENT_LABELS, formatDocMoney, formatQuantity } from "@/lib/documents/labels";
+import { STAMP_COLOURS, metaRows, paidInFull, paidRows, relatedRows, stampWord } from "@/lib/documents/layout";
 import type { DocumentData } from "@/lib/documents/types";
 import { cn } from "@/lib/utils";
 
@@ -23,12 +24,8 @@ export function DocumentPreview({ doc, logoUrl, className }: { doc: DocumentData
   const anyDisc = doc.items.some((i) => (i.discountPercent ?? 0) > 0);
   const lines = (p: DocumentData["business"]) => [p.reference, p.address, p.phone, p.email, p.website].filter(Boolean) as string[];
   const title = L.title[doc.type];
-  const meta: [string, string][] = [
-    [L.number, doc.number ?? (doc.stamp === "draft" ? L.draft : "—")],
-    [L.date, formatDocDate(doc.issueDate, doc.language)],
-    ...(doc.type === "invoice" && doc.dueDate ? [[L.dueDate, formatDocDate(doc.dueDate, doc.language)] as [string, string]] : []),
-    ...(doc.type === "quotation" && doc.dueDate ? [[L.validUntil, formatDocDate(doc.dueDate, doc.language)] as [string, string]] : []),
-  ];
+  const meta = metaRows(doc, L);
+  const stamp = stampWord(doc, L);
   const meta_ = (dark?: boolean) => (
     <dl className="grid grid-cols-[auto_auto] justify-end gap-x-2 text-right text-[0.7rem]">
       {meta.map(([k, v]) => (
@@ -52,9 +49,13 @@ export function DocumentPreview({ doc, logoUrl, className }: { doc: DocumentData
       data-testid="document-preview"
       aria-label={`${title} — preview`}
     >
-      {doc.stamp ? (
-        <span className={cn("pointer-events-none absolute top-[38%] left-1/2 -translate-x-1/2 -rotate-[28deg] text-6xl font-bold tracking-widest uppercase opacity-15", doc.stamp === "voided" ? "text-[#d9534f]" : "text-[#9aa5b1]")}>
-          {doc.stamp === "draft" ? L.draft : L.voided}
+      {stamp && doc.stamp ? (
+        <span
+          className="pointer-events-none absolute top-[38%] left-1/2 -translate-x-1/2 -rotate-[28deg] text-6xl font-bold tracking-widest uppercase opacity-15"
+          style={{ color: STAMP_COLOURS[doc.stamp] }}
+          data-testid="preview-stamp"
+        >
+          {stamp}
         </span>
       ) : null}
 
@@ -173,7 +174,12 @@ export function DocumentPreview({ doc, logoUrl, className }: { doc: DocumentData
                     {L.paymentReference}: {doc.payment.reference}
                   </p>
                 ) : null}
-                {t.balance === 0 ? <p className="mt-1.5 font-bold text-[#0c8354]">{L.paidInFull}</p> : null}
+                {relatedRows(doc, L, money).map(([k, v]) => (
+                  <p key={k} className="text-[#55606b]">
+                    {k}: {v}
+                  </p>
+                ))}
+                {paidInFull(doc, t) ? <p className="mt-1.5 font-bold text-[#0c8354]">{L.paidInFull}</p> : null}
               </div>
             ) : null}
           </div>
@@ -209,18 +215,12 @@ export function DocumentPreview({ doc, logoUrl, className }: { doc: DocumentData
                 {money(t.total)}
               </dd>
             </div>
-            {t.paid !== null ? (
-              <>
-                <div className="mt-1 flex justify-between py-0.5">
-                  <dt className="text-[#55606b]">{L.amountPaid}</dt>
-                  <dd className="font-bold">{money(t.paid)}</dd>
-                </div>
-                <div className="flex justify-between py-0.5">
-                  <dt className="text-[#55606b]">{L.balance}</dt>
-                  <dd className="font-bold">{money(t.balance ?? 0)}</dd>
-                </div>
-              </>
-            ) : null}
+            {paidRows(doc, t, L, money).map(([k, v], i) => (
+              <div key={k} className={cn("flex justify-between py-0.5", i === 0 && "mt-1")}>
+                <dt className="text-[#55606b]">{k}</dt>
+                <dd className="font-bold">{v}</dd>
+              </div>
+            ))}
           </dl>
         </div>
 

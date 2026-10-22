@@ -6,13 +6,13 @@ import { z } from "zod";
 
 import { authorize } from "@/lib/auth/dal";
 import { emit } from "@/lib/core/events";
-import { localDayStart, localToday } from "@/lib/data/queries";
 import { logServerError } from "@/lib/log";
+import { paymentError, receivedAt } from "@/lib/payments/received";
 import { createClient } from "@/lib/supabase/server";
 import { money, optionalText } from "@/lib/validation/app";
 import { RECEIVE_METHODS } from "@/types/database";
 
-import { dbError, fail, formObject, invalid, ok, type FormState } from "./form";
+import { fail, formObject, invalid, ok, type FormState } from "./form";
 
 /*
  * Payments received for sales, recorded by hand (cash, MTN MoMo, Orange
@@ -32,26 +32,6 @@ const paymentSchema = z.object({
   received_on: z.preprocess((v) => (v === "" ? undefined : v), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "invalid_date").optional()),
   client_key: z.uuid(),
 });
-
-/** The moment recorded for a payment: now for today, midday of an earlier day, refused for a later day. */
-function receivedAt(day: string | undefined, timezone: string): string | null | "future" {
-  if (!day) return null;
-  const today = localToday(timezone);
-  if (day > today) return "future";
-  if (day === today) return null;
-  return new Date(new Date(localDayStart(day, timezone)).getTime() + 12 * 3600 * 1000).toISOString();
-}
-
-function paymentError(error: { code?: string; message?: string } | null): FormState {
-  const m = error?.message ?? "";
-  if (m.includes("more than what is owed")) return fail("invalid", { amount: ["more_than_owed"] });
-  if (m.includes("more than what was paid")) return fail("invalid", { amount: ["refund_more_than_paid"] });
-  if (m.includes("in the future")) return fail("invalid", { received_on: ["payment_date_future"] });
-  if (m.includes("cancelled or returned")) return fail("invalid", { amount: [m.startsWith("refunds") ? "refund_not_allowed" : "order_closed"] });
-  if (m.includes("void the refund first")) return fail("invalid", { reason: ["void_refund_first"] });
-  if (m.includes("give a reason")) return fail("invalid", { reason: ["reason_required"] });
-  return fail(dbError(error));
-}
 
 /** Agents and up: a payment towards one sale or order. */
 export async function recordOrderPayment(_prev: FormState, formData: FormData): Promise<FormState> {

@@ -4,12 +4,14 @@ import { FileText, ReceiptText } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { CopyText } from "@/components/app/copy-button";
-import { ActionForm, DeleteButton, SelectField, SubmitButton, TextArea, TextField } from "@/components/app/form";
+import { ActionButton, ActionForm, DeleteButton, SelectField, SubmitButton, TextArea, TextField } from "@/components/app/form";
 import { PaymentsPanel } from "@/components/app/payments-panel";
 import { DefinitionList, PageHeader, Panel, StatusBadge, TableWrap, formatDate, formatMoney, orderStatusTone, paymentStatusTone, secondaryLink, td, th } from "@/components/app/ui";
 import { isUuid } from "@/lib/actions/form";
+import { createOrderInvoice } from "@/lib/actions/document-links";
 import { deleteOrder, linkOrderCustomer, updateOrder } from "@/lib/actions/orders";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
+import { orderInvoice, receiptsForPayments } from "@/lib/data/documents";
 import { getOrder, listCustomerOptions, listOrderNotifications, listOrderPayments, listOrderStatusEvents, localToday } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -44,6 +46,9 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
   const statusLabel = (s: string) => o.statuses[s as keyof typeof o.statuses] ?? s;
   const hasPayments = payments.some((p) => !p.voided_at && p.kind === "payment");
   const doc = (type: "invoice" | "receipt") => localizePath(locale, `/dashboard/orders/${order.id}/document?type=${type}`);
+  // WazaBolt Docs: the order's numbered invoice and the receipts made from its payments.
+  const [invoice, receipts] = await Promise.all([orderInvoice(business.id, order.id), receiptsForPayments(business.id, "order", payments.map((p) => p.id))]);
+  const fromOrder = d.documents.fromOrder;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -53,6 +58,15 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
         back={{ href: localizePath(locale, "/dashboard/orders"), label: o.title }}
         actions={
           <>
+            {invoice ? (
+              <Link href={localizePath(locale, `/dashboard/documents/${invoice.id}`)} className={secondaryLink} data-testid="order-invoice-link">
+                <FileText aria-hidden /> {format(fromOrder.open, { number: invoice.number ?? "" })}
+              </Link>
+            ) : canEdit && !closed ? (
+              <ActionButton action={createOrderInvoice.bind(null, order.id, locale)} errors={d.errors} confirm={fromOrder.confirm} variant="default">
+                <FileText aria-hidden /> {fromOrder.issue}
+              </ActionButton>
+            ) : null}
             <Link href={doc("invoice")} className={secondaryLink} data-testid="open-invoice">
               <FileText aria-hidden /> {x.invoice}
             </Link>
@@ -140,6 +154,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
             locale={locale}
             t={d.payments}
             errors={d.errors}
+            receipts={receipts}
           />
 
           <Panel title={o.update}>

@@ -35,8 +35,40 @@ export type DocumentLabels = {
   draft: string;
   voided: string;
   paidInFull: string;
+  /** Invoices with payments: paid so far. */
+  paid: string;
+  paidStamp: string;
+  /** Linked documents (Phase 2). */
+  forDoc: Record<"invoice" | "order", string>;
+  docTotal: Record<"invoice" | "order", string>;
+  orderRef: string;
+  paidToDate: string;
   methods: Record<ReceiptMethod, string>;
   generatedWith: string;
+  statement: StatementLabels;
+};
+
+/** A customer's statement of account. */
+export type StatementLabels = {
+  title: string;
+  customer: string;
+  period: string;
+  allTime: string;
+  issued: string;
+  date: string;
+  reference: string;
+  description: string;
+  charge: string;
+  payment: string;
+  balance: string;
+  opening: string;
+  closing: string;
+  totalCharges: string;
+  totalPayments: string;
+  order: string;
+  invoice: string;
+  paymentFor: string;
+  empty: string;
 };
 
 export const DOCUMENT_LABELS: Record<DocumentLanguage, DocumentLabels> = {
@@ -70,8 +102,35 @@ export const DOCUMENT_LABELS: Record<DocumentLanguage, DocumentLabels> = {
     draft: "Draft",
     voided: "Void",
     paidInFull: "Paid in full",
-    methods: { cash: "Cash", mtn_momo: "MTN Mobile Money", orange_money: "Orange Money", bank_transfer: "Bank transfer", card: "Card", cheque: "Cheque", other: "Other" },
+    paid: "Paid",
+    paidStamp: "Paid",
+    forDoc: { invoice: "For invoice", order: "For order" },
+    docTotal: { invoice: "Invoice total", order: "Order total" },
+    orderRef: "Order",
+    paidToDate: "Paid to date",
+    methods: { cash: "Cash", mtn_momo: "MTN Mobile Money", orange_money: "Orange Money", mobile_money: "Mobile money", bank_transfer: "Bank transfer", card: "Card", cheque: "Cheque", other: "Other" },
     generatedWith: "Made with WazaBolt · wazabolt.com",
+    statement: {
+      title: "Statement of account",
+      customer: "Customer",
+      period: "Period",
+      allTime: "All transactions",
+      issued: "Issued on",
+      date: "Date",
+      reference: "Reference",
+      description: "Description",
+      charge: "Billed",
+      payment: "Paid",
+      balance: "Balance",
+      opening: "Opening balance",
+      closing: "Balance due",
+      totalCharges: "Total billed",
+      totalPayments: "Total paid",
+      order: "Order",
+      invoice: "Invoice",
+      paymentFor: "Payment",
+      empty: "No transactions in this period.",
+    },
   },
   fr: {
     title: { invoice: "Facture", receipt: "Reçu", quotation: "Devis" },
@@ -103,8 +162,35 @@ export const DOCUMENT_LABELS: Record<DocumentLanguage, DocumentLabels> = {
     draft: "Brouillon",
     voided: "Annulé",
     paidInFull: "Payé en totalité",
-    methods: { cash: "Espèces", mtn_momo: "MTN Mobile Money", orange_money: "Orange Money", bank_transfer: "Virement bancaire", card: "Carte", cheque: "Chèque", other: "Autre" },
+    paid: "Payé",
+    paidStamp: "Payé",
+    forDoc: { invoice: "Pour la facture", order: "Pour la commande" },
+    docTotal: { invoice: "Total de la facture", order: "Total de la commande" },
+    orderRef: "Commande",
+    paidToDate: "Payé à ce jour",
+    methods: { cash: "Espèces", mtn_momo: "MTN Mobile Money", orange_money: "Orange Money", mobile_money: "Mobile money", bank_transfer: "Virement bancaire", card: "Carte", cheque: "Chèque", other: "Autre" },
     generatedWith: "Réalisé avec WazaBolt · wazabolt.com",
+    statement: {
+      title: "Relevé de compte",
+      customer: "Client",
+      period: "Période",
+      allTime: "Toutes les opérations",
+      issued: "Établi le",
+      date: "Date",
+      reference: "Référence",
+      description: "Libellé",
+      charge: "Facturé",
+      payment: "Payé",
+      balance: "Solde",
+      opening: "Solde d'ouverture",
+      closing: "Solde dû",
+      totalCharges: "Total facturé",
+      totalPayments: "Total payé",
+      order: "Commande",
+      invoice: "Facture",
+      paymentFor: "Paiement",
+      empty: "Aucune opération sur cette période.",
+    },
   },
 };
 

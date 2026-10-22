@@ -1,7 +1,13 @@
+import Link from "next/link";
+import { ReceiptText } from "lucide-react";
+
+import { ActionButton } from "@/components/app/form";
 import { PaymentForm, VoidPaymentForm } from "@/components/app/payment-form";
 import { Panel, StatusBadge, TableWrap, formatDate, formatMoney, td, th } from "@/components/app/ui";
+import { createPaymentReceipt } from "@/lib/actions/document-links";
 import type { Locale } from "@/lib/i18n/config";
 import { format } from "@/lib/i18n/format";
+import { localizePath } from "@/lib/i18n/paths";
 import type { Messages } from "@/messages/en";
 
 type Payment = {
@@ -32,6 +38,7 @@ export function PaymentsPanel({
   locale,
   t,
   errors,
+  receipts,
 }: {
   order: { id: string; total: number; paid: number; refunded: number; currency: string; closed: boolean };
   payments: Payment[];
@@ -42,6 +49,8 @@ export function PaymentsPanel({
   locale: Locale;
   t: Messages["dashboard"]["payments"];
   errors: Messages["dashboard"]["errors"];
+  /** WazaBolt Docs: each payment's receipt (payment id → receipt); shows the Receipt column. */
+  receipts?: Map<string, { id: string; number: string | null }>;
 }) {
   const due = order.closed ? 0 : Math.max(0, order.total - order.paid);
   const refundable = Math.max(0, order.paid - order.refunded);
@@ -67,7 +76,7 @@ export function PaymentsPanel({
         <TableWrap>
           <thead>
             <tr>
-              {[t.columns.date, t.columns.kind, t.columns.amount, t.columns.method, t.columns.reference, t.columns.by].map((h) => (
+              {[t.columns.date, t.columns.kind, t.columns.amount, t.columns.method, t.columns.reference, t.columns.by, ...(receipts ? [t.columns.receipt] : [])].map((h) => (
                 <th key={h} className={th}>
                   {h}
                 </th>
@@ -95,6 +104,21 @@ export function PaymentsPanel({
                   {p.note ? <span className="block text-xs">{p.note}</span> : null}
                 </td>
                 <td className={`${td} text-slate`}>{p.by ?? "—"}</td>
+                {receipts ? (
+                  <td className={td}>
+                    {receipts.get(p.id) ? (
+                      <Link href={localizePath(locale, `/dashboard/documents/${receipts.get(p.id)!.id}`)} className="font-semibold whitespace-nowrap text-waza-700 hover:underline" data-testid="payment-receipt-link">
+                        {receipts.get(p.id)!.number}
+                      </Link>
+                    ) : !p.voided_at && p.kind === "payment" && canRecord ? (
+                      <ActionButton action={createPaymentReceipt.bind(null, "order", p.id, locale)} errors={errors}>
+                        <ReceiptText aria-hidden /> {t.makeReceipt}
+                      </ActionButton>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

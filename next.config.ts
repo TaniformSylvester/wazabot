@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/documents/*": ["./assets/fonts/**"],
     "/\\[lang\\]/dashboard/documents/**": ["./assets/fonts/**"],
+    // Customer statements (PDF route and "Send on WhatsApp").
+    "/\\[lang\\]/dashboard/customers/**": ["./assets/fonts/**"],
   },
   // Routes renamed in the WazaBolt rebrand — keep old links working (proxy.ts adds the locale).
   async redirects() {

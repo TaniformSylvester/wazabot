@@ -17,7 +17,7 @@ export type DocumentLanguage = (typeof DOCUMENT_LANGUAGES)[number];
 export const DOCUMENT_CURRENCIES = ["XAF", "XOF", "NGN", "EUR", "USD", "GBP"] as const;
 export type DocumentCurrency = (typeof DOCUMENT_CURRENCIES)[number];
 
-export const RECEIPT_METHODS = ["cash", "mtn_momo", "orange_money", "bank_transfer", "card", "cheque", "other"] as const;
+export const RECEIPT_METHODS = ["cash", "mtn_momo", "orange_money", "mobile_money", "bank_transfer", "card", "cheque", "other"] as const;
 export type ReceiptMethod = (typeof RECEIPT_METHODS)[number];
 
 export const INVOICE_STATUSES = ["draft", "issued", "partially_paid", "paid", "voided"] as const;
@@ -56,6 +56,20 @@ export type DocumentPayment = {
   amountPaid: number;
 };
 
+/**
+ * What a business document says about the document it's linked to (saved with
+ * the snapshot): an order's invoice names the order; a receipt for a recorded
+ * payment names the invoice / order, its total, what was paid up to and
+ * including this payment, and what is left.
+ */
+export type DocumentRelated = {
+  kind: "invoice" | "order";
+  number: string;
+  total?: number | null;
+  paidToDate?: number | null;
+  balance?: number | null;
+};
+
 export type DocumentData = {
   type: DocumentType;
   template: DocumentTemplate;
@@ -78,8 +92,11 @@ export type DocumentData = {
   terms?: string | null;
   /** Receipts only. */
   payment?: DocumentPayment | null;
-  /** Shown as a stamp: drafts and voided documents. */
-  stamp?: "draft" | "voided" | null;
+  /** Invoices: what has been paid so far (recorded payments). Shown with the balance when more than 0. */
+  invoicePaid?: number | null;
+  related?: DocumentRelated | null;
+  /** Shown as a stamp: drafts, voided documents and paid invoices. */
+  stamp?: "draft" | "voided" | "paid" | null;
 };
 
 export type ComputedLine = { gross: number; discount: number; total: number };
@@ -90,7 +107,7 @@ export type DocumentTotals = {
   taxable: number;
   tax: number;
   total: number;
-  /** Receipts: amount received and what remains. */
+  /** Receipts: amount received and what remains. Invoices: paid so far and the balance (null when nothing is paid). */
   paid: number | null;
   balance: number | null;
 };
