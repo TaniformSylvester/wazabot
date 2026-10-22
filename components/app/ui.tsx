@@ -55,7 +55,7 @@ export function Panel({
 }) {
   const headingId = id ? `${id}-title` : undefined;
   return (
-    <section aria-labelledby={headingId} className={cn("min-w-0 rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6", className)}>
+    <section id={id} aria-labelledby={headingId} className={cn("min-w-0 rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6", className)}>
       {title ? (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">

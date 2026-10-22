@@ -25,6 +25,7 @@ import { FreeMessagesPanel } from "@/components/app/free-messages-panel";
 import { PlanUpsell } from "@/components/app/plan-upsell";
 import { EmptyState, Panel, StatCard, StatusBadge, conversationStatusTone, formatDate, formatMoney, formatPercent, orderStatusTone } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
+import { getBusinessModules } from "@/lib/modules";
 import { hasOpeningHours } from "@/lib/business/hours";
 import { getDashboardMetrics, getFreeWhatsAppMessages, getPlanLimits, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders, listSales, profitAllowed } from "@/lib/data/queries";
 import { getOverview } from "@/lib/data/reports";
@@ -47,6 +48,9 @@ const setupSteps = [
 export default async function DashboardPage({ searchParams }: PageProps<"/[lang]/dashboard">) {
   const [locale, t, params] = await Promise.all([getLocale(), getMessages(), searchParams]);
   const { user, business } = await requireBusiness(localizePath(locale, "/dashboard"));
+  // A school without the sales module starts on its school overview.
+  const modules = await getBusinessModules(business);
+  if (!modules.includes("commerce") && modules.includes("school")) redirect(localizePath(locale, "/dashboard/school"));
   const d = t.dashboard;
   const h = d.home;
 

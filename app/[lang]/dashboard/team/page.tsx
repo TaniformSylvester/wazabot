@@ -26,7 +26,7 @@ export default async function TeamPage() {
   const d = t.dashboard;
   const tm = d.team;
   const roleLabel = (r: string) => d.header.roles[r as BusinessRole] ?? r;
-  const assignable = (isOwner ? (["admin", "agent", "viewer"] as const) : (["agent", "viewer"] as const)).map((r) => ({ value: r, label: roleLabel(r) }));
+  const assignable = (isOwner ? (["admin", "agent", "viewer", "teacher"] as const) : (["agent", "viewer", "teacher"] as const)).map((r) => ({ value: r, label: roleLabel(r) }));
   const canManage = (role: BusinessRole, userId: string) => isAdmin && userId !== user.id && role !== "owner" && (role !== "admin" || isOwner);
 
   return (

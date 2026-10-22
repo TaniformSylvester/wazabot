@@ -3,6 +3,44 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      academic_years: {
+        Row: {
+          business_id: string;
+          created_at: string;
+          ends_on: string | null;
+          id: string;
+          is_current: boolean;
+          name: string;
+          starts_on: string | null;
+        };
+        Insert: {
+          business_id: string;
+          created_at?: string;
+          ends_on?: string | null;
+          id?: string;
+          is_current?: boolean;
+          name: string;
+          starts_on?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          created_at?: string;
+          ends_on?: string | null;
+          id?: string;
+          is_current?: boolean;
+          name?: string;
+          starts_on?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "academic_years_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_conversation_windows: {
         Row: {
           business_id: string;
@@ -500,16 +538,19 @@ export type Database = {
           business_id: string;
           customer_seq: number;
           order_seq: number;
+          student_seq: number;
         };
         Insert: {
           business_id: string;
           customer_seq?: number;
           order_seq?: number;
+          student_seq?: number;
         };
         Update: {
           business_id?: string;
           customer_seq?: number;
           order_seq?: number;
+          student_seq?: number;
         };
         Relationships: [
           {
@@ -636,6 +677,38 @@ export type Database = {
           },
         ];
       };
+      business_modules: {
+        Row: {
+          business_id: string;
+          enabled: boolean;
+          module: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          business_id: string;
+          enabled: boolean;
+          module: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          enabled?: boolean;
+          module?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "business_modules_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       businesses: {
         Row: {
           address: string | null;
@@ -726,6 +799,51 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "languages";
             referencedColumns: ["code"];
+          },
+        ];
+      };
+      class_subjects: {
+        Row: {
+          business_id: string;
+          class_id: string;
+          coefficient: number;
+          id: string;
+          position: number;
+          subject_id: string;
+          teacher_id: string | null;
+        };
+        Insert: {
+          business_id: string;
+          class_id: string;
+          coefficient?: number;
+          id?: string;
+          position?: number;
+          subject_id: string;
+          teacher_id?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          class_id?: string;
+          coefficient?: number;
+          id?: string;
+          position?: number;
+          subject_id?: string;
+          teacher_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "class_subjects_business_id_class_id_fkey";
+            columns: ["business_id", "class_id"];
+            isOneToOne: false;
+            referencedRelation: "school_classes";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "class_subjects_business_id_subject_id_fkey";
+            columns: ["business_id", "subject_id"];
+            isOneToOne: false;
+            referencedRelation: "school_subjects";
+            referencedColumns: ["business_id", "id"];
           },
         ];
       };
@@ -1151,6 +1269,7 @@ export type Database = {
           doc_type: string;
           due_date: string | null;
           duplicated_from: string | null;
+          fee_item_id: string | null;
           id: string;
           invoice_id: string | null;
           invoice_payment_id: string | null;
@@ -1170,6 +1289,7 @@ export type Database = {
           seq: number | null;
           status: string;
           status_changed_at: string | null;
+          student_id: string | null;
           subtotal: number;
           tax_amount: number;
           tax_label: string | null;
@@ -1195,6 +1315,7 @@ export type Database = {
           doc_type: string;
           due_date?: string | null;
           duplicated_from?: string | null;
+          fee_item_id?: string | null;
           id?: string;
           invoice_id?: string | null;
           invoice_payment_id?: string | null;
@@ -1214,6 +1335,7 @@ export type Database = {
           seq?: number | null;
           status?: string;
           status_changed_at?: string | null;
+          student_id?: string | null;
           subtotal: number;
           tax_amount?: number;
           tax_label?: string | null;
@@ -1239,6 +1361,7 @@ export type Database = {
           doc_type?: string;
           due_date?: string | null;
           duplicated_from?: string | null;
+          fee_item_id?: string | null;
           id?: string;
           invoice_id?: string | null;
           invoice_payment_id?: string | null;
@@ -1258,6 +1381,7 @@ export type Database = {
           seq?: number | null;
           status?: string;
           status_changed_at?: string | null;
+          student_id?: string | null;
           subtotal?: number;
           tax_amount?: number;
           tax_label?: string | null;
@@ -1300,6 +1424,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "documents_fee_item_fk";
+            columns: ["business_id", "fee_item_id"];
+            isOneToOne: false;
+            referencedRelation: "school_fee_items";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
             foreignKeyName: "documents_invoice_fk";
             columns: ["business_id", "invoice_id"];
             isOneToOne: false;
@@ -1326,6 +1457,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "order_payments";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "documents_student_fk";
+            columns: ["business_id", "student_id"];
+            isOneToOne: false;
+            referencedRelation: "school_students";
+            referencedColumns: ["business_id", "id"];
           },
         ];
       };
@@ -2686,6 +2824,599 @@ export type Database = {
           },
         ];
       };
+      school_assessments: {
+        Row: {
+          business_id: string;
+          id: string;
+          max_mark: number;
+          name: string;
+          position: number;
+          term_id: string;
+          weight: number;
+        };
+        Insert: {
+          business_id: string;
+          id?: string;
+          max_mark: number;
+          name: string;
+          position?: number;
+          term_id: string;
+          weight: number;
+        };
+        Update: {
+          business_id?: string;
+          id?: string;
+          max_mark?: number;
+          name?: string;
+          position?: number;
+          term_id?: string;
+          weight?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_assessments_business_id_term_id_fkey";
+            columns: ["business_id", "term_id"];
+            isOneToOne: false;
+            referencedRelation: "school_terms";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_classes: {
+        Row: {
+          business_id: string;
+          class_teacher_id: string | null;
+          created_at: string;
+          id: string;
+          level: string | null;
+          name: string;
+          year_id: string;
+        };
+        Insert: {
+          business_id: string;
+          class_teacher_id?: string | null;
+          created_at?: string;
+          id?: string;
+          level?: string | null;
+          name: string;
+          year_id: string;
+        };
+        Update: {
+          business_id?: string;
+          class_teacher_id?: string | null;
+          created_at?: string;
+          id?: string;
+          level?: string | null;
+          name?: string;
+          year_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_classes_business_id_year_id_fkey";
+            columns: ["business_id", "year_id"];
+            isOneToOne: false;
+            referencedRelation: "academic_years";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_enrollments: {
+        Row: {
+          business_id: string;
+          class_id: string;
+          created_at: string;
+          id: string;
+          status: string;
+          student_id: string;
+          year_id: string;
+        };
+        Insert: {
+          business_id: string;
+          class_id: string;
+          created_at?: string;
+          id?: string;
+          status?: string;
+          student_id: string;
+          year_id: string;
+        };
+        Update: {
+          business_id?: string;
+          class_id?: string;
+          created_at?: string;
+          id?: string;
+          status?: string;
+          student_id?: string;
+          year_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_enrollments_business_id_class_id_fkey";
+            columns: ["business_id", "class_id"];
+            isOneToOne: false;
+            referencedRelation: "school_classes";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_enrollments_business_id_student_id_fkey";
+            columns: ["business_id", "student_id"];
+            isOneToOne: false;
+            referencedRelation: "school_students";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_enrollments_business_id_year_id_fkey";
+            columns: ["business_id", "year_id"];
+            isOneToOne: false;
+            referencedRelation: "academic_years";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_fee_items: {
+        Row: {
+          amount: number;
+          business_id: string;
+          class_id: string | null;
+          created_at: string;
+          due_date: string | null;
+          id: string;
+          name: string;
+          year_id: string;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          class_id?: string | null;
+          created_at?: string;
+          due_date?: string | null;
+          id?: string;
+          name: string;
+          year_id: string;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          class_id?: string | null;
+          created_at?: string;
+          due_date?: string | null;
+          id?: string;
+          name?: string;
+          year_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_fee_items_business_id_class_id_fkey";
+            columns: ["business_id", "class_id"];
+            isOneToOne: false;
+            referencedRelation: "school_classes";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_fee_items_business_id_year_id_fkey";
+            columns: ["business_id", "year_id"];
+            isOneToOne: false;
+            referencedRelation: "academic_years";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_marks: {
+        Row: {
+          absent: boolean;
+          assessment_id: string;
+          business_id: string;
+          class_subject_id: string;
+          entered_by: string | null;
+          id: string;
+          mark: number | null;
+          student_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          absent?: boolean;
+          assessment_id: string;
+          business_id: string;
+          class_subject_id: string;
+          entered_by?: string | null;
+          id?: string;
+          mark?: number | null;
+          student_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          absent?: boolean;
+          assessment_id?: string;
+          business_id?: string;
+          class_subject_id?: string;
+          entered_by?: string | null;
+          id?: string;
+          mark?: number | null;
+          student_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_marks_business_id_assessment_id_fkey";
+            columns: ["business_id", "assessment_id"];
+            isOneToOne: false;
+            referencedRelation: "school_assessments";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_marks_business_id_class_subject_id_fkey";
+            columns: ["business_id", "class_subject_id"];
+            isOneToOne: false;
+            referencedRelation: "class_subjects";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_marks_business_id_student_id_fkey";
+            columns: ["business_id", "student_id"];
+            isOneToOne: false;
+            referencedRelation: "school_students";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_result_publications: {
+        Row: {
+          business_id: string;
+          class_id: string;
+          id: string;
+          published_at: string;
+          published_by: string | null;
+          results: NonNullable<Json>;
+          term_id: string;
+          withdraw_reason: string | null;
+          withdrawn_at: string | null;
+          withdrawn_by: string | null;
+        };
+        Insert: {
+          business_id: string;
+          class_id: string;
+          id?: string;
+          published_at?: string;
+          published_by?: string | null;
+          results: NonNullable<Json>;
+          term_id: string;
+          withdraw_reason?: string | null;
+          withdrawn_at?: string | null;
+          withdrawn_by?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          class_id?: string;
+          id?: string;
+          published_at?: string;
+          published_by?: string | null;
+          results?: NonNullable<Json>;
+          term_id?: string;
+          withdraw_reason?: string | null;
+          withdrawn_at?: string | null;
+          withdrawn_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_result_publications_business_id_class_id_fkey";
+            columns: ["business_id", "class_id"];
+            isOneToOne: false;
+            referencedRelation: "school_classes";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_result_publications_business_id_term_id_fkey";
+            columns: ["business_id", "term_id"];
+            isOneToOne: false;
+            referencedRelation: "school_terms";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_settings: {
+        Row: {
+          business_id: string;
+          decimals: number;
+          grade_boundaries: NonNullable<Json>;
+          grading_preset: string;
+          missing_marks: string;
+          motto: string | null;
+          pass_mark: number;
+          principal_name: string | null;
+          rank_students: boolean;
+          registration_number: string | null;
+          report_language: string | null;
+          report_template: string;
+          scale_max: number;
+          school_type: string;
+          student_prefix: string;
+          updated_at: string;
+          use_coefficients: boolean;
+        };
+        Insert: {
+          business_id: string;
+          decimals?: number;
+          grade_boundaries?: NonNullable<Json>;
+          grading_preset?: string;
+          missing_marks?: string;
+          motto?: string | null;
+          pass_mark?: number;
+          principal_name?: string | null;
+          rank_students?: boolean;
+          registration_number?: string | null;
+          report_language?: string | null;
+          report_template?: string;
+          scale_max?: number;
+          school_type?: string;
+          student_prefix?: string;
+          updated_at?: string;
+          use_coefficients?: boolean;
+        };
+        Update: {
+          business_id?: string;
+          decimals?: number;
+          grade_boundaries?: NonNullable<Json>;
+          grading_preset?: string;
+          missing_marks?: string;
+          motto?: string | null;
+          pass_mark?: number;
+          principal_name?: string | null;
+          rank_students?: boolean;
+          registration_number?: string | null;
+          report_language?: string | null;
+          report_template?: string;
+          scale_max?: number;
+          school_type?: string;
+          student_prefix?: string;
+          updated_at?: string;
+          use_coefficients?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_settings_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: true;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      school_students: {
+        Row: {
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          date_of_birth: string | null;
+          first_name: string;
+          gender: string | null;
+          guardian_customer_id: string | null;
+          guardian_name: string | null;
+          id: string;
+          last_name: string;
+          notes: string | null;
+          status: string;
+          student_number: string;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          date_of_birth?: string | null;
+          first_name: string;
+          gender?: string | null;
+          guardian_customer_id?: string | null;
+          guardian_name?: string | null;
+          id?: string;
+          last_name: string;
+          notes?: string | null;
+          status?: string;
+          student_number?: string;
+          updated_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          date_of_birth?: string | null;
+          first_name?: string;
+          gender?: string | null;
+          guardian_customer_id?: string | null;
+          guardian_name?: string | null;
+          id?: string;
+          last_name?: string;
+          notes?: string | null;
+          status?: string;
+          student_number?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_students_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "school_students_business_id_guardian_customer_id_fkey";
+            columns: ["business_id", "guardian_customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
+          },
+          {
+            foreignKeyName: "school_students_business_id_guardian_customer_id_fkey";
+            columns: ["business_id", "guardian_customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_subject_comments: {
+        Row: {
+          business_id: string;
+          class_subject_id: string;
+          comment: string;
+          student_id: string;
+          term_id: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          business_id: string;
+          class_subject_id: string;
+          comment: string;
+          student_id: string;
+          term_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          class_subject_id?: string;
+          comment?: string;
+          student_id?: string;
+          term_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_subject_comments_business_id_class_subject_id_fkey";
+            columns: ["business_id", "class_subject_id"];
+            isOneToOne: false;
+            referencedRelation: "class_subjects";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_subject_comments_business_id_student_id_fkey";
+            columns: ["business_id", "student_id"];
+            isOneToOne: false;
+            referencedRelation: "school_students";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_subject_comments_business_id_term_id_fkey";
+            columns: ["business_id", "term_id"];
+            isOneToOne: false;
+            referencedRelation: "school_terms";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_subjects: {
+        Row: {
+          business_id: string;
+          code: string | null;
+          id: string;
+          name: string;
+        };
+        Insert: {
+          business_id: string;
+          code?: string | null;
+          id?: string;
+          name: string;
+        };
+        Update: {
+          business_id?: string;
+          code?: string | null;
+          id?: string;
+          name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_subjects_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      school_term_comments: {
+        Row: {
+          business_id: string;
+          class_teacher_comment: string | null;
+          principal_comment: string | null;
+          student_id: string;
+          term_id: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          business_id: string;
+          class_teacher_comment?: string | null;
+          principal_comment?: string | null;
+          student_id: string;
+          term_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          class_teacher_comment?: string | null;
+          principal_comment?: string | null;
+          student_id?: string;
+          term_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_term_comments_business_id_student_id_fkey";
+            columns: ["business_id", "student_id"];
+            isOneToOne: false;
+            referencedRelation: "school_students";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "school_term_comments_business_id_term_id_fkey";
+            columns: ["business_id", "term_id"];
+            isOneToOne: false;
+            referencedRelation: "school_terms";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      school_terms: {
+        Row: {
+          business_id: string;
+          ends_on: string | null;
+          id: string;
+          name: string;
+          position: number;
+          starts_on: string | null;
+          year_id: string;
+        };
+        Insert: {
+          business_id: string;
+          ends_on?: string | null;
+          id?: string;
+          name: string;
+          position: number;
+          starts_on?: string | null;
+          year_id: string;
+        };
+        Update: {
+          business_id?: string;
+          ends_on?: string | null;
+          id?: string;
+          name?: string;
+          position?: number;
+          starts_on?: string | null;
+          year_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_terms_business_id_year_id_fkey";
+            columns: ["business_id", "year_id"];
+            isOneToOne: false;
+            referencedRelation: "academic_years";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
       services: {
         Row: {
           active: boolean;
@@ -3279,6 +4010,10 @@ export type Database = {
           starts_at: string;
         }[];
       };
+      bill_school_fee: {
+        Args: { p_business_snapshot: Json; p_fee_item_id: string; p_language?: string };
+        Returns: number;
+      };
       book_appointment: {
         Args: {
           p_business_id: string;
@@ -3307,6 +4042,8 @@ export type Database = {
         }[];
       };
       business_slug: { Args: { p_id: string; p_name: string }; Returns: string };
+      can_mark: { Args: { p_class_subject_id: string }; Returns: boolean };
+      can_see_class: { Args: { p_business_id: string; p_class_id: string }; Returns: boolean };
       cancel_plan_change: { Args: { p_request_id: string }; Returns: undefined };
       claude_spend_since: { Args: { p_business_id: string; p_since: string }; Returns: number };
       create_invitation: {
@@ -3354,6 +4091,7 @@ export type Database = {
           doc_type: string;
           due_date: string | null;
           duplicated_from: string | null;
+          fee_item_id: string | null;
           id: string;
           invoice_id: string | null;
           invoice_payment_id: string | null;
@@ -3373,6 +4111,7 @@ export type Database = {
           seq: number | null;
           status: string;
           status_changed_at: string | null;
+          student_id: string | null;
           subtotal: number;
           tax_amount: number;
           tax_label: string | null;
@@ -3413,6 +4152,7 @@ export type Database = {
           doc_type: string;
           due_date: string | null;
           duplicated_from: string | null;
+          fee_item_id: string | null;
           id: string;
           invoice_id: string | null;
           invoice_payment_id: string | null;
@@ -3432,6 +4172,7 @@ export type Database = {
           seq: number | null;
           status: string;
           status_changed_at: string | null;
+          student_id: string | null;
           subtotal: number;
           tax_amount: number;
           tax_label: string | null;
@@ -3514,6 +4255,7 @@ export type Database = {
         }[];
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
+      is_business_staff: { Args: { target_business_id: string }; Returns: boolean };
       issue_document: {
         Args: { p_document_id: string };
         Returns: {
@@ -3529,6 +4271,7 @@ export type Database = {
           doc_type: string;
           due_date: string | null;
           duplicated_from: string | null;
+          fee_item_id: string | null;
           id: string;
           invoice_id: string | null;
           invoice_payment_id: string | null;
@@ -3548,6 +4291,7 @@ export type Database = {
           seq: number | null;
           status: string;
           status_changed_at: string | null;
+          student_id: string | null;
           subtotal: number;
           tax_amount: number;
           tax_label: string | null;
@@ -3597,6 +4341,10 @@ export type Database = {
           quantity: number;
           revenue: number;
         }[];
+      };
+      publish_school_results: {
+        Args: { p_class_id: string; p_results: Json; p_term_id: string };
+        Returns: string;
       };
       record_ai_reply: {
         Args: {
@@ -3716,6 +4464,15 @@ export type Database = {
           sales: number;
         }[];
       };
+      save_marks: {
+        Args: { p_assessment_id: string; p_class_subject_id: string; p_rows: Json };
+        Returns: number;
+      };
+      school_results_locked: { Args: { p_class_id: string; p_term_id: string }; Returns: boolean };
+      set_business_module: {
+        Args: { p_business_id: string; p_enabled: boolean; p_module: string };
+        Returns: undefined;
+      };
       set_quotation_status: {
         Args: { p_document_id: string; p_status: string };
         Returns: {
@@ -3731,6 +4488,7 @@ export type Database = {
           doc_type: string;
           due_date: string | null;
           duplicated_from: string | null;
+          fee_item_id: string | null;
           id: string;
           invoice_id: string | null;
           invoice_payment_id: string | null;
@@ -3750,6 +4508,7 @@ export type Database = {
           seq: number | null;
           status: string;
           status_changed_at: string | null;
+          student_id: string | null;
           subtotal: number;
           tax_amount: number;
           tax_label: string | null;
@@ -3769,8 +4528,20 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      set_school_comment: {
+        Args: {
+          p_class_subject_id?: string;
+          p_comment: string;
+          p_kind: string;
+          p_student_id: string;
+          p_term_id: string;
+        };
+        Returns: undefined;
+      };
       set_ui_locale: { Args: { p_locale: string }; Returns: undefined };
       shares_business_with: { Args: { other_user: string }; Returns: boolean };
+      teaches_class: { Args: { p_class_id: string }; Returns: boolean };
+      teaches_student: { Args: { p_student_id: string }; Returns: boolean };
       token_sha256: { Args: { p_token: string }; Returns: string };
       update_business_language_settings: {
         Args: {
@@ -3806,6 +4577,7 @@ export type Database = {
           doc_type: string;
           due_date: string | null;
           duplicated_from: string | null;
+          fee_item_id: string | null;
           id: string;
           invoice_id: string | null;
           invoice_payment_id: string | null;
@@ -3825,6 +4597,7 @@ export type Database = {
           seq: number | null;
           status: string;
           status_changed_at: string | null;
+          student_id: string | null;
           subtotal: number;
           tax_amount: number;
           tax_label: string | null;
@@ -3860,9 +4633,13 @@ export type Database = {
           service_sent: number;
         }[];
       };
+      withdraw_school_results: {
+        Args: { p_publication_id: string; p_reason: string };
+        Returns: undefined;
+      };
     };
     Enums: {
-      business_role: "owner" | "admin" | "agent" | "viewer";
+      business_role: "owner" | "admin" | "agent" | "viewer" | "teacher";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -3978,7 +4755,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      business_role: ["owner", "admin", "agent", "viewer"],
+      business_role: ["owner", "admin", "agent", "viewer", "teacher"],
     },
   },
 } as const;

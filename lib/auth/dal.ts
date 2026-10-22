@@ -167,6 +167,10 @@ export async function requireBusiness(next = "/dashboard"): Promise<BusinessCont
   const business = await getCurrentBusiness();
   // Signed in but not in any business (left it or was removed): explain instead of looping through login.
   if (!business) redirect(next.startsWith("/fr") ? "/fr/dashboard/no-business" : "/en/dashboard/no-business");
+  // Teachers use the school pages only (and Team, to leave); anything else takes them there.
+  if (business.role === "teacher" && !/^\/(en|fr)\/dashboard\/(school|team)(\/|$|\?)/.test(next)) {
+    redirect(next.startsWith("/fr") ? "/fr/dashboard/school" : "/en/dashboard/school");
+  }
   return { user, business };
 }
 

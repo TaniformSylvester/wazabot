@@ -4,7 +4,8 @@ import { ArrowRight } from "lucide-react";
 import { FormAlert } from "@/components/auth/form-alert";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { BusinessProfileForm, OpeningHoursForm, ReceiptSettingsForm } from "@/components/app/business-forms";
-import { DefinitionList, PageHeader, Panel } from "@/components/app/ui";
+import { ActionButton } from "@/components/app/form";
+import { DefinitionList, PageHeader, Panel, StatusBadge } from "@/components/app/ui";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
 import { DEFAULT_OPENING_HOURS, hasOpeningHours } from "@/lib/business/hours";
@@ -12,6 +13,8 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { languageName } from "@/lib/i18n/languages";
 import { localizePath } from "@/lib/i18n/paths";
+import { setModule } from "@/lib/actions/school";
+import { MODULES, getBusinessModules } from "@/lib/modules";
 import { createClient } from "@/lib/supabase/server";
 
 export const generateMetadata = dashboardMetadata((d) => d.settings.title);
@@ -25,6 +28,7 @@ export default async function SettingsPage() {
   const canEdit = canManageBusiness(business.role);
   const text = { errors: d.errors, saved: d.common.saved, saving: d.common.saving };
   const { data: receipt } = await (await createClient()).from("businesses").select("receipt_footer").eq("id", business.id).maybeSingle();
+  const modules = await getBusinessModules(business);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -41,6 +45,30 @@ export default async function SettingsPage() {
 
       <Panel id="interface" title={s.interface.title} description={s.interface.description}>
         <LanguageSwitcher persist />
+      </Panel>
+
+      <Panel id="modules" title={s.modules.title} description={s.modules.description}>
+        <ul className="flex flex-col gap-3" data-testid="modules">
+          {MODULES.map((m) => {
+            const on = modules.includes(m);
+            return (
+              <li key={m} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 font-semibold text-deep">
+                    {s.modules.names[m]} <StatusBadge tone={on ? "green" : "neutral"}>{on ? s.modules.on : s.modules.off}</StatusBadge>
+                  </p>
+                  <p className="text-sm text-slate">{s.modules.texts[m]}</p>
+                </div>
+                {canEdit ? (
+                  <ActionButton action={setModule.bind(null, m, !on)} errors={d.errors} variant={on ? "ghost" : "outline"}>
+                    {on ? s.modules.turnOff : s.modules.turnOn}
+                  </ActionButton>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-3 text-xs text-slate">{s.modules.note}</p>
       </Panel>
 
       <Panel id="business" title={d.business.title} description={d.business.description}>

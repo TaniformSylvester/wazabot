@@ -43,6 +43,8 @@ export type ActionErrorKey =
   | "receipt_exists"
   | "invoice_exists"
   | "invoice_has_payments"
+  // Schools
+  | "results_published"
   // Plan limits
   | "plan_limit_products"
   | "plan_limit_sales"
@@ -88,6 +90,8 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "plan_limit_feature";
     case "WB420":
       return "document_locked";
+    case "WB430":
+      return "results_published";
     case "23505":
       return "duplicate";
     case "22023":

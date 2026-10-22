@@ -4,6 +4,7 @@ import Link from "next/link";
 import { WazaBoltLogo } from "@/components/brand/logo";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
+import { defaultModules, getBusinessModules } from "@/lib/modules";
 import { UserCard, initials } from "@/components/dashboard/user-card";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { Info, PauseCircle, ShieldCheck, TriangleAlert } from "lucide-react";
@@ -35,7 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const user = await requireUser(localizePath(locale, "/dashboard"));
   const business = await getCurrentBusiness();
-  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests, paused] = await Promise.all([
+  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests, paused, modules] = await Promise.all([
     business ? getWhatsAppConnection(business.id) : null,
     // Owners and admins are warned before the monthly AI allowance runs out.
     business && hasRole(business.role, "admin") ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
@@ -43,6 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     currentUserIsPlatformAdmin(),
     pendingRequestsForAdmin(),
     business ? aiPausedByWazaBolt(business.id) : false,
+    business ? getBusinessModules(business) : defaultModules(null),
   ]);
   const billingHref = localizePath(locale, "/dashboard/billing");
   const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6 print:hidden";
@@ -81,14 +83,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <WazaBoltLogo tone="dark" size="sm" />
         </Link>
         <div className="-mx-1 mt-6 flex-1 overflow-y-auto px-1">
-          <SidebarNav labels={d.nav} role={business?.role ?? null} />
+          <SidebarNav labels={d.nav} role={business?.role ?? null} modules={modules} />
         </div>
         {userCard}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-cream/90 px-4 backdrop-blur-md sm:px-6 print:hidden">
-          <MobileNav footer={userCard} labels={d.nav} role={business?.role ?? null} />
+          <MobileNav footer={userCard} labels={d.nav} role={business?.role ?? null} modules={modules} />
           <div className="min-w-0 flex-1">
             {business && businesses.length > 1 ? (
               <BusinessSwitcher

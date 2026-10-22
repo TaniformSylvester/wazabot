@@ -7,6 +7,7 @@ import { Document, Font, Image, Page, StyleSheet, Text, View, renderToBuffer } f
 import { computeTotals } from "../calc";
 import { DOCUMENT_LABELS, formatDocDate, formatDocMoney, formatQuantity, type DocumentLabels } from "../labels";
 import { STAMP_COLOURS, metaRows, paidInFull, paidRows, relatedRows, stampWord } from "../layout";
+import { REPORT_LABELS, formatScore, type ReportCardsData, type ReportStudent } from "../../school/report-card";
 import type { StatementData } from "../statement";
 import type { DocumentData, DocumentTemplate, DocumentTotals } from "../types";
 
@@ -540,4 +541,203 @@ export function statementFileName(st: Pick<StatementData, "language" | "to" | "c
   const base = st.language === "fr" ? "releve" : "statement";
   const ref = (st.customer.reference ?? "").replace(/[^A-Za-z0-9_-]/g, "");
   return `${base}${ref ? `-${ref}` : ""}-${st.to}.pdf`;
+}
+
+/*
+ * School report cards (WazaBolt Schools): one page per student, with the
+ * fonts, colours and footer of the chosen template (classic or modern).
+ * Printed from the frozen snapshot once results are published; before that,
+ * stamped "Provisional".
+ */
+/** Column headers: "Séquence 1" → "Séq. 1", "Continuous assessment" → "CA", "Examination" → "Exam.". */
+export function shortAssessment(name: string): string {
+  if (name.length <= 9) return name;
+  const numbered = name.match(/^(\S+)\s+(\d+)$/);
+  if (numbered) return `${numbered[1].slice(0, 3)}. ${numbered[2]}`;
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length > 1) return words.map((w) => w[0].toUpperCase()).join("").slice(0, 5);
+  return `${name.slice(0, 4)}.`;
+}
+
+function ReportCardPage({ d, st, logo, branding }: { d: ReportCardsData; st: ReportStudent; logo: PdfLogo; branding: boolean }) {
+  const th = THEMES[d.template];
+  const s = styles(th, d.template);
+  const L = REPORT_LABELS[d.language];
+  const n = (v: number | null | undefined, dec = d.settings.decimals) => formatScore(v, dec, d.language);
+  const r = st.result;
+  const head = { backgroundColor: th.headFill, color: th.headInk, paddingVertical: 5, paddingHorizontal: 4 };
+  const cSubject = { width: 118, paddingRight: 4 };
+  const cMark = { width: 36, textAlign: "right" as const };
+  const cSmall = { width: 30, textAlign: "right" as const };
+  const cComment = { flexGrow: 1, flexShrink: 1, flexBasis: 0, paddingLeft: 6 };
+  const box = d.template === "classic" ? { borderWidth: 0.75, borderColor: th.line, padding: 8 } : { backgroundColor: "#f3faf6", padding: 9, borderRadius: 6 };
+  const info: [string, string][] = [
+    [L.student, st.name],
+    [L.number, st.number],
+    [L.className, d.className],
+    ...(st.dateOfBirth ? [[L.born, formatDocDate(st.dateOfBirth, d.language)] as [string, string]] : []),
+    ...(st.gender ? [[L.sex, L.gender[st.gender]] as [string, string]] : []),
+    [L.classSize, String(d.stats.size)],
+  ];
+  const summary: [string, string][] = [
+    ...(d.settings.useCoefficients ? [[L.totals, `${n(r.totalPoints)} / ${n(r.totalCoefficients, 2)}`] as [string, string]] : []),
+    [L.generalAverage, `${n(r.average)} / ${n(d.settings.scaleMax, 0)}`],
+    ...(r.grade ? [[L.grade, `${r.grade}${r.remark ? ` — ${r.remark}` : ""}`] as [string, string]] : []),
+    ...(d.settings.rankStudents && r.rank ? [[L.position, `${r.rank} ${L.of} ${d.stats.ranked}`] as [string, string]] : []),
+    [L.classAverage, n(d.stats.classAverage)],
+    [L.highest, n(d.stats.highest)],
+    [L.lowest, n(d.stats.lowest)],
+    ...(r.passed !== null ? [[L.decision, r.passed ? L.passed : L.notPassed] as [string, string]] : []),
+  ];
+  const footerTitle = `${L.title} · ${st.name} · ${d.term}`;
+  return (
+    <Page size="A4" style={[s.page, { fontSize: 8.5 }]}>
+      {!d.publishedAt ? (
+        <View fixed style={{ position: "absolute", top: 330, left: 0, right: 0, alignItems: "center" }}>
+          <Text style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 72, color: "#9aa5b1", opacity: 0.18, transform: "rotate(-28deg)", textTransform: "uppercase" }}>{L.provisional}</Text>
+        </View>
+      ) : null}
+      <View style={[s.row, { gap: 12, alignItems: "center" }]}>
+        <LogoImage logo={logo} size={50} />
+        <View style={{ flex: 1 }}>
+          <Text style={[s.h, { fontSize: 15, color: d.template === "classic" ? th.accent : th.ink }]}>{d.school.name}</Text>
+          {d.school.motto ? <Text style={s.muted}>{d.school.motto}</Text> : null}
+          <Text style={s.muted}>{[d.school.address, d.school.phone, d.school.email].filter(Boolean).join("  ·  ")}</Text>
+          {d.school.registration ? <Text style={s.muted}>{`${L.registration} ${d.school.registration}`}</Text> : null}
+        </View>
+        <View style={{ alignItems: "flex-end" }}>
+          <Text style={[s.h, { fontSize: 16, color: d.template === "modern" ? "#0c8354" : th.accent, textTransform: "uppercase" }]}>{L.title}</Text>
+          <Text style={s.bold}>{d.term}</Text>
+          <Text style={s.muted}>{`${L.year} ${d.year}`}</Text>
+        </View>
+      </View>
+      <View style={{ borderTopWidth: 1.5, borderTopColor: th.accent, marginTop: 8 }} />
+
+      <View style={[s.row, { gap: 10, marginTop: 10 }]} wrap={false}>
+        <View style={[{ flex: 1 }, box]}>
+          {info.map(([k, v]) => (
+            <View key={k} style={[s.row, { marginBottom: 1.5 }]}>
+              <Text style={[s.muted, { width: 78 }]}>{k}</Text>
+              <Text style={[s.bold, { flex: 1 }]}>{v}</Text>
+            </View>
+          ))}
+          {d.classTeacher ? (
+            <View style={s.row}>
+              <Text style={[s.muted, { width: 78 }]}>{L.classTeacher}</Text>
+              <Text style={{ flex: 1 }}>{d.classTeacher}</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={[{ width: 190 }, box]}>
+          {summary.map(([k, v], i) => (
+            <View key={k} style={[s.row, { justifyContent: "space-between", marginBottom: 1.5 }]}>
+              <Text style={s.muted}>{k}</Text>
+              <Text style={i === (d.settings.useCoefficients ? 1 : 0) ? [s.bold, { fontSize: 10 }] : s.bold}>{v}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={{ marginTop: 10 }}>
+        <View style={[s.row, head, { fontFamily: th.bold, fontWeight: th.boldWeight, fontSize: 7.5 }]} wrap={false}>
+          <Text style={cSubject}>{L.subject}</Text>
+          {d.assessments.map((a) => (
+            <Text key={a.id} style={cMark}>
+              {shortAssessment(a.name)}
+            </Text>
+          ))}
+          <Text style={cMark}>{`${L.average}/${n(d.settings.scaleMax, 0)}`}</Text>
+          {d.settings.useCoefficients ? <Text style={cSmall}>{L.coefficient}</Text> : null}
+          {d.settings.useCoefficients ? <Text style={cMark}>{L.points}</Text> : null}
+          <Text style={cSmall}>{L.grade}</Text>
+          {d.settings.rankStudents ? <Text style={cSmall}>{L.rank}</Text> : null}
+          <Text style={cComment}>{L.comment}</Text>
+        </View>
+        {d.subjects.map((sub, i) => {
+          const sr = r.subjects.find((x) => x.subjectId === sub.id);
+          return (
+            <View
+              key={sub.id}
+              wrap={false}
+              style={[s.row, { paddingVertical: 4, paddingHorizontal: 4, borderBottomWidth: 0.5, borderBottomColor: th.line }, th.zebra && i % 2 === 1 ? { backgroundColor: th.zebra } : {}]}
+            >
+              <View style={cSubject}>
+                <Text style={s.bold}>{sub.name}</Text>
+                {sub.teacher ? <Text style={[s.muted, { fontSize: 7 }]}>{sub.teacher}</Text> : null}
+              </View>
+              {d.assessments.map((a) => {
+                const m = sr?.marks[a.id];
+                return (
+                  <Text key={a.id} style={cMark}>
+                    {m === "abs" ? L.abs : m === null || m === undefined ? "—" : n(m)}
+                  </Text>
+                );
+              })}
+              <Text style={[cMark, s.bold]}>{n(sr?.average)}</Text>
+              {d.settings.useCoefficients ? <Text style={cSmall}>{n(sub.coefficient, Number.isInteger(sub.coefficient) ? 0 : 1)}</Text> : null}
+              {d.settings.useCoefficients ? <Text style={cMark}>{n(sr?.points)}</Text> : null}
+              <Text style={cSmall}>{sr?.grade ?? "—"}</Text>
+              {d.settings.rankStudents ? <Text style={cSmall}>{sr?.rank ?? "—"}</Text> : null}
+              <Text style={[cComment, s.muted]}>{st.subjectComments[sub.id] ?? sr?.remark ?? ""}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <View wrap={false} style={{ marginTop: 10, gap: 6 }}>
+        {[
+          [L.classTeacherComment, st.classTeacherComment],
+          [L.principalComment, st.principalComment],
+        ].map(([k, v]) => (
+          <View key={k as string} style={box}>
+            <Text style={s.label}>{k}</Text>
+            <Text style={{ minHeight: 14 }}>{v ?? ""}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View wrap={false} style={[s.row, { marginTop: 16, gap: 10, alignItems: "flex-end" }]}>
+        {[L.signatures.classTeacher, L.signatures.parent].map((x) => (
+          <View key={x} style={{ flex: 1, borderTopWidth: 0.75, borderTopColor: th.ink, paddingTop: 3, alignItems: "center" }}>
+            <Text style={s.small}>{x}</Text>
+          </View>
+        ))}
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <View style={{ width: 110, height: 54, borderWidth: 0.75, borderColor: th.line, borderStyle: "dashed", alignItems: "center", justifyContent: "flex-end", paddingBottom: 3 }}>
+            <Text style={s.small}>{L.signatures.stamp}</Text>
+          </View>
+          <View style={{ alignSelf: "stretch", borderTopWidth: 0.75, borderTopColor: th.ink, paddingTop: 3, marginTop: 4, alignItems: "center" }}>
+            <Text style={s.small}>{d.school.principal ? `${L.signatures.principal} — ${d.school.principal}` : L.signatures.principal}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View fixed style={s.footer}>
+        <Text>{footerTitle}</Text>
+        {branding ? <Text>{DOCUMENT_LABELS[d.language].generatedWith}</Text> : null}
+        <Text>{st.number}</Text>
+      </View>
+    </Page>
+  );
+}
+
+/** Report cards as one PDF: one page per student (all of them, or the ones given). */
+export async function renderReportCardsPdf(d: ReportCardsData, opts: PdfOptions & { studentIds?: string[] } = {}): Promise<Buffer> {
+  await registerFonts();
+  const students = opts.studentIds ? d.students.filter((x) => opts.studentIds!.includes(x.id)) : d.students;
+  const L = REPORT_LABELS[d.language];
+  return renderToBuffer(
+    <Document title={`${L.title} · ${d.className} · ${d.term}`} author={d.school.name} creator="WazaBolt" producer="WazaBolt" language={d.language}>
+      {students.map((st) => (
+        <ReportCardPage key={st.id} d={d} st={st} logo={opts.logo ?? null} branding={opts.branding ?? true} />
+      ))}
+    </Document>,
+  );
+}
+
+/** "bulletin-6eA-trimestre-1.pdf" / "report-card-ELV-000001-term-1.pdf" — safe for Content-Disposition. */
+export function reportCardFileName(d: Pick<ReportCardsData, "language" | "className" | "term">, student?: { number: string }): string {
+  const clean = (x: string) => x.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+  const base = d.language === "fr" ? "bulletin" : "report-card";
+  return `${base}-${student ? clean(student.number) : clean(d.className)}-${clean(d.term)}.pdf`;
 }

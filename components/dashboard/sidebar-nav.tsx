@@ -4,14 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useI18n } from "@/components/i18n/i18n-provider";
-import { dashboardNav } from "@/config/dashboard-nav";
+import { dashboardNav, type DashboardNavItem } from "@/config/dashboard-nav";
 import { splitLocale } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
+import type { Module } from "@/lib/modules";
 import { ROLE_RANK, type BusinessRole } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
-export function SidebarNav({ labels, role, onNavigate }: { labels: Messages["dashboard"]["nav"]; role: BusinessRole | null; onNavigate?: () => void }) {
-  const allowed = (min?: BusinessRole) => !min || (role !== null && ROLE_RANK[role] >= ROLE_RANK[min]);
+export function SidebarNav({ labels, role, modules, onNavigate }: { labels: Messages["dashboard"]["nav"]; role: BusinessRole | null; modules: Module[]; onNavigate?: () => void }) {
+  // Teachers see the school pages only; everyone else what their role and the business's modules allow.
+  const allowed = (i: DashboardNavItem) =>
+    role === "teacher"
+      ? !!i.teacher && (!i.module || modules.includes(i.module))
+      : (!i.minRole || (role !== null && ROLE_RANK[role] >= ROLE_RANK[i.minRole])) && (!i.module || modules.includes(i.module));
+  const groups = dashboardNav.map((g) => ({ ...g, items: g.items.filter(allowed) })).filter((g) => g.items.length);
   const { t, href } = useI18n();
   const pathname = splitLocale(usePathname()).path;
   // The most specific matching item is active (so /settings/languages doesn't also light up /settings).
@@ -22,11 +28,14 @@ export function SidebarNav({ labels, role, onNavigate }: { labels: Messages["das
 
   return (
     <nav aria-label={labels.label} className="flex flex-col gap-5">
-      {dashboardNav.map((group) => (
+      {groups.map((group) => (
         <div key={group.key}>
-          <p className="mb-1.5 px-3 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-white/45">{labels.groups[group.key]}</p>
+          <p className="mb-1.5 px-3 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+            {/* Without the sales module the first group isn't about selling. */}
+            {group.key === "main" && !modules.includes("commerce") ? labels.groups.general : labels.groups[group.key]}
+          </p>
           <ul className="space-y-0.5">
-            {group.items.filter((i) => allowed(i.minRole)).map(({ key, href: path, icon: Icon, soon }) => {
+            {group.items.map(({ key, href: path, icon: Icon, soon }) => {
               const label = labels.items[key];
               if (soon) {
                 return (
