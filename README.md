@@ -271,6 +271,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=
 # Start the app with ANTHROPIC_API_KEY=test-key ANTHROPIC_BASE_URL=http://localhost:4020 AI_DEBOUNCE_MS=1500 too.
 # The photo checks need Supabase Storage (included in `npx supabase start`).
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... WHATSAPP_APP_SECRET=... npm run test:e2e:ai
+# WazaBolt Docs: guest generator and business documents.
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... npm run test:e2e:documents
 # Colours and sizes: product page, till, order form, assistant (fake Graph + fake Anthropic).
 NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=postgres://... WHATSAPP_APP_SECRET=... npm run test:e2e:product-options
 # Stage 6 appointments (fake Graph + fake Anthropic, like the AI suite)
@@ -572,6 +574,13 @@ and phase-by-phase plan is in `docs/v2-implementation-plan.md`.
 | Balance due (per order) | Total − paid; 0 for cancelled and returned orders. A customer's "owes" equals the balances of their delivered orders. |
 | Order value (Orders page) | Totals of the orders shown, cancelled and returned excluded. |
 | Last contact | Latest message (either way), order or payment. |
+
+## WazaBolt Docs (invoices, receipts, quotations)
+
+- **Engine** (`lib/documents/`): one model, calculations (`calc.ts`), EN/FR labels, three PDF templates (Classic, Modern, Minimal) rendered with `@react-pdf/renderer`, and an HTML preview with the same totals. Used by the guest tool and the dashboard (and later WhatsApp).
+- **Guest tool**: `/[lang]/tools/documents` — no account; `POST /api/documents/guest` returns the PDF and saves nothing (30 PDFs/hour per visitor, hashed IP kept one day).
+- **Business documents**: Dashboard → Documents. Drafts, then Issue gives the number from a locked counter (`INV-2026-000001`); issued documents can't be edited (void + duplicate). Receipts: owners and admins. PDFs are rendered on demand from the saved snapshot. Numbering and defaults per business.
+- Details, tests and limitations: `docs/wazabolt-docs-phase1.md`; architecture and next phases: `WAZABOLT_EXPANSION_PLAN.md`.
 
 ## Colours and sizes (product options)
 

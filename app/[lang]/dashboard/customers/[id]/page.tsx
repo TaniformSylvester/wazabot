@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarClock, CalendarPlus, CircleDollarSign, HandCoins, MessagesSquare, Plus, ShoppingBag, ShoppingCart, Wallet } from "lucide-react";
+import { CalendarClock, CalendarPlus, CircleDollarSign, FileText, HandCoins, MessagesSquare, Plus, ShoppingBag, ShoppingCart, Wallet } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, DeleteButton } from "@/components/app/form";
 import { CopyText } from "@/components/app/copy-button";
 import { CustomerForm } from "@/components/app/customer-form";
 import { PaymentForm } from "@/components/app/payment-form";
+import { documentStatusTone } from "@/components/documents/status";
 import {
   DefinitionList,
   PageHeader,
@@ -24,6 +25,7 @@ import { startConversation } from "@/lib/actions/conversations";
 import { deleteCustomer } from "@/lib/actions/customers";
 import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
+import { displayStatus, listDocuments } from "@/lib/data/documents";
 import { getBookingSetup, getCustomer, localToday } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -36,7 +38,11 @@ export const generateMetadata = dashboardMetadata((d) => d.customers.title);
 export default async function CustomerPage({ params, searchParams }: PageProps<"/[lang]/dashboard/customers/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/customers/${id}`));
-  const [data, booking] = await Promise.all([isUuid(id) ? getCustomer(business.id, id) : null, getBookingSetup(business.id)]);
+  const [data, booking, documents] = await Promise.all([
+    isUuid(id) ? getCustomer(business.id, id) : null,
+    getBookingSetup(business.id),
+    isUuid(id) ? listDocuments(business.id, { customerId: id }) : { rows: [], total: 0, page: 1 },
+  ]);
   const bookingOpen = Boolean(booking.settings?.enabled) && booking.services.some((s) => s.active);
   if (!data) notFound();
   const { customer, conversations, orders, stats, payments, duplicates } = data;
@@ -165,6 +171,37 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               </ul>
             ) : (
               <p className="text-sm text-slate">{c.history.noPurchases}</p>
+            )}
+          </Panel>
+          <Panel
+            title={d.documents.title}
+            actions={
+              canEdit ? (
+                <Link href={href(`/dashboard/documents/new?type=invoice&customer=${customer.id}`)} className="text-sm font-semibold text-waza-700 hover:underline">
+                  {d.documents.new.invoice}
+                </Link>
+              ) : null
+            }
+          >
+            {documents.rows.length ? (
+              <ul className="divide-y divide-border" data-testid="customer-documents">
+                {documents.rows.map((doc) => {
+                  const status = displayStatus(doc);
+                  return (
+                    <li key={doc.id}>
+                      <Link href={href(`/dashboard/documents/${doc.id}`)} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm hover:underline">
+                        <FileText className="size-4 shrink-0 text-slate" aria-hidden />
+                        <span className="font-semibold">{doc.number ?? d.documents.statuses.draft}</span>
+                        <span className="text-slate">{t.docs.types[doc.doc_type as keyof typeof t.docs.types]}</span>
+                        <span className="ml-auto whitespace-nowrap font-semibold">{money(doc.total)}</span>
+                        <StatusBadge tone={documentStatusTone[status]}>{d.documents.statuses[status]}</StatusBadge>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-sm text-slate">{d.documents.empty.title}</p>
             )}
           </Panel>
           <Panel title={c.history.payments}>

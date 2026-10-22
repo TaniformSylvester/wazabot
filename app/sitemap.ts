@@ -4,7 +4,7 @@ import { siteConfig } from "@/config/site";
 import { LOCALES } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 
-const routes = ["/", "/how-it-works", "/features", "/solutions", "/pricing", "/resources", "/faq", "/about", "/contact", "/privacy", "/terms"];
+const routes = ["/", "/how-it-works", "/features", "/solutions", "/pricing", "/resources", "/faq", "/about", "/contact", "/privacy", "/terms", "/tools/documents"];
 
 /** Every page in every UI locale, with hreflang alternates. */
 export default function sitemap(): MetadataRoute.Sitemap {

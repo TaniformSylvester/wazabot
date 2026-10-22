@@ -6,6 +6,7 @@ import {
   ChartColumn,
   CreditCard,
   FileBarChart,
+  FileText,
   LayoutDashboard,
   MessagesSquare,
   Package,
@@ -46,6 +47,7 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
       { key: "products", href: "/dashboard/products", icon: Package },
       { key: "customers", href: "/dashboard/customers", icon: Users },
       { key: "orders", href: "/dashboard/orders", icon: ShoppingBag },
+      { key: "documents", href: "/dashboard/documents", icon: FileText },
     ],
   },
   {

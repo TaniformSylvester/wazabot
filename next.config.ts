@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
     // Product photos are uploaded through a Server Action (max 4 MB each; Vercel caps request bodies at 4.5 MB).
     serverActions: { bodySizeLimit: "4.5mb" },
   },
+  // PDF documents (lib/documents/pdf) read their font files at run time.
+  outputFileTracingIncludes: {
+    "/api/documents/*": ["./assets/fonts/**"],
+    "/\\[lang\\]/dashboard/documents/**": ["./assets/fonts/**"],
+  },
   // Routes renamed in the WazaBolt rebrand — keep old links working (proxy.ts adds the locale).
   async redirects() {
     return [

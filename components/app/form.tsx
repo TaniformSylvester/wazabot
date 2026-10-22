@@ -296,10 +296,13 @@ export function ActionButton({
   size = "sm",
   className,
   errors,
+  confirm,
 }: {
   action: BoundAction;
   children: React.ReactNode;
   pendingLabel?: string;
+  /** Asked first (browser confirm); nothing happens if the user cancels. */
+  confirm?: string;
   variant?: "default" | "outline" | "dark" | "ghost" | "secondary";
   size?: "sm" | "default";
   className?: string;
@@ -316,14 +319,15 @@ export function ActionButton({
         size={size}
         className={className}
         disabled={pending}
-        onClick={() =>
+        onClick={() => {
+          if (confirm && !window.confirm(confirm)) return;
           start(async () => {
             setError(null);
             const res = await action();
             if (res && res.status === "error") setError(errors[res.error ?? "unknown"] ?? errors.unknown);
             else router.refresh();
-          })
-        }
+          });
+        }}
       >
         {pending ? <Loader2 className="animate-spin" aria-hidden /> : null}
         {pending && pendingLabel ? pendingLabel : children}

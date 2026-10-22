@@ -214,7 +214,8 @@ export function TableWrap({ children }: { children: React.ReactNode }) {
     .join("");
   return (
     <div className="relative -mx-5 overflow-x-auto sm:mx-0">
-      {css ? <style>{css}</style> : null}
+      {/* Column names beside each value: phones only (same breakpoint as .stack-table in globals.css). */}
+      {css ? <style>{`@media (width < 40rem){${css}}`}</style> : null}
       <table className={cn("stack-table w-full border-collapse text-left text-sm sm:min-w-[40rem]", scope)}>{children}</table>
     </div>
   );

@@ -1046,6 +1046,246 @@ export type Database = {
           },
         ];
       };
+      document_counters: {
+        Row: {
+          business_id: string;
+          doc_type: string;
+          last_number: number;
+          year: number;
+        };
+        Insert: {
+          business_id: string;
+          doc_type: string;
+          last_number?: number;
+          year: number;
+        };
+        Update: {
+          business_id?: string;
+          doc_type?: string;
+          last_number?: number;
+          year?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_counters_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      document_settings: {
+        Row: {
+          business_id: string;
+          business_reference: string | null;
+          default_due_days: number;
+          default_language: string | null;
+          default_notes: string | null;
+          default_tax_label: string | null;
+          default_tax_rate: number;
+          default_template: string;
+          default_terms: string | null;
+          include_year: boolean;
+          invoice_prefix: string;
+          number_padding: number;
+          quotation_prefix: string;
+          receipt_prefix: string;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          business_reference?: string | null;
+          default_due_days?: number;
+          default_language?: string | null;
+          default_notes?: string | null;
+          default_tax_label?: string | null;
+          default_tax_rate?: number;
+          default_template?: string;
+          default_terms?: string | null;
+          include_year?: boolean;
+          invoice_prefix?: string;
+          number_padding?: number;
+          quotation_prefix?: string;
+          receipt_prefix?: string;
+          updated_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          business_reference?: string | null;
+          default_due_days?: number;
+          default_language?: string | null;
+          default_notes?: string | null;
+          default_tax_label?: string | null;
+          default_tax_rate?: number;
+          default_template?: string;
+          default_terms?: string | null;
+          include_year?: boolean;
+          invoice_prefix?: string;
+          number_padding?: number;
+          quotation_prefix?: string;
+          receipt_prefix?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_settings_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: true;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      documents: {
+        Row: {
+          amount_paid: number | null;
+          business_id: string;
+          business_snapshot: NonNullable<Json>;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_id: string | null;
+          customer_snapshot: NonNullable<Json>;
+          discount: number;
+          doc_type: string;
+          due_date: string | null;
+          duplicated_from: string | null;
+          id: string;
+          issue_date: string;
+          issued_at: string | null;
+          issued_by: string | null;
+          items: NonNullable<Json>;
+          language: string;
+          notes: string | null;
+          number: string | null;
+          number_year: number | null;
+          payment_method: string | null;
+          payment_reference: string | null;
+          seq: number | null;
+          status: string;
+          status_changed_at: string | null;
+          subtotal: number;
+          tax_amount: number;
+          tax_label: string | null;
+          tax_rate: number;
+          template: string;
+          terms: string | null;
+          total: number;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        Insert: {
+          amount_paid?: number | null;
+          business_id: string;
+          business_snapshot: NonNullable<Json>;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          customer_id?: string | null;
+          customer_snapshot: NonNullable<Json>;
+          discount?: number;
+          doc_type: string;
+          due_date?: string | null;
+          duplicated_from?: string | null;
+          id?: string;
+          issue_date?: string;
+          issued_at?: string | null;
+          issued_by?: string | null;
+          items: NonNullable<Json>;
+          language?: string;
+          notes?: string | null;
+          number?: string | null;
+          number_year?: number | null;
+          payment_method?: string | null;
+          payment_reference?: string | null;
+          seq?: number | null;
+          status?: string;
+          status_changed_at?: string | null;
+          subtotal: number;
+          tax_amount?: number;
+          tax_label?: string | null;
+          tax_rate?: number;
+          template?: string;
+          terms?: string | null;
+          total: number;
+          updated_at?: string;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          amount_paid?: number | null;
+          business_id?: string;
+          business_snapshot?: NonNullable<Json>;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          customer_id?: string | null;
+          customer_snapshot?: NonNullable<Json>;
+          discount?: number;
+          doc_type?: string;
+          due_date?: string | null;
+          duplicated_from?: string | null;
+          id?: string;
+          issue_date?: string;
+          issued_at?: string | null;
+          issued_by?: string | null;
+          items?: NonNullable<Json>;
+          language?: string;
+          notes?: string | null;
+          number?: string | null;
+          number_year?: number | null;
+          payment_method?: string | null;
+          payment_reference?: string | null;
+          seq?: number | null;
+          status?: string;
+          status_changed_at?: string | null;
+          subtotal?: number;
+          tax_amount?: number;
+          tax_label?: string | null;
+          tax_rate?: number;
+          template?: string;
+          terms?: string | null;
+          total?: number;
+          updated_at?: string;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "documents_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_stats";
+            referencedColumns: ["business_id", "customer_id"];
+          },
+          {
+            foreignKeyName: "documents_business_id_customer_id_fkey";
+            columns: ["business_id", "customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "documents_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "documents_duplicated_from_fkey";
+            columns: ["duplicated_from"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       expenses: {
         Row: {
           amount: number;
@@ -1139,6 +1379,24 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      guest_document_requests: {
+        Row: {
+          created_at: string;
+          id: number;
+          key: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: never;
+          key: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: never;
+          key?: string;
+        };
+        Relationships: [];
       };
       knowledge_documents: {
         Row: {
@@ -2968,6 +3226,7 @@ export type Database = {
           state: string;
         }[];
       };
+      guest_document_allowed: { Args: { p_key: string; p_limit: number }; Returns: boolean };
       has_business_role: {
         Args: {
           allowed: Database["public"]["Enums"]["business_role"][];
@@ -3003,6 +3262,54 @@ export type Database = {
         }[];
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
+      issue_document: {
+        Args: { p_document_id: string };
+        Returns: {
+          amount_paid: number | null;
+          business_id: string;
+          business_snapshot: NonNullable<Json>;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_id: string | null;
+          customer_snapshot: NonNullable<Json>;
+          discount: number;
+          doc_type: string;
+          due_date: string | null;
+          duplicated_from: string | null;
+          id: string;
+          issue_date: string;
+          issued_at: string | null;
+          issued_by: string | null;
+          items: NonNullable<Json>;
+          language: string;
+          notes: string | null;
+          number: string | null;
+          number_year: number | null;
+          payment_method: string | null;
+          payment_reference: string | null;
+          seq: number | null;
+          status: string;
+          status_changed_at: string | null;
+          subtotal: number;
+          tax_amount: number;
+          tax_label: string | null;
+          tax_rate: number;
+          template: string;
+          terms: string | null;
+          total: number;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "documents";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       link_order_customer: {
         Args: { p_business_id: string; p_customer_id: string; p_order_id: string };
         Returns: undefined;
@@ -3140,6 +3447,54 @@ export type Database = {
           sales: number;
         }[];
       };
+      set_quotation_status: {
+        Args: { p_document_id: string; p_status: string };
+        Returns: {
+          amount_paid: number | null;
+          business_id: string;
+          business_snapshot: NonNullable<Json>;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_id: string | null;
+          customer_snapshot: NonNullable<Json>;
+          discount: number;
+          doc_type: string;
+          due_date: string | null;
+          duplicated_from: string | null;
+          id: string;
+          issue_date: string;
+          issued_at: string | null;
+          issued_by: string | null;
+          items: NonNullable<Json>;
+          language: string;
+          notes: string | null;
+          number: string | null;
+          number_year: number | null;
+          payment_method: string | null;
+          payment_reference: string | null;
+          seq: number | null;
+          status: string;
+          status_changed_at: string | null;
+          subtotal: number;
+          tax_amount: number;
+          tax_label: string | null;
+          tax_rate: number;
+          template: string;
+          terms: string | null;
+          total: number;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "documents";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       set_ui_locale: { Args: { p_locale: string }; Returns: undefined };
       shares_business_with: { Args: { other_user: string }; Returns: boolean };
       token_sha256: { Args: { p_token: string }; Returns: string };
@@ -3161,6 +3516,54 @@ export type Database = {
       update_member_role: {
         Args: { p_business_id: string; p_role: string; p_user_id: string };
         Returns: undefined;
+      };
+      void_document: {
+        Args: { p_document_id: string; p_reason: string };
+        Returns: {
+          amount_paid: number | null;
+          business_id: string;
+          business_snapshot: NonNullable<Json>;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_id: string | null;
+          customer_snapshot: NonNullable<Json>;
+          discount: number;
+          doc_type: string;
+          due_date: string | null;
+          duplicated_from: string | null;
+          id: string;
+          issue_date: string;
+          issued_at: string | null;
+          issued_by: string | null;
+          items: NonNullable<Json>;
+          language: string;
+          notes: string | null;
+          number: string | null;
+          number_year: number | null;
+          payment_method: string | null;
+          payment_reference: string | null;
+          seq: number | null;
+          status: string;
+          status_changed_at: string | null;
+          subtotal: number;
+          tax_amount: number;
+          tax_label: string | null;
+          tax_rate: number;
+          template: string;
+          terms: string | null;
+          total: number;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "documents";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       void_payment: {
         Args: { p_business_id: string; p_group_id: string; p_reason: string };

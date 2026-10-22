@@ -38,6 +38,8 @@ export type ActionErrorKey =
   | "follow_up_already_sent"
   // Stage 8
   | "broadcast_already_sent"
+  // Docs
+  | "document_locked"
   // Plan limits
   | "plan_limit_products"
   | "plan_limit_sales"
@@ -81,6 +83,8 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "plan_limit_members";
     case "WB414":
       return "plan_limit_feature";
+    case "WB420":
+      return "document_locked";
     case "23505":
       return "duplicate";
     case "22023":
