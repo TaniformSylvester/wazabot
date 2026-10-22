@@ -3,12 +3,17 @@ import { Backpack, Banknote, CheckCircle2, Circle, ClipboardCheck, School, Setti
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton } from "@/components/app/form";
+import { PlanUpsell } from "@/components/app/plan-upsell";
 import { PageHeader, Panel, StatCard, formatMoney, secondaryLink } from "@/components/app/ui";
+import { UsageMeter } from "@/components/app/usage-meter";
+import { cheapestPlanWith, type Plan } from "@/config/plans";
 import { setModule } from "@/lib/actions/school";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { feeSummary, getSchoolSettings, listClasses, listFeeItems, listSubjects, listTerms, pickYear } from "@/lib/data/school";
+import { getEntitlements, limitInForce } from "@/lib/data/queries";
+import { feeSummary, getSchoolSettings, listClasses, listFeeItems, listSubjects, listTerms, pickYear, termReportCardUsage } from "@/lib/data/school";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { getBusinessModules } from "@/lib/modules";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +24,8 @@ export const generateMetadata = dashboardMetadata((d) => d.school.overview.title
 export default async function SchoolPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { user, business } = await requireBusiness(localizePath(locale, "/dashboard/school"));
-  const s = t.dashboard.school;
+  const d = t.dashboard;
+  const s = d.school;
   const o = s.overview;
   const href = (p: string) => localizePath(locale, p);
   const modules = await getBusinessModules(business);
@@ -95,11 +101,21 @@ export default async function SchoolPage() {
     );
   }
 
-  const [{ count: students }, { count: published }, fees] = await Promise.all([
+  const [{ count: students }, { count: published }, fees, ent, termUsage] = await Promise.all([
     db.from("school_students").select("id", { count: "exact", head: true }).eq("business_id", business.id).eq("status", "active"),
     db.from("school_result_publications").select("id", { count: "exact", head: true }).eq("business_id", business.id).is("withdrawn_at", null),
     year ? listFeeItems(business.id, year.id) : Promise.resolve([]),
+    getEntitlements(business.id),
+    Promise.all(terms.map((x) => termReportCardUsage(x.id))),
   ]);
+  const maxStudents = limitInForce(ent, ent?.maxStudents);
+  const maxReportCards = limitInForce(ent, ent?.maxReportCardStudents);
+  const studentsFull = maxStudents !== null && (ent?.studentsUsed ?? 0) >= maxStudents;
+  const lim = s.limits;
+  const planName = (has: (p: Plan) => boolean) => {
+    const p = cheapestPlanWith(has);
+    return p ? t.pricing.plans[p.id].name : "";
+  };
   const summary = await feeSummary(business.id, fees.map((f) => f.id));
   const due = [...summary.byFee.values()].reduce((sum, f) => sum + f.billed - f.paid, 0);
   const steps: [string, boolean, string][] = [
@@ -129,6 +145,23 @@ export default async function SchoolPage() {
         <StatCard label={o.stats.published} value={String(published ?? 0)} icon={ClipboardCheck} noData="—" />
         <StatCard label={o.stats.feesDue} value={formatMoney(Math.max(0, due), business.currency, locale)} icon={Banknote} noData="—" />
       </div>
+      {ent ? (
+        <Panel title={lim.title} description={lim.description}>
+          <dl className="grid gap-3 sm:grid-cols-3" data-testid="school-usage">
+            <UsageMeter label={lim.students} used={ent.studentsUsed} max={maxStudents} locale={locale} text={d.plan.usage} />
+            <UsageMeter label={lim.teachers} used={ent.teachersUsed} max={ent.maxTeachers} locale={locale} text={d.plan.usage} />
+            {terms.map((x, i) => (
+              <UsageMeter key={x.id} label={format(lim.reportCards, { term: x.name })} used={termUsage[i]} max={maxReportCards} locale={locale} text={d.plan.usage} />
+            ))}
+          </dl>
+          {studentsFull ? (
+            <div className="mt-4">
+              <PlanUpsell compact text={format(lim.studentsFull, { max: formatNumber(maxStudents, locale) })} cta={d.plan.upgrade} locale={locale} />
+            </div>
+          ) : null}
+          {ent.enforced && !ent.hasBulkReportCards ? <p className="mt-3 text-xs text-slate">{format(lim.bulkNote, { plan: planName((p) => p.hasBulkReportCards) })}</p> : null}
+        </Panel>
+      ) : null}
       {steps.some(([, ok]) => !ok) ? (
         <Panel title={o.setupTitle}>
           <ol className="flex flex-col gap-2.5" data-testid="school-setup">

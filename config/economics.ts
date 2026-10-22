@@ -139,17 +139,29 @@ export type PlanEconomics = {
   reportDays: number | null;
   /** Expenses, cost-based profit and margins. */
   hasProfit: boolean;
+  /** Saved business documents (invoices, receipts, quotations; drafts, issued and voided). School fee invoices and their receipts don't count. */
+  maxDocuments: number | null;
+  /** Active students (School module); null = unlimited, subject to fair use. */
+  maxStudents: number | null;
+  /** Students with published report cards per academic term; null = unlimited, subject to fair use. */
+  maxReportCardStudents: number | null;
+  /** Teacher accounts per school, on top of maxMembers (teachers aren't users). */
+  maxTeachers: number;
+  /** A whole class's report cards in one PDF. */
+  hasBulkReportCards: boolean;
+  /** Advanced school reports: class and subject statistics, fee collection, CSV. */
+  hasSchoolReports: boolean;
 };
 
 /** Must match the `plans` table (the admin margin page warns when they differ). */
 export const PLANS: PlanEconomics[] = [
   // Free: 30 conversations and a 300 FCFA Claude budget, then rules-only (businesses that signed up before Step 4: 50 until 1 Nov 2026).
-  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 30, maxProducts: 30, maxMonthlySales: 100, maxMembers: 1, reportDays: 7, hasProfit: false },
+  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 30, maxProducts: 30, maxMonthlySales: 100, maxMembers: 1, reportDays: 7, hasProfit: false, maxDocuments: 20, maxStudents: 50, maxReportCardStudents: 50, maxTeachers: 30, hasBulkReportCards: false, hasSchoolReports: false },
   // Boutique: the business tools without WhatsApp AI, for very small shops.
-  { id: "boutique", monthlyPrice: 5_000, aiConversationsPerMonth: 0, maxProducts: null, maxMonthlySales: null, maxMembers: 1, reportDays: null, hasProfit: true },
-  { id: "starter", monthlyPrice: 10_000, aiConversationsPerMonth: 500, maxProducts: null, maxMonthlySales: null, maxMembers: 2, reportDays: null, hasProfit: true },
-  { id: "business", monthlyPrice: 25_000, aiConversationsPerMonth: 2_000, highlighted: true, maxProducts: null, maxMonthlySales: null, maxMembers: 5, reportDays: null, hasProfit: true },
-  { id: "pro", monthlyPrice: 50_000, aiConversationsPerMonth: 5_000, maxProducts: null, maxMonthlySales: null, maxMembers: 10, reportDays: null, hasProfit: true },
+  { id: "boutique", monthlyPrice: 5_000, aiConversationsPerMonth: 0, maxProducts: null, maxMonthlySales: null, maxMembers: 1, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 200, maxReportCardStudents: 200, maxTeachers: 30, hasBulkReportCards: true, hasSchoolReports: false },
+  { id: "starter", monthlyPrice: 10_000, aiConversationsPerMonth: 500, maxProducts: null, maxMonthlySales: null, maxMembers: 2, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 200, maxReportCardStudents: 200, maxTeachers: 30, hasBulkReportCards: true, hasSchoolReports: false },
+  { id: "business", monthlyPrice: 25_000, aiConversationsPerMonth: 2_000, highlighted: true, maxProducts: null, maxMonthlySales: null, maxMembers: 5, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 500, maxReportCardStudents: 500, maxTeachers: 30, hasBulkReportCards: true, hasSchoolReports: true },
+  { id: "pro", monthlyPrice: 50_000, aiConversationsPerMonth: 5_000, maxProducts: null, maxMonthlySales: null, maxMembers: 10, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: null, maxReportCardStudents: null, maxTeachers: 30, hasBulkReportCards: true, hasSchoolReports: true },
 ];
 
 /** Businesses that existed before the plan limits keep full access on Free until this date (businesses.free_limits_from). */

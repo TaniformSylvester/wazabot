@@ -32,6 +32,8 @@ export function PricingCard({
     { label: format(plan.maxMembers === 1 ? f.members : f.membersPlural, { count: n(plan.maxMembers) }), included: true },
     { label: plan.reportDays === null ? f.reportsFull : format(f.reportsDays, { count: n(plan.reportDays) }), included: true },
     { label: f.profit, included: plan.hasProfit },
+    { label: plan.maxDocuments === null ? f.documentsUnlimited : format(f.documents, { count: n(plan.maxDocuments) }), included: true },
+    { label: plan.maxStudents === null ? f.studentsUnlimited : format(f.students, { count: n(plan.maxStudents) }), included: true },
   ];
   return (
     <div

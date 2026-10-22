@@ -49,7 +49,11 @@ export type ActionErrorKey =
   | "plan_limit_products"
   | "plan_limit_sales"
   | "plan_limit_members"
-  | "plan_limit_feature";
+  | "plan_limit_feature"
+  | "plan_limit_students"
+  | "plan_limit_teachers"
+  | "plan_limit_documents"
+  | "plan_limit_report_cards";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -88,6 +92,14 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "plan_limit_members";
     case "WB414":
       return "plan_limit_feature";
+    case "WB415":
+      return "plan_limit_students";
+    case "WB416":
+      return "plan_limit_teachers";
+    case "WB417":
+      return "plan_limit_documents";
+    case "WB418":
+      return "plan_limit_report_cards";
     case "WB420":
       return "document_locked";
     case "WB430":

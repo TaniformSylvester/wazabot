@@ -3,6 +3,7 @@ import "server-only";
 import type { CurrentBusiness } from "@/lib/auth/dal";
 import type { GradeBoundary, GradingSettings } from "@/lib/school/grading";
 import { buildReportCards, isReportCardsData, type ReportCardsData, type ReportLanguage } from "@/lib/school/report-card";
+import { buildSchoolReport } from "@/lib/school/reports";
 import { createClient } from "@/lib/supabase/server";
 
 import { userNames } from "./queries";
@@ -386,4 +387,40 @@ export async function feeSummary(businessId: string, feeIds: string[]) {
     }
   }
   return { byFee, byStudent };
+}
+
+/** Students with live published report cards in a term (counted against the plan's report card allowance). */
+export async function termReportCardUsage(termId: string) {
+  const db = await createClient();
+  const { data } = await db.rpc("term_report_card_usage", { p_term_id: termId });
+  return data ?? 0;
+}
+
+/** Advanced school report for a term: each class's results (published snapshot or current marks) and the year's fee collection per class. */
+export async function getSchoolReport(business: CurrentBusiness, yearId: string, termId: string) {
+  const db = await createClient();
+  const [classes, fees, { data: enrolments }] = await Promise.all([
+    listClasses(business.id, yearId),
+    listFeeItems(business.id, yearId),
+    db.from("school_enrollments").select("student_id, class_id").eq("business_id", business.id).eq("year_id", yearId).limit(20000),
+  ]);
+  const [rows, { byStudent }] = await Promise.all([
+    Promise.all(
+      classes.map(async (c) => {
+        const pub = await getPublication(business.id, termId, c.id);
+        return { id: c.id, name: c.name, published: !!pub, data: pub?.data ?? (await computeReportCards(business, c.id, termId)) };
+      }),
+    ),
+    feeSummary(business.id, fees.map((f) => f.id)),
+  ]);
+  const byClass = new Map<string, { billed: number; paid: number }>();
+  for (const e of enrolments ?? []) {
+    const s = byStudent.get(e.student_id);
+    if (!s) continue;
+    const c = byClass.get(e.class_id) ?? { billed: 0, paid: 0 };
+    c.billed += s.billed;
+    c.paid += s.paid;
+    byClass.set(e.class_id, c);
+  }
+  return buildSchoolReport({ classes: rows, fees: byClass });
 }

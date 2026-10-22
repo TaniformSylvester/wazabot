@@ -2,14 +2,17 @@ import Link from "next/link";
 import { ArrowRight, FileText, Plus, Search, Settings2 } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
+import { PlanUpsell } from "@/components/app/plan-upsell";
 import { documentStatusTone } from "@/components/documents/status";
 import { EmptyState, PageHeader, Pagination, Panel, StatusBadge, TableWrap, buttonLink, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { DOCUMENTS_PAGE_SIZE, displayStatus, listDocuments } from "@/lib/data/documents";
+import { getEntitlements, limitInForce } from "@/lib/data/queries";
 import { formatDocDate } from "@/lib/documents/labels";
 import { DOCUMENT_STATUSES, DOCUMENT_TYPES } from "@/lib/documents/types";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 
 export const generateMetadata = dashboardMetadata((d) => d.documents.title);
@@ -20,8 +23,11 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/[lang]
   const d = t.dashboard;
   const doc = d.documents;
   const filters = { q: param(sp.q), type: param(sp.type), status: param(sp.status), page: Number(param(sp.page)) || 1 };
-  const { rows, total, page } = await listDocuments(business.id, filters);
-  const canCreate = hasRole(business.role, "agent");
+  const [{ rows, total, page }, ent] = await Promise.all([listDocuments(business.id, filters), getEntitlements(business.id)]);
+  // Free plan: saved documents (school fee invoices and receipts aside) are limited.
+  const maxDocs = limitInForce(ent, ent?.maxDocuments);
+  const docsFull = maxDocs !== null && (ent?.documentsUsed ?? 0) >= maxDocs;
+  const canCreate = hasRole(business.role, "agent") && !docsFull;
   const base = localizePath(locale, "/dashboard/documents");
   const filtered = !!(filters.q || filters.type || filters.status);
   const newLinks = canCreate ? (
@@ -48,6 +54,15 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/[lang]
         }
       />
       {param(sp.deleted) ? <FormAlert tone="success">{doc.deleted}</FormAlert> : null}
+      {maxDocs !== null && ent ? (
+        docsFull ? (
+          <PlanUpsell title={format(doc.limit.fullTitle, { max: formatNumber(maxDocs, locale) })} text={doc.limit.fullText} cta={d.plan.upgrade} locale={locale} />
+        ) : (
+          <p className="text-sm text-slate" data-testid="documents-usage">
+            {format(doc.limit.used, { used: formatNumber(ent.documentsUsed, locale), max: formatNumber(maxDocs, locale) })}
+          </p>
+        )
+      ) : null}
       {newLinks}
       {total === 0 && !filtered ? (
         <EmptyState icon={FileText} title={doc.empty.title} text={doc.empty.text} />

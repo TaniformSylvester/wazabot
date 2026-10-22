@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Backpack, Plus, Search } from "lucide-react";
 
+import { PlanUpsell } from "@/components/app/plan-upsell";
 import { EmptyState, PageHeader, Panel, StatusBadge, TableWrap, buttonLink, param, secondaryLink, td, th } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
+import { getEntitlements, limitInForce } from "@/lib/data/queries";
 import { STUDENTS_PAGE_SIZE, listClasses, listStudents, pickYear } from "@/lib/data/school";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { format } from "@/lib/i18n/format";
+import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 
 export const generateMetadata = dashboardMetadata((d) => d.school.students.title);
@@ -19,7 +21,9 @@ export default async function StudentsPage({ searchParams }: PageProps<"/[lang]/
   const s = d.school.students;
   const { year } = await pickYear(business.id);
   const filters = { q: param(sp.q), classId: param(sp.class), status: param(sp.status), page: Number(param(sp.page) ?? 1) || 1 };
-  const [classes, list] = await Promise.all([year ? listClasses(business.id, year.id) : Promise.resolve([]), listStudents(business.id, filters)]);
+  const [classes, list, ent] = await Promise.all([year ? listClasses(business.id, year.id) : Promise.resolve([]), listStudents(business.id, filters), getEntitlements(business.id)]);
+  const maxStudents = limitInForce(ent, ent?.maxStudents);
+  const studentsFull = maxStudents !== null && (ent?.studentsUsed ?? 0) >= maxStudents;
   const href = (p: string) => localizePath(locale, p);
   const base = href("/dashboard/school/students");
   const yearClass = (r: (typeof list.rows)[number]) => r.school_enrollments.find((e) => e.year_id === year?.id)?.school_classes?.name ?? "—";
@@ -40,13 +44,22 @@ export default async function StudentsPage({ searchParams }: PageProps<"/[lang]/
         title={s.title}
         description={s.description}
         actions={
-          hasRole(business.role, "agent") ? (
+          hasRole(business.role, "agent") && !studentsFull ? (
             <Link href={href("/dashboard/school/students/new")} className={buttonLink} data-testid="new-student">
               <Plus aria-hidden /> {s.new}
             </Link>
           ) : null
         }
       />
+      {maxStudents !== null && ent && hasRole(business.role, "agent") ? (
+        studentsFull ? (
+          <PlanUpsell compact text={format(d.school.limits.studentsFull, { max: formatNumber(maxStudents, locale) })} cta={d.plan.upgrade} locale={locale} />
+        ) : (
+          <p className="text-sm text-slate" data-testid="students-usage">
+            {format(d.school.limits.studentsUsed, { used: formatNumber(ent.studentsUsed, locale), max: formatNumber(maxStudents, locale) })}
+          </p>
+        )
+      ) : null}
       <Panel>
         <form method="get" action={base} className="mb-4 flex flex-wrap gap-2" role="search">
           <label className="relative min-w-0 flex-1 basis-56">

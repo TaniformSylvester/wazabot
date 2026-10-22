@@ -19,6 +19,10 @@ export type Plan = {
   maxMembers: number;
   reportDays: number | null;
   hasProfit: boolean;
+  maxDocuments: number | null;
+  maxStudents: number | null;
+  hasBulkReportCards: boolean;
+  hasSchoolReports: boolean;
 };
 
 export const plans: Plan[] = PLANS.map((p) => ({
@@ -31,5 +35,14 @@ export const plans: Plan[] = PLANS.map((p) => ({
   maxMembers: p.maxMembers,
   reportDays: p.reportDays,
   hasProfit: p.hasProfit,
+  maxDocuments: p.maxDocuments,
+  maxStudents: p.maxStudents,
+  hasBulkReportCards: p.hasBulkReportCards,
+  hasSchoolReports: p.hasSchoolReports,
   ...(p.highlighted ? { highlighted: true } : {}),
 }));
+
+/** The cheapest plan that includes something (for "included from the … plan"). */
+export function cheapestPlanWith(has: (p: Plan) => boolean): Plan | undefined {
+  return [...plans].sort((a, b) => a.monthlyPrice - b.monthlyPrice).find(has);
+}

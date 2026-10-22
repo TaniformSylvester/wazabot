@@ -68,6 +68,7 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
       { key: "classes", href: "/dashboard/school/classes", icon: School, module: "school", teacher: true },
       { key: "results", href: "/dashboard/school/results", icon: ClipboardCheck, module: "school", teacher: true },
       { key: "fees", href: "/dashboard/school/fees", icon: Banknote, module: "school" },
+      { key: "schoolReports", href: "/dashboard/school/reports", icon: FileBarChart, module: "school", minRole: "admin" },
     ],
   },
   {

@@ -65,6 +65,11 @@ describe("margin report", () => {
       { id: "business", monthly_price: 25_000, ai_conversations_per_month: 2_000 },
     ];
     expect(planConfigDrift(db)).toEqual(["starter", "pro"]);
+    // Docs and School entitlements are compared when read.
+    const free = { id: "free", monthly_price: 0, ai_conversations_per_month: 30, max_documents: 20, max_students: 50, max_report_card_students: 50, max_teachers: 30, has_bulk_report_cards: false, has_school_reports: false };
+    expect(planConfigDrift([free]).includes("free")).toBe(false);
+    expect(planConfigDrift([{ ...free, max_documents: 25 }]).includes("free")).toBe(true);
+    expect(planConfigDrift([{ ...free, has_bulk_report_cards: true }]).includes("free")).toBe(true);
   });
 });
 

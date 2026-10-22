@@ -179,17 +179,14 @@ None new.
 - **No student photos on report cards yet.** The brief says "where permitted": that needs consent handling and private storage, so it wasn't built.
 - **One teacher per subject per class.** Several teachers sharing a subject isn't supported yet.
 - **No yearly report card.** Only per-term report cards; annual averages across terms and promotion decisions aren't computed yet.
-- **Teachers use plan seats.** Teachers count as team members for the plan's user limit, the same as today. A school on Free may need a bigger plan to add many teachers. **This is a pricing decision for you.**
+- ~~**Teachers use plan seats.**~~ Decided and changed: teachers have their own free seats (30 per school, every plan). See `docs/wazabolt-plan-entitlements.md`.
 - **Fee payments are recorded by hand,** like all payments (no MTN or Orange check). Fee payments on invoices without an order are not in the sales Reports yet (same as Phase 2).
 - **Moving a class to the next year is done by hand.** Students are re-enrolled in the new year's classes one by one; there's no bulk promotion yet.
 
 ## 8. Outstanding and next steps
 
 1. Owner: run the migration, then approve the push.
-2. **Owner decisions:**
-   - Do teachers count toward the plan's user limit, or are they free / separately priced?
-   - School pricing (it's open to all plans for now).
-   - The Free plan's saved-document limit.
+2. ~~Owner decisions~~ (teacher seats, school limits per plan, the Free plan's saved-document limit): decided 22 October 2026 and built — see `docs/wazabolt-plan-entitlements.md`.
 3. **Possible next steps:**
    - Yearly averages and promotion.
    - Bulk move of a class to the next year.

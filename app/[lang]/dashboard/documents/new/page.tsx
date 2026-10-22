@@ -1,13 +1,16 @@
 import { redirect } from "next/navigation";
 
+import { PlanUpsell } from "@/components/app/plan-upsell";
 import { PageHeader, param } from "@/components/app/ui";
 import { BusinessDocumentEditor } from "@/components/documents/business-editor";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { getDocumentSettings, listDocumentCustomers } from "@/lib/data/documents";
+import { getEntitlements, limitInForce } from "@/lib/data/queries";
 import { addDays, newEditorState } from "@/lib/documents/editor-state";
 import { DOCUMENT_CURRENCIES, DOCUMENT_TYPES, type DocumentType } from "@/lib/documents/types";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 
 export const generateMetadata = dashboardMetadata((d) => d.documents.title);
@@ -21,7 +24,17 @@ export default async function NewDocumentPage({ searchParams }: PageProps<"/[lan
   const wanted: DocumentType = requested && (DOCUMENT_TYPES as readonly string[]).includes(requested) ? requested : "invoice";
   // A receipt confirms money was received: only owners and admins make them.
   const type: DocumentType = wanted === "receipt" && !hasRole(business.role, "admin") ? "invoice" : wanted;
-  const settings = await getDocumentSettings(business.id);
+  const [settings, ent] = await Promise.all([getDocumentSettings(business.id), getEntitlements(business.id)]);
+  const maxDocs = limitInForce(ent, ent?.maxDocuments);
+  if (maxDocs !== null && (ent?.documentsUsed ?? 0) >= maxDocs) {
+    const doc = t.dashboard.documents;
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col gap-6">
+        <PageHeader title={doc.newTitle[type]} back={{ href: back, label: doc.title }} />
+        <PlanUpsell title={format(doc.limit.fullTitle, { max: formatNumber(maxDocs, locale) })} text={doc.limit.fullText} cta={t.dashboard.plan.upgrade} locale={locale} />
+      </div>
+    );
+  }
   const issue = new Date().toISOString().slice(0, 10);
 
   // From a customer's profile: ?customer=<id> fills in the customer.

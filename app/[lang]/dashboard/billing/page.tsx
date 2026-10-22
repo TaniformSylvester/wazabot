@@ -3,14 +3,16 @@ import { Check, Minus } from "lucide-react";
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, ActionForm, SelectField, SubmitButton, TextField } from "@/components/app/form";
 import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, formatMoney, td, th } from "@/components/app/ui";
+import { UsageMeter } from "@/components/app/usage-meter";
 import { periodPrice } from "@/config/economics";
 import { cancelPlanChange, requestPlanChange } from "@/lib/actions/billing";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getBilling, getPlanLimits } from "@/lib/data/queries";
+import { getBilling, getEntitlements, getPlanLimits } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBusinessModules } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 
 export const generateMetadata = dashboardMetadata((d) => d.billing.title);
@@ -23,7 +25,13 @@ export const generateMetadata = dashboardMetadata((d) => d.billing.title);
 export default async function BillingPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/billing"));
-  const [{ plans, subscription, usage, pendingRequest, payments }, limits] = await Promise.all([getBilling(business.id), getPlanLimits(business.id)]);
+  const [{ plans, subscription, usage, pendingRequest, payments }, limits, ent, modules] = await Promise.all([
+    getBilling(business.id),
+    getPlanLimits(business.id),
+    getEntitlements(business.id),
+    getBusinessModules(business),
+  ]);
+  const school = modules.includes("school");
   const b = t.dashboard.billing;
   const pf = t.pricing.features;
   const d = t.dashboard;
@@ -86,7 +94,7 @@ export default async function BillingPage() {
         </Panel>
       </div>
 
-      {limits && (limits.maxProducts !== null || limits.maxMonthlySales !== null || limits.maxMembers !== null) ? (
+      {limits && ent ? (
         <Panel title={d.plan.usage.title} description={!limits.enforced && limits.limitsFrom ? format(d.plan.grace, {
           date: formatDate(`${limits.limitsFrom}T12:00:00Z`, locale),
           products: formatNumber(limits.maxProducts ?? 0, locale),
@@ -96,27 +104,20 @@ export default async function BillingPage() {
           <dl className="grid gap-3 sm:grid-cols-3" data-testid="plan-usage">
             {(
               [
-                [d.plan.usage.products, limits.productsUsed, limits.maxProducts],
-                [d.plan.usage.sales, limits.salesThisMonth, limits.maxMonthlySales],
-                [d.plan.usage.members, limits.membersUsed, limits.maxMembers],
+                [d.plan.usage.products, limits.productsUsed, limits.maxProducts, true],
+                [d.plan.usage.sales, limits.salesThisMonth, limits.maxMonthlySales, true],
+                [d.plan.usage.members, limits.membersUsed, limits.maxMembers, true],
+                [d.plan.usage.documents, ent.documentsUsed, ent.maxDocuments, true],
+                [d.plan.usage.students, ent.studentsUsed, ent.maxStudents, school],
+                [d.plan.usage.teachers, ent.teachersUsed, ent.maxTeachers, school],
               ] as const
-            ).map(([label, used, max]) => {
-              const full = limits.enforced && max !== null && used >= max;
-              return (
-                <div key={label} className="rounded-2xl bg-surface p-4">
-                  <dt className="text-sm text-slate">{label}</dt>
-                  <dd className={cn("mt-1 font-display text-xl font-bold", full ? "text-coral-700" : "text-deep")}>
-                    {max === null ? format(d.plan.usage.unlimited, { used: formatNumber(used, locale) }) : format(d.plan.usage.of, { used: formatNumber(used, locale), max: formatNumber(max, locale) })}
-                  </dd>
-                  {max !== null ? (
-                    <div className="mt-2 h-1.5 rounded-full bg-border">
-                      <div className={cn("h-1.5 rounded-full", full ? "bg-coral-600" : "bg-waza-600")} style={{ width: `${Math.min(100, Math.round((used / max) * 100))}%` }} />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+            )
+              .filter(([, , , show]) => show)
+              .map(([label, used, max]) => (
+                <UsageMeter key={label} label={label} used={used} max={max} enforced={limits.enforced} locale={locale} text={d.plan.usage} />
+              ))}
           </dl>
+          {school ? <p className="mt-3 text-xs text-slate">{d.plan.usage.teachersNote}</p> : null}
         </Panel>
       ) : null}
 
@@ -147,8 +148,17 @@ export default async function BillingPage() {
                   { label: format(p.max_members === 1 ? pf.members : pf.membersPlural, { count: formatNumber(p.max_members ?? 0, locale) }), on: p.max_members !== null },
                   { label: p.report_days === null ? pf.reportsFull : format(pf.reportsDays, { count: formatNumber(p.report_days, locale) }), on: true },
                   { label: pf.profit, on: p.has_profit },
+                  { label: p.max_documents === null ? pf.documentsUnlimited : format(pf.documents, { count: formatNumber(p.max_documents, locale) }), on: true },
+                  ...(school
+                    ? [
+                        { label: p.max_students === null ? pf.studentsUnlimited : format(pf.students, { count: formatNumber(p.max_students, locale) }), on: true },
+                        { label: format(pf.teachers, { count: formatNumber(p.max_teachers, locale) }), on: true },
+                        { label: pf.bulkReportCards, on: p.has_bulk_report_cards },
+                        { label: pf.schoolReports, on: p.has_school_reports },
+                      ]
+                    : []),
                 ]
-                  .filter((f) => f.on || f.label === pf.profit)
+                  .filter((f) => f.on || f.label === pf.profit || f.label === pf.bulkReportCards || f.label === pf.schoolReports)
                   .map((f) => (
                     <li key={f.label} className={cn("flex items-start gap-2", !f.on && "text-slate/70")}>
                       {f.on ? <Check className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden /> : <Minus className="mt-0.5 size-4 shrink-0" aria-hidden />}

@@ -1,13 +1,15 @@
 import { ActionButton } from "@/components/app/form";
 import { InviteForm, LeaveBusiness, RemoveMember, RenewInvite, RoleSelect } from "@/components/app/team-controls";
 import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, td, th } from "@/components/app/ui";
+import { UsageMeter } from "@/components/app/usage-meter";
 import { revokeInvitation } from "@/lib/actions/team";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { listPendingInvitations, listTeam } from "@/lib/data/queries";
+import { getEntitlements, getPlanLimits, listPendingInvitations, listTeam } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBusinessModules } from "@/lib/modules";
 import { ROLES, type BusinessRole } from "@/types/database";
 
 export const generateMetadata = dashboardMetadata((d) => d.team.title);
@@ -22,7 +24,14 @@ export default async function TeamPage() {
   const { user, business } = await requireBusiness(localizePath(locale, "/dashboard/team"));
   const isAdmin = hasRole(business.role, "admin");
   const isOwner = business.role === "owner";
-  const [members, invitations] = await Promise.all([listTeam(business.id), isAdmin ? listPendingInvitations(business.id) : []]);
+  const [members, invitations, limits, ent] = await Promise.all([
+    listTeam(business.id),
+    isAdmin ? listPendingInvitations(business.id) : [],
+    isAdmin ? getPlanLimits(business.id) : null,
+    isAdmin ? getEntitlements(business.id) : null,
+  ]);
+  // Teacher seats matter to schools (or wherever teachers were added).
+  const showTeachers = !!ent && ((await getBusinessModules(business)).includes("school") || ent.teachersUsed > 0);
   const d = t.dashboard;
   const tm = d.team;
   const roleLabel = (r: string) => d.header.roles[r as BusinessRole] ?? r;
@@ -32,6 +41,14 @@ export default async function TeamPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <PageHeader title={tm.title} description={tm.description} />
+
+      {limits && ent ? (
+        <dl className="grid gap-3 sm:grid-cols-2" data-testid="team-seats">
+          <UsageMeter label={d.plan.usage.members} used={limits.membersUsed} max={limits.maxMembers} enforced={limits.enforced} locale={locale} text={d.plan.usage} />
+          {showTeachers ? <UsageMeter label={d.plan.usage.teachers} used={ent.teachersUsed} max={ent.maxTeachers} locale={locale} text={d.plan.usage} /> : null}
+        </dl>
+      ) : null}
+      {showTeachers ? <p className="-mt-3 text-xs text-slate">{d.plan.usage.teachersNote}</p> : null}
 
       {isAdmin ? (
         <Panel title={tm.invite} description={tm.inviteText}>

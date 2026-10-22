@@ -2579,13 +2579,19 @@ export type Database = {
           ai_conversations_per_month: number;
           created_at: string;
           currency: string;
+          has_bulk_report_cards: boolean;
           has_profit: boolean;
+          has_school_reports: boolean;
           highlighted: boolean;
           id: string;
           legacy_conversations_per_month: number | null;
+          max_documents: number | null;
           max_members: number | null;
           max_monthly_sales: number | null;
           max_products: number | null;
+          max_report_card_students: number | null;
+          max_students: number | null;
+          max_teachers: number;
           monthly_price: number;
           name: string;
           report_days: number | null;
@@ -2596,13 +2602,19 @@ export type Database = {
           ai_conversations_per_month: number;
           created_at?: string;
           currency?: string;
+          has_bulk_report_cards?: boolean;
           has_profit?: boolean;
+          has_school_reports?: boolean;
           highlighted?: boolean;
           id: string;
           legacy_conversations_per_month?: number | null;
+          max_documents?: number | null;
           max_members?: number | null;
           max_monthly_sales?: number | null;
           max_products?: number | null;
+          max_report_card_students?: number | null;
+          max_students?: number | null;
+          max_teachers?: number;
           monthly_price: number;
           name: string;
           report_days?: number | null;
@@ -2613,13 +2625,19 @@ export type Database = {
           ai_conversations_per_month?: number;
           created_at?: string;
           currency?: string;
+          has_bulk_report_cards?: boolean;
           has_profit?: boolean;
+          has_school_reports?: boolean;
           highlighted?: boolean;
           id?: string;
           legacy_conversations_per_month?: number | null;
+          max_documents?: number | null;
           max_members?: number | null;
           max_monthly_sales?: number | null;
           max_products?: number | null;
+          max_report_card_students?: number | null;
+          max_students?: number | null;
+          max_teachers?: number;
           monthly_price?: number;
           name?: string;
           report_days?: number | null;
@@ -3918,7 +3936,21 @@ export type Database = {
         Args: { p_address?: string; p_business_id: string; p_customer_id: string };
         Returns: Json;
       };
+      _documents_used: { Args: { p_business_id: string }; Returns: number };
       _payment_time: { Args: { p_received_at: string }; Returns: string };
+      _plan_entitlements: {
+        Args: { p_business_id: string };
+        Returns: {
+          enforced: boolean;
+          has_bulk_report_cards: boolean;
+          has_school_reports: boolean;
+          max_documents: number;
+          max_report_card_students: number;
+          max_students: number;
+          max_teachers: number;
+          plan_id: string;
+        }[];
+      };
       _plan_limits: {
         Args: { p_business_id: string };
         Returns: {
@@ -3933,6 +3965,7 @@ export type Database = {
         }[];
       };
       _refresh_invoice_paid: { Args: { p_document_id: string }; Returns: undefined };
+      _report_card_students: { Args: { p_term_id: string }; Returns: number };
       accept_invitation: { Args: { p_token: string }; Returns: string };
       adjust_stock: {
         Args: {
@@ -4024,6 +4057,22 @@ export type Database = {
           p_starts_at: string;
         };
         Returns: string;
+      };
+      business_entitlements: {
+        Args: { p_business_id: string };
+        Returns: {
+          documents_used: number;
+          enforced: boolean;
+          has_bulk_report_cards: boolean;
+          has_school_reports: boolean;
+          max_documents: number;
+          max_report_card_students: number;
+          max_students: number;
+          max_teachers: number;
+          plan_id: string;
+          students_used: number;
+          teachers_used: number;
+        }[];
       };
       business_plan_limits: {
         Args: { p_business_id: string };
@@ -4542,6 +4591,7 @@ export type Database = {
       shares_business_with: { Args: { other_user: string }; Returns: boolean };
       teaches_class: { Args: { p_class_id: string }; Returns: boolean };
       teaches_student: { Args: { p_student_id: string }; Returns: boolean };
+      term_report_card_usage: { Args: { p_term_id: string }; Returns: number };
       token_sha256: { Args: { p_token: string }; Returns: string };
       update_business_language_settings: {
         Args: {

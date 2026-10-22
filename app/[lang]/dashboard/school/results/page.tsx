@@ -2,15 +2,18 @@ import { Download, Printer } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, ActionForm, SubmitButton, TextArea, TextField } from "@/components/app/form";
+import { PlanUpsell } from "@/components/app/plan-upsell";
 import { FilterSelect } from "@/components/school/filter-select";
 import { PageHeader, Panel, StatusBadge, TableWrap, buttonLink, formatDate, param, secondaryLink, td, th } from "@/components/app/ui";
 import { SendOnWhatsApp } from "@/components/documents/send-whatsapp";
 import { publishResults, saveTermComment, sendReportCard, withdrawResults } from "@/lib/actions/school";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { computeReportCards, getPublication, listClasses, listPublications, listTerms, pickYear } from "@/lib/data/school";
+import { cheapestPlanWith } from "@/config/plans";
+import { bulkReportCardsAllowed, getEntitlements, limitInForce } from "@/lib/data/queries";
+import { computeReportCards, getPublication, listClasses, listPublications, listTerms, pickYear, termReportCardUsage } from "@/lib/data/school";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { format } from "@/lib/i18n/format";
+import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { formatScore } from "@/lib/school/report-card";
 import { createClient } from "@/lib/supabase/server";
@@ -42,6 +45,13 @@ export default async function ResultsPage({ searchParams }: PageProps<"/[lang]/d
   // The class teacher (or an admin) writes the class teacher's comment; only owners/admins the principal's.
   const commentKinds: ("class_teacher" | "principal")[] = [...(isAdmin || isClassTeacher ? (["class_teacher"] as const) : []), ...(isAdmin ? (["principal"] as const) : [])];
   const n = (v: number | null) => (data ? formatScore(v, data.settings.decimals, locale) : "—");
+  const lim = d.school.limits;
+  const ent = await getEntitlements(business.id);
+  // Free: report cards one student at a time (the PDF route refuses a whole class too).
+  const bulk = bulkReportCardsAllowed(ent);
+  const bulkPlan = cheapestPlanWith((p) => p.hasBulkReportCards);
+  const maxReportCards = limitInForce(ent, ent?.maxReportCardStudents);
+  const reportCardsUsed = maxReportCards !== null && term && isAdmin ? await termReportCardUsage(term.id) : 0;
 
   // Parents' numbers (to send published report cards).
   let guardians = new Set<string>();
@@ -67,13 +77,29 @@ export default async function ResultsPage({ searchParams }: PageProps<"/[lang]/d
       ) : (
         <>
           <FormAlert tone={pub ? "success" : "info"}>{pub ? format(r.published, { date: formatDate(pub.publishedAt, locale, true) }) : r.provisional}</FormAlert>
+          {!bulk ? (
+            isAdmin ? (
+              <PlanUpsell compact text={format(lim.bulkLocked, { plan: bulkPlan ? t.pricing.plans[bulkPlan.id].name : "" })} cta={d.plan.upgrade} locale={locale} />
+            ) : (
+              <p className="text-sm text-slate" data-testid="bulk-locked">{format(lim.bulkLocked, { plan: bulkPlan ? t.pricing.plans[bulkPlan.id].name : "" })}</p>
+            )
+          ) : null}
+          {isAdmin && maxReportCards !== null ? (
+            <p className="text-sm text-slate" data-testid="report-card-usage">
+              {format(lim.publishUsage, { used: formatNumber(reportCardsUsed, locale), max: formatNumber(maxReportCards, locale) })}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
-            <a href={pdf} className={buttonLink} data-testid="report-cards-pdf">
-              <Download aria-hidden /> {pub ? r.downloadAll : r.provisionalPdf}
-            </a>
-            <a href={`${pdf}&inline=1`} target="_blank" rel="noopener" className={secondaryLink}>
-              <Printer aria-hidden /> {r.printAll}
-            </a>
+            {bulk ? (
+              <>
+                <a href={pdf} className={buttonLink} data-testid="report-cards-pdf">
+                  <Download aria-hidden /> {pub ? r.downloadAll : r.provisionalPdf}
+                </a>
+                <a href={`${pdf}&inline=1`} target="_blank" rel="noopener" className={secondaryLink}>
+                  <Printer aria-hidden /> {r.printAll}
+                </a>
+              </>
+            ) : null}
             {isAdmin && !pub && data.students.length ? (
               <ActionButton action={publishResults.bind(null, klass.id, term.id)} errors={d.errors} variant="dark" confirm={r.publishConfirm}>
                 {r.publish}

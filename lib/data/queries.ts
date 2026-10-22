@@ -1000,6 +1000,50 @@ export const getPlanLimits = cache(async (businessId: string): Promise<PlanLimit
   };
 });
 
+/** Docs and School entitlements and usage (any member, teachers included). */
+export type Entitlements = {
+  planId: string;
+  /** False while a Free business is in its grace period. */
+  enforced: boolean;
+  maxDocuments: number | null;
+  maxStudents: number | null;
+  maxReportCardStudents: number | null;
+  maxTeachers: number;
+  hasBulkReportCards: boolean;
+  hasSchoolReports: boolean;
+  documentsUsed: number;
+  studentsUsed: number;
+  /** Teacher members plus pending teacher invitations. */
+  teachersUsed: number;
+};
+
+export const getEntitlements = cache(async (businessId: string): Promise<Entitlements | null> => {
+  const db = await createClient();
+  const { data } = await db.rpc("business_entitlements", { p_business_id: businessId });
+  const r = data?.[0];
+  if (!r) return null;
+  return {
+    planId: r.plan_id,
+    enforced: r.enforced,
+    maxDocuments: r.max_documents,
+    maxStudents: r.max_students,
+    maxReportCardStudents: r.max_report_card_students,
+    maxTeachers: r.max_teachers,
+    hasBulkReportCards: r.has_bulk_report_cards,
+    hasSchoolReports: r.has_school_reports,
+    documentsUsed: r.documents_used,
+    studentsUsed: r.students_used,
+    teachersUsed: r.teachers_used,
+  };
+});
+
+/** A limit that applies now (null when unlimited or in the Free grace period). */
+export const limitInForce = (e: Entitlements | null, max: number | null | undefined) => (e && e.enforced && max != null ? max : null);
+/** Bulk report cards (a whole class in one PDF): plans that include them, or Free in its grace period. */
+export const bulkReportCardsAllowed = (e: Entitlements | null) => !e || !e.enforced || e.hasBulkReportCards;
+/** Advanced school reports: plans that include them, or Free in its grace period. */
+export const schoolReportsAllowed = (e: Entitlements | null) => !e || !e.enforced || e.hasSchoolReports;
+
 /** Expenses, cost-based profit and margins are available (a paid plan, or Free still in its grace period). */
 export const profitAllowed = (l: PlanLimits | null) => !l || !l.enforced || l.hasProfit;
 /** How many days back reports may go, or null for any period. */

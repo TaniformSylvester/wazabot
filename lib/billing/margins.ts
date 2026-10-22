@@ -138,18 +138,36 @@ export function reportMonth(param: string | undefined, now: Date): string {
   return `${now.toISOString().slice(0, 7)}-01`;
 }
 
-/** Plans whose price or allowance in the database differs from config/economics.ts. */
-export function planConfigDrift(dbPlans: { id: string; monthly_price: number; ai_conversations_per_month: number }[]) {
+type DbPlanEntitlements = {
+  max_documents?: number | null;
+  max_students?: number | null;
+  max_report_card_students?: number | null;
+  max_teachers?: number;
+  has_bulk_report_cards?: boolean;
+  has_school_reports?: boolean;
+};
+
+/** Plans whose price, allowance or entitlements in the database differ from config/economics.ts (entitlements compared when read). */
+export function planConfigDrift(dbPlans: ({ id: string; monthly_price: number; ai_conversations_per_month: number } & DbPlanEntitlements)[]) {
   return PLANS.filter((p) => {
     const db = dbPlans.find((d) => d.id === p.id);
-    return !db || Number(db.monthly_price) !== p.monthlyPrice || db.ai_conversations_per_month !== p.aiConversationsPerMonth;
+    if (!db || Number(db.monthly_price) !== p.monthlyPrice || db.ai_conversations_per_month !== p.aiConversationsPerMonth) return true;
+    const pairs: [unknown, unknown][] = [
+      [db.max_documents, p.maxDocuments],
+      [db.max_students, p.maxStudents],
+      [db.max_report_card_students, p.maxReportCardStudents],
+      [db.max_teachers, p.maxTeachers],
+      [db.has_bulk_report_cards, p.hasBulkReportCards],
+      [db.has_school_reports, p.hasSchoolReports],
+    ];
+    return pairs.some(([d, c]) => d !== undefined && d !== c);
   }).map((p) => p.id);
 }
 
 export async function getMarginReport(admin: Admin, month: string) {
   const [{ data, error }, { data: dbPlans }, { data: subs }] = await Promise.all([
     admin.rpc("admin_cost_report", { p_month: month, p_free_service: META_PRICING.freeServicePerNumberPerMonth }),
-    admin.from("plans").select("id, monthly_price, ai_conversations_per_month"),
+    admin.from("plans").select("id, monthly_price, ai_conversations_per_month, max_documents, max_students, max_report_card_students, max_teachers, has_bulk_report_cards, has_school_reports"),
     admin.from("subscriptions").select("business_id, billing_interval"),
   ]);
   if (error) throw error;
