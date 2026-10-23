@@ -47,6 +47,8 @@ export type GenerateResult = {
   toolLog: string[];
   /** Product ids returned by catalog tools this turn — the only ones the reply may quote. */
   productIds: Set<string>;
+  /** Document ids findMyDocuments returned this turn — the only ones send_documents may name. */
+  documentIds: Set<string>;
 };
 
 export interface AiResponder {

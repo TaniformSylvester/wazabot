@@ -12,6 +12,8 @@
  *   "couleurs … en M"         → checkProductOptions for that size, then the colours in stock
  *   "montrez-moi la rouge"    → send_reply with send_photo (that colour's photo)
  *   "je prends N rouge en m"  → checkProductOptions for the combination, createOrder with its variantId
+ *   "facture" / "reçu"        → findMyDocuments (when offered), then send_documents with what it returned;
+ *                               with a document id in the text, names that id without looking it up
  *   anything else             → a greeting
  */
 import { createServer } from "node:http";
@@ -95,6 +97,16 @@ function respond(body) {
     const booking = results.bookAppointment;
     if (!booking) return [call("bookAppointment", { serviceId, startsAt: `${first.date}T${first.times[0]}` })];
     return [sendReply({ reply: booking.ok ? `Rendez-vous confirmé : ${booking.service} le ${booking.startsAt}.` : "Désolé, ce créneau n'est plus libre." })];
+  }
+  if (/facture|reçu|recu/.test(text)) {
+    const forced = text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/)?.[0];
+    if (forced) return [sendReply({ reply: "Voici votre facture.", send_documents: [forced] })];
+    if (!body.tools?.some((t) => t.name === "findMyDocuments")) return [sendReply({ reply: "Je transmets votre demande à l'équipe.", needs_human: true, handoff_reason: "document request" })];
+    const found = results.findMyDocuments;
+    const orderNumber = text.match(/ord-\d+/)?.[0];
+    if (!found) return [call("findMyDocuments", { type: /reçu|recu/.test(text) ? "receipt" : "invoice", ...(orderNumber ? { orderNumber } : {}) })];
+    if (!found.found) return [sendReply({ reply: "Elle n'est pas encore prête : l'équipe va la préparer et revenir vers vous." })];
+    return [sendReply({ reply: `Je vous envoie ${found.documents.map((d) => d.number).join(", ")}.`, send_documents: found.documents.map((d) => d.documentId) })];
   }
   if (/parler à quelqu'un|un humain/.test(text)) {
     return [sendReply({ reply: "Bien sûr, je transmets votre demande à l'équipe.", needs_human: true, handoff_reason: "customer asked for a person" })];

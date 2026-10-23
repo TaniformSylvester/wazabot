@@ -52,6 +52,7 @@ const business: BusinessContext = {
     humanHandoverEnabled: true,
     salesMode: true,
     photoUnderstanding: true,
+    sendDocuments: false,
   },
   language: { mode: "auto", defaultLanguage: "fr", enabledLanguages: ["fr", "en", "wes"] },
   style: { tone: "friendly", formality: "neutral", emojiLevel: "light", replyLength: "short", mirrorCodeSwitching: false, styleNotes: "" },

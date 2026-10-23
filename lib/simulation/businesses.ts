@@ -102,6 +102,7 @@ function context(b: {
       humanHandoverEnabled: true,
       salesMode: b.salesMode,
       photoUnderstanding: false,
+      sendDocuments: false,
     },
     language: { mode: "auto", defaultLanguage: b.defaultLanguage, enabledLanguages: b.enabledLanguages },
     style: { tone: "friendly", formality: "neutral", emojiLevel: "light", replyLength: b.replyLength, mirrorCodeSwitching: true, styleNotes: "" },

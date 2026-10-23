@@ -192,6 +192,7 @@ mkdirSync("test-results", { recursive: true });
   await main.getByText("Thanks for the picture! I've passed it to the Awa Styles team", { exact: false }).waitFor({ timeout: 20000 });
   ok("photos off: passed to the team without calling Claude", claude.requests.length === requestsBefore);
   await page.goto(`${APP}/en/dashboard/ai`);
+  ok("AI settings: \"Send invoices and receipts\" is on by default", await main.getByLabel("Send invoices and receipts").isChecked());
   await main.getByLabel("Understand customer photos").check();
   await main.getByRole("button", { name: "Save" }).click();
   await main.getByText("AI settings saved.").waitFor({ timeout: 10000 });
@@ -271,6 +272,57 @@ mkdirSync("test-results", { recursive: true });
   ok("WhatsApp photo: the assistant recognises the product from the catalog", photoReply === "Oui, nous avons cette Robe Ankara (même modèle que sur notre photo) : 15000 XAF.", JSON.stringify(sentTexts().slice(beforePhoto)));
   const waPhotoReq = claude.requests.at(-1);
   ok("WhatsApp photo: Claude received the customer's photo with its caption", waPhotoReq?.body.messages.some((m) => Array.isArray(m.content) && m.content.some((b) => b.type === "image") && m.content.some((b) => b.type === "text" && b.text.includes("[photo] Vous avez ça ?"))));
+
+  // 2c. Phase 4 — invoices and receipts on request: only the customer's own issued documents, never created by the assistant.
+  const rpc = async (fn, args) => (await fetch(`${SUPABASE}/rest/v1/rpc/${fn}`, { method: "POST", headers: restHeaders(tok), body: JSON.stringify(args) })).json();
+  const docsSent = () => graph.sent().sent.filter((m) => m.type === "document");
+  const [chantal] = await get(tok, "customers?select=id&whatsapp_phone=eq.237670000123");
+  const [joel] = await get(tok, "customers?select=id&whatsapp_phone=eq.237670000777");
+  const [chantalConv] = await get(tok, `conversations?select=id&customer_id=eq.${chantal.id}`);
+  let beforeDocs = sentTexts().length;
+  await deliver(text("Je voudrais ma facture svp"));
+  const notReady = await waitFor(() => sentTexts().slice(beforeDocs).find((t) => t.includes("pas encore prête")));
+  const [flagged] = await get(tok, `conversations?select=human_requested,ai_enabled&id=eq.${chantalConv.id}`);
+  ok("no invoice yet: the assistant creates nothing, says the team will prepare it, and flags the team (still answering)", !!notReady && flagged.human_requested === true && flagged.ai_enabled === true && docsSent().length === 0 && (await get(tok, "documents?select=id")).length === 0, JSON.stringify(flagged));
+  await patch(tok, `conversations?id=eq.${chantalConv.id}`, { human_requested: false });
+
+  // The team issues the order's invoice; another customer (Joël) has an invoice of his own.
+  const [ord] = await get(tok, "orders?select=id&order_number=eq.ORD-00001");
+  const inv = await rpc("create_order_invoice", { p_order_id: ord.id, p_business_snapshot: { name: U.business } });
+  const [joelDraft] = await (await post(tok, "documents", { business_id: biz.id, doc_type: "invoice", issue_date: new Date().toISOString().slice(0, 10), customer_id: joel.id, business_snapshot: { name: U.business }, customer_snapshot: { name: "Joël" }, items: [{ description: "Robe", quantity: 1, unitPrice: 15000 }], subtotal: 15000, total: 15000, created_by: sql(`select id from auth.users where email = '${U.email}'`) })).json();
+  await rpc("issue_document", { p_document_id: joelDraft.id });
+  const [chantalInvoice] = await get(tok, `documents?select=id,number,status&customer_id=eq.${chantal.id}`);
+  ok("the order's invoice is issued for Chantal", chantalInvoice?.status === "issued" && !!chantalInvoice.number, JSON.stringify(inv));
+
+  beforeDocs = sentTexts().length;
+  await deliver(text("Vous pouvez m'envoyer la facture de ORD-00001 ?"));
+  const sendingReply = await waitFor(() => sentTexts().slice(beforeDocs).find((t) => t.startsWith("Je vous envoie")));
+  const pdfMsg = await waitFor(() => docsSent().find((m) => m.to === "237670000123"));
+  const upload = graph.sent().uploads.at(-1);
+  ok("the assistant sends Chantal her invoice as a PDF after its message", sendingReply === `Je vous envoie ${chantalInvoice.number}.` && !!pdfMsg && pdfMsg.document?.filename?.includes(chantalInvoice.number) && upload?.isPdf === true, JSON.stringify({ sendingReply, pdfMsg, upload }));
+  const docTool = claude.requests.at(-1)?.body.messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).find((b) => b.type === "tool_use" && b.name === "findMyDocuments");
+  ok("the document was found through findMyDocuments for that order", docTool?.input?.orderNumber === "ord-00001");
+  const [docMessage] = await get(tok, `messages?select=sender_type,message_type,payload,delivery_status&conversation_id=eq.${chantalConv.id}&message_type=eq.document`);
+  ok("the PDF is recorded on the conversation (assistant, sent) with the document's id", docMessage?.sender_type === "ai" && docMessage.delivery_status === "sent" && docMessage.payload?.document_id === chantalInvoice.id, JSON.stringify(docMessage));
+  ok("…and audited", sql(`select count(*) from audit_logs where entity_id = '${chantalInvoice.id}' and action = 'document.sent_whatsapp' and metadata->>'by' = 'assistant'`) === "1");
+
+  // Another customer's document, even named by id, is never sent.
+  const docsBefore = docsSent().length;
+  beforeDocs = sentTexts().length;
+  await deliver(text(`La facture ${joelDraft.id} svp`));
+  await waitFor(() => sentTexts().slice(beforeDocs).find((t) => t === "Voici votre facture."));
+  await sleep(1500);
+  ok("another customer's invoice is never sent, even when the model names its id", docsSent().length === docsBefore);
+
+  // The owner switches it off: the tool isn't offered, nothing is sent, the team takes the request.
+  await patch(tok, `ai_settings?business_id=eq.${biz.id}`, { send_documents: false });
+  beforeDocs = sentTexts().length;
+  await deliver(text("Et mon reçu ?"));
+  await waitFor(() => sentTexts().slice(beforeDocs).find((t) => t.includes("transmets votre demande")));
+  const offTools = claude.requests.at(-1)?.body.tools?.map((t) => t.name) ?? [];
+  ok("switched off: findMyDocuments isn't offered and nothing is sent", !offTools.includes("findMyDocuments") && docsSent().length === docsBefore, JSON.stringify(offTools));
+  await patch(tok, `ai_settings?business_id=eq.${biz.id}`, { send_documents: true });
+  await patch(tok, `conversations?id=eq.${chantalConv.id}`, { ai_enabled: true, human_requested: false, status: "open" });
 
   // 3. Human Mode: the assistant stays silent.
   await page.reload();

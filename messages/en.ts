@@ -2296,6 +2296,10 @@ const en = {
         label: "Understand customer photos",
         text: "The assistant looks at photos customers send and finds the product in your catalog. A photo costs about as much as one or two text messages. Off: photos are passed to your team.",
       },
+      documents: {
+        label: "Send invoices and receipts",
+        text: "When a customer asks, the assistant sends them the invoices and receipts you've already issued to them, as PDFs. It never creates one: if there's none, your team is notified. Off: these requests are passed to your team.",
+      },
       saved: "AI settings saved.",
     },
     aiTest: {

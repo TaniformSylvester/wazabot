@@ -50,7 +50,7 @@ const day = { closed: false, open: "08:00", close: "18:00" };
 /** The smallest realistic business: name, city, hours, nothing else. */
 const minimal: BusinessContext = {
   business: { id: "b", name: "Ets Ngo", description: null, industry: null, city: "Bafoussam", address: null, phone: null, website: null, countryCode: "CM", currency: "XAF", timezone: "Africa/Douala", openingHours: { mon: day, tue: day, wed: day, thu: day, fri: day } as BusinessContext["business"]["openingHours"], openNow: true },
-  settings: { aiEnabled: true, tone: "friendly", replyLength: "short", greeting: null, fallbackMessage: null, afterHoursMode: "reply_normally", afterHoursMessage: null, humanHandoverEnabled: true, salesMode: false, photoUnderstanding: false },
+  settings: { aiEnabled: true, tone: "friendly", replyLength: "short", greeting: null, fallbackMessage: null, afterHoursMode: "reply_normally", afterHoursMessage: null, humanHandoverEnabled: true, salesMode: false, photoUnderstanding: false, sendDocuments: false },
   language: { mode: "auto", defaultLanguage: "fr", enabledLanguages: ["fr"] },
   style: { tone: "friendly", formality: "neutral", emojiLevel: "none", replyLength: "short", mirrorCodeSwitching: false, styleNotes: "" },
   faqs: [],

@@ -18,13 +18,17 @@ import { answerWithRules } from "@/lib/ai/rules";
 import { loadMessageImage, type InputImage } from "@/lib/ai/images";
 import { analyzeInboundMessage, fixedMessage } from "@/lib/ai/language";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
-import { resolveCatalogPhoto } from "@/lib/ai/tools/registry";
+import { SENDABLE_DOC_STATUSES, SENDABLE_DOC_TYPES, resolveCatalogPhoto } from "@/lib/ai/tools/registry";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage } from "@/lib/ai/service";
 import { sendBudgetAlert } from "@/lib/billing/alerts";
 import { claudeCostUsd, logClaudeCalls, usdToFcfa, type ClaudeCallUsage } from "@/lib/billing/costs";
 import { decideAllowance, elapsedShare, type Allowance } from "@/lib/billing/guard";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { isOpenAt } from "@/lib/business/hours";
+import { rowToDocument } from "@/lib/data/documents";
+import { DOCUMENT_LABELS } from "@/lib/documents/labels";
+import { pdfFileName, renderDocumentPdf } from "@/lib/documents/pdf/render";
+import { logoFromStorageUrl } from "@/lib/documents/server";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
 import { logServerError } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -112,7 +116,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   const wa = await deps.whatsapp(job.businessId);
   if (!wa) return { outcome: "skipped", reason: "whatsapp_not_connected" };
 
-  const ctx = { deps, job, business, wa, customerPhone: conversation.customer.whatsappPhone };
+  const ctx = { deps, job, business, wa, customerPhone: conversation.customer.whatsappPhone, customerId: conversation.customer.id };
   const message = inbound.data;
   const text = (message.content || message.caption || "").trim();
   const replyLanguage = (lang: LanguageCode | null | undefined) =>
@@ -244,6 +248,9 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
     const replyLang = isLanguageCode(reply.reply_language) ? reply.reply_language : analysis.decision.language;
     const sent = await sendAssistantMessage(ctx, reply.reply, replyLang, { model: result.model, languageReason: analysis.decision.reason });
     if (sent && reply.send_photo && result.productIds.has(reply.send_photo.product_id)) await sendCatalogPhoto(ctx, reply.send_photo, replyLang, result.model);
+    // Documents: only ones findMyDocuments returned this turn, and only when the business allows it.
+    const documentIds = [...new Set(reply.send_documents ?? [])].filter((id) => result.documentIds.has(id)).slice(0, 3);
+    if (sent && documentIds.length && business.settings.sendDocuments) await sendCustomerDocuments(ctx, documentIds, replyLang, result.model);
     if (handOver) {
       await admin.from("conversations").update({ ai_enabled: false, human_requested: true, status: "pending" }).eq("id", job.conversationId).eq("business_id", job.businessId);
     }
@@ -270,7 +277,7 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
   }
 }
 
-type Ctx = { deps: PipelineDeps; job: AiJob; business: BusinessContext; wa: BusinessWhatsApp; customerPhone: string };
+type Ctx = { deps: PipelineDeps; job: AiJob; business: BusinessContext; wa: BusinessWhatsApp; customerPhone: string; customerId: string };
 type Meta = { model?: string; usage?: AiUsage; toolCalls?: number; durationMs?: number; calls?: ClaudeCallUsage[] };
 
 /** Sends a fixed notice (no model call) and records it. */
@@ -355,6 +362,78 @@ async function sendCatalogPhoto(ctx: Ctx, photo: { product_id: string; colour: s
     processing_status: "processed",
   });
   if (wamid) await recordWhatsAppSend(admin, ctx.job.businessId, ctx.wa.phoneNumberId, "service");
+}
+
+/**
+ * The customer's own issued invoices and receipts the assistant chose to send:
+ * checked again here (this business, this customer, issued, not voided),
+ * rendered by the documents engine and sent as WhatsApp documents after the
+ * reply. Each one is recorded on the conversation and in the audit log.
+ */
+async function sendCustomerDocuments(ctx: Ctx, ids: string[], language: LanguageCode, model: string) {
+  const { admin } = ctx.deps;
+  const [{ data: rows }, { data: biz }] = await Promise.all([
+    admin
+      .from("documents")
+      .select("*")
+      .eq("business_id", ctx.job.businessId)
+      .eq("customer_id", ctx.customerId)
+      .in("id", ids)
+      .in("doc_type", [...SENDABLE_DOC_TYPES])
+      .in("status", [...SENDABLE_DOC_STATUSES]),
+    admin.from("businesses").select("logo_url").eq("id", ctx.job.businessId).maybeSingle(),
+  ]);
+  if (!rows?.length) return;
+  const logo = await logoFromStorageUrl(biz?.logo_url);
+  for (const row of ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is NonNullable<typeof r> => !!r)) {
+    const doc = rowToDocument(row);
+    const fileName = pdfFileName(doc);
+    const caption = `${DOCUMENT_LABELS[doc.language].title[doc.type]} ${row.number} — ${ctx.business.business.name}`;
+    const now = ctx.deps.now().toISOString();
+    let wamid: string | null = null;
+    let error: string | null = null;
+    try {
+      const pdf = await renderDocumentPdf(doc, { logo, branding: false });
+      const media = await ctx.wa.client.uploadMedia(ctx.wa.phoneNumberId, pdf, "application/pdf", fileName);
+      wamid = (await ctx.wa.client.sendDocument(ctx.wa.phoneNumberId, ctx.customerPhone, media.id, fileName, caption)).messageId;
+    } catch (e) {
+      error = e instanceof GraphApiError ? e.summary : "send failed";
+      logServerError("ai.sendDocument", e instanceof GraphApiError ? { code: String(e.code ?? e.status), message: e.title } : e);
+    }
+    const { data: msg } = await admin
+      .from("messages")
+      .insert({
+        business_id: ctx.job.businessId,
+        conversation_id: ctx.job.conversationId,
+        direction: "outbound",
+        sender_type: "ai",
+        message_type: "document",
+        content: fileName,
+        caption,
+        payload: { document_file: fileName, document_id: row.id, number: row.number },
+        ai_generated: true,
+        ai_model: `${model}:document`.slice(0, 80),
+        language,
+        whatsapp_message_id: wamid,
+        wa_category: "service",
+        delivery_status: wamid ? "sent" : "failed",
+        delivery_error: error,
+        status_updated_at: now,
+        processing_status: "processed",
+      })
+      .select("id")
+      .single();
+    if (!wamid) continue;
+    await recordWhatsAppSend(admin, ctx.job.businessId, ctx.wa.phoneNumberId, "service");
+    await admin.from("audit_logs").insert({
+      business_id: ctx.job.businessId,
+      actor_user_id: null,
+      action: "document.sent_whatsapp",
+      entity_type: "document",
+      entity_id: row.id,
+      metadata: { file: fileName, number: row.number, message_id: msg?.id ?? null, by: "assistant", conversation_id: ctx.job.conversationId },
+    });
+  }
 }
 
 async function overCustomerLimit(admin: Admin, job: AiJob, now: Date) {

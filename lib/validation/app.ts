@@ -282,6 +282,7 @@ export const aiSettingsSchema = z.object({
   human_handover_enabled: checkbox,
   sales_mode: checkbox,
   photo_understanding: checkbox,
+  send_documents: checkbox,
 });
 
 // ---------------------------------------------------------------------------

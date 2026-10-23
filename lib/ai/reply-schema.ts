@@ -29,6 +29,12 @@ export const assistantReplySchema = z.object({
     .nullable()
     .optional()
     .describe("Only when the customer asks to see a product or a colour: its catalog photo is sent right after your message. Only for hasPhoto true or a colour listed in withPhoto. Otherwise null."),
+  send_documents: z
+    .array(z.string())
+    .max(3)
+    .nullable()
+    .optional()
+    .describe("Only when the customer asks for an invoice or receipt: documentIds from findMyDocuments to send as PDFs right after your message (at most 3). Otherwise null."),
   needs_human: z.boolean().describe("True when a person from the business must take over."),
   handoff_reason: z.string().nullable().describe("Short internal reason for the handoff, or null."),
   summary: z

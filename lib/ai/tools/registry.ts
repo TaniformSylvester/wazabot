@@ -352,6 +352,71 @@ export const getOrderStatus = tool({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Documents (Phase 4): the customer's own issued invoices and receipts. The
+// assistant only lists them; the documents it names in send_documents are
+// rendered by the documents engine and sent after its reply. It never
+// creates or changes a document.
+// ---------------------------------------------------------------------------
+/** Documents the assistant may send: issued invoices and payment receipts (not drafts, voided documents or quotations). */
+export const SENDABLE_DOC_TYPES = ["invoice", "receipt"] as const;
+export const SENDABLE_DOC_STATUSES = ["issued", "partially_paid", "paid"] as const;
+
+export const findMyDocuments = tool({
+  name: "findMyDocuments",
+  description:
+    "THIS customer's invoices and payment receipts that the business has already issued (newest first), optionally for one order (e.g. ORD-00012) or one document number (e.g. INV-2026-000004). " +
+    "To send some, put their documentId in send_documents: the PDFs are sent right after your message. " +
+    "Nothing found: never invent one — say the team will prepare it (the team is notified automatically).",
+  input: z.object({
+    type: z.enum(["invoice", "receipt", "any"]).default("any"),
+    orderNumber: z.string().trim().max(32).optional(),
+    documentNumber: z.string().trim().max(40).optional(),
+  }),
+  async run(ctx, { type, orderNumber, documentNumber }) {
+    if (!ctx.customerId) return { found: false as const };
+    let orderId: string | null = null;
+    if (orderNumber) {
+      const { data: order } = await ctx.db
+        .from("orders")
+        .select("id")
+        .eq("business_id", ctx.businessId)
+        .eq("customer_id", ctx.customerId)
+        .eq("order_number", orderNumber.toUpperCase())
+        .maybeSingle();
+      if (!order) return { found: false as const, reason: "order_not_found" };
+      orderId = order.id;
+    }
+    let q = ctx.db
+      .from("documents")
+      .select("id, doc_type, number, status, issue_date, total, amount_paid, currency, order_id, invoice_id, orders(order_number)")
+      .eq("business_id", ctx.businessId)
+      .eq("customer_id", ctx.customerId)
+      .in("doc_type", type === "any" ? [...SENDABLE_DOC_TYPES] : [type])
+      .in("status", [...SENDABLE_DOC_STATUSES]);
+    if (documentNumber) q = q.eq("number", documentNumber.toUpperCase());
+    if (orderId) q = q.eq("order_id", orderId);
+    const { data } = await q.order("issued_at", { ascending: false, nullsFirst: false }).limit(5);
+    const documents = (data ?? []).map((d) => ({
+      documentId: d.id,
+      type: d.doc_type,
+      number: d.number,
+      status: d.status,
+      issueDate: d.issue_date,
+      total: Number(d.total),
+      ...(d.doc_type === "receipt" ? { amountReceived: Number(d.amount_paid ?? d.total) } : {}),
+      currency: d.currency,
+      orderNumber: d.orders?.order_number ?? null,
+    }));
+    if (documents.length) return { found: true as const, documents };
+    // Nothing to send: a person on the team prepares it (the assistant keeps answering).
+    if (!ctx.dryRun && ctx.conversationId) {
+      await ctx.db.from("conversations").update({ human_requested: true }).eq("business_id", ctx.businessId).eq("id", ctx.conversationId);
+    }
+    return { found: false as const, teamNotified: !ctx.dryRun };
+  },
+});
+
 export const requestHumanAgent = tool({
   name: "requestHumanAgent",
   description: "Hand the conversation to a person on the team (the AI stops replying until they return it).",
@@ -511,6 +576,7 @@ export const TOOLS = {
   createCustomer,
   createOrder,
   getOrderStatus,
+  findMyDocuments,
   requestHumanAgent,
   findAvailableSlots,
   bookAppointment,

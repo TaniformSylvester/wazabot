@@ -56,6 +56,8 @@ export type BusinessContext = {
     salesMode: boolean;
     /** Look at customers' photos (off: pass them to the team, no AI cost). */
     photoUnderstanding: boolean;
+    /** Send the customer their issued invoices and receipts on request (Phase 4). */
+    sendDocuments: boolean;
   };
   /** Reply languages and mode (Languages & style page). */
   language: LanguageSettings;
@@ -122,6 +124,7 @@ export async function buildBusinessContext(db: Db, businessId: string, now = new
       humanHandoverEnabled: s?.human_handover_enabled ?? true,
       salesMode: s?.sales_mode ?? false,
       photoUnderstanding: s?.photo_understanding ?? true,
+      sendDocuments: s?.send_documents ?? true,
     },
     language: {
       mode: oneOf(LANGUAGE_MODES, s?.language_mode, "auto"),

@@ -106,6 +106,7 @@ export type Database = {
           photo_understanding: boolean;
           reply_length: string;
           sales_mode: boolean;
+          send_documents: boolean;
           style_notes: string;
           tone: string;
           updated_at: string;
@@ -126,6 +127,7 @@ export type Database = {
           photo_understanding?: boolean;
           reply_length?: string;
           sales_mode?: boolean;
+          send_documents?: boolean;
           style_notes?: string;
           tone?: string;
           updated_at?: string;
@@ -146,6 +148,7 @@ export type Database = {
           photo_understanding?: boolean;
           reply_length?: string;
           sales_mode?: boolean;
+          send_documents?: boolean;
           style_notes?: string;
           tone?: string;
           updated_at?: string;

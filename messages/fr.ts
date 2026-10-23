@@ -2294,6 +2294,10 @@ const fr: Messages = {
         label: "Comprendre les photos des clients",
         text: "L'assistant regarde les photos envoyées par les clients et retrouve le produit dans votre catalogue. Une photo coûte à peu près comme un ou deux messages texte. Désactivé : les photos sont transmises à votre équipe.",
       },
+      documents: {
+        label: "Envoyer factures et reçus",
+        text: "Quand un client le demande, l'assistant lui envoie en PDF les factures et reçus que vous lui avez déjà émis. Il n'en crée jamais : s'il n'y en a pas, votre équipe est prévenue. Désactivé : ces demandes sont transmises à votre équipe.",
+      },
       saved: "Réglages de l'IA enregistrés.",
     },
     aiTest: {

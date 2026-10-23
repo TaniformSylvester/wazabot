@@ -106,10 +106,11 @@ const BOOKING_TOOLS = new Set(["findAvailableSlots", "bookAppointment", "getMyAp
  * Every tool the assistant may call, in a fixed order (tools render first in the prompt; a stable order keeps the cache valid).
  * Without photo understanding, the catalog-photo tool is left out; appointment tools only when booking is on.
  */
-export function assistantTools(photos = true, booking = false): Anthropic.Beta.BetaTool[] {
+export function assistantTools(photos = true, booking = false, documents = false): Anthropic.Beta.BetaTool[] {
   return [
     ...toolSchemas()
       .filter((t) => photos || t.name !== "viewProductPhotos")
+      .filter((t) => documents || t.name !== "findMyDocuments")
       .filter((t) => booking || !BOOKING_TOOLS.has(t.name))
       .map((t) => ({ ...t, input_schema: t.input_schema as Anthropic.Beta.BetaTool.InputSchema })),
     SEND_REPLY,
@@ -228,7 +229,7 @@ export class ClaudeResponder implements AiResponder {
         cache_control,
       },
     ];
-    const tools = assistantTools(business.settings.photoUnderstanding, business.booking.enabled);
+    const tools = assistantTools(business.settings.photoUnderstanding, business.booking.enabled, business.settings.sendDocuments);
     const features = modelFeatures(this.model);
     const turns = withImages(historyToMessages(input.conversation), input.images ?? []);
     const messages: Anthropic.Beta.BetaMessageParam[] = features.systemMessages
@@ -238,6 +239,7 @@ export class ClaudeResponder implements AiResponder {
     const usage: AiUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
     // Prefetched products count as looked up: the reply may quote them.
     const productIds = new Set<string>((input.catalog ?? []).map((p) => p.productId));
+    const documentIds = new Set<string>();
     const toolLog: string[] = [];
     let toolCalls = 0;
     let model = this.model;
@@ -289,6 +291,7 @@ export class ClaudeResponder implements AiResponder {
           toolCalls,
           toolLog,
           productIds,
+          documentIds,
         };
       }
 
@@ -299,7 +302,7 @@ export class ClaudeResponder implements AiResponder {
 
       if (replyCall && !lookups.length) {
         const parsed = assistantReplySchema.safeParse(replyCall.input);
-        if (parsed.success) return { reply: parsed.data as AssistantReply, model, usage, toolCalls, toolLog, productIds };
+        if (parsed.success) return { reply: parsed.data as AssistantReply, model, usage, toolCalls, toolLog, productIds, documentIds };
         messages.push({
           role: "user",
           content: [{ type: "tool_result", tool_use_id: replyCall.id, is_error: true, content: `Invalid send_reply input: ${z.prettifyError(parsed.error).slice(0, 1000)}. Call send_reply again with every field.` }],
@@ -318,6 +321,7 @@ export class ClaudeResponder implements AiResponder {
           continue;
         }
         collectProductIds(call.name, call.input, outcome.result, productIds);
+        collectDocumentIds(call.name, outcome.result, documentIds);
         results.push({ type: "tool_result", tool_use_id: call.id, content: toolResultContent(call.name, outcome.result) });
       }
       if (replyCall) {
@@ -362,6 +366,12 @@ function toolResultContent(name: string, result: unknown): Anthropic.Beta.BetaTo
     return content;
   }
   return JSON.stringify(result ?? null).slice(0, MAX_TOOL_RESULT_CHARS);
+}
+
+/** Remembers which of the customer's documents findMyDocuments returned, so send_documents can only name those. */
+function collectDocumentIds(name: string, result: unknown, ids: Set<string>) {
+  if (name !== "findMyDocuments" || !result || typeof result !== "object" || !("documents" in result)) return;
+  for (const d of (result as { documents: { documentId: string }[] }).documents) ids.add(d.documentId);
 }
 
 /** Remembers which products the tools actually returned, so the reply can only quote those. */

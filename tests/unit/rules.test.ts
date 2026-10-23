@@ -21,7 +21,7 @@ const business: BusinessContext = {
     openingHours: { mon: day, tue: day, wed: day, thu: day, fri: day, sat: { closed: false, open: "09:00", close: "16:00" }, sun: { closed: true, open: "09:00", close: "13:00" } },
     openNow: true,
   },
-  settings: { aiEnabled: true, tone: "friendly", replyLength: "short", greeting: "Bienvenue chez Awa Styles, la mode wax de Douala !", fallbackMessage: null, afterHoursMode: "reply_normally", afterHoursMessage: null, humanHandoverEnabled: true, salesMode: false, photoUnderstanding: true },
+  settings: { aiEnabled: true, tone: "friendly", replyLength: "short", greeting: "Bienvenue chez Awa Styles, la mode wax de Douala !", fallbackMessage: null, afterHoursMode: "reply_normally", afterHoursMessage: null, humanHandoverEnabled: true, salesMode: false, photoUnderstanding: true, sendDocuments: false },
   language: { mode: "auto", defaultLanguage: "fr", enabledLanguages: ["fr", "en", "wes"] },
   style: { tone: "friendly", formality: "neutral", emojiLevel: "light", replyLength: "short", mirrorCodeSwitching: false, styleNotes: "" },
   faqs: [],
