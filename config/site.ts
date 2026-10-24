@@ -33,14 +33,14 @@ export const siteConfig = {
    * verification compares them). Leave null until known — never a placeholder.
    */
   legal: {
-    /** Registered name, e.g. as on the RCCM certificate. */
-    entityName: null as string | null,
-    /** Trade register number (RCCM). */
-    rccm: null as string | null,
+    /** Registered name, as on the taxpayer record (sole proprietorship; trade name on the RCCM certificate: WazaBolt ENTERPRISE). */
+    entityName: "SYLVESTER WANKA TANIFORM (WazaBolt ENTERPRISE)" as string | null,
+    /** Trade register number (RCCM), Court of First Instance, Bamenda, 15 Oct 2026. */
+    rccm: "RC/BDA/2026/A/000590" as string | null,
     /** Taxpayer number (NIU). */
-    niu: null as string | null,
+    niu: "P068719049180K" as string | null,
     /** Where the policies were last changed (ISO date). */
-    updated: "2026-10-05",
+    updated: "2026-10-24",
   },
   /** Emails WazaBolt itself sends (via Resend; RESEND_API_KEY in the server environment). */
   email: {
