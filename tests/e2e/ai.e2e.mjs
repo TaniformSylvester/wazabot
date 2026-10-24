@@ -324,6 +324,24 @@ mkdirSync("test-results", { recursive: true });
   await patch(tok, `ai_settings?business_id=eq.${biz.id}`, { send_documents: true });
   await patch(tok, `conversations?id=eq.${chantalConv.id}`, { ai_enabled: true, human_requested: false, status: "open" });
 
+  // 2d. Phase 5 — a restaurant order on WhatsApp: takeaway, an extra priced from the menu, a note; it waits for the team.
+  await post(tok, "rpc/set_business_module", { p_business_id: biz.id, p_module: "restaurant", p_enabled: true });
+  await patch(tok, `products?id=eq.${dress.id}`, { extras: [{ name: "Ceinture", price: 2000 }] });
+  const beforeResto = sentTexts().length;
+  await deliver(text("Une robe à emporter avec ceinture svp"));
+  const restoReply = await waitFor(() => sentTexts().slice(beforeResto).find((t) => t.startsWith("Commande à emporter")));
+  const [restoOrder] = await get(tok, "orders?select=id,order_number,service_type,status,channel,total,order_items(extras,note,unit_price,ticket_id)&service_type=eq.takeaway");
+  ok(
+    "WhatsApp restaurant order: takeaway, extra priced from the menu, note kept, waits for the team (no kitchen ticket yet)",
+    !!restoReply && restoReply.includes("17000") && restoOrder?.status === "pending" && restoOrder.channel === "whatsapp" && Number(restoOrder.total) === 17000
+      && restoOrder.order_items[0]?.extras?.[0]?.name === "Ceinture" && restoOrder.order_items[0]?.note === "emballage cadeau" && restoOrder.order_items[0]?.ticket_id === null,
+    JSON.stringify({ restoReply, restoOrder }),
+  );
+  const sawExtras = claude.requests.slice(-3).some((r) => JSON.stringify(r.body.messages).includes('{\\"name\\":\\"Ceinture\\",\\"price\\":2000}'));
+  ok("the assistant saw the dish's extras with their price (catalog lookup)", sawExtras);
+  await post(tok, "rpc/set_business_module", { p_business_id: biz.id, p_module: "restaurant", p_enabled: false });
+  await patch(tok, `products?id=eq.${dress.id}`, { extras: [] });
+
   // 3. Human Mode: the assistant stays silent.
   await page.reload();
   await main.getByRole("button", { name: "Take Over" }).click();

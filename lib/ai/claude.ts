@@ -193,6 +193,7 @@ function catalogBlock(catalog: NonNullable<GenerateInput["catalog"]>) {
     currency: p.currency,
     inStock: p.inStock,
     ...(p.hasPhoto ? { hasPhoto: true } : {}),
+    ...(p.extras ? { extras: p.extras } : {}),
     ...(p.options ? { options: p.options, ...(p.pricesVary ? { pricesVary: true } : {}) } : {}),
     ...(p.variants.length ? { variants: p.variants.map((v) => ({ variantId: v.variantId, label: v.label, ...(v.price !== p.price ? { price: v.price } : {}), inStock: v.inStock })) } : {}),
   }));

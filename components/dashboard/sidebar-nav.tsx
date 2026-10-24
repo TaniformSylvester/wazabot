@@ -12,11 +12,13 @@ import { ROLE_RANK, type BusinessRole } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
 export function SidebarNav({ labels, role, modules, onNavigate }: { labels: Messages["dashboard"]["nav"]; role: BusinessRole | null; modules: Module[]; onNavigate?: () => void }) {
-  // Teachers see the school pages only; everyone else what their role and the business's modules allow.
+  // Teachers see the school pages only, kitchen staff the kitchen; everyone else what their role and the business's modules allow.
   const allowed = (i: DashboardNavItem) =>
     role === "teacher"
       ? !!i.teacher && (!i.module || modules.includes(i.module))
-      : (!i.minRole || (role !== null && ROLE_RANK[role] >= ROLE_RANK[i.minRole])) && (!i.module || modules.includes(i.module));
+      : role === "kitchen"
+        ? !!i.kitchen && (!i.module || modules.includes(i.module))
+        : (!i.minRole || (role !== null && ROLE_RANK[role] >= ROLE_RANK[i.minRole])) && (!i.module || modules.includes(i.module));
   const groups = dashboardNav.map((g) => ({ ...g, items: g.items.filter(allowed) })).filter((g) => g.items.length);
   const { t, href } = useI18n();
   const pathname = splitLocale(usePathname()).path;

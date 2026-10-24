@@ -4,6 +4,7 @@ import { ADJUST_REASONS, AFTER_HOURS_MODES, DELIVERY_METHODS, DOCUMENT_TYPES, EX
 import { REPLY_LENGTHS, TONES } from "@/lib/ai/style";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
 import { combinationCount, combinationKey, MAX_COMBINATIONS, MAX_OPTION_VALUES, MAX_OPTIONS, OPTION_NAME_MAX, OPTION_VALUE_MAX } from "@/lib/products/options";
+import { EXTRA_NAME_MAX, MAX_EXTRAS } from "@/lib/restaurant/extras";
 
 /*
  * Dashboard form schemas, shared by forms (field hints) and Server Actions
@@ -146,6 +147,16 @@ export const productSchema = z.object({
   active: checkbox,
   options: z.preprocess(parseJsonField, z.array(productOptionSchema).max(MAX_OPTIONS, "too_long")),
   variants: z.preprocess(parseJsonField, z.array(variantSchema).max(MAX_COMBINATIONS, "too_long")),
+  /** Restaurant module: priced extras (absent when the form doesn't show them, so they're kept). */
+  extras: z
+    .preprocess(
+      (v) => (v === undefined ? undefined : parseJsonField(v)),
+      z
+        .array(z.object({ name: z.string().trim().min(1).max(EXTRA_NAME_MAX), price: z.number().min(0).max(10_000_000) }), { error: "extras_invalid" })
+        .max(MAX_EXTRAS, "extras_invalid")
+        .refine((list) => new Set(list.map((e) => e.name.toLowerCase())).size === list.length, "extras_invalid"),
+    )
+    .optional(),
 }).superRefine((p, ctx) => {
   const lower = (s: string) => s.trim().toLowerCase();
   const names = p.options.map((o) => lower(o.name));

@@ -15,6 +15,7 @@ import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { variantLabel } from "@/lib/products/options";
 import { ADJUST_REASONS, type StockReason } from "@/types/database";
+import { getBusinessModules } from "@/lib/modules";
 
 export const generateMetadata = dashboardMetadata((d) => d.products.edit);
 
@@ -36,6 +37,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   const price = Number(product.price);
   const cost = product.cost_price === null ? null : Number(product.cost_price);
 
+  const restaurant = (await getBusinessModules(business)).includes("restaurant");
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <PageHeader
@@ -56,6 +58,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
             locale={locale}
             canEdit={canEdit}
             submitLabel={d.common.save}
+            extras={restaurant ? d.restaurant.extras : undefined}
           />
         </div>
 

@@ -1665,6 +1665,60 @@ export type Database = {
           },
         ];
       };
+      kitchen_tickets: {
+        Row: {
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          order_id: string;
+          ready_at: string | null;
+          seq: number;
+          served_at: string | null;
+          started_at: string | null;
+          status: string;
+        };
+        Insert: {
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          order_id: string;
+          ready_at?: string | null;
+          seq: number;
+          served_at?: string | null;
+          started_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          order_id?: string;
+          ready_at?: string | null;
+          seq?: number;
+          served_at?: string | null;
+          started_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_tickets_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "kitchen_tickets_business_id_order_id_fkey";
+            columns: ["business_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
       knowledge_documents: {
         Row: {
           active: boolean;
@@ -2194,12 +2248,15 @@ export type Database = {
       order_items: {
         Row: {
           business_id: string;
+          extras: NonNullable<Json>;
           id: string;
+          note: string | null;
           order_id: string;
           product_id: string | null;
           product_name: string;
           quantity: number;
           sku: string | null;
+          ticket_id: string | null;
           total: number;
           unit_cost: number | null;
           unit_price: number;
@@ -2208,12 +2265,15 @@ export type Database = {
         };
         Insert: {
           business_id: string;
+          extras?: NonNullable<Json>;
           id?: string;
+          note?: string | null;
           order_id: string;
           product_id?: string | null;
           product_name: string;
           quantity: number;
           sku?: string | null;
+          ticket_id?: string | null;
           total: number;
           unit_cost?: number | null;
           unit_price: number;
@@ -2222,12 +2282,15 @@ export type Database = {
         };
         Update: {
           business_id?: string;
+          extras?: NonNullable<Json>;
           id?: string;
+          note?: string | null;
           order_id?: string;
           product_id?: string | null;
           product_name?: string;
           quantity?: number;
           sku?: string | null;
+          ticket_id?: string | null;
           total?: number;
           unit_cost?: number | null;
           unit_price?: number;
@@ -2248,6 +2311,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "products";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_items_ticket_fk";
+            columns: ["business_id", "ticket_id"];
+            isOneToOne: false;
+            referencedRelation: "kitchen_tickets";
+            referencedColumns: ["business_id", "id"];
           },
           {
             foreignKeyName: "order_items_variant_id_fkey";
@@ -2383,6 +2453,7 @@ export type Database = {
           amount_paid: number;
           amount_refunded: number;
           balance_due: number | null;
+          bill_closed_at: string | null;
           business_id: string;
           channel: string;
           client_key: string | null;
@@ -2397,6 +2468,7 @@ export type Database = {
           delivery_notes: string | null;
           delivery_reference: string | null;
           discount: number;
+          guests: number | null;
           id: string;
           notes: string | null;
           order_number: string;
@@ -2405,10 +2477,12 @@ export type Database = {
           pickup_location: string | null;
           recipient_name: string | null;
           recipient_phone: string | null;
+          service_type: string | null;
           status: string;
           stock_applied: boolean;
           stock_managed: boolean;
           subtotal: number;
+          table_id: string | null;
           total: number;
           updated_at: string;
         };
@@ -2416,6 +2490,7 @@ export type Database = {
           amount_paid?: number;
           amount_refunded?: number;
           balance_due?: never;
+          bill_closed_at?: string | null;
           business_id: string;
           channel?: string;
           client_key?: string | null;
@@ -2430,6 +2505,7 @@ export type Database = {
           delivery_notes?: string | null;
           delivery_reference?: string | null;
           discount?: number;
+          guests?: number | null;
           id?: string;
           notes?: string | null;
           order_number: string;
@@ -2438,10 +2514,12 @@ export type Database = {
           pickup_location?: string | null;
           recipient_name?: string | null;
           recipient_phone?: string | null;
+          service_type?: string | null;
           status?: string;
           stock_applied?: boolean;
           stock_managed?: boolean;
           subtotal?: number;
+          table_id?: string | null;
           total?: number;
           updated_at?: string;
         };
@@ -2449,6 +2527,7 @@ export type Database = {
           amount_paid?: number;
           amount_refunded?: number;
           balance_due?: never;
+          bill_closed_at?: string | null;
           business_id?: string;
           channel?: string;
           client_key?: string | null;
@@ -2463,6 +2542,7 @@ export type Database = {
           delivery_notes?: string | null;
           delivery_reference?: string | null;
           discount?: number;
+          guests?: number | null;
           id?: string;
           notes?: string | null;
           order_number?: string;
@@ -2471,10 +2551,12 @@ export type Database = {
           pickup_location?: string | null;
           recipient_name?: string | null;
           recipient_phone?: string | null;
+          service_type?: string | null;
           status?: string;
           stock_applied?: boolean;
           stock_managed?: boolean;
           subtotal?: number;
+          table_id?: string | null;
           total?: number;
           updated_at?: string;
         };
@@ -2506,6 +2588,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "businesses";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_table_fk";
+            columns: ["business_id", "table_id"];
+            isOneToOne: false;
+            referencedRelation: "restaurant_tables";
+            referencedColumns: ["business_id", "id"];
           },
         ];
       };
@@ -2783,6 +2872,7 @@ export type Database = {
           created_at: string;
           currency: string;
           description: string | null;
+          extras: NonNullable<Json>;
           id: string;
           image_url: string | null;
           low_stock_threshold: number;
@@ -2803,6 +2893,7 @@ export type Database = {
           created_at?: string;
           currency?: string;
           description?: string | null;
+          extras?: NonNullable<Json>;
           id?: string;
           image_url?: string | null;
           low_stock_threshold?: number;
@@ -2823,6 +2914,7 @@ export type Database = {
           created_at?: string;
           currency?: string;
           description?: string | null;
+          extras?: NonNullable<Json>;
           id?: string;
           image_url?: string | null;
           low_stock_threshold?: number;
@@ -2838,6 +2930,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "products_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      restaurant_tables: {
+        Row: {
+          active: boolean;
+          area: string | null;
+          business_id: string;
+          created_at: string;
+          id: string;
+          name: string;
+          seats: number | null;
+          sort_order: number;
+        };
+        Insert: {
+          active?: boolean;
+          area?: string | null;
+          business_id: string;
+          created_at?: string;
+          id?: string;
+          name: string;
+          seats?: number | null;
+          sort_order?: number;
+        };
+        Update: {
+          active?: boolean;
+          area?: string | null;
+          business_id?: string;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          seats?: number | null;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_tables_business_id_fkey";
             columns: ["business_id"];
             isOneToOne: false;
             referencedRelation: "businesses";
@@ -3934,6 +4067,10 @@ export type Database = {
       };
     };
     Functions: {
+      _apply_items_stock: {
+        Args: { p_direction: number; p_item_ids: string[]; p_order_id: string };
+        Returns: undefined;
+      };
       _business_today: { Args: { p_business_id: string }; Returns: string };
       _customer_snapshot: {
         Args: { p_address?: string; p_business_id: string; p_customer_id: string };
@@ -3969,6 +4106,8 @@ export type Database = {
       };
       _refresh_invoice_paid: { Args: { p_document_id: string }; Returns: undefined };
       _report_card_students: { Args: { p_term_id: string }; Returns: number };
+      _restaurant_totals: { Args: { p_order_id: string }; Returns: undefined };
+      _restaurant_writer: { Args: { p_business_id: string }; Returns: boolean };
       accept_invitation: { Args: { p_token: string }; Returns: string };
       adjust_stock: {
         Args: {
@@ -4096,6 +4235,7 @@ export type Database = {
       business_slug: { Args: { p_id: string; p_name: string }; Returns: string };
       can_mark: { Args: { p_class_subject_id: string }; Returns: boolean };
       can_see_class: { Args: { p_business_id: string; p_class_id: string }; Returns: boolean };
+      can_use_kitchen: { Args: { p_business_id: string }; Returns: boolean };
       cancel_plan_change: { Args: { p_request_id: string }; Returns: undefined };
       claude_spend_since: { Args: { p_business_id: string; p_since: string }; Returns: number };
       create_invitation: {
@@ -4363,6 +4503,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      kitchen_queue: { Args: { p_business_id: string }; Returns: Json };
       link_order_customer: {
         Args: { p_business_id: string; p_customer_id: string; p_order_id: string };
         Returns: undefined;
@@ -4503,6 +4644,38 @@ export type Database = {
         };
         Returns: string;
       };
+      restaurant_add_items: {
+        Args: { p_business_id: string; p_items: Json; p_order_id: string; p_send?: boolean };
+        Returns: string;
+      };
+      restaurant_close_bill: {
+        Args: { p_business_id: string; p_order_id: string };
+        Returns: undefined;
+      };
+      restaurant_open_order: {
+        Args: {
+          p_business_id: string;
+          p_client_key?: string;
+          p_conversation_id?: string;
+          p_customer_id?: string;
+          p_delivery?: Json;
+          p_delivery_fee?: number;
+          p_guests?: number;
+          p_items?: Json;
+          p_notes?: string;
+          p_service_type: string;
+          p_table_id?: string;
+        };
+        Returns: string;
+      };
+      restaurant_remove_item: {
+        Args: { p_business_id: string; p_item_id: string; p_reason: string };
+        Returns: undefined;
+      };
+      restaurant_send_to_kitchen: {
+        Args: { p_business_id: string; p_order_id: string };
+        Returns: string;
+      };
       revoke_invitation: { Args: { p_invitation_id: string }; Returns: undefined };
       role_rank: { Args: { r: string }; Returns: number };
       sales_by_day: {
@@ -4590,6 +4763,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_ticket_status: { Args: { p_status: string; p_ticket_id: string }; Returns: undefined };
       set_ui_locale: { Args: { p_locale: string }; Returns: undefined };
       shares_business_with: { Args: { other_user: string }; Returns: boolean };
       teaches_class: { Args: { p_class_id: string }; Returns: boolean };
@@ -4615,6 +4789,7 @@ export type Database = {
         Args: { p_business_id: string; p_role: string; p_user_id: string };
         Returns: undefined;
       };
+      valid_extras: { Args: { p: Json }; Returns: boolean };
       void_document: {
         Args: { p_document_id: string; p_reason: string };
         Returns: {
@@ -4692,7 +4867,7 @@ export type Database = {
       };
     };
     Enums: {
-      business_role: "owner" | "admin" | "agent" | "viewer" | "teacher";
+      business_role: "owner" | "admin" | "agent" | "viewer" | "teacher" | "kitchen";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -4808,7 +4983,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      business_role: ["owner", "admin", "agent", "viewer", "teacher"],
+      business_role: ["owner", "admin", "agent", "viewer", "teacher", "kitchen"],
     },
   },
 } as const;

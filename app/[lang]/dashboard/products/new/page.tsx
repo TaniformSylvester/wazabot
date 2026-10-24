@@ -6,6 +6,7 @@ import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBusinessModules } from "@/lib/modules";
 
 export const generateMetadata = dashboardMetadata((d) => d.products.new);
 
@@ -25,6 +26,7 @@ export default async function NewProductPage() {
         locale={locale}
         canEdit
         submitLabel={d.common.save}
+        extras={(await getBusinessModules(business)).includes("restaurant") ? d.restaurant.extras : undefined}
       />
     </div>
   );

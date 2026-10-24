@@ -15,9 +15,15 @@ export type TablesUpdate<T extends keyof PublicSchema["Tables"]> = PublicSchema[
 
 export type BusinessRole = PublicSchema["Enums"]["business_role"];
 
-export const ROLES = ["owner", "admin", "agent", "viewer", "teacher"] as const satisfies readonly BusinessRole[];
-// Teachers (schools) rank below viewers: they see only the school pages for their classes.
-export const ROLE_RANK: Record<BusinessRole, number> = { owner: 4, admin: 3, agent: 2, viewer: 1, teacher: 0 };
+export const ROLES = ["owner", "admin", "agent", "viewer", "teacher", "kitchen"] as const satisfies readonly BusinessRole[];
+// Teachers (schools) and kitchen staff (restaurants) rank below viewers: they see only their own pages.
+export const ROLE_RANK: Record<BusinessRole, number> = { owner: 4, admin: 3, agent: 2, viewer: 1, teacher: 0, kitchen: 0 };
+
+/** Restaurant orders: on a table (an open bill), to take away, or delivered. */
+export const SERVICE_TYPES = ["dine_in", "takeaway", "delivery"] as const;
+export type ServiceType = (typeof SERVICE_TYPES)[number];
+export const TICKET_STATUSES = ["new", "preparing", "ready", "served", "cancelled"] as const;
+export type TicketStatus = (typeof TICKET_STATUSES)[number];
 
 export const CONVERSATION_STATUSES = ["open", "pending", "resolved", "archived"] as const;
 export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];

@@ -8,6 +8,9 @@ import {
   Megaphone,
   CalendarDays,
   Bot,
+  ChefHat,
+  LayoutGrid,
+  UtensilsCrossed,
   ChartColumn,
   CreditCard,
   FileBarChart,
@@ -46,6 +49,8 @@ export type DashboardNavItem = {
   module?: Module;
   /** Shown to teachers (they see school pages only). */
   teacher?: boolean;
+  /** Shown to kitchen staff (they see the kitchen screen only). */
+  kitchen?: boolean;
 };
 
 export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[] }[] = [
@@ -69,6 +74,14 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
       { key: "results", href: "/dashboard/school/results", icon: ClipboardCheck, module: "school", teacher: true },
       { key: "fees", href: "/dashboard/school/fees", icon: Banknote, module: "school" },
       { key: "schoolReports", href: "/dashboard/school/reports", icon: FileBarChart, module: "school", minRole: "admin" },
+    ],
+  },
+  {
+    key: "restaurant",
+    items: [
+      { key: "floor", href: "/dashboard/restaurant", icon: UtensilsCrossed, module: "restaurant", minRole: "viewer" },
+      { key: "kitchen", href: "/dashboard/restaurant/kitchen", icon: ChefHat, module: "restaurant", kitchen: true },
+      { key: "tables", href: "/dashboard/restaurant/tables", icon: LayoutGrid, module: "restaurant", minRole: "admin" },
     ],
   },
   {
@@ -97,7 +110,7 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
     key: "settings",
     items: [
       { key: "whatsapp", href: "/dashboard/whatsapp", icon: Smartphone },
-      { key: "team", href: "/dashboard/team", icon: UsersRound, teacher: true },
+      { key: "team", href: "/dashboard/team", icon: UsersRound, teacher: true, kitchen: true },
       { key: "billing", href: "/dashboard/billing", icon: CreditCard },
       { key: "settings", href: "/dashboard/settings", icon: Settings },
     ],

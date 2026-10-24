@@ -12,6 +12,7 @@
  *   "couleurs … en M"         → checkProductOptions for that size, then the colours in stock
  *   "montrez-moi la rouge"    → send_reply with send_photo (that colour's photo)
  *   "je prends N rouge en m"  → checkProductOptions for the combination, createOrder with its variantId
+ *   "à emporter …"            → searchProducts, createOrder as takeaway with the extra named after "avec" and a note
  *   "facture" / "reçu"        → findMyDocuments (when offered), then send_documents with what it returned;
  *                               with a document id in the text, names that id without looking it up
  *   anything else             → a greeting
@@ -97,6 +98,13 @@ function respond(body) {
     const booking = results.bookAppointment;
     if (!booking) return [call("bookAppointment", { serviceId, startsAt: `${first.date}T${first.times[0]}` })];
     return [sendReply({ reply: booking.ok ? `Rendez-vous confirmé : ${booking.service} le ${booking.startsAt}.` : "Désolé, ce créneau n'est plus libre." })];
+  }
+  if (/à emporter/.test(text)) {
+    if (!product) return [call("searchProducts", { query: "Ankara" })];
+    const extra = product.extras?.find((e) => text.includes(e.name.toLowerCase()));
+    if (!order) return [call("createOrder", { serviceType: "takeaway", items: [{ productId: product.productId, quantity: 1, ...(extra ? { extras: [extra.name] } : {}), note: "emballage cadeau" }] })];
+    if (!order.ok) return [sendReply({ reply: `Impossible : ${order.reason}.`, catalog_product_ids: [product.productId] })];
+    return [sendReply({ reply: `Commande à emporter ${order.orderNumber} : ${order.total} ${order.currency}, l'équipe la confirme.`, catalog_product_ids: [product.productId] })];
   }
   if (/facture|reçu|recu/.test(text)) {
     const forced = text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/)?.[0];

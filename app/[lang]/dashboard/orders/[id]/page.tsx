@@ -16,6 +16,7 @@ import { getOrder, listCustomerOptions, listOrderNotifications, listOrderPayment
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
+import { extrasLabel, parseExtras } from "@/lib/restaurant/extras";
 import { localizePath } from "@/lib/i18n/paths";
 import { CLOSED_ORDER_STATUSES, DELIVERY_METHODS, ORDER_STATUSES, PAYMENT_METHODS } from "@/types/database";
 
@@ -67,6 +68,12 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
                 <FileText aria-hidden /> {fromOrder.issue}
               </ActionButton>
             ) : null}
+            {order.service_type ? (
+              <Link href={localizePath(locale, `/dashboard/restaurant/orders/${order.id}`)} className={secondaryLink} data-testid="open-bill">
+                {d.restaurant.serviceTypes[order.service_type as keyof typeof d.restaurant.serviceTypes]}
+                {order.restaurant_tables?.name ? ` · ${order.restaurant_tables.name}` : ""}
+              </Link>
+            ) : null}
             <Link href={doc("invoice")} className={secondaryLink} data-testid="open-invoice">
               <FileText aria-hidden /> {x.invoice}
             </Link>
@@ -101,6 +108,8 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/[l
                     <td className={td}>
                       <span className="font-semibold">{i.product_name}</span>
                       {i.variant ? <span className="block text-xs text-slate">{i.variant}</span> : null}
+                      {parseExtras(i.extras).length ? <span className="block text-xs text-slate">+ {extrasLabel(parseExtras(i.extras))}</span> : null}
+                      {i.note ? <span className="block text-xs text-slate italic">“{i.note}”</span> : null}
                     </td>
                     <td className={`${td} font-mono text-xs text-slate`}>{i.sku ?? "—"}</td>
                     <td className={`${td} text-right whitespace-nowrap`}>{money(i.unit_price)}</td>

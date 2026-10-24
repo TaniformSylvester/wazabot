@@ -24,7 +24,7 @@ import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "
 
 const inviteSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email("email_invalid")),
-  role: z.enum(["admin", "agent", "viewer", "teacher"]),
+  role: z.enum(["admin", "agent", "viewer", "teacher", "kitchen"]),
 });
 
 /** A new link secret: only its sha256 is stored, so the link can be shown once (or renewed). */
@@ -94,7 +94,7 @@ export async function revokeInvitation(invitationId: string): Promise<FormState>
 }
 
 export async function updateMemberRole(userId: string, role: string): Promise<FormState> {
-  if (!isUuid(userId) || !["admin", "agent", "viewer", "teacher"].includes(role)) return fail("invalid");
+  if (!isUuid(userId) || !["admin", "agent", "viewer", "teacher", "kitchen"].includes(role)) return fail("invalid");
   const ctx = await authorize("admin");
   if (!ctx) return fail("forbidden");
   const supabase = await createClient();

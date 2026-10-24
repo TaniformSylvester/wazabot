@@ -10,6 +10,8 @@ import { LOCAL_DATE, LOCAL_STAMP, localDate, localStamp, localTime, localWeekday
 import { availableValues, colourOf, findVariant, parseCombination, parseOptions, usesOptions, variantAvailable, variantLabel, type Combination, type ProductOption } from "@/lib/products/options";
 
 import { searchWords } from "./search-words";
+import { resolveModules } from "@/lib/modules";
+import { linePrice, parseExtras, type Extra } from "@/lib/restaurant/extras";
 
 /*
  * Controlled tools the model may call. Each tool:
@@ -72,7 +74,7 @@ export const searchProducts = tool({
     if (!words.length) return [];
     const { data } = await ctx.db
       .from("products")
-      .select("id, name, description, category, sku, price, currency, stock_quantity, image_url, options, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
+      .select("id, name, description, category, sku, price, currency, stock_quantity, image_url, options, extras, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
       .eq("business_id", ctx.businessId)
       .eq("active", true)
       .or(words.flatMap((w) => [`name.ilike.%${w}%`, `category.ilike.%${w}%`, `description.ilike.%${w}%`, `sku.ilike.%${w}%`]).join(","))
@@ -102,6 +104,7 @@ export const searchProducts = tool({
           currency: p.currency,
           inStock: combos ? variants.some((v) => variantAvailable(v, p.stock_quantity)) : p.stock_quantity === null ? null : p.stock_quantity > 0,
           hasPhoto: catalogPhotoUrl(p.image_url) !== null,
+          ...(parseExtras(p.extras).length ? { extras: parseExtras(p.extras) } : {}),
           ...(combos ? { options: optionSummary(options, variants, p.stock_quantity), ...(variants.some((v) => Number(v.price_modifier) !== 0) ? { pricesVary: true } : {}) } : {}),
           variants: combos
             ? []
@@ -312,15 +315,29 @@ export const createOrder = tool({
   description:
     "Create an order for the current customer from catalog products. Prices come from the catalog. Only after the customer confirmed items and quantities. " +
     "Fails with reason out_of_stock (and the item) when there isn't enough stock: tell the customer and offer what is available. " +
-    "A product sold in combinations needs the variantId of the exact combination (checkProductOptions); without it the order fails with choose_options.",
+    "A product sold in combinations needs the variantId of the exact combination (checkProductOptions); without it the order fails with choose_options. " +
+    "Restaurants: a dish's extras (by name, from searchProducts) and a short note for the kitchen per item, and serviceType takeaway or delivery (delivery needs the address); the team checks the order before the kitchen starts.",
   input: z.object({
-    items: z.array(z.object({ productId: z.uuid(), variantId: z.uuid().optional(), quantity: z.number().int().min(1).max(1000) })).min(1).max(30),
+    items: z
+      .array(
+        z.object({
+          productId: z.uuid(),
+          variantId: z.uuid().optional(),
+          quantity: z.number().int().min(1).max(1000),
+          extras: z.array(z.string().trim().min(1).max(60)).max(20).optional(),
+          note: z.string().trim().max(200).optional(),
+        }),
+      )
+      .min(1)
+      .max(30),
     deliveryAddress: z.string().trim().max(500).optional(),
     notes: z.string().trim().max(1000).optional(),
+    serviceType: z.enum(["takeaway", "delivery"]).optional(),
   }),
-  async run(ctx, { items, deliveryAddress, notes }) {
+  async run(ctx, { items, deliveryAddress, notes, serviceType }) {
     if (ctx.dryRun) return estimateOrder(ctx, items);
     if (!ctx.customerId) return { ok: false as const, reason: "no_customer" };
+    if (await usesRestaurant(ctx)) return restaurantOrder(ctx, items, serviceType ?? (deliveryAddress ? "delivery" : "takeaway"), deliveryAddress, notes);
     const { data, error } = await ctx.db.rpc("create_order", {
       p_business_id: ctx.businessId,
       p_customer_id: ctx.customerId,
@@ -338,6 +355,41 @@ export const createOrder = tool({
     return { ok: true as const, orderNumber: order?.order_number, total: Number(order?.total ?? 0), currency: order?.currency };
   },
 });
+
+/** The business uses the Restaurant module (its choice, or the default for its industry). */
+async function usesRestaurant(ctx: ToolContext) {
+  const [{ data: biz }, { data: rows }] = await Promise.all([
+    ctx.db.from("businesses").select("industry").eq("id", ctx.businessId).maybeSingle(),
+    ctx.db.from("business_modules").select("module, enabled").eq("business_id", ctx.businessId),
+  ]);
+  return resolveModules(biz?.industry ?? null, rows ?? []).includes("restaurant");
+}
+
+/** A restaurant order from WhatsApp: takeaway or delivery, extras and notes; it waits for the team before the kitchen. */
+async function restaurantOrder(
+  ctx: ToolContext,
+  items: { productId: string; variantId?: string; quantity: number; extras?: string[]; note?: string }[],
+  serviceType: "takeaway" | "delivery",
+  address: string | undefined,
+  notes: string | undefined,
+) {
+  if (serviceType === "delivery" && !address) return { ok: false as const, reason: "address_needed" };
+  const { data, error } = await ctx.db.rpc("restaurant_open_order", {
+    p_business_id: ctx.businessId,
+    p_service_type: serviceType,
+    p_items: items.map((i) => ({ product_id: i.productId, variant_id: i.variantId ?? null, quantity: i.quantity, extras: i.extras ?? [], note: i.note })),
+    p_customer_id: ctx.customerId ?? undefined,
+    p_notes: notes,
+    p_delivery: serviceType === "delivery" ? { address } : undefined,
+    p_conversation_id: ctx.conversationId ?? undefined,
+  });
+  if (error?.code === "WB409") return { ok: false as const, reason: "out_of_stock", item: error.message.replace(/^insufficient stock:\s*/, "").slice(0, 200) };
+  if (error?.message?.startsWith("unknown extra")) return { ok: false as const, reason: "unknown_extra", item: error.message.replace(/^unknown extra for\s*/, "").slice(0, 200) };
+  if (error?.message?.startsWith("choose options")) return { ok: false as const, reason: "choose_options", item: error.message.replace(/^choose options for\s*/, "").slice(0, 200) };
+  if (error || !data) return { ok: false as const, reason: "rejected" };
+  const { data: order } = await ctx.db.from("orders").select("order_number, total, currency").eq("id", data).eq("business_id", ctx.businessId).single();
+  return { ok: true as const, orderNumber: order?.order_number, total: Number(order?.total ?? 0), currency: order?.currency, serviceType, waitsForTeam: true };
+}
 
 export const getOrderStatus = tool({
   name: "getOrderStatus",
@@ -535,10 +587,10 @@ export const cancelAppointment = tool({
 });
 
 /** Test chat: what createOrder would record, priced from the catalog, without saving anything. */
-async function estimateOrder(ctx: ToolContext, items: { productId: string; variantId?: string; quantity: number }[]) {
+async function estimateOrder(ctx: ToolContext, items: { productId: string; variantId?: string; quantity: number; extras?: string[] }[]) {
   const { data } = await ctx.db
     .from("products")
-    .select("id, name, price, currency, active, stock_quantity, options, product_variants(id, name, value, options, price_modifier, stock_quantity)")
+    .select("id, name, price, currency, active, stock_quantity, options, extras, product_variants(id, name, value, options, price_modifier, stock_quantity)")
     .eq("business_id", ctx.businessId)
     .in("id", items.map((i) => i.productId));
   const byId = new Map((data ?? []).map((p) => [p.id, p]));
@@ -558,7 +610,10 @@ async function estimateOrder(ctx: ToolContext, items: { productId: string; varia
       wanted.set(tracked.key, qty);
       if (qty > tracked.stock) return { ok: false as const, reason: "out_of_stock", item: variant ? `${p.name} (${variantLabel(variant, p.options)})` : p.name };
     }
-    total += Math.max(0, Number(p.price) + Number(variant?.price_modifier ?? 0)) * item.quantity;
+    const menuExtras = parseExtras(p.extras);
+    const chosen = [...new Set((item.extras ?? []).map((e) => e.trim().toLowerCase()))].map((e) => menuExtras.find((x) => x.name.toLowerCase() === e));
+    if (chosen.some((e) => !e)) return { ok: false as const, reason: "unknown_extra", item: p.name };
+    total += linePrice(Math.max(0, Number(p.price) + Number(variant?.price_modifier ?? 0)), chosen as Extra[]) * item.quantity;
     currency = p.currency;
   }
   return { ok: true as const, orderNumber: "TEST-00001", total, currency, testMode: "not saved" };

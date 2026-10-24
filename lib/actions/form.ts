@@ -53,7 +53,10 @@ export type ActionErrorKey =
   | "plan_limit_students"
   | "plan_limit_teachers"
   | "plan_limit_documents"
-  | "plan_limit_report_cards";
+  | "plan_limit_report_cards"
+  | "bill_not_paid"
+  | "table_busy"
+  | "empty_order";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -100,6 +103,8 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "plan_limit_documents";
     case "WB418":
       return "plan_limit_report_cards";
+    case "WB440":
+      return "bill_not_paid";
     case "WB420":
       return "document_locked";
     case "WB430":

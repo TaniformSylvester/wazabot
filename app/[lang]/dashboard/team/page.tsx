@@ -31,11 +31,15 @@ export default async function TeamPage() {
     isAdmin ? getEntitlements(business.id) : null,
   ]);
   // Teacher seats matter to schools (or wherever teachers were added).
-  const showTeachers = !!ent && ((await getBusinessModules(business)).includes("school") || ent.teachersUsed > 0);
+  const modules = await getBusinessModules(business);
+  const showTeachers = !!ent && (modules.includes("school") || ent.teachersUsed > 0);
   const d = t.dashboard;
   const tm = d.team;
   const roleLabel = (r: string) => d.header.roles[r as BusinessRole] ?? r;
-  const assignable = (isOwner ? (["admin", "agent", "viewer", "teacher"] as const) : (["agent", "viewer", "teacher"] as const)).map((r) => ({ value: r, label: roleLabel(r) }));
+  // The Kitchen role is offered to restaurants.
+  const assignable = (isOwner ? (["admin", "agent", "viewer", "teacher", "kitchen"] as const) : (["agent", "viewer", "teacher", "kitchen"] as const))
+    .filter((r) => r !== "kitchen" || modules.includes("restaurant"))
+    .map((r) => ({ value: r, label: roleLabel(r) }));
   const canManage = (role: BusinessRole, userId: string) => isAdmin && userId !== user.id && role !== "owner" && (role !== "admin" || isOwner);
 
   return (

@@ -158,7 +158,7 @@ export async function getProduct(businessId: string, id: string, withCost = fals
   const { data } = await db
     .from("products")
     .select(
-      "id, business_id, name, description, category, sku, price, currency, stock_quantity, image_url, active, created_at, updated_at, low_stock_threshold, stock_low, unit, options, product_variants(id, name, value, options, stock_quantity, price_modifier, sort_order)",
+      "id, business_id, name, description, category, sku, price, currency, stock_quantity, image_url, active, created_at, updated_at, low_stock_threshold, stock_low, unit, options, extras, product_variants(id, name, value, options, stock_quantity, price_modifier, sort_order)",
     )
     .eq("business_id", businessId)
     .eq("id", id)
@@ -493,7 +493,7 @@ export async function getOrder(businessId: string, id: string, withCost = false)
   const db = await createClient();
   const { data: row } = await db
     .from("orders")
-    .select("*, customers(id, reference, name, whatsapp_phone, email, city), order_items(id, product_id, product_name, variant, sku, quantity, unit_price, total)")
+    .select("*, customers(id, reference, name, whatsapp_phone, email, city), order_items(id, product_id, product_name, variant, sku, quantity, unit_price, total, extras, note), restaurant_tables(name)")
     .eq("business_id", businessId)
     .eq("id", id)
     .maybeSingle();

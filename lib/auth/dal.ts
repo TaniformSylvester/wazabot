@@ -171,6 +171,10 @@ export async function requireBusiness(next = "/dashboard"): Promise<BusinessCont
   if (business.role === "teacher" && !/^\/(en|fr)\/dashboard\/(school|team)(\/|$|\?)/.test(next)) {
     redirect(next.startsWith("/fr") ? "/fr/dashboard/school" : "/en/dashboard/school");
   }
+  // Kitchen staff use the kitchen screen only (and Team, to leave).
+  if (business.role === "kitchen" && !/^\/(en|fr)\/dashboard\/(restaurant\/kitchen|team)(\/|$|\?)/.test(next)) {
+    redirect(next.startsWith("/fr") ? "/fr/dashboard/restaurant/kitchen" : "/en/dashboard/restaurant/kitchen");
+  }
   return { user, business };
 }
 

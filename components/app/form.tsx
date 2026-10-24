@@ -102,6 +102,11 @@ export function SubmitButton({ children, className, variant }: { children: React
   );
 }
 
+/** The form's last result (e.g. to clear client-side state after a successful save). */
+export function useFormResult() {
+  return useFormCtx().state;
+}
+
 /** Returns the translated error for a field name, if any. */
 export function useFieldError(name: string) {
   const { state } = useFormCtx();

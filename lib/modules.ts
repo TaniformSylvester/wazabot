@@ -12,12 +12,14 @@ import { createClient } from "@/lib/supabase/server";
  * and Row Level Security.
  */
 
-export const MODULES = ["commerce", "ai", "docs", "school"] as const;
+export const MODULES = ["commerce", "ai", "docs", "school", "restaurant"] as const;
 export type Module = (typeof MODULES)[number];
 
-/** Schools: school + documents + WhatsApp AI. Everyone else: commerce + documents + WhatsApp AI. */
+/** Schools: school + documents + WhatsApp AI. Restaurants: also the restaurant module. Everyone else: commerce + documents + WhatsApp AI. */
 export function defaultModules(industry: string | null): Module[] {
-  return industry === "school" ? ["school", "docs", "ai"] : ["commerce", "docs", "ai"];
+  if (industry === "school") return ["school", "docs", "ai"];
+  if (industry === "restaurant") return ["commerce", "restaurant", "docs", "ai"];
+  return ["commerce", "docs", "ai"];
 }
 
 export function resolveModules(industry: string | null, rows: { module: string; enabled: boolean }[]): Module[] {

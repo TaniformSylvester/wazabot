@@ -9,6 +9,7 @@ import { getOrder, listOrderPayments } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
+import { extrasLabel, parseExtras } from "@/lib/restaurant/extras";
 
 export const generateMetadata = dashboardMetadata((d) => d.orders.documents.invoice);
 
@@ -116,6 +117,8 @@ export default async function OrderDocumentPage({ params, searchParams }: PagePr
                   <td className="py-2 pr-1.5 sm:pr-3">
                     {i.product_name}
                     {i.variant || i.sku ? <span className="block text-xs text-slate">{[i.variant, i.sku].filter(Boolean).join(" · ")}</span> : null}
+                    {parseExtras(i.extras).length ? <span className="block text-xs text-slate">+ {extrasLabel(parseExtras(i.extras))}</span> : null}
+                    {i.note ? <span className="block text-xs text-slate italic">“{i.note}”</span> : null}
                   </td>
                   <td className="px-1.5 py-2 text-right sm:px-3">{i.quantity}</td>
                   <td className="px-1.5 py-2 text-right sm:px-3 sm:whitespace-nowrap">{money(i.unit_price)}</td>

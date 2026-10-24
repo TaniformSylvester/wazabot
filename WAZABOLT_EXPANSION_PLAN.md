@@ -57,7 +57,7 @@ Permissions: viewers read; agents create drafts, issue invoices and quotations; 
 
 **Phase 4 — WhatsApp AI and documents.** Built (23 Oct 2026): see `docs/wazabolt-phase4-whatsapp-documents.md` (owner decisions: the assistant sends only documents the business already issued — never creates one; on by default with a switch; invoices and receipts only). Tools `requestInvoice` / `requestReceipt` that only return documents of the verified customer for an existing order, rendered by the same engine and sent as WhatsApp documents; every action logged on the conversation; human handover unchanged.
 
-**Phase 5 — industry modules.** Hotels (rooms, reservations), restaurants (menu, bills), property (properties, tenants, rent receipts), construction (projects, estimates), built on the module switch, services, documents and payments. Only after demand is confirmed.
+**Phase 5 — industry modules.** Restaurants built first (24 Oct 2026): see `docs/wazabolt-phase5-restaurants.md` (owner decisions: open bills per table, a kitchen screen with a Kitchen role, priced extras, all plans). Next ones after demand is confirmed. Hotels (rooms, reservations), restaurants (menu, bills), property (properties, tenants, rent receipts), construction (projects, estimates), built on the module switch, services, documents and payments. Only after demand is confirmed.
 
 ## 5. Modules and navigation (from Phase 3)
 

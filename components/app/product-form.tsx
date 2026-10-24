@@ -1,14 +1,16 @@
 import { ActionForm, CheckboxField, SelectField, SubmitButton, TextArea, TextField, type FormText } from "@/components/app/form";
 import { Panel } from "@/components/app/ui";
 import { OptionsEditor } from "@/components/app/options-editor";
+import { ExtrasEditor } from "@/components/restaurant/extras-editor";
 import type { VariantRow } from "@/components/app/variants-editor";
 import { saveProduct } from "@/lib/actions/products";
 import { currencyLabel, format } from "@/lib/i18n/format";
 import { parseCombination, parseOptions } from "@/lib/products/options";
+import { parseExtras } from "@/lib/restaurant/extras";
 import { PRODUCT_UNITS, type Tables } from "@/types/database";
 import type { Messages } from "@/messages/en";
 
-type Product = Omit<Tables<"products">, "options"> & { options: unknown; product_variants: { id: string; name: string; value: string; options: unknown; stock_quantity: number | null; price_modifier: number }[] };
+type Product = Omit<Tables<"products">, "options" | "extras"> & { options: unknown; extras?: unknown; product_variants: { id: string; name: string; value: string; options: unknown; stock_quantity: number | null; price_modifier: number }[] };
 
 /** Create/edit product form (server component shell around client fields). */
 export function ProductForm({
@@ -19,8 +21,11 @@ export function ProductForm({
   locale,
   canEdit,
   submitLabel,
+  extras,
 }: {
   t: Messages["dashboard"]["products"];
+  /** Restaurant module: the dish's priced extras. */
+  extras?: Messages["dashboard"]["restaurant"]["extras"];
   text: FormText;
   product: Product | null;
   currency: string;
@@ -74,6 +79,12 @@ export function ProductForm({
         {/* Remounts after each save so photos uploaded just now show (and are kept on the next save). */}
         <OptionsEditor key={product?.updated_at ?? "new"} t={t.options} tv={t.variants} initialOptions={options} initialCombinations={combos} legacy={legacy} />
       </Panel>
+
+      {extras ? (
+        <Panel title={extras.title} description={extras.text}>
+          <ExtrasEditor key={product?.updated_at ?? "new"} t={extras} initial={parseExtras(product?.extras)} />
+        </Panel>
+      ) : null}
 
       <Panel title={f.image}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
