@@ -32,9 +32,10 @@ export function socialFor(locale: Locale, t: Messages, { title, description, pat
       type: "website",
       locale: ogLocale[locale],
       alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => ogLocale[l]),
-      images: [{ url: `/${locale}/opengraph-image`, width: 1200, height: 630, alt: t.meta.ogAlt }],
+      // A small JPEG made from the generated image (scripts/og-images.mjs): WhatsApp skips preview images over ~300 KB.
+      images: [{ url: `/og/wazabolt-${locale}.jpg`, width: 1200, height: 630, type: "image/jpeg", alt: t.meta.ogAlt }],
     },
-    twitter: { card: "summary_large_image", title, description, images: [{ url: `/${locale}/twitter-image`, alt: t.meta.ogAlt }] },
+    twitter: { card: "summary_large_image", title, description, images: [{ url: `/og/wazabolt-${locale}.jpg`, alt: t.meta.ogAlt }] },
   };
 }
 

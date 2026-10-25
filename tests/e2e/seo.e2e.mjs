@@ -68,8 +68,13 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
     const solutions = (await get("/en/solutions")).body;
     ok("solutions links to the three landing pages", ["retail", "schools", "restaurants"].every((s) => solutions.includes(`href="/en/solutions/${s}"`)));
 
-    const og = await get("/en/opengraph-image");
-    ok("share image renders (PNG)", og.status === 200 && og.type.startsWith("image/png"));
+    for (const locale of ["en", "fr"]) {
+      const src = meta((await get(`/${locale}/pricing`)).body, "og:image");
+      const img = src ? await fetch(src.replace(/^https?:\/\/[^/]+/, APP)) : null;
+      const bytes = img ? (await img.arrayBuffer()).byteLength : 0;
+      // WhatsApp leaves the preview out when the image is over ~300 KB.
+      ok(`${locale}: share image is a small JPEG WhatsApp will show`, img?.status === 200 && img.headers.get("content-type") === "image/jpeg" && bytes > 10_000 && bytes < 300_000, `${src} ${bytes} bytes`);
+    }
 
     const sitemap = (await get("/sitemap.xml")).body;
     const locs = [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);

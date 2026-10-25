@@ -28,6 +28,12 @@ Each page has six features and three questions. The pages are linked from Soluti
 
 **Link previews.** Every page has its own share title, link and preview image. Before, inner pages such as Pricing and Features had no image when shared on WhatsApp or Facebook, and every page used the home page's Twitter text.
 
+**Preview image size.** The share image is a JPEG of about 75 KB in `public/og/` (`wazabolt-en.jpg`, `wazabolt-fr.jpg`). The generated PNG was about 700 KB, and WhatsApp leaves the preview out when the image is over about 300 KB.
+
+- The headline in the image now shrinks to fit. The current hero text, the French one above all, overflowed the bottom of the image.
+- After changing the hero headline, regenerate the JPEGs with the app running: `node scripts/og-images.mjs`.
+- WhatsApp keeps a preview for each link once it has made one. To see a new preview, test with a link you haven't sent before, e.g. `…/en/pricing?v=2`.
+
 **Structured data (schema.org)** helps Google show richer results:
 
 - **Every page:** WazaBolt as an organisation, with the Bamenda address, phone, email and WhatsApp link.

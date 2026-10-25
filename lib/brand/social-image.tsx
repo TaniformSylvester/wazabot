@@ -83,6 +83,10 @@ export async function renderSocialImage(format: SocialFormat, copy: SocialCopy =
   const muted = dark ? "rgba(255,255,255,0.72)" : brandHex.slate;
   const icon = dataSvg(markSvg({ size: 200, knockout: dark ? brandHex.deep : brandHex.cream }));
   const [pw, ph] = f.photo;
+  // The format's size fits a headline as long as the default one; longer headlines (the hero, in French above all) are set smaller so they never overflow.
+  const fitLength = defaultCopy.headline.replace(/<\/?hl>/g, "").length;
+  const length = `${before}${highlight}${after}`.length;
+  const headlineSize = Math.min(f.headline, Math.floor(f.headline * Math.sqrt(fitLength / length)));
 
   const logo = (
     <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -103,7 +107,7 @@ export async function renderSocialImage(format: SocialFormat, copy: SocialCopy =
         style={{
           display: "flex",
           flexWrap: "wrap",
-          fontSize: f.headline,
+          fontSize: headlineSize,
           fontWeight: 800,
           letterSpacing: -2.4,
           lineHeight: 1.04,
