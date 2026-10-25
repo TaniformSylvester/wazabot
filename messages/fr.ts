@@ -3,17 +3,24 @@ import type { Messages } from "./en";
 /** French UI dictionary. Must match messages/en.ts key for key (enforced by the Messages type). */
 const fr: Messages = {
   meta: {
-    siteTitle: "WazaBolt — L'automatisation WhatsApp pour les entreprises africaines",
+    siteTitle: "WazaBolt — Ventes, stock, factures et IA WhatsApp pour les entreprises au Cameroun",
     siteDescription:
-      "WazaBolt est votre assistant d'entreprise IA sur WhatsApp. Il répond aux questions de vos clients en français, en anglais et en pidgin, partage vos produits et vos prix, enregistre les commandes et passe la main à votre équipe si nécessaire.",
+      "Enregistrez vos ventes, suivez votre stock et les crédits clients, créez factures et reçus en FCFA, et laissez un assistant IA répondre à vos clients sur WhatsApp en français, en anglais et en pidgin. Forfait gratuit.",
     keywords: [
-      "automatisation WhatsApp entreprise",
-      "WhatsApp Business Afrique",
-      "commandes WhatsApp",
-      "service client IA",
-      "Cameroun",
       "WazaBolt",
-      "assistant d'entreprise IA",
+      "logiciel de gestion Cameroun",
+      "logiciel de gestion de stock Cameroun",
+      "logiciel de caisse Cameroun",
+      "facture en FCFA",
+      "générateur de factures gratuit",
+      "automatisation WhatsApp entreprise",
+      "assistant IA WhatsApp",
+      "logiciel de gestion scolaire Cameroun",
+      "bulletins de notes",
+      "logiciel restaurant Cameroun",
+      "Douala",
+      "Yaoundé",
+      "Bamenda",
       "français anglais pidgin",
     ],
     ogAlt: "WazaBolt — Boostez votre entreprise sur WhatsApp. Ne manquez plus aucun client.",
@@ -23,31 +30,31 @@ const fr: Messages = {
         description: "Créez une facture, un reçu ou un devis professionnel en FCFA, en français ou en anglais, et téléchargez-le en PDF. Gratuit, sans compte.",
       },
       features: {
-        title: "Fonctionnalités",
+        title: "Fonctionnalités : ventes, stock, factures et assistant IA WhatsApp",
         description:
-          "Répondez aux clients dans leur langue, partagez vos produits, enregistrez les commandes, gérez vos clients et reprenez la main à tout moment — WazaBolt, votre assistant d'entreprise IA sur WhatsApp.",
+          "Tout WazaBolt : une caisse pour vos ventes, le stock et les crédits clients, les dépenses et le bénéfice, les factures et reçus en FCFA, et un assistant IA qui répond et prend les commandes sur WhatsApp.",
       },
       howItWorks: {
-        title: "Comment ça marche",
+        title: "Comment fonctionne WazaBolt",
         description:
-          "Comment fonctionne WazaBolt : connectez votre compte WhatsApp Business, ajoutez les informations de votre entreprise, laissez WazaBolt répondre et reprenez la main quand vous voulez.",
+          "Créez un compte gratuit, ajoutez vos produits et commencez à vendre. Connectez votre numéro WhatsApp professionnel : WazaBolt répond à vos clients et vous reprenez la main quand vous voulez.",
       },
       pricing: {
-        title: "Tarifs",
-        description: "Des forfaits WazaBolt simples en XAF, de Gratuit à Pro. L'usage de l'IA est plafonné — pas de mauvaise surprise « illimitée ».",
+        title: "Tarifs en FCFA, avec un forfait gratuit",
+        description: "Les forfaits WazaBolt en FCFA, de Gratuit à Pro : commencez gratuitement avec les ventes, le stock et les factures, puis ajoutez l'assistant IA WhatsApp quand votre entreprise est prête.",
       },
       solutions: {
-        title: "Solutions",
+        title: "Solutions pour boutiques, écoles, restaurants et plus",
         description:
-          "Comment les boutiques, restaurants, hôtels, marques de mode, salons, agences immobilières, écoles et prestataires de services utilisent WazaBolt sur WhatsApp.",
+          "Comment les boutiques, restaurants, hôtels, marques de mode, salons, agences immobilières, écoles et prestataires de services au Cameroun utilisent WazaBolt pour vendre, gérer et répondre à leurs clients.",
       },
-      faq: { title: "FAQ", description: "Réponses aux questions fréquentes sur WazaBolt, WhatsApp, les langues et les conversations IA." },
+      faq: { title: "Questions fréquentes", description: "Réponses sur WazaBolt : le forfait gratuit, les paiements en FCFA, WhatsApp, les langues, l'assistant IA et vos données." },
       resources: { title: "Ressources", description: "Guides, réponses et aide pour lancer votre entreprise sur WazaBolt." },
       about: {
-        title: "À propos",
-        description: "WazaBolt conçoit l'automatisation WhatsApp pour les entreprises africaines, en commençant par le Cameroun.",
+        title: "À propos de WazaBolt",
+        description: "WazaBolt est une entreprise immatriculée à Bamenda, au Cameroun, qui conçoit des logiciels de gestion et l'automatisation WhatsApp pour les entreprises africaines.",
       },
-      contact: { title: "Contact", description: "Contactez l'équipe WazaBolt." },
+      contact: { title: "Nous contacter", description: "Contactez l'équipe WazaBolt à Bamenda, au Cameroun : téléphone et WhatsApp +237 651 575 933, e-mail contact@wazabolt.com." },
       privacy: { title: "Politique de confidentialité", description: "Comment WazaBolt traite vos données." },
       terms: { title: "Conditions d'utilisation", description: "Les conditions d'utilisation de WazaBolt." },
       login: { title: "Connexion", description: "Connectez-vous à WazaBolt." },
@@ -562,6 +569,79 @@ const fr: Messages = {
     },
   },
 
+  landing: {
+    breadcrumb: "Solutions",
+    featuresTitle: "Ce que vous pouvez faire avec WazaBolt",
+    faqTitle: "Questions",
+    start: "Commencer gratuitement",
+    seeAll: "Voir tous les types d'entreprise",
+    learnMore: "En savoir plus",
+    pages: {
+      retail: {
+        metaTitle: "Logiciel de gestion de boutique au Cameroun : ventes, stock et crédits",
+        metaDescription:
+          "WazaBolt pour les boutiques au Cameroun : enregistrez les ventes à la caisse, suivez le stock par taille et couleur, gérez les crédits clients, faites des reçus en FCFA et répondez à vos clients sur WhatsApp. Forfait gratuit.",
+        eyebrow: "Pour les boutiques",
+        title: "Gérez votre boutique depuis votre téléphone",
+        lead: "Enregistrez chaque vente, sachez ce qu'il reste en stock, voyez qui vous doit de l'argent, et laissez WazaBolt répondre à vos clients sur WhatsApp en français, en anglais et en pidgin.",
+        features: [
+          { title: "Une caisse pour chaque vente", text: "Encaissez en quelques secondes, en espèces, MTN MoMo ou Orange Money, et imprimez ou partagez le reçu." },
+          { title: "Un stock toujours à jour", text: "Chaque vente sort les articles du stock. Suivez tailles et couleurs, fixez un minimum et voyez ce qui va manquer." },
+          { title: "Les crédits clients sous contrôle", text: "Vendez à crédit, enregistrez les paiements quand ils arrivent et voyez d'un coup d'œil qui vous doit et combien." },
+          { title: "Dépenses et bénéfice estimé", text: "Notez le loyer, le transport et les autres frais, et voyez votre bénéfice estimé du jour, de la semaine ou du mois (forfaits payants)." },
+          { title: "Factures, reçus et devis en FCFA", text: "Créez des documents professionnels en français ou en anglais, téléchargez-les en PDF ou envoyez-les sur WhatsApp." },
+          { title: "Un assistant WhatsApp qui vend pour vous", text: "Il répond aux questions de prix et de stock à partir de votre catalogue, prend les commandes avec l'adresse de livraison et vous passe la main si besoin." },
+        ],
+        faq: [
+          { q: "Y a-t-il un forfait gratuit pour les boutiques ?", a: "Oui. Le forfait Gratuit comprend la caisse, le stock, les clients et les factures avec des limites mensuelles. Les forfaits payants en FCFA lèvent les limites et ajoutent les dépenses, le bénéfice et l'assistant WhatsApp." },
+          { q: "WazaBolt vérifie-t-il les paiements Mobile Money ?", a: "Pas encore. Les paiements sont saisis à la main : WazaBolt ne les vérifie pas auprès de MTN ou d'Orange, et une référence saisie n'est pas une vérification." },
+          { q: "Mon personnel peut-il l'utiliser ?", a: "Oui. Invitez votre équipe avec un accès personnel et choisissez ce que chacun peut faire. Le nombre d'utilisateurs dépend de votre forfait." },
+        ],
+      },
+      schools: {
+        metaTitle: "Logiciel de gestion scolaire au Cameroun : notes, bulletins et frais",
+        metaDescription:
+          "WazaBolt pour les écoles au Cameroun : élèves et classes, notes saisies par les enseignants, notation sur 20 ou sur 100 avec coefficients, bulletins en PDF, et frais de scolarité avec factures et reçus. Comptes enseignants gratuits.",
+        eyebrow: "Pour les écoles",
+        title: "Notes, bulletins et frais au même endroit",
+        lead: "Les enseignants saisissent leurs notes, l'école vérifie et publie les résultats, et les bulletins sortent en PDF, prêts à imprimer ou à envoyer aux parents.",
+        features: [
+          { title: "Élèves, classes et matières", text: "Inscrivez les élèves dans leurs classes, définissez les matières et leurs coefficients, et organisez l'année en trimestres et évaluations." },
+          { title: "Des notes saisies par les enseignants", text: "Chaque enseignant a un compte gratuit et ne saisit que les notes de ses classes et matières. Chaque modification est enregistrée." },
+          { title: "Vos règles de notation", text: "Notes sur 20 ou sur 100, coefficients, évaluations pondérées et mentions, calculées de la même façon à chaque fois." },
+          { title: "Des résultats publiés quand vous êtes prêts", text: "Vérifiez les résultats, puis publiez-les. Les parents ne voient les résultats qu'après leur publication par l'école." },
+          { title: "Des bulletins en PDF", text: "Un bulletin par élève, ou toute une classe dans un seul PDF avec les forfaits payants, en français ou en anglais." },
+          { title: "Frais de scolarité avec factures et reçus", text: "Facturez les frais par élève, enregistrez ce que paient les parents et remettez un reçu pour chaque paiement." },
+        ],
+        faq: [
+          { q: "Les parents ont-ils besoin d'un compte ?", a: "Non. Les parents reçoivent les résultats de l'école : un bulletin imprimé, ou un PDF sur WhatsApp envoyé par l'école." },
+          { q: "Les comptes enseignants sont-ils payants ?", a: "Non. Les comptes enseignants sont gratuits et ne comptent pas comme utilisateurs de votre forfait." },
+          { q: "Peut-on l'utiliser pour le primaire et le secondaire ?", a: "Oui. Vous choisissez la notation de l'école : sur 20 ou sur 100, avec vos coefficients, trimestres et évaluations." },
+        ],
+      },
+      restaurants: {
+        metaTitle: "Logiciel pour restaurant au Cameroun : tables, écran cuisine et additions",
+        metaDescription:
+          "WazaBolt pour les restaurants, snacks et cafés au Cameroun : additions ouvertes par table, commandes envoyées à un écran cuisine, suppléments payants, à emporter et livraison, et commandes WhatsApp. Comptes cuisine gratuits.",
+        eyebrow: "Pour les restaurants",
+        title: "De la table à la cuisine, sans papier",
+        lead: "Ouvrez une addition pour chaque table, envoyez chaque tournée à l'écran cuisine, ajoutez suppléments et remarques, et clôturez l'addition une fois payée. Vos clients peuvent aussi commander sur WhatsApp.",
+        features: [
+          { title: "Des additions ouvertes par table", text: "Les serveurs ajoutent les plats à l'addition de la table, tournée après tournée. Le total est toujours à jour." },
+          { title: "Un écran pour la cuisine", text: "Chaque tournée s'affiche sur l'écran cuisine, qui se met à jour tout seul. Les cuisiniers indiquent les plats en préparation et prêts." },
+          { title: "Suppléments et remarques", text: "Les suppléments payants, comme un œuf ou du plantain en plus, et les remarques comme « sans piment » partent en cuisine avec le plat." },
+          { title: "À emporter et livraison", text: "Prenez les commandes à emporter ou à livrer à côté des tables, au même endroit." },
+          { title: "Paiements et addition", text: "Imprimez l'addition, encaissez plusieurs paiements pour une table et clôturez l'addition quand elle est entièrement payée." },
+          { title: "Des commandes sur WhatsApp", text: "L'assistant partage le menu et les prix et prend les commandes avec suppléments et remarques, à emporter ou en livraison." },
+        ],
+        faq: [
+          { q: "Les comptes cuisine sont-ils payants ?", a: "Non. Chaque restaurant a jusqu'à 10 comptes cuisine gratuits avec tous les forfaits, et ils ne comptent pas comme utilisateurs." },
+          { q: "Quels forfaits comprennent les outils restaurant ?", a: "Tous, y compris le forfait Gratuit." },
+          { q: "Faut-il un équipement spécial ?", a: "Non. WazaBolt fonctionne dans le navigateur : un téléphone ou une tablette pour les serveurs et n'importe quel écran pour la cuisine." },
+        ],
+      },
+    },
+  },
   solutions: {
     items: {
       retail: {

@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test:e2e": "node tests/e2e/auth.e2e.mjs",
     "test:e2e:dashboard": "node tests/e2e/dashboard.e2e.mjs",
+    "test:e2e:seo": "node tests/e2e/seo.e2e.mjs",
     "test:e2e:whatsapp": "node tests/e2e/whatsapp.e2e.mjs",
     "test:e2e:operations": "node tests/e2e/operations.e2e.mjs",
     "test:e2e:pos": "node tests/e2e/pos.e2e.mjs",

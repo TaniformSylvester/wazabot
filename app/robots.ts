@@ -4,7 +4,7 @@ import { siteConfig } from "@/config/site";
 import { LOCALES } from "@/lib/i18n/config";
 
 export default function robots(): MetadataRoute.Robots {
-  const privatePaths = ["/login", "/register", "/forgot-password", "/reset-password", "/dashboard"];
+  const privatePaths = ["/login", "/register", "/forgot-password", "/reset-password", "/dashboard", "/admin"];
   return {
     rules: {
       userAgent: "*",

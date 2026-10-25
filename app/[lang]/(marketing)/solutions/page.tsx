@@ -1,18 +1,20 @@
-import { Check } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Check } from "lucide-react";
 
 import { CTASection } from "@/components/marketing/cta-section";
 import { PageIntro } from "@/components/marketing/page-intro";
 import { Reveal } from "@/components/motion/reveal";
-import { solutions } from "@/config/solutions";
+import { landingKey, solutions } from "@/config/solutions";
 import { iconTones } from "@/lib/brand/tones";
-import { getMessages } from "@/lib/i18n/dictionaries";
+import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
+import { localizePath } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
 
 export const generateMetadata = () => pageMetadata("solutions", "/solutions");
 
 export default async function SolutionsPage() {
-  const t = await getMessages();
+  const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const intro = t.pages.solutions;
   return (
     <>
@@ -45,6 +47,12 @@ export default async function SolutionsPage() {
                     </li>
                   ))}
                 </ul>
+                {landingKey(slug) ? (
+                  <Link href={localizePath(locale, `/solutions/${slug}`)} className="mt-5 inline-flex items-center gap-1.5 font-semibold text-waza-700 hover:underline">
+                    {t.landing.learnMore} <span className="sr-only">— {name}</span>
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Link>
+                ) : null}
               </div>
             </Reveal>
             );

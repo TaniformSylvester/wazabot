@@ -28,3 +28,8 @@ export const solutions: Solution[] = [
   { key: "schools", slug: "schools", icon: GraduationCap, tone: "gold" },
   { key: "services", slug: "services", icon: Briefcase, tone: "teal" },
 ];
+
+/** Business types with their own landing page (/solutions/<slug>); copy in the dictionaries (landing.pages). */
+export const LANDING_SLUGS = ["retail", "schools", "restaurants"] as const;
+export type LandingKey = (typeof LANDING_SLUGS)[number];
+export const landingKey = (slug: string): LandingKey | null => ((LANDING_SLUGS as readonly string[]).includes(slug) ? (slug as LandingKey) : null);

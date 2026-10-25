@@ -9,42 +9,15 @@ import { LiveDemo } from "@/components/marketing/live-demo";
 import { Pricing } from "@/components/marketing/pricing";
 import { Problem } from "@/components/marketing/problem";
 import { SolutionsStrip } from "@/components/marketing/solutions-strip";
-import { siteConfig } from "@/config/site";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { localizePath } from "@/lib/i18n/paths";
+import { softwareGraph } from "@/lib/seo/structured-data";
 
 export default async function HomePage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
-  const url = `${siteConfig.url}${localizePath(locale, "/")}`;
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        name: siteConfig.name,
-        url: siteConfig.url,
-        logo: `${siteConfig.url}/logo/wazabolt-icon-512.png`,
-        slogan: t.common.brand.tagline,
-      },
-      {
-        "@type": "SoftwareApplication",
-        name: siteConfig.name,
-        applicationCategory: "BusinessApplication",
-        operatingSystem: "Web",
-        description: t.meta.siteDescription,
-        url,
-        inLanguage: locale,
-        availableLanguage: ["en", "fr"],
-      },
-    ],
-  };
-
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd graph={[softwareGraph(locale, t)]} />
       <Hero />
       <Problem />
       <HowItWorks />

@@ -23,6 +23,7 @@ export function SectionHeading({
   tone = "light",
   className,
   id,
+  level = 2,
 }: {
   eyebrow?: string;
   title: React.ReactNode;
@@ -31,7 +32,10 @@ export function SectionHeading({
   tone?: "light" | "dark";
   className?: string;
   id?: string;
+  /** 1 when the section is the page's main heading (e.g. the FAQ page). */
+  level?: 1 | 2;
 }) {
+  const Heading = level === 1 ? "h1" : "h2";
   return (
     <div
       className={cn(
@@ -41,9 +45,9 @@ export function SectionHeading({
       )}
     >
       {eyebrow ? <Eyebrow tone={tone}>{eyebrow}</Eyebrow> : null}
-      <h2 id={id} className={cn("type-h2", tone === "dark" && "text-white")}>
+      <Heading id={id} className={cn("type-h2", tone === "dark" && "text-white")}>
         {title}
-      </h2>
+      </Heading>
       {description ? (
         <p className={cn("type-lead", tone === "dark" ? "text-white/70" : "text-slate")}>{description}</p>
       ) : null}

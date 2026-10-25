@@ -10,17 +10,23 @@
  */
 const en = {
   meta: {
-    siteTitle: "WazaBolt — WhatsApp Business Automation for Africa",
+    siteTitle: "WazaBolt — Sales, stock, invoices and WhatsApp AI for businesses in Cameroon",
     siteDescription:
-      "WazaBolt is your AI business assistant on WhatsApp. It answers customer questions in English, French and Pidgin, shares products and prices, captures orders and hands conversations to your team when needed.",
+      "Record sales, track stock and customer credit, make invoices and receipts in FCFA, and let an AI assistant answer your customers on WhatsApp in English, French and Pidgin. Free plan, made in Bamenda.",
     keywords: [
-      "WhatsApp business automation",
-      "WhatsApp automation Africa",
-      "WhatsApp orders",
-      "AI customer service",
-      "Cameroon",
       "WazaBolt",
-      "AI business assistant",
+      "business management software Cameroon",
+      "stock management software Cameroon",
+      "point of sale Cameroon",
+      "invoice generator FCFA",
+      "WhatsApp business automation",
+      "WhatsApp AI assistant",
+      "school management software Cameroon",
+      "report card software",
+      "restaurant software Cameroon",
+      "Bamenda",
+      "Douala",
+      "Yaoundé",
       "English French Pidgin",
     ],
     ogAlt: "WazaBolt — Power your business on WhatsApp. Never miss a customer.",
@@ -30,28 +36,28 @@ const en = {
         description: "Make a professional invoice, receipt or quotation in FCFA, in English or French, and download it as a PDF. Free, no account needed.",
       },
       features: {
-        title: "Features",
+        title: "Features: sales, stock, invoices and a WhatsApp AI assistant",
         description:
-          "Answer customers in their language, share products, capture orders, manage customers and take over any conversation — WazaBolt, your AI business assistant on WhatsApp.",
+          "Everything in WazaBolt: a till for sales, stock and customer credit, expenses and profit, invoices and receipts in FCFA, and an AI assistant that answers and takes orders on WhatsApp.",
       },
       howItWorks: {
-        title: "How It Works",
+        title: "How WazaBolt works",
         description:
-          "How WazaBolt works: connect your business WhatsApp account, add your business information, let WazaBolt answer, and take over anytime.",
+          "Create a free account, add your products and start selling. Connect your business WhatsApp number and WazaBolt answers customers for you, and you can take over at any time.",
       },
       pricing: {
-        title: "Pricing",
-        description: "Simple WazaBolt plans in XAF, from Free to Pro. AI usage is metered — no unlimited surprises.",
+        title: "Pricing in FCFA, with a free plan",
+        description: "WazaBolt plans in FCFA, from Free to Pro: start free with sales, stock and invoices, then add the WhatsApp AI assistant when your business is ready.",
       },
       solutions: {
-        title: "Solutions",
+        title: "Solutions for shops, schools, restaurants and more",
         description:
-          "How shops, restaurants, hotels, fashion brands, salons, real estate agencies, schools and service businesses use WazaBolt on WhatsApp.",
+          "How shops, restaurants, hotels, fashion brands, salons, real estate agencies, schools and service businesses in Cameroon use WazaBolt to sell, manage and answer customers.",
       },
-      faq: { title: "FAQ", description: "Answers to common questions about WazaBolt, WhatsApp, languages and AI conversations." },
+      faq: { title: "Frequently asked questions", description: "Answers about WazaBolt: the free plan, payments in FCFA, WhatsApp, languages, the AI assistant and your data." },
       resources: { title: "Resources", description: "Guides, answers and help for getting your business running on WazaBolt." },
-      about: { title: "About", description: "WazaBolt builds WhatsApp business automation for African businesses, starting in Cameroon." },
-      contact: { title: "Contact", description: "Contact the WazaBolt team." },
+      about: { title: "About WazaBolt", description: "WazaBolt is a business registered in Bamenda, Cameroon, building business software and WhatsApp automation for African businesses." },
+      contact: { title: "Contact", description: "Contact the WazaBolt team in Bamenda, Cameroon: phone and WhatsApp +237 651 575 933, email contact@wazabolt.com." },
       privacy: { title: "Privacy Policy", description: "How WazaBolt handles your data." },
       terms: { title: "Terms of Service", description: "The terms for using WazaBolt." },
       login: { title: "Log In", description: "Log in to WazaBolt." },
@@ -564,6 +570,79 @@ const en = {
     },
   },
 
+  landing: {
+    breadcrumb: "Solutions",
+    featuresTitle: "What you can do with WazaBolt",
+    faqTitle: "Questions",
+    start: "Start free",
+    seeAll: "See every business type",
+    learnMore: "Learn more",
+    pages: {
+      retail: {
+        metaTitle: "Shop management software in Cameroon: sales, stock and credit",
+        metaDescription:
+          "WazaBolt for shops and boutiques in Cameroon: record sales at the till, track stock by size and colour, follow customer credit, make receipts in FCFA and answer customers on WhatsApp. Free plan.",
+        eyebrow: "For shops and boutiques",
+        title: "Run your shop from your phone",
+        lead: "Record every sale, know what is left in stock, see who owes you money, and let WazaBolt answer your customers on WhatsApp in English, French and Pidgin.",
+        features: [
+          { title: "A till for every sale", text: "Ring up sales in seconds, take cash, MTN MoMo or Orange Money, and print or share the receipt." },
+          { title: "Stock that keeps itself up to date", text: "Each sale takes the items out of stock. Track sizes and colours, set a minimum and see what is running low." },
+          { title: "Customer credit, under control", text: "Sell on credit, record payments when they come, and see at a glance who owes you and how much." },
+          { title: "Expenses and estimated profit", text: "Log rent, transport and other costs and see your estimated profit for the day, the week or the month (paid plans)." },
+          { title: "Invoices, receipts and quotations in FCFA", text: "Make professional documents in English or French, download them as PDF or send them on WhatsApp." },
+          { title: "A WhatsApp assistant that sells for you", text: "It answers price and stock questions from your catalogue, takes orders with delivery details and passes the conversation to you when needed." },
+        ],
+        faq: [
+          { q: "Is there a free plan for shops?", a: "Yes. The Free plan includes the till, stock, customers and invoices with monthly limits. Paid plans in FCFA remove the limits and add expenses, profit and the WhatsApp assistant." },
+          { q: "Does WazaBolt check Mobile Money payments?", a: "Not yet. Payments are recorded by hand: WazaBolt doesn't check them with MTN or Orange, and a reference typed in is not a verification." },
+          { q: "Can my staff use it too?", a: "Yes. Invite your team with their own login and choose what each person can do. The number of users depends on your plan." },
+        ],
+      },
+      schools: {
+        metaTitle: "School management software in Cameroon: marks, report cards and fees",
+        metaDescription:
+          "WazaBolt for schools in Cameroon: students and classes, marks entered by teachers, grading out of 20 or 100 with coefficients, report cards in PDF, and school fees with invoices and receipts. Free teacher accounts.",
+        eyebrow: "For schools",
+        title: "Marks, report cards and fees in one place",
+        lead: "Teachers enter their marks, the school checks and publishes the results, and report cards come out as PDF, ready to print or send to parents.",
+        features: [
+          { title: "Students, classes and subjects", text: "Enrol students in their classes, set the subjects with their coefficients, and organise the year into terms and assessments." },
+          { title: "Marks entered by teachers", text: "Each teacher gets a free account and enters marks only for their own classes and subjects. Every change is recorded." },
+          { title: "Your grading rules", text: "Marks out of 20 or out of 100, coefficients, weighted assessments and grade boundaries, calculated the same way every time." },
+          { title: "Results published when you are ready", text: "Check the results, then publish them. Parents only see results after the school publishes them." },
+          { title: "Report cards in PDF", text: "One report card per student, or a whole class in one PDF on paid plans, in English or French." },
+          { title: "School fees with invoices and receipts", text: "Bill fees per student, record what parents pay, and give a receipt for every payment." },
+        ],
+        faq: [
+          { q: "Do parents need an account?", a: "No. Parents receive results from the school: a printed report card, or a PDF on WhatsApp sent by the school." },
+          { q: "Do teacher accounts cost extra?", a: "No. Teacher accounts are free and don't count as users on your plan." },
+          { q: "Can we use it for primary and secondary classes?", a: "Yes. You choose the grading per school: out of 20 or 100, with your own coefficients, terms and assessments." },
+        ],
+      },
+      restaurants: {
+        metaTitle: "Restaurant software in Cameroon: tables, kitchen screen and bills",
+        metaDescription:
+          "WazaBolt for restaurants, snack bars and cafés in Cameroon: open bills per table, orders sent to a kitchen screen, priced extras, takeaway and delivery, and WhatsApp orders. Free kitchen accounts.",
+        eyebrow: "For restaurants",
+        title: "From the table to the kitchen, without paper",
+        lead: "Open a bill for each table, send each round to the kitchen screen, add extras and notes, and close the bill once it is paid. Customers can also order on WhatsApp.",
+        features: [
+          { title: "Open bills per table", text: "Waiters add dishes to the table's bill round after round. The total is always up to date." },
+          { title: "A screen for the kitchen", text: "Each round appears on the kitchen screen, which refreshes on its own. Cooks mark dishes as being prepared and ready." },
+          { title: "Extras and notes", text: "Priced extras like an extra egg or plantain, and notes like “no pepper”, go straight to the kitchen with the dish." },
+          { title: "Takeaway and delivery", text: "Take orders to go or for delivery next to the dine-in tables, all in the same place." },
+          { title: "Payments and the bill", text: "Print the bill, take several payments for one table, and close the bill when it is paid in full." },
+          { title: "Orders on WhatsApp", text: "The assistant shares the menu and prices and takes orders with extras and notes, for takeaway or delivery." },
+        ],
+        faq: [
+          { q: "Do kitchen accounts cost extra?", a: "No. Each restaurant has up to 10 free kitchen accounts on every plan, and they don't count as users." },
+          { q: "Which plans include the restaurant tools?", a: "All of them, the Free plan included." },
+          { q: "Do I need special equipment?", a: "No. WazaBolt works in the browser: a phone or tablet for the waiters and any screen for the kitchen." },
+        ],
+      },
+    },
+  },
   solutions: {
     items: {
       retail: {

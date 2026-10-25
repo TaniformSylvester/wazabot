@@ -1,5 +1,5 @@
 import { IndustryCard } from "@/components/marketing/industry-card";
-import { solutions } from "@/config/solutions";
+import { landingKey, solutions } from "@/config/solutions";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
 
@@ -17,7 +17,7 @@ export async function SolutionsStrip() {
         <ul className="mt-8 grid grid-cols-4 gap-1 sm:gap-3 lg:grid-cols-8">
           {solutions.map(({ key, slug, icon, tone }) => (
             <li key={slug}>
-              <IndustryCard href={localizePath(locale, `/solutions#${slug}`)} name={t.solutions.items[key].name} icon={icon} tone={tone} />
+              <IndustryCard href={localizePath(locale, landingKey(slug) ? `/solutions/${slug}` : `/solutions#${slug}`)} name={t.solutions.items[key].name} icon={icon} tone={tone} />
             </li>
           ))}
         </ul>

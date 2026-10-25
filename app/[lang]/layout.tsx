@@ -4,9 +4,9 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { I18nProvider } from "@/components/i18n/i18n-provider";
 import { siteConfig } from "@/config/site";
 import { brandHex } from "@/lib/brand/mark-svg";
-import { LOCALES, ogLocale } from "@/lib/i18n/config";
+import { LOCALES } from "@/lib/i18n/config";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { alternatesFor } from "@/lib/i18n/metadata";
+import { alternatesFor, socialFor } from "@/lib/i18n/metadata";
 import "../globals.css";
 
 const inter = Inter({
@@ -41,19 +41,11 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t.meta.siteDescription,
     keywords: t.meta.keywords,
     alternates: alternatesFor(locale, "/"),
-    openGraph: {
-      title: t.meta.siteTitle,
-      description: t.meta.siteDescription,
-      siteName: siteConfig.name,
-      type: "website",
-      locale: ogLocale[locale],
-      alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => ogLocale[l]),
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: t.meta.siteTitle,
-      description: t.meta.siteDescription,
-    },
+    ...socialFor(locale, t, { title: t.meta.siteTitle, description: t.meta.siteDescription, path: "/" }),
+    // Search Console ownership (Settings → Ownership verification → HTML tag): the token only, set in Vercel.
+    ...(process.env.GOOGLE_SITE_VERIFICATION || process.env.BING_SITE_VERIFICATION
+      ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION || undefined, other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined } }
+      : {}),
   };
 }
 
