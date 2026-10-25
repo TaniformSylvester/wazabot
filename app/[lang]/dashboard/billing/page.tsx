@@ -32,6 +32,7 @@ export default async function BillingPage() {
     getBusinessModules(business),
   ]);
   const school = modules.includes("school");
+  const restaurant = modules.includes("restaurant");
   const b = t.dashboard.billing;
   const pf = t.pricing.features;
   const d = t.dashboard;
@@ -110,6 +111,7 @@ export default async function BillingPage() {
                 [d.plan.usage.documents, ent.documentsUsed, ent.maxDocuments, true],
                 [d.plan.usage.students, ent.studentsUsed, ent.maxStudents, school],
                 [d.plan.usage.teachers, ent.teachersUsed, ent.maxTeachers, school],
+                [d.plan.usage.kitchen, ent.kitchenUsed, ent.maxKitchen, restaurant],
               ] as const
             )
               .filter(([, , , show]) => show)
@@ -118,6 +120,7 @@ export default async function BillingPage() {
               ))}
           </dl>
           {school ? <p className="mt-3 text-xs text-slate">{d.plan.usage.teachersNote}</p> : null}
+          {restaurant ? <p className="mt-3 text-xs text-slate">{d.plan.usage.kitchenNote}</p> : null}
         </Panel>
       ) : null}
 
@@ -157,6 +160,7 @@ export default async function BillingPage() {
                         { label: pf.schoolReports, on: p.has_school_reports },
                       ]
                     : []),
+                  ...(restaurant ? [{ label: format(pf.kitchen, { count: formatNumber(p.max_kitchen, locale) }), on: true }] : []),
                 ]
                   .filter((f) => f.on || f.label === pf.profit || f.label === pf.bulkReportCards || f.label === pf.schoolReports)
                   .map((f) => (

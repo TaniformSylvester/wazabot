@@ -278,19 +278,55 @@ begin
   raise notice 'PASS another business can''t read our kitchen, tables or bills, or change them';
 end $$;
 
--- Kitchen accounts count as users on the plan.
+-- Kitchen accounts are free seats (not users): a Free restaurant (limits in force) still adds cooks, up to plans.max_kitchen.
 reset role;
 update public.businesses set free_limits_from = current_date where id = (select other from ids);
+update public.plans set max_kitchen = 2 where id = 'free';
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-4000-a965-00000000000c');
 do $$
+declare
+  b uuid := (select other from ids);
+  e record;
 begin
+  perform public.create_invitation(b, 'cook1@test.local', 'kitchen', repeat('b', 64));
+  perform public.create_invitation(b, 'cook2@test.local', 'kitchen', repeat('c', 64));
   begin
-    perform public.create_invitation((select other from ids), 'cook2@test.local', 'kitchen', repeat('b', 64));
-    raise exception 'FAIL: kitchen account beyond the Free user';
+    perform public.create_invitation(b, 'cook3@test.local', 'kitchen', repeat('d', 64));
+    raise exception 'FAIL: kitchen account over the cap';
+  exception when sqlstate 'WB419' then null;
+  end;
+  begin
+    perform public.create_invitation(b, 'waiter@test.local', 'agent', repeat('e', 64));
+    raise exception 'FAIL: a second user on Free';
   exception when sqlstate 'WB413' then null;
   end;
-  raise notice 'PASS kitchen accounts count as users on the plan';
+  select * into e from public.business_entitlements(b);
+  if e.kitchen_used <> 2 or e.max_kitchen <> 2 or e.teachers_used <> 0 then raise exception 'FAIL: entitlements %', e; end if;
+  raise notice 'PASS kitchen accounts don''t use the plan''s users: a Free restaurant invites cooks, up to its kitchen seats (pending invitations count)';
+end $$;
+
+-- Our cook (a member) isn't a user either; moving between kitchen and other roles is checked against each group.
+reset role;
+update public.businesses set free_limits_from = current_date where id = (select biz from ids);
+update public.plans set max_kitchen = 1 where id = 'free';
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-4000-a965-00000000000a');
+do $$
+declare
+  b uuid := (select biz from ids);
+begin
+  -- Users: owner + waiter (agent) = 2, over Free's 1 — existing members stay; the cook isn't counted.
+  if (select members_used from public.business_plan_limits(b)) <> 2 then raise exception 'FAIL: the cook counted as a user'; end if;
+  begin
+    perform public.update_member_role(b, '00000000-0000-4000-a965-00000000000b', 'kitchen');
+    raise exception 'FAIL: second kitchen account over the cap';
+  exception when sqlstate 'WB419' then null;
+  end;
+  perform public.update_member_role(b, '00000000-0000-4000-a965-00000000000d', 'viewer');
+  raise exception 'FAIL: cook became a user over the limit';
+exception when sqlstate 'WB413' then
+  raise notice 'PASS role changes into and out of the kitchen are checked against the kitchen seats and the users';
 end $$;
 
 rollback;

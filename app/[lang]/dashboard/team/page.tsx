@@ -33,6 +33,8 @@ export default async function TeamPage() {
   // Teacher seats matter to schools (or wherever teachers were added).
   const modules = await getBusinessModules(business);
   const showTeachers = !!ent && (modules.includes("school") || ent.teachersUsed > 0);
+  // Kitchen seats matter to restaurants (or wherever kitchen staff were added).
+  const showKitchen = !!ent && (modules.includes("restaurant") || ent.kitchenUsed > 0);
   const d = t.dashboard;
   const tm = d.team;
   const roleLabel = (r: string) => d.header.roles[r as BusinessRole] ?? r;
@@ -50,9 +52,11 @@ export default async function TeamPage() {
         <dl className="grid gap-3 sm:grid-cols-2" data-testid="team-seats">
           <UsageMeter label={d.plan.usage.members} used={limits.membersUsed} max={limits.maxMembers} enforced={limits.enforced} locale={locale} text={d.plan.usage} />
           {showTeachers ? <UsageMeter label={d.plan.usage.teachers} used={ent.teachersUsed} max={ent.maxTeachers} locale={locale} text={d.plan.usage} /> : null}
+          {showKitchen ? <UsageMeter label={d.plan.usage.kitchen} used={ent.kitchenUsed} max={ent.maxKitchen} locale={locale} text={d.plan.usage} /> : null}
         </dl>
       ) : null}
       {showTeachers ? <p className="-mt-3 text-xs text-slate">{d.plan.usage.teachersNote}</p> : null}
+      {showKitchen ? <p className="-mt-3 text-xs text-slate">{d.plan.usage.kitchenNote}</p> : null}
 
       {isAdmin ? (
         <Panel title={tm.invite} description={tm.inviteText}>

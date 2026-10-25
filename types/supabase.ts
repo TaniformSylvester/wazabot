@@ -2678,6 +2678,7 @@ export type Database = {
           id: string;
           legacy_conversations_per_month: number | null;
           max_documents: number | null;
+          max_kitchen: number;
           max_members: number | null;
           max_monthly_sales: number | null;
           max_products: number | null;
@@ -2701,6 +2702,7 @@ export type Database = {
           id: string;
           legacy_conversations_per_month?: number | null;
           max_documents?: number | null;
+          max_kitchen?: number;
           max_members?: number | null;
           max_monthly_sales?: number | null;
           max_products?: number | null;
@@ -2724,6 +2726,7 @@ export type Database = {
           id?: string;
           legacy_conversations_per_month?: number | null;
           max_documents?: number | null;
+          max_kitchen?: number;
           max_members?: number | null;
           max_monthly_sales?: number | null;
           max_products?: number | null;
@@ -4108,6 +4111,7 @@ export type Database = {
       _report_card_students: { Args: { p_term_id: string }; Returns: number };
       _restaurant_totals: { Args: { p_order_id: string }; Returns: undefined };
       _restaurant_writer: { Args: { p_business_id: string }; Returns: boolean };
+      _seat_group: { Args: { p_role: string }; Returns: string };
       accept_invitation: { Args: { p_token: string }; Returns: string };
       adjust_stock: {
         Args: {
@@ -4207,7 +4211,9 @@ export type Database = {
           enforced: boolean;
           has_bulk_report_cards: boolean;
           has_school_reports: boolean;
+          kitchen_used: number;
           max_documents: number;
+          max_kitchen: number;
           max_report_card_students: number;
           max_students: number;
           max_teachers: number;

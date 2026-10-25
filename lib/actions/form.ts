@@ -56,7 +56,8 @@ export type ActionErrorKey =
   | "plan_limit_report_cards"
   | "bill_not_paid"
   | "table_busy"
-  | "empty_order";
+  | "empty_order"
+  | "plan_limit_kitchen";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -103,6 +104,8 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "plan_limit_documents";
     case "WB418":
       return "plan_limit_report_cards";
+    case "WB419":
+      return "plan_limit_kitchen";
     case "WB440":
       return "bill_not_paid";
     case "WB420":

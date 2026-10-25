@@ -1015,6 +1015,9 @@ export type Entitlements = {
   studentsUsed: number;
   /** Teacher members plus pending teacher invitations. */
   teachersUsed: number;
+  /** Kitchen seats per restaurant, and kitchen members plus pending kitchen invitations. */
+  maxKitchen: number;
+  kitchenUsed: number;
 };
 
 export const getEntitlements = cache(async (businessId: string): Promise<Entitlements | null> => {
@@ -1034,6 +1037,8 @@ export const getEntitlements = cache(async (businessId: string): Promise<Entitle
     documentsUsed: r.documents_used,
     studentsUsed: r.students_used,
     teachersUsed: r.teachers_used,
+    maxKitchen: r.max_kitchen,
+    kitchenUsed: r.kitchen_used,
   };
 });
 

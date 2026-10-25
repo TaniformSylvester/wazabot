@@ -151,7 +151,8 @@ mkdirSync("test-results", { recursive: true });
         (await main.getByTestId("bill-round").count()) === 1,
     );
 
-    // ---------------------------------------------------------------- The cook
+    // ---------------------------------------------------------------- The cook (a free kitchen seat, even with Free limits in force)
+    sql(`update businesses set free_limits_from = current_date where id = '${biz}'`);
     await open(`/en/dashboard/team`);
     await main.getByLabel("Their email address").fill(COOK.email);
     await main.getByLabel("Role", { exact: true }).selectOption("kitchen");
@@ -174,6 +175,10 @@ mkdirSync("test-results", { recursive: true });
     await kp.waitForLoadState("networkidle").catch(() => {});
     const ticket = kmain.getByTestId("kitchen-ticket").first();
     const ticketText = await ticket.innerText();
+    await open(`/en/dashboard/team`);
+    const seats = (await main.getByTestId("team-seats").innerText()).replace(/\s+/g, " ");
+    ok("kitchen accounts are free seats: on Free (1 user, in force) the cook joins; Team shows users 1 of 1 and kitchen 1 of 30", /Users 1 of 1/.test(seats) && /Kitchen accounts 1 of 30/.test(seats), seats);
+    sql(`update businesses set free_limits_from = '2099-12-31' where id = '${biz}'`);
     ok("the cook joins with the Kitchen role and lands on the kitchen screen", sql(`select m.role from business_members m join auth.users u on u.id = m.user_id where u.email = '${COOK.email}' and m.business_id = '${biz}'`) === "kitchen");
     ok("the ticket shows the table, dishes, extras and the note — no prices", /Table T1/.test(ticketText) && /2 × Poulet DG/.test(ticketText) && /\+ Plantain frit/.test(ticketText) && /sans oignons/.test(ticketText) && !/5,500|12,000|XAF|FCFA/.test(ticketText), ticketText.replace(/\s+/g, " "));
     await kp.goto(`${APP}/en/dashboard/orders`);

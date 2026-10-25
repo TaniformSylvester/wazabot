@@ -10,7 +10,7 @@ Owner decisions applied:
   - The bill closes once paid in full and the table becomes free.
 - **A kitchen screen with a Kitchen role.**
   - Kitchen staff see only the kitchen screen (and Team, to leave).
-  - A Kitchen account **counts as a user** on the plan.
+  - Kitchen accounts are **free seats, like teacher seats** (decided 25 October 2026): 30 per restaurant on every plan, not counted as users, set by `plans.max_kitchen`. See the update section at the end.
 - **Priced extras** per dish (e.g. "Fried plantain" 500 FCFA), plus a free-text note per dish ("no pepper").
 - **All plans.** The module is open on every plan; the existing limits on products, sales a month and users still apply. No price changed.
 
@@ -158,7 +158,7 @@ None new.
 
 ## 7. Known limitations
 
-- **Kitchen accounts count as users.** A Free restaurant (1 user) can't add a cook without a bigger plan. Making kitchen accounts free, like teacher seats, would be a pricing decision for you.
+- ~~Kitchen accounts count as users.~~ Changed on 25 October: they are free seats (see the update below).
 - **The numbered invoice** (WazaBolt Docs "issue invoice" from an order) keeps the dish names and prices but not the extras' names. The extras' price is in the line. The printable bill and the order pages show the extras.
 - **No table transfers or merging bills yet,** and no splitting of dishes between guests: split payment is by amount.
 - **No reservations, and no kitchen printer.** The kitchen screen is a browser page; any phone or tablet works.
@@ -167,9 +167,30 @@ None new.
 ## 8. Outstanding and next steps
 
 1. Owner: run the migration, then approve the push.
-2. Decision: should kitchen accounts be free, like teacher seats?
+2. ~~Decision: free kitchen accounts?~~ Done (see the update below).
 3. Possible next steps:
    - Moving a bill to another table.
    - Splitting by dish.
    - Daily sales by dish and table in Reports.
    - Hotels, property or construction, once demand is confirmed.
+
+## Update — free kitchen seats (25 October 2026)
+
+Owner decision: kitchen accounts are free, like teacher seats.
+
+- **Seats:** each restaurant has up to **30 kitchen accounts on every plan**, outside the plan's users. The number is a plan setting: `update plans set max_kitchen = … where id = '…'`, and `config/economics.ts` mirrors it.
+- **How seats are counted:** the same as teacher seats.
+  - Pending kitchen invitations hold a seat.
+  - Renewing an expired invitation is checked again.
+  - Accepting an invitation doesn't count twice.
+  - Moving a member into or out of the Kitchen role is checked against the kitchen seats and the users. If the seats are full, the error is "kitchen accounts in use" (WB419).
+- **Where it shows:** Team and Billing show "Kitchen accounts X of 30" for restaurants. The plan cards list "Restaurants: 30 free kitchen accounts". The Kitchen role reads "free: doesn't count as a user".
+- **Migration:** `supabase/migrations/20261025120000_kitchen_seats.sql`. It's additive:
+  - one plan column (`max_kitchen`, default 30);
+  - `enforce_member_limit()` and `business_plan_limits()` replaced, with the same behaviour plus kitchen seats;
+  - `business_entitlements()` recreated with two more columns.
+  - No data changes.
+- **Tests:**
+  - SQL (`restaurant.sql`): a Free restaurant (limits in force) invites cooks up to its seats (cap lowered to 2 to test, pending invitations count) but not a second user. The cook isn't counted in users. Role changes are checked both ways.
+  - E2E (`restaurant.e2e.mjs`): on Free with limits in force, the cook joins, and Team shows users 1 of 1 and kitchen 1 of 30.
+  - Unit: the config has 30 kitchen seats on every plan; the admin drift check compares `max_kitchen`.
