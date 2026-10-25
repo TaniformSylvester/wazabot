@@ -17,7 +17,8 @@ import { FREE_LIMITS_GRACE_UNTIL, PLANS } from "@/config/economics";
 import { siteConfig } from "@/config/site";
 import { aiPausedByWazaBolt } from "@/lib/billing/controls";
 import { getUsageStatus } from "@/lib/billing/usage";
-import { getPlanLimits } from "@/lib/data/queries";
+import { getEntitlements, getPlanLimits } from "@/lib/data/queries";
+import { graceText } from "@/lib/billing/grace";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { createClient } from "@/lib/supabase/server";
 import { getWhatsAppConnection } from "@/lib/data/queries";
@@ -54,6 +55,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Only the standard grace date is announced (a later date is a deliberate exemption, e.g. the demo shop).
   const freeGrace =
     planLimits && planLimits.planId === "free" && !planLimits.enforced && planLimits.limitsFrom && planLimits.limitsFrom <= FREE_LIMITS_GRACE_UNTIL ? planLimits : null;
+  const graceEnt = freeGrace && business ? await getEntitlements(business.id) : null;
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
   // Only the WazaBolt team (platform_admins) sees the way to the admin pages.
@@ -167,11 +169,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div role="status" data-testid="plan-grace-notice" className={`${bar} border-gold-200 bg-gold-50 text-deep`}>
             <Info className="size-4 shrink-0 text-gold-800" aria-hidden />
             <p className="min-w-0 flex-1">
-              {format(d.plan.grace, {
+              {graceText(d.plan, {
                 date: formatDate(`${freeGrace.limitsFrom}T12:00:00Z`, locale),
-                products: formatNumber(freeGrace.maxProducts ?? 0, locale),
-                sales: formatNumber(freeGrace.maxMonthlySales ?? 0, locale),
+                limits: freeGrace,
+                ent: graceEnt,
+                school: modules.includes("school"),
                 price: formatMoney(PLANS.find((p) => p.id === "boutique")?.monthlyPrice ?? 0, business?.currency ?? "XAF", locale),
+                locale,
               })}
             </p>
             <Link href={billingHref} className="font-semibold underline underline-offset-2">

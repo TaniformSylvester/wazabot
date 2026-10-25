@@ -1,11 +1,11 @@
 import { authorize } from "@/lib/auth/dal";
 import { getPlanLimits, profitAllowed, reportDaysAllowed } from "@/lib/data/queries";
-import { addDays, expensesBetween, groupDays, productSales, resolvePeriod, salesByDay, topCustomers, type ReportGroup } from "@/lib/data/reports";
+import { addDays, expensesBetween, groupDays, invoicePaymentsBetween, productSales, resolvePeriod, salesByDay, topCustomers, type ReportGroup } from "@/lib/data/reports";
 import { isLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/load";
 import { toCsv, type Cell } from "@/lib/reports/csv";
 
-const TYPES = ["sales", "products", "customers", "expenses"] as const;
+const TYPES = ["sales", "products", "customers", "expenses", "invoice-payments"] as const;
 
 /**
  * CSV download of one report section (owners and admins). The period is
@@ -73,6 +73,15 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
       const method = (m: string | null) => (m ? (r.payments.methods[m as keyof typeof r.payments.methods] ?? m) : "");
       header = [rep.expenses.date, rep.expenses.category, rep.expenses.description, `${rep.expenses.amount} (${cur})`, rep.expenses.method, rep.expenses.reference];
       rows = expenses.map((e) => [e.spent_on, cat(e.category), e.description, e.amount, method(e.payment_method), e.reference]);
+      break;
+    }
+    case "invoice-payments": {
+      const payments = await invoicePaymentsBetween(business.id, business.timezone, from, to);
+      const inv = rep.invoices;
+      const method = (m: string) => r.payments.methods[m as keyof typeof r.payments.methods] ?? m;
+      const day = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: business.timezone });
+      header = [inv.date, inv.invoice, inv.kind, inv.customer, `${inv.amount} (${cur})`, inv.method, inv.reference];
+      rows = payments.map((p) => [day.format(new Date(p.receivedAt)), p.number, p.schoolFee ? inv.fee : inv.other, p.customer, p.amount, method(p.method), p.reference]);
       break;
     }
   }

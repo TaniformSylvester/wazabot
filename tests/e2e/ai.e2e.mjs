@@ -463,6 +463,7 @@ mkdirSync("test-results", { recursive: true });
   ok("margin report is a 404 for business owners", (await page.goto(`${APP}/en/admin/margins`))?.status() === 404);
   ok("businesses list is a 404 for business owners", (await page.goto(`${APP}/en/admin/businesses`))?.status() === 404);
   ok("pricing is a 404 for business owners", (await page.goto(`${APP}/en/admin/pricing`))?.status() === 404);
+  ok("fair use is a 404 for business owners", (await page.goto(`${APP}/en/admin/fair-use`))?.status() === 404);
   await page.goto(`${APP}/en/dashboard/ai`);
   await main.waitFor({ timeout: 10000 });
   ok("business owners don't see the WazaBolt admin link", (await page.getByRole("link", { name: "WazaBolt admin" }).count()) === 0);
@@ -498,6 +499,10 @@ mkdirSync("test-results", { recursive: true });
     await calc.waitFor({ timeout: 90000 });
     ok("pricing calculator: a plan that loses margin is flagged with the lowest safe price", /Below target/.test(await calc.innerText()) && /charge at least/.test(await calc.innerText()), await calc.innerText());
     await page.screenshot({ path: "test-results/admin-pricing.png", fullPage: true });
+    // Fair use: schools on unlimited plans (Pro), largest first, counts only.
+    await page.getByRole("link", { name: "Fair use" }).click();
+    await page.getByRole("heading", { name: "Schools, largest first" }).waitFor({ timeout: 15000 });
+    ok("fair use: the unlimited plan and the Business yardstick are named", (await page.getByText(/pro have no student or report-card limit/).count()) === 1 && (await page.getByText(/business plan allows \(500\)/).count()) === 1, await page.locator("main p").first().innerText());
     sql(`delete from platform_admins where user_id in (select id from auth.users where email = '${U.email}')`);
   }
 

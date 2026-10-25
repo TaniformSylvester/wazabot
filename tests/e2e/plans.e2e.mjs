@@ -130,7 +130,7 @@ mkdirSync("test-results", { recursive: true });
     sql(`update businesses set free_limits_from = '2026-12-01' where id = '${bizId}'`);
     await page.goto(`${APP}/en/dashboard`);
     await page.getByTestId("plan-grace-notice").waitFor({ timeout: 15000 });
-    ok("grace: existing shops see when the Free limits start, with the Boutique price", /From 1 Dec 2026/.test(await page.getByTestId("plan-grace-notice").innerText()) && /5,000 FCFA/.test(await page.getByTestId("plan-grace-notice").innerText()), await page.getByTestId("plan-grace-notice").innerText());
+    ok("grace: existing shops see when the Free limits start, with the Boutique price", /From 1 Dec 2026/.test(await page.getByTestId("plan-grace-notice").innerText()) && /20 saved documents and 1 user/.test(await page.getByTestId("plan-grace-notice").innerText()) && !/For your school/.test(await page.getByTestId("plan-grace-notice").innerText()) && /5,000 FCFA/.test(await page.getByTestId("plan-grace-notice").innerText()), await page.getByTestId("plan-grace-notice").innerText());
     await page.goto(`${APP}/en/dashboard/expenses`);
     await main.getByRole("button", { name: "Add an expense" }).waitFor({ timeout: 15000 }).catch(() => {});
     ok("grace: expenses still available until then", (await main.getByRole("button", { name: "Add an expense" }).count()) === 1);

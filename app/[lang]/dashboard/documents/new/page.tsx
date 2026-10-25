@@ -4,7 +4,7 @@ import { PlanUpsell } from "@/components/app/plan-upsell";
 import { PageHeader, param } from "@/components/app/ui";
 import { BusinessDocumentEditor } from "@/components/documents/business-editor";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getDocumentSettings, listDocumentCustomers } from "@/lib/data/documents";
+import { documentLanguage, getDocumentSettings, listDocumentCustomers } from "@/lib/data/documents";
 import { getEntitlements, limitInForce } from "@/lib/data/queries";
 import { addDays, newEditorState } from "@/lib/documents/editor-state";
 import { DOCUMENT_CURRENCIES, DOCUMENT_TYPES, type DocumentType } from "@/lib/documents/types";
@@ -44,7 +44,7 @@ export default async function NewDocumentPage({ searchParams }: PageProps<"/[lan
   const initial = newEditorState({
     type,
     template: settings.default_template,
-    language: settings.default_language ?? (business.defaultLanguage === "en" ? "en" : "fr"),
+    language: documentLanguage(settings, business),
     currency: (DOCUMENT_CURRENCIES as readonly string[]).includes(business.currency) ? (business.currency as (typeof DOCUMENT_CURRENCIES)[number]) : "XAF",
     issueDate: issue,
     dueDate: type === "invoice" ? addDays(issue, settings.default_due_days) : type === "quotation" ? addDays(issue, 30) : "",

@@ -110,7 +110,7 @@ Nothing to configure. Owners who don't want it switch it off in AI Assistant set
 ## 8. Outstanding and next steps
 
 1. Owner: run the migration, then approve the push.
-2. Still open: the document-language fallback inconsistency (see the plan entitlements report).
+2. ~~Document-language fallback inconsistency~~: fixed 25 October 2026 (English for non-French businesses everywhere), see `docs/wazabolt-cleanups-oct2026.md`.
 3. Possible next steps:
    - An approved WhatsApp template with a document, so documents can be sent outside the 24-hour window.
    - Phase 5 (industry modules), only once demand is confirmed.

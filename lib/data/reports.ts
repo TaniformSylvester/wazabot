@@ -107,6 +107,37 @@ export async function expensesBetween(businessId: string, from: string, to: stri
   return (data ?? []).map((e) => ({ ...e, amount: Number(e.amount) }));
 }
 
+export type InvoicePaymentRow = { id: string; receivedAt: string; amount: number; method: string; reference: string | null; number: string | null; documentId: string; customer: string | null; schoolFee: boolean };
+
+/**
+ * Money received on invoices outside orders (typed invoices and school fee
+ * invoices), voided payments left out. Kept apart from sales: an order's
+ * invoice is paid through the order, so it is already in the sales figures.
+ */
+export async function invoicePaymentsBetween(businessId: string, timezone: string, from: string, to: string): Promise<InvoicePaymentRow[]> {
+  const db = await createClient();
+  const { data } = await db
+    .from("invoice_payments")
+    .select("id, amount, method, reference, received_at, document_id, documents!invoice_payments_business_id_document_id_fkey(number, fee_item_id, student_id), customers!invoice_payments_business_id_customer_id_fkey(name, whatsapp_phone)")
+    .eq("business_id", businessId)
+    .is("voided_at", null)
+    .gte("received_at", localDayStart(from, timezone))
+    .lt("received_at", localDayStart(to, timezone, 1))
+    .order("received_at")
+    .limit(10000);
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    receivedAt: p.received_at,
+    amount: Number(p.amount),
+    method: p.method,
+    reference: p.reference,
+    number: p.documents?.number ?? null,
+    documentId: p.document_id,
+    customer: p.customers ? p.customers.name || `+${p.customers.whatsapp_phone ?? ""}` : null,
+    schoolFee: !!(p.documents?.fee_item_id || p.documents?.student_id),
+  }));
+}
+
 /** Customers who owe, largest balance first. */
 export async function customersWhoOwe(businessId: string, max = 10) {
   const db = await createClient();
@@ -338,15 +369,18 @@ export type ReportData = Awaited<ReturnType<typeof getReport>>;
 
 /** Everything on the reports page for one period (owners/admins). */
 export async function getReport(businessId: string, timezone: string, from: string, to: string) {
-  const [days, products, expenses, customers, owing, stock] = await Promise.all([
+  const [days, products, expenses, customers, owing, stock, invoicePayments] = await Promise.all([
     salesByDay(businessId, from, to),
     productSales(businessId, from, to),
     expensesBetween(businessId, from, to),
     topCustomers(businessId, timezone, from, to, 10),
     customersWhoOwe(businessId, 10),
     getStockAlerts(businessId, 10),
+    invoicePaymentsBetween(businessId, timezone, from, to),
   ]);
   const totals = sumDays(days);
+  const byMethod = new Map<string, number>();
+  for (const p of invoicePayments) byMethod.set(p.method, (byMethod.get(p.method) ?? 0) + p.amount);
   const expenseTotal = expenses.reduce((a, e) => a + e.amount, 0);
   const byCategory = new Map<string, number>();
   const byMonth = new Map<string, number>();
@@ -364,5 +398,11 @@ export async function getReport(businessId: string, timezone: string, from: stri
     customers,
     owing,
     stock,
+    invoicePayments: {
+      rows: invoicePayments,
+      total: invoicePayments.reduce((a, p) => a + p.amount, 0),
+      schoolFees: invoicePayments.filter((p) => p.schoolFee).reduce((a, p) => a + p.amount, 0),
+      byMethod: [...byMethod.entries()].map(([method, amount]) => ({ method, amount })).sort((a, b) => b.amount - a.amount),
+    },
   };
 }

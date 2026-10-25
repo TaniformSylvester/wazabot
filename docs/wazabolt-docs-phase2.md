@@ -142,5 +142,5 @@ None new. Sending uses each business's connected WhatsApp number (stored and enc
 3. Owner decisions still open: Free plan limit on saved documents; plan structure; legal name, RCCM and NIU.
 4. Possible next steps:
    - a document template for sending outside the 24-hour window;
-   - standalone invoice payments in Reports;
+   - ~~standalone invoice payments in Reports;~~ done 25 October 2026 (Reports → Invoice payments);
    - Phase 3 (schools) or Phase 4 (assistant sends a verified customer's invoice or receipt), as decided.

@@ -48,6 +48,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
   const intl = locale === "fr" ? "fr-FR" : "en-GB";
   const dayFmt = new Intl.DateTimeFormat(intl, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
   const monthFmt = new Intl.DateTimeFormat(intl, { month: "long", year: "numeric", timeZone: "UTC" });
+  const paidFmt = new Intl.DateTimeFormat(intl, { day: "numeric", month: "short", year: "numeric", timeZone: business.timezone });
   const asDate = (s: string) => new Date(`${s.length === 7 ? `${s}-01` : s}T00:00:00Z`);
   const periodLabel = (day: string) =>
     period.group === "month" ? monthFmt.format(asDate(day)) : period.group === "week" ? format(r.sales.weekOf, { date: dayFmt.format(asDate(day)) }) : dayFmt.format(asDate(day));
@@ -267,6 +268,55 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
           )}
         </Panel>
       </div>
+
+      <Panel title={r.invoices.title} description={r.invoices.description} actions={data.invoicePayments.rows.length ? csvLink("invoice-payments") : undefined}>
+        {data.invoicePayments.rows.length ? (
+          <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]" data-testid="report-invoice-payments">
+            <div className="flex flex-col gap-3 text-sm">
+              <p className="flex justify-between gap-2 font-semibold text-deep">
+                <span>{r.invoices.total}</span>
+                <span data-testid="report-invoice-total">{money(data.invoicePayments.total)}</span>
+              </p>
+              {data.invoicePayments.schoolFees ? (
+                <p className="flex justify-between gap-2 text-slate">
+                  <span>{r.invoices.schoolFees}</span>
+                  <span>{money(data.invoicePayments.schoolFees)}</span>
+                </p>
+              ) : null}
+              <div>
+                <h3 className="mb-1 text-sm font-semibold text-deep">{r.invoices.byMethod}</h3>
+                <ul className="divide-y divide-border">
+                  {data.invoicePayments.byMethod.map((m) => (
+                    <li key={m.method} className="flex justify-between gap-2 py-1.5">
+                      <span>{d.payments.methods[m.method as keyof typeof d.payments.methods] ?? m.method}</span>
+                      <span className="font-semibold">{money(m.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="min-w-0">
+              <h3 className="mb-1 text-sm font-semibold text-deep">{r.invoices.latest}</h3>
+              <ul className="divide-y divide-border text-sm">
+                {[...data.invoicePayments.rows]
+                  .reverse()
+                  .slice(0, 10)
+                  .map((p) => (
+                    <li key={p.id}>
+                      <Link href={localizePath(locale, `/dashboard/documents/${p.documentId}`)} className="flex gap-2 py-2 hover:underline">
+                        <span className="w-24 shrink-0 text-slate">{paidFmt.format(new Date(p.receivedAt))}</span>
+                        <span className="min-w-0 flex-1 truncate">{[p.number, p.customer].filter(Boolean).join(" · ") || (p.schoolFee ? r.invoices.fee : r.invoices.other)}</span>
+                        <span className="font-semibold whitespace-nowrap">{money(p.amount)}</span>
+                      </Link>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-slate">{r.invoices.empty}</p>
+        )}
+      </Panel>
 
       {withProfit ? (
         <Panel title={r.expenses.title} actions={csvLink("expenses")}>

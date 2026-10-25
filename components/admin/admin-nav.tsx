@@ -5,12 +5,13 @@ import { localizePath } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
 
 /** Tabs across the WazaBolt team's pages, plus the way back to the normal dashboard. Internal, English-only. */
-export function AdminNav({ locale, active, pendingPlanRequests = 0 }: { locale: Locale; active: "businesses" | "plan-requests" | "margins" | "pricing"; pendingPlanRequests?: number }) {
+export function AdminNav({ locale, active, pendingPlanRequests = 0 }: { locale: Locale; active: "businesses" | "plan-requests" | "margins" | "pricing" | "fair-use"; pendingPlanRequests?: number }) {
   const tabs = [
     { key: "businesses", label: "Businesses", href: "/admin/businesses", badge: 0 },
     { key: "plan-requests", label: "Plan requests", href: "/admin/plan-requests", badge: pendingPlanRequests },
     { key: "margins", label: "Margins", href: "/admin/margins", badge: 0 },
     { key: "pricing", label: "Pricing", href: "/admin/pricing", badge: 0 },
+    { key: "fair-use", label: "Fair use", href: "/admin/fair-use", badge: 0 },
   ] as const;
   return (
     <nav aria-label="WazaBolt admin" className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">

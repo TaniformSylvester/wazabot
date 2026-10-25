@@ -197,6 +197,26 @@ mkdirSync("test-results", { recursive: true });
     ok("billing shows saved documents, students and teacher accounts", usage.includes("Saved documents") && usage.includes("20 of 20") && usage.includes("Active students") && usage.includes("50 of 50") && usage.includes("Teacher accounts") && usage.includes("1 of 30"), usage);
     ok("billing's plan cards list the new entitlements", (await main.getByText("20 saved invoices, receipts and quotations").count()) >= 1 && (await main.getByText("Advanced school reports").count()) >= 1);
 
+    // The grace notice (a Free business whose limits start later) names the school limits too.
+    sql(`update businesses set free_limits_from = '2026-12-01' where id = '${biz}'`);
+    await open(`/en/dashboard/billing`);
+    const grace = (await page.getByTestId("plan-grace-notice").innerText()).replace(/\s+/g, " ");
+    ok("grace notice: saved documents and the school's students and report cards", grace.includes("20 saved documents") && grace.includes("For your school: up to 50 active students and report cards for 50 students"), grace);
+    sql(`update businesses set free_limits_from = current_date where id = '${biz}'`);
+
+    // ---------------------------------------------------------------- Fair use (WazaBolt team): the school on Pro
+    sql(`update subscriptions set plan_id = 'pro' where business_id = '${biz}'`);
+    sql(`insert into platform_admins (user_id) values ('${owner}')`);
+    await open(`/en/admin/fair-use`);
+    const fair = page.locator(`tr[data-business-id="${biz}"]`);
+    const fairText = (await fair.count()) ? (await fair.innerText()).replace(/\s+/g, " ") : "";
+    ok("fair use: a Pro school with its active students, classes, teachers and documents (50 students: not flagged)", /pro/.test(fairText) && /\b50\b/.test(fairText) && /Normal/.test(fairText), fairText);
+    sql(`insert into school_students (business_id, first_name, last_name, status) select '${biz}', 'Extra', 'Student ' || g, 'active' from generate_series(1, 451) g`);
+    await page.reload();
+    ok("fair use: above 500 active students it is flagged for review", /Above business/.test(await fair.innerText()));
+    sql(`delete from school_students where business_id = '${biz}' and first_name = 'Extra'`);
+    sql(`delete from platform_admins where user_id = '${owner}'`);
+
     // ---------------------------------------------------------------- The same school on Business
     sql(`update subscriptions set plan_id = 'business' where business_id = '${biz}'`);
     await open(results);

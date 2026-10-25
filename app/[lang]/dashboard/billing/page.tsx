@@ -7,6 +7,7 @@ import { UsageMeter } from "@/components/app/usage-meter";
 import { periodPrice } from "@/config/economics";
 import { cancelPlanChange, requestPlanChange } from "@/lib/actions/billing";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
+import { graceText } from "@/lib/billing/grace";
 import { getBilling, getEntitlements, getPlanLimits } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -96,11 +97,13 @@ export default async function BillingPage() {
       </div>
 
       {limits && ent ? (
-        <Panel title={d.plan.usage.title} description={!limits.enforced && limits.limitsFrom ? format(d.plan.grace, {
+        <Panel title={d.plan.usage.title} description={!limits.enforced && limits.limitsFrom ? graceText(d.plan, {
           date: formatDate(`${limits.limitsFrom}T12:00:00Z`, locale),
-          products: formatNumber(limits.maxProducts ?? 0, locale),
-          sales: formatNumber(limits.maxMonthlySales ?? 0, locale),
+          limits,
+          ent,
+          school,
           price: formatMoney(Number(plans.find((x) => x.id === "boutique")?.monthly_price ?? 0), business.currency, locale),
+          locale,
         }) : undefined}>
           <dl className="grid gap-3 sm:grid-cols-3" data-testid="plan-usage">
             {(

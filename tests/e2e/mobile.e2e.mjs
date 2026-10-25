@@ -96,7 +96,7 @@ mkdirSync("test-results", { recursive: true });
     const pages = [
       "", "/customers", `/customers/${customer}`, "/customers/new", "/orders", `/orders/${order}`, "/orders/new", `/orders/${order}/document?type=invoice`,
       "/products", `/products/${product}`, "/sales", "/sales/new", "/expenses", "/reports", "/conversations", "/knowledge", "/ai", "/team", "/billing", "/settings", "/whatsapp",
-    ].map((p) => `/en/dashboard${p}`).concat(["/en/admin/businesses", "/en/admin/plan-requests", "/en/admin/margins", "/en/admin/pricing"]);
+    ].map((p) => `/en/dashboard${p}`).concat(["/en/admin/businesses", "/en/admin/plan-requests", "/en/admin/margins", "/en/admin/pricing", "/en/admin/fair-use"]);
     for (const p of pages) {
       await page.goto(`${APP}${p}`, { waitUntil: "networkidle" });
       const m = await page.evaluate(measure);

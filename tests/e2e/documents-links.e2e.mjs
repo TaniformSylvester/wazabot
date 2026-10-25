@@ -234,6 +234,14 @@ mkdirSync("test-results", { recursive: true });
     await settle();
     ok("statement in French (amounts and words in the statement's language)", (await main.getByTestId("statement-closing").innerText()).includes("35 000 FCFA") && (await main.getByTestId("statement-rows").getByText("Facture", { exact: false }).count()) >= 1);
 
+    // ---------------------------------------------------------------- Reports: invoice payments outside orders
+    await page.goto(`${APP}/en/dashboard/reports?range=today`);
+    await main.getByTestId("report-invoice-payments").waitFor({ timeout: 15000 });
+    // The standalone invoice's 15 000 (the voided cheque left out); the order invoice's payments are order payments, already in sales.
+    ok("reports: invoice payments outside orders (15,000, voided cheque left out)", (await main.getByTestId("report-invoice-total").innerText()).includes("15,000") && (await main.getByTestId("report-invoice-payments").getByText(sNumber).count()) === 1, await main.getByTestId("report-invoice-payments").innerText());
+    const ipCsv = await page.evaluate(async (u) => (await fetch(u)).text(), `${APP}/en/dashboard/reports/export?type=invoice-payments&from=${new Date().toISOString().slice(0, 10)}&to=${new Date().toISOString().slice(0, 10)}`);
+    ok("reports: invoice payments CSV (one row, Orange Money)", ipCsv.trim().split("\n").length === 2 && ipCsv.includes(sNumber) && ipCsv.includes("Orange Money"), ipCsv);
+
     // ---------------------------------------------------------------- WhatsApp
     // Not connected yet.
     await page.goto(invoiceUrl);

@@ -190,7 +190,7 @@ Nothing to configure afterwards.
 ## 8. Outstanding and next steps
 
 1. Owner: run the migration, then approve the push.
-2. Still open from before: the document-language fallback inconsistency. For non-EN/FR businesses, the editor falls back to French while SQL and statements fall back to English.
+2. ~~Document-language fallback inconsistency~~: fixed 25 October 2026 (English for non-French businesses everywhere), see `docs/wazabolt-cleanups-oct2026.md`.
 3. Possible next steps:
-   - Add the new Free limits to the grace-period banner text.
-   - A fair-use report for Pro schools in the admin pages.
+   - ~~Add the new Free limits to the grace-period banner text.~~ Done (see `docs/wazabolt-cleanups-oct2026.md`).
+   - ~~A fair-use report for Pro schools in the admin pages.~~ Done (`/admin/fair-use`).
