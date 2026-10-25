@@ -156,7 +156,7 @@ describe("plan entitlements (config)", () => {
     });
     expect(PLANS.every((p) => p.maxTeachers === 30)).toBe(true);
     // Kitchen accounts: free seats on every plan, like teacher seats.
-    expect(PLANS.every((p) => p.maxKitchen === 30)).toBe(true);
+    expect(PLANS.every((p) => p.maxKitchen === 10)).toBe(true);
   });
 
   it("names the cheapest plan that includes a feature", () => {

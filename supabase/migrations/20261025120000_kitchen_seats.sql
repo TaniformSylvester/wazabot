@@ -6,7 +6,7 @@
 --
 --   * Kitchen staff (Kitchen role) don't count toward the plan's users.
 --   * Each restaurant may have up to plans.max_kitchen kitchen accounts
---     (30 on every plan; pending kitchen invitations hold a seat), changed
+--     (10 on every plan; pending kitchen invitations hold a seat), changed
 --     with one UPDATE on plans.
 --   * Owners, admins, agents and viewers still count as users; teachers keep
 --     their own seats (plans.max_teachers).
@@ -14,7 +14,7 @@
 -- Error code: WB419 kitchen seats.
 -- =============================================================================
 
-alter table public.plans add column max_kitchen integer not null default 30 check (max_kitchen >= 0);
+alter table public.plans add column max_kitchen integer not null default 10 check (max_kitchen >= 0);
 comment on column public.plans.max_kitchen is 'Kitchen accounts per restaurant, not counted in max_members.';
 
 /* Seat group of a role: its own seats (teacher, kitchen) or the plan's users (null). */
