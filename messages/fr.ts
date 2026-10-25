@@ -102,7 +102,7 @@ const fr: Messages = {
       mobile: "Mobile",
       skipToContent: "Aller au contenu",
     },
-    footer: { product: "Produit", company: "Entreprise", legal: "Mentions légales" },
+    footer: { product: "Produit", company: "Entreprise", legal: "Mentions légales", follow: "Suivre WazaBolt" },
     status: {
       aiOnline: "IA en ligne",
       humanMode: "Mode humain",

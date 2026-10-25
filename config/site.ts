@@ -27,6 +27,11 @@ export const siteConfig = {
     address: "Mile Six Nkwen, Bamenda, Behind Mawa Hotel, Cameroon",
     mapUrl: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Mawa Hotel, Mile Six Nkwen, Bamenda, Cameroon"),
   },
+  /** WazaBolt's own social pages (footer, and sameAs in the structured data). */
+  social: [
+    { name: "Facebook", url: "https://www.facebook.com/profile.php?id=61594928852496" },
+    { name: "Instagram", url: "https://www.instagram.com/wazabolt/" },
+  ],
   /**
    * The legal entity behind WazaBolt, shown on the Privacy Policy and Terms
    * exactly as written on the registration documents (Meta's business

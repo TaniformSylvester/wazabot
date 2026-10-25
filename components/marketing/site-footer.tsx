@@ -16,6 +16,18 @@ export async function SiteFooter() {
           </Link>
           <p className="mt-4 max-w-xs font-display text-lg font-semibold text-cream">{t.common.brand.tagline}</p>
           <p className="type-small mt-1 text-cream/60">{t.common.brand.positioning}</p>
+          <nav aria-label={t.common.footer.follow} className="mt-5">
+            <p className="type-label text-waza-400">{t.common.footer.follow}</p>
+            <ul className="mt-2 flex flex-wrap gap-x-5" data-testid="footer-social">
+              {siteConfig.social.map((s) => (
+                <li key={s.name}>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer me" className="inline-block py-1.5 text-sm text-cream/70 transition-colors hover:text-waza-400">
+                    {s.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           {footerNav.map((group) => (

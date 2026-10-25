@@ -97,7 +97,7 @@ Every canonical link, the sitemap and the structured data use it. If it's missin
 
 Every link from a trusted site helps. Some places to start:
 
-- Facebook, LinkedIn and Instagram pages for WazaBolt, linking to the site. Tell me the links and I'll add them to the structured data (`sameAs`).
+- Facebook and Instagram pages: done (25 October 2026). They're linked in the footer and in the structured data (`sameAs`, from `siteConfig.social`). Put `https://www.wazabolt.com` in both profiles too. A LinkedIn page can be added the same way.
 - Cameroonian business directories, startup lists, the chambers of commerce, and local tech communities in Bamenda, Buea, Douala and Yaoundé.
 - A short article or interview in local tech or business media.
 - Customers' sites and pages ("Our receipts are made with WazaBolt").

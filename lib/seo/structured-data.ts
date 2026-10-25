@@ -36,7 +36,7 @@ export function organizationGraph(locale: Locale, t: Messages) {
       },
       areaServed: { "@type": "Country", name: "Cameroon" },
       contactPoint: [{ "@type": "ContactPoint", contactType: "customer support", telephone: c.phone, email: c.email, availableLanguage: ["English", "French"] }],
-      sameAs: [`https://wa.me/${c.whatsappNumber}`],
+      sameAs: [...siteConfig.social.map((s) => s.url), `https://wa.me/${c.whatsappNumber}`],
     },
     {
       "@type": "WebSite",

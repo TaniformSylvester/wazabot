@@ -105,7 +105,7 @@ const en = {
       mobile: "Mobile",
       skipToContent: "Skip to content",
     },
-    footer: { product: "Product", company: "Company", legal: "Legal" },
+    footer: { product: "Product", company: "Company", legal: "Legal", follow: "Follow WazaBolt" },
     status: {
       aiOnline: "AI Online",
       humanMode: "Human Mode",
