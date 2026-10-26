@@ -15,9 +15,14 @@ const newPassword = z
   .regex(/[A-Za-z]/, "password_letter")
   .regex(/[0-9]/, "password_number");
 
+/** The kind of business chosen at sign-up; it decides the modules and the setup steps (businesses.industry). */
+export const SIGNUP_BUSINESS_TYPES = ["retail", "school", "restaurant", "other"] as const;
+export type SignupBusinessType = (typeof SIGNUP_BUSINESS_TYPES)[number];
+
 export const registerSchema = z.object({
   fullName: z.string().trim().min(2, "name_required").max(120, "too_long"),
   businessName: z.string().trim().min(2, "business_required").max(120, "too_long"),
+  businessType: z.enum(SIGNUP_BUSINESS_TYPES, "business_type_required"),
   email,
   password: newPassword,
 });

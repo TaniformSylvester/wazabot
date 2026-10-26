@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Check, Smartphone } from "lucide-react";
+import { Check, CheckCircle2, Circle, Smartphone } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionForm, RadioCards, SubmitButton, TextArea, TextField } from "@/components/app/form";
@@ -10,19 +10,30 @@ import { saveOnboardingPersonality } from "@/lib/actions/ai";
 import { advanceOnboarding } from "@/lib/actions/business";
 import { saveFaq } from "@/lib/actions/knowledge";
 import { saveProduct } from "@/lib/actions/products";
+import { saveTable } from "@/lib/actions/restaurant";
 import { getBusinessAiSettings, hasRole, requireBusiness } from "@/lib/auth/dal";
 import { DEFAULT_OPENING_HOURS, hasOpeningHours } from "@/lib/business/hours";
 import { getWhatsAppConnection, listFaqs, listProducts } from "@/lib/data/queries";
+import { listTables } from "@/lib/data/restaurant";
+import { getSchoolSettings, listClasses, listSubjects, listTerms, pickYear } from "@/lib/data/school";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { currencyLabel, format } from "@/lib/i18n/format";
 import { languageName } from "@/lib/i18n/languages";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBusinessModules } from "@/lib/modules";
+import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 export const generateMetadata = dashboardMetadata((d) => d.onboarding.title);
 
-const STEPS = ["profile", "hours", "products", "faqs", "ai", "whatsapp"] as const;
+/** The setup follows the business type (its modules): a school sets up its year and classes, a restaurant its menu and tables. */
+const FLOWS = {
+  commerce: ["profile", "hours", "products", "faqs", "ai", "whatsapp"],
+  restaurant: ["profile", "hours", "menu", "tables", "faqs", "ai", "whatsapp"],
+  school: ["profile", "school", "faqs", "ai", "whatsapp"],
+} as const;
+type StepKey = (typeof FLOWS)[keyof typeof FLOWS][number];
 
 export default async function OnboardingPage({ searchParams }: PageProps<"/[lang]/dashboard/onboarding">) {
   const [locale, t, params] = await Promise.all([getLocale(), getMessages(), searchParams]);
@@ -32,6 +43,8 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
 
   const d = t.dashboard;
   const o = d.onboarding;
+  const modules = await getBusinessModules(business);
+  const STEPS: readonly StepKey[] = modules.includes("school") && !modules.includes("commerce") ? FLOWS.school : modules.includes("restaurant") ? FLOWS.restaurant : FLOWS.commerce;
   const requested = Number(Array.isArray(params.step) ? params.step[0] : params.step);
   const step = Number.isInteger(requested) && requested >= 1 && requested <= STEPS.length ? requested : Math.min(business.onboardingStep + 1, STEPS.length);
   const key = STEPS[step - 1];
@@ -68,7 +81,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
         <h1 className="type-h2 mt-1">{o.title}</h1>
       </div>
 
-      <ol className="grid grid-cols-6 gap-1.5" aria-label={o.title}>
+      <ol className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }} aria-label={o.title} data-testid="onboarding-steps" data-flow={STEPS.join(",")}>
         {STEPS.map((s, i) => (
           <li key={s}>
             <Link
@@ -109,7 +122,9 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
           />
         ) : null}
 
-        {key === "products" ? <ProductsStep businessId={business.id} currency={business.currency} /> : null}
+        {key === "products" || key === "menu" ? <ProductsStep businessId={business.id} currency={business.currency} menu={key === "menu"} /> : null}
+        {key === "tables" ? <TablesStep businessId={business.id} /> : null}
+        {key === "school" ? <SchoolStep businessId={business.id} /> : null}
         {key === "faqs" ? <FaqsStep businessId={business.id} /> : null}
         {key === "ai" ? <AiStep /> : null}
 
@@ -127,18 +142,19 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
         ) : null}
       </Panel>
 
-      {key === "products" || key === "faqs" || key === "whatsapp" ? continueForm : null}
+      {key === "products" || key === "menu" || key === "tables" || key === "school" || key === "faqs" || key === "whatsapp" ? continueForm : null}
     </div>
   );
 
-  async function ProductsStep({ businessId, currency }: { businessId: string; currency: string }) {
+  async function ProductsStep({ businessId, currency, menu }: { businessId: string; currency: string; menu: boolean }) {
     const { rows } = await listProducts(businessId);
     const p = d.products;
+    const addLabel = menu ? o.addDish : o.addProduct;
     return (
       <div className="flex flex-col gap-6">
         {rows.length ? (
           <div>
-            <p className="mb-2 text-sm font-semibold text-deep">{format(o.productsAdded, { count: rows.length })}</p>
+            <p className="mb-2 text-sm font-semibold text-deep">{format(menu ? o.dishesAdded : o.productsAdded, { count: rows.length })}</p>
             <ul className="divide-y divide-border rounded-2xl border border-border">
               {rows.slice(0, 8).map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
@@ -153,7 +169,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
           </div>
         ) : null}
         <ActionForm action={saveProduct} text={text} resetOnSuccess successMessage={p.saved} hidden={{ active: "on", variants: "[]" }}>
-          <p className="text-sm font-semibold text-deep">{o.addProduct}</p>
+          <p className="text-sm font-semibold text-deep">{addLabel}</p>
           <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
             <TextField name="name" label={p.fields.name} required maxLength={160} />
             <TextField name="price" label={format(p.fields.price, { currency: currencyLabel(currency) })} inputMode="decimal" required />
@@ -161,11 +177,73 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
           </div>
           <TextField name="category" label={p.fields.category} maxLength={80} />
           <div>
-            <SubmitButton variant="outline">{o.addProduct}</SubmitButton>
+            <SubmitButton variant="outline">{addLabel}</SubmitButton>
           </div>
         </ActionForm>
         {skip}
       </div>
+    );
+  }
+
+  async function TablesStep({ businessId }: { businessId: string }) {
+    const tables = await listTables(businessId, true);
+    const tb = d.restaurant.tables;
+    return (
+      <div className="flex flex-col gap-6">
+        {tables.length ? (
+          <div>
+            <p className="mb-2 text-sm font-semibold text-deep">{format(o.tablesAdded, { count: tables.length })}</p>
+            <ul className="flex flex-wrap gap-2" data-testid="onboarding-tables">
+              {tables.map((x) => (
+                <li key={x.id} className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-deep">
+                  <Check className="size-4 shrink-0 text-success" aria-hidden />
+                  {x.name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <ActionForm action={saveTable} text={{ ...text, saved: tb.added }} successMessage={tb.added} resetOnSuccess className="sm:flex-row sm:flex-wrap sm:items-end">
+          <TextField name="name" label={tb.name} required maxLength={40} className="sm:w-48" />
+          <TextField name="area" label={tb.area} maxLength={40} className="sm:w-48" />
+          <TextField name="seats" label={tb.seats} inputMode="numeric" className="sm:w-32" />
+          <div>
+            <SubmitButton variant="outline">{tb.add}</SubmitButton>
+          </div>
+        </ActionForm>
+        {skip}
+      </div>
+    );
+  }
+
+  /** The school's own checklist (same as the School overview): each item opens its page and is ticked once done. */
+  async function SchoolStep({ businessId }: { businessId: string }) {
+    const so = d.school.overview;
+    const [settings, { year }, subjects] = await Promise.all([getSchoolSettings(businessId), pickYear(businessId), listSubjects(businessId)]);
+    const [terms, classes] = year ? await Promise.all([listTerms(businessId, year.id), listClasses(businessId, year.id)]) : [[], []];
+    const db = await createClient();
+    const { count: students } = await db.from("school_students").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("status", "active");
+    const items: [string, boolean, string][] = [
+      [so.setup.profile, settings.saved, "/dashboard/school/settings"],
+      [so.setup.year, !!year && terms.length > 0 && terms.every((x) => x.assessments.length > 0), "/dashboard/school/settings#years"],
+      [so.setup.subjects, subjects.length > 0, "/dashboard/school/classes#subjects"],
+      [so.setup.classes, classes.length > 0 && classes.every((c) => c.subjects > 0), "/dashboard/school/classes"],
+      [so.setup.students, (students ?? 0) > 0, "/dashboard/school/students"],
+    ];
+    return (
+      <ol className="flex flex-col gap-2.5" data-testid="onboarding-school">
+        {items.map(([label, done, path]) => (
+          <li key={label} className="flex items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3 text-sm">
+            <span className="flex items-center gap-3">
+              {done ? <CheckCircle2 className="size-5 shrink-0 text-success" aria-hidden /> : <Circle className="size-5 shrink-0 text-slate" aria-hidden />}
+              <span className={done ? "text-slate" : "font-semibold text-deep"}>{label}</span>
+            </span>
+            <Link href={localizePath(locale, path)} className="shrink-0 font-semibold text-waza-700 hover:underline">
+              {o.schoolOpen}
+            </Link>
+          </li>
+        ))}
+      </ol>
     );
   }
 

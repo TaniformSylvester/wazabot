@@ -47,7 +47,7 @@ export default async function SolutionPage({ params }: PageProps<"/[lang]/soluti
       <PageIntro eyebrow={page.eyebrow} title={page.title} description={page.lead} />
       <div className="container-page flex justify-center pb-4">
         <Button asChild size="lg" className="group">
-          <Link href={localizePath(locale, "/register")}>
+          <Link href={`${localizePath(locale, "/register")}?type=${slug}`}>
             {l.start}
             <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
           </Link>

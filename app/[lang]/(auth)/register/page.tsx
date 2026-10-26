@@ -6,11 +6,17 @@ import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
 import { localizePath } from "@/lib/i18n/paths";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { SIGNUP_BUSINESS_TYPES, type SignupBusinessType } from "@/lib/validation/auth";
+
+/** ?type= from the marketing pages: the business type itself, or a solutions page slug (schools, restaurants). */
+const TYPE_ALIASES: Record<string, SignupBusinessType> = { schools: "school", restaurants: "restaurant", shops: "retail", shop: "retail" };
 
 export const generateMetadata = () => pageMetadata("register", "/register", { index: false });
 
-export default async function RegisterPage() {
-  const [locale, t] = await Promise.all([getLocale(), getMessages()]);
+export default async function RegisterPage({ searchParams }: PageProps<"/[lang]/register">) {
+  const [locale, t, sp] = await Promise.all([getLocale(), getMessages(), searchParams]);
+  const requested = typeof sp.type === "string" ? sp.type : "";
+  const defaultType = (SIGNUP_BUSINESS_TYPES as readonly string[]).includes(requested) ? (requested as SignupBusinessType) : TYPE_ALIASES[requested];
   const a = t.auth;
   const configured = isSupabaseConfigured();
   return (
@@ -27,7 +33,7 @@ export default async function RegisterPage() {
       }
     >
       {!configured ? <NotConfiguredNotice text={a.notConfigured} /> : null}
-      <RegisterForm disabled={!configured} />
+      <RegisterForm disabled={!configured} defaultType={defaultType} />
     </AuthCard>
   );
 }

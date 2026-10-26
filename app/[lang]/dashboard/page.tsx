@@ -48,16 +48,15 @@ const setupSteps = [
 export default async function DashboardPage({ searchParams }: PageProps<"/[lang]/dashboard">) {
   const [locale, t, params] = await Promise.all([getLocale(), getMessages(), searchParams]);
   const { user, business } = await requireBusiness(localizePath(locale, "/dashboard"));
+  // New owners/admins start with the guided setup (it follows the business type and can be skipped at any step).
+  if (!business.onboardingCompletedAt && business.onboardingStep === 0 && hasRole(business.role, "admin")) {
+    redirect(localizePath(locale, `/dashboard/onboarding?step=1${params.welcome ? "&welcome=1" : ""}`));
+  }
   // A school without the sales module starts on its school overview.
   const modules = await getBusinessModules(business);
   if (!modules.includes("commerce") && modules.includes("school")) redirect(localizePath(locale, "/dashboard/school"));
   const d = t.dashboard;
   const h = d.home;
-
-  // New owners/admins start with the guided setup; it can be skipped at any step.
-  if (!business.onboardingCompletedAt && business.onboardingStep === 0 && hasRole(business.role, "admin")) {
-    redirect(localizePath(locale, `/dashboard/onboarding?step=1${params.welcome ? "&welcome=1" : ""}`));
-  }
 
   const isAdmin = hasRole(business.role, "admin");
   const planAllowsProfit = profitAllowed(await getPlanLimits(business.id));

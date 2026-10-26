@@ -45,6 +45,7 @@ async function signUp(browser, user, locale) {
   const fr = locale === "fr";
   await page.getByLabel(fr ? "Votre nom" : "Your name").fill(user.name);
   await page.getByLabel(fr ? "Nom de l'entreprise" : "Business name").fill(user.business);
+  await page.getByTestId("business-type").getByText(fr ? "Boutique" : "Shop", { exact: true }).click();
   await page.getByLabel(fr ? "E-mail" : "Email", { exact: true }).fill(user.email);
   await page.getByLabel(fr ? "Mot de passe" : "Password", { exact: true }).fill(user.password);
   await page.getByRole("button", { name: fr ? "Créer mon compte" : "Create account" }).click();

@@ -102,6 +102,7 @@ mkdirSync("test-results", { recursive: true });
   await page.goto(`${APP}/en/register`);
   await page.getByLabel("Your name").fill(U.name);
   await page.getByLabel("Business name").fill(U.business);
+  await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
   await page.getByLabel("Email", { exact: true }).fill(U.email);
   await page.getByLabel("Password", { exact: true }).fill(U.password);
   await page.getByRole("button", { name: "Create account" }).click();

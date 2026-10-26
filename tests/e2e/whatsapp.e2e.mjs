@@ -70,6 +70,7 @@ async function signUp(browser, user) {
   await page.goto(`${APP}/en/register`);
   await page.getByLabel("Your name").fill(user.name);
   await page.getByLabel("Business name").fill(user.business);
+  await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
   await page.getByLabel("Email", { exact: true }).fill(user.email);
   await page.getByLabel("Password", { exact: true }).fill(user.password);
   await page.getByRole("button", { name: "Create account" }).click();

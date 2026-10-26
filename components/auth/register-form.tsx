@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MailCheck } from "lucide-react";
+import { GraduationCap, MailCheck, Store, Shapes, UtensilsCrossed } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { FormField } from "@/components/auth/form-field";
@@ -13,16 +13,21 @@ import { Button } from "@/components/ui/button";
 import { signUp } from "@/lib/actions/auth";
 import { format } from "@/lib/i18n/format";
 import { rich } from "@/lib/i18n/rich";
-import { registerSchema, type RegisterInput } from "@/lib/validation/auth";
+import { cn } from "@/lib/utils";
+import { SIGNUP_BUSINESS_TYPES, registerSchema, type RegisterInput, type SignupBusinessType } from "@/lib/validation/auth";
 
-export function RegisterForm({ disabled = false }: { disabled?: boolean }) {
+const TYPE_ICONS = { retail: Store, school: GraduationCap, restaurant: UtensilsCrossed, other: Shapes } as const;
+
+/** defaultType: pre-selected from the page the visitor came from (e.g. the schools page → School). */
+export function RegisterForm({ disabled = false, defaultType }: { disabled?: boolean; defaultType?: SignupBusinessType }) {
   const { a, locale, href, fieldError, errorText } = useAuthText();
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { fullName: "", businessName: "", email: "", password: "" },
+    defaultValues: { fullName: "", businessName: "", businessType: defaultType, email: "", password: "" },
   });
   const { onSubmit, pending, result } = useServerForm(form, (values) => signUp(values, locale));
   const errors = form.formState.errors;
+  const chosenType = useWatch({ control: form.control, name: "businessType" });
   const link = "font-semibold text-waza-700 hover:underline";
 
   if (result?.ok) {
@@ -62,6 +67,36 @@ export function RegisterForm({ disabled = false }: { disabled?: boolean }) {
           registration={form.register("businessName")}
         />
       </div>
+      <fieldset className="flex flex-col gap-2" aria-describedby="business-type-hint">
+        <legend className="mb-2 text-sm font-semibold text-deep">{a.fields.businessType}</legend>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="business-type">
+          {SIGNUP_BUSINESS_TYPES.map((type) => {
+            const Icon = TYPE_ICONS[type];
+            return (
+              <label
+                key={type}
+                className={cn(
+                  "flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border px-3 py-3 text-sm font-semibold transition-colors has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-waza-500/20",
+                  chosenType === type ? "border-waza-500 bg-mint text-deep" : "border-border bg-card text-slate hover:border-waza-500",
+                )}
+              >
+                <input type="radio" value={type} className="sr-only" {...form.register("businessType")} />
+                <Icon className="size-5" aria-hidden />
+                {a.fields.businessTypes[type]}
+              </label>
+            );
+          })}
+        </div>
+        {errors.businessType ? (
+          <p className="text-sm text-coral-700" role="alert">
+            {fieldError(errors.businessType.message)}
+          </p>
+        ) : (
+          <p id="business-type-hint" className="text-xs text-slate">
+            {a.fields.businessTypeHint}
+          </p>
+        )}
+      </fieldset>
       <FormField
         label={a.fields.email}
         type="email"

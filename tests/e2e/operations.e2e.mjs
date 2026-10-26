@@ -58,6 +58,7 @@ async function register(page, u) {
   await page.goto(`${APP}/en/register`);
   await page.getByLabel("Your name").fill(u.name);
   await page.getByLabel("Business name").fill(u.business);
+  await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
   await page.getByLabel("Email", { exact: true }).fill(u.email);
   await page.getByLabel("Password", { exact: true }).fill(u.password);
   await page.getByRole("button", { name: "Create account" }).click();
