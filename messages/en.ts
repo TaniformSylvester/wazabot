@@ -499,8 +499,8 @@ const en = {
     },
     pricing: {
       eyebrow: "Pricing",
-      title: "Pay for what your customers use",
-      description: "Every plan is priced in FCFA with a clear monthly allowance of AI conversations.",
+      title: "Start free, upgrade when you grow",
+      description: "Every plan is priced in FCFA. Sales, stock and invoices from the Free plan, and each plan shows how many WhatsApp AI conversations it includes per month.",
     },
     solutions: {
       eyebrow: "Solutions",

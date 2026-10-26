@@ -498,8 +498,8 @@ const fr: Messages = {
     },
     pricing: {
       eyebrow: "Tarifs",
-      title: "Payez selon l'usage de vos clients",
-      description: "Chaque forfait est facturé en FCFA, avec un volume mensuel clair de conversations IA.",
+      title: "Commencez gratuitement, évoluez quand vous grandissez",
+      description: "Chaque forfait est facturé en FCFA. Ventes, stock et factures dès le forfait Gratuit, et chaque forfait indique combien de conversations IA WhatsApp il comprend par mois.",
     },
     solutions: {
       eyebrow: "Solutions",
