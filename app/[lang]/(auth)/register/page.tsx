@@ -5,6 +5,8 @@ import { RegisterForm } from "@/components/auth/register-form";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
 import { localizePath } from "@/lib/i18n/paths";
+import { PLANS } from "@/config/economics";
+import { format } from "@/lib/i18n/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { SIGNUP_BUSINESS_TYPES, type SignupBusinessType } from "@/lib/validation/auth";
 
@@ -22,7 +24,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/[lang]/
   return (
     <AuthCard
       title={a.register.title}
-      description={a.register.description}
+      description={format(a.register.description, { count: PLANS.find((p) => p.id === "free")?.aiConversationsPerMonth ?? 0 })}
       footer={
         <>
           {a.register.haveAccount}{" "}

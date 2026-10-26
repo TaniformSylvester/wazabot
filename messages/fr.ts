@@ -723,7 +723,7 @@ const fr: Messages = {
     },
     register: {
       title: "Commencez avec WazaBolt",
-      description: "Créez votre compte — gratuit pour 50 conversations IA par mois.",
+      description: "Créez votre compte — gratuit pour {count} conversations IA par mois.",
       haveAccount: "Vous avez déjà un compte ?",
       login: "Se connecter",
       submit: "Créer mon compte",

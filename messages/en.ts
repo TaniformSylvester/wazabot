@@ -724,7 +724,7 @@ const en = {
     },
     register: {
       title: "Get started with WazaBolt",
-      description: "Create your account — free for 50 AI conversations every month.",
+      description: "Create your account — free for {count} AI conversations every month.",
       haveAccount: "Already have an account?",
       login: "Log in",
       submit: "Create account",
