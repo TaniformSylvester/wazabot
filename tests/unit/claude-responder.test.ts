@@ -60,6 +60,7 @@ const business: BusinessContext = {
   documents: [],
   activeProductCount: 1,
   booking: { enabled: false, services: [] },
+  branches: [],
 };
 
 const conversation: ConversationContext = {

@@ -49,6 +49,9 @@ export function answerWithRules({ text, language, business, catalog, maxChars = 
   // A greeting or thanks with anything else we didn't recognise ("bonjour, je cherche un cadeau") → Claude.
   if ((main === "greeting" || main === "thanks") && tokens.some((t) => !INTENT_WORDS.has(t) && !FILLER.has(t))) return null;
 
+  // Several branches: where to find us, the hours and what's in stock depend on the branch → Claude, with the branch tools.
+  if (business.branches.length > 1 && (main === "location" || main === "hours" || asked.includes("stock"))) return null;
+
   const t = TEXT[language];
   const b = business.business;
   switch (main) {

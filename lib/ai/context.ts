@@ -69,7 +69,11 @@ export type BusinessContext = {
   activeProductCount: number;
   /** Appointments (Stage 6): bookable services when booking is switched on. */
   booking: { enabled: boolean; services: BookableService[] };
+  /** Open branches (the main one first). More than one: the customer picks one for an order; stock differs per branch. */
+  branches: AiBranch[];
 };
+
+export type AiBranch = { id: string; name: string; address: string | null; city: string | null; phone: string | null; hours: string | null; isMain: boolean };
 
 export type BookableService = { id: string; name: string; description: string | null; durationMinutes: number; price: number | null; currency: string };
 
@@ -80,7 +84,7 @@ const MAX_DOC_CHARS = 4000;
 const MAX_SERVICES = 50;
 
 export async function buildBusinessContext(db: Db, businessId: string, now = new Date()): Promise<BusinessContext | null> {
-  const [biz, settings, faqs, docs, products, langs, booking, services] = await Promise.all([
+  const [biz, settings, faqs, docs, products, langs, booking, services, branches] = await Promise.all([
     db.from("businesses").select("*").eq("id", businessId).maybeSingle(),
     db.from("ai_settings").select("*").eq("business_id", businessId).maybeSingle(),
     db.from("faqs").select("question, answer").eq("business_id", businessId).eq("active", true).order("priority", { ascending: false }).limit(MAX_FAQS),
@@ -89,6 +93,7 @@ export async function buildBusinessContext(db: Db, businessId: string, now = new
     db.from("business_languages").select("language_code").eq("business_id", businessId).order("sort_order", { ascending: true }),
     db.from("booking_settings").select("enabled").eq("business_id", businessId).maybeSingle(),
     db.from("services").select("id, name, description, duration_minutes, price, currency").eq("business_id", businessId).eq("active", true).order("sort_order").order("name").limit(MAX_SERVICES),
+    db.from("branches").select("id, name, address, city, phone, hours, is_main").eq("business_id", businessId).eq("active", true).order("is_main", { ascending: false }).order("created_at").limit(50),
   ]);
   const b = biz.data;
   if (!b) return null;
@@ -153,6 +158,7 @@ export async function buildBusinessContext(db: Db, businessId: string, now = new
         currency: sv.currency,
       })),
     },
+    branches: (branches.data ?? []).map((r) => ({ id: r.id, name: r.name, address: r.address, city: r.city, phone: r.phone, hours: r.hours, isMain: r.is_main })),
   };
 }
 

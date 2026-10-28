@@ -11,6 +11,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { branchStock, getBranchContext } from "@/lib/branches";
 
 export const generateMetadata = dashboardMetadata((d) => d.products.title);
 
@@ -31,6 +32,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
   };
   const [{ rows, total, page }, categories] = await Promise.all([listProducts(business.id, filters), listProductCategories(business.id)]);
   const canEdit = canManageBusiness(business.role);
+  // Several branches: the badge is the total; the line under it is the working branch's stock.
+  const branch = await getBranchContext(business);
+  const here = branch.multi ? await branchStock(business.id, branch.current.id) : null;
   const base = localizePath(locale, "/dashboard/products");
   const filtered = !!(filters.q || filters.category || filters.status || filters.stock);
 
@@ -150,6 +154,11 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
                       ) : (
                         <StatusBadge tone="neutral">{format(p.stock.units, { count: `${formatNumber(r.stock_quantity, locale)} ${p.units[r.unit as keyof typeof p.units] ?? r.unit}` })}</StatusBadge>
                       )}
+                      {here && r.stock_quantity !== null ? (
+                        <span className="mt-1 block text-xs text-slate" data-testid="branch-stock">
+                          {branch.current.name}: {formatNumber(here.get(r.id) ?? 0, locale)}
+                        </span>
+                      ) : null}
                     </td>
                     <td className={td}>
                       <StatusBadge tone={r.active ? "green" : "neutral"} dot>

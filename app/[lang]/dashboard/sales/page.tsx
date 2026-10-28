@@ -8,6 +8,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBranchContext, listBranches } from "@/lib/branches";
 import { PAYMENT_METHODS } from "@/types/database";
 
 export const generateMetadata = dashboardMetadata((d) => d.sales.title);
@@ -29,11 +30,14 @@ export default async function SalesPage({ searchParams }: PageProps<"/[lang]/das
     method: methods.find((m) => m === param(sp.method)),
     status: (["paid", "partial", "unpaid"] as const).find((m) => m === param(sp.status)),
     customer: param(sp.customer),
+    branch: param(sp.branch),
     page: Number(param(sp.page)) || 1,
   };
+  const [branchCtx, branches] = await Promise.all([getBranchContext(business), listBranches(business.id)]);
+  const showBranch = branchCtx.multi;
   const isAdmin = hasRole(business.role, "admin") && profitAllowed(await getPlanLimits(business.id));
   const { rows, total, page } = await listSales(business.id, business.timezone, filters, isAdmin);
-  const filtered = !!(filters.q || filters.from || filters.to || filters.method || filters.status || filters.customer);
+  const filtered = !!(filters.q || filters.from || filters.to || filters.method || filters.status || filters.customer || filters.branch);
   const base = localizePath(locale, "/dashboard/sales");
   // Profit column: owners/admins on a plan with profit tracking.
   const canSell = hasRole(business.role, "agent");
@@ -86,6 +90,16 @@ export default async function SalesPage({ searchParams }: PageProps<"/[lang]/das
                 </option>
               ))}
             </select>
+            {showBranch && !branchCtx.locked ? (
+              <select name="branch" defaultValue={filters.branch ?? ""} aria-label={d.branches.branch} className={select}>
+                <option value="">{d.branches.allBranches}</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <button type="submit" className={secondaryLink}>
               {d.common.filter}
             </button>
@@ -102,7 +116,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/[lang]/das
             <TableWrap>
               <thead>
                 <tr>
-                  {[s.columns.receipt, s.columns.date, s.columns.customer, s.columns.items, s.columns.total, s.columns.method, s.columns.status, s.columns.staff, ...(isAdmin ? [s.columns.profit] : [])].map((h) => (
+                  {[s.columns.receipt, s.columns.date, ...(showBranch ? [d.branches.branch] : []), s.columns.customer, s.columns.items, s.columns.total, s.columns.method, s.columns.status, s.columns.staff, ...(isAdmin ? [s.columns.profit] : [])].map((h) => (
                     <th key={h} className={th}>
                       {h}
                     </th>
@@ -118,6 +132,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/[lang]/das
                       </Link>
                     </td>
                     <td className={`${td} whitespace-nowrap text-slate`}>{formatDate(r.created_at, locale, true)}</td>
+                    {showBranch ? <td className={`${td} text-slate`}>{r.branches?.name ?? "—"}</td> : null}
                     <td className={td}>{r.customers ? r.customers.name || `+${r.customers.whatsapp_phone}` : <span className="text-slate">{s.walkIn}</span>}</td>
                     <td className={`${td} text-slate`}>{format(s.itemsCount, { count: formatNumber(r.items, locale) })}</td>
                     <td className={`${td} font-semibold whitespace-nowrap`}>{money(Number(r.total))}</td>

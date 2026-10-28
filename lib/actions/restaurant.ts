@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { getBranchContext } from "@/lib/branches";
 import { authorize } from "@/lib/auth/dal";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
@@ -65,7 +66,7 @@ export async function saveTable(_prev: FormState, formData: FormData): Promise<F
       ? isUuid(id)
         ? await supabase.from("restaurant_tables").update(parsed.data).eq("id", id).eq("business_id", ctx.business.id)
         : { error: { code: "22023" } }
-      : await supabase.from("restaurant_tables").insert({ ...parsed.data, business_id: ctx.business.id });
+      : await supabase.from("restaurant_tables").insert({ ...parsed.data, business_id: ctx.business.id, branch_id: (await getBranchContext(ctx.business)).current.id });
   if (error) {
     if (error.code !== "23505") logServerError("restaurant.saveTable", error);
     return error.code === "23505" ? fail("duplicate", { name: ["duplicate"] }) : fail(dbError(error));
@@ -98,6 +99,7 @@ export async function openBill(tableId: string, locale: string, _prev: FormState
     p_service_type: "dine_in",
     p_table_id: tableId,
     p_guests: Number.isInteger(guests) && guests >= 1 && guests <= 200 ? guests : undefined,
+    p_branch_id: (await getBranchContext(ctx.business)).current.id,
   });
   if (error || !data) {
     if (error?.code !== "23505") logServerError("restaurant.openBill", error);
@@ -129,6 +131,7 @@ export async function createRestaurantOrder(serviceType: "takeaway" | "delivery"
     p_notes: d.notes ?? undefined,
     p_delivery: serviceType === "delivery" ? { address: d.address, recipient_phone: d.phone } : undefined,
     p_delivery_fee: serviceType === "delivery" ? (d.fee ?? 0) : 0,
+    p_branch_id: (await getBranchContext(ctx.business)).current.id,
   });
   if (error || !data) {
     logServerError("restaurant.createOrder", error);

@@ -31,9 +31,9 @@ export function dateRange(from: string, to: string): string[] {
 export type DayFigures = { day: string; sales: number; revenue: number; cogs: number; itemsWithoutCost: number; discounts: number };
 
 /** Owners/admins: completed sales per local day (revenue, cost of goods sold, discounts). Days without sales are omitted. */
-export async function salesByDay(businessId: string, from: string, to: string): Promise<DayFigures[]> {
+export async function salesByDay(businessId: string, from: string, to: string, branchId?: string): Promise<DayFigures[]> {
   const db = await createClient();
-  const { data, error } = await db.rpc("sales_by_day", { p_business_id: businessId, p_from: from, p_to: to });
+  const { data, error } = await db.rpc("sales_by_day", { p_business_id: businessId, p_from: from, p_to: to, p_branch_id: branchId });
   if (error) return [];
   return (data ?? []).map((r) => ({
     day: r.day,
@@ -48,9 +48,9 @@ export async function salesByDay(businessId: string, from: string, to: string): 
 export type ProductFigures = { productId: string | null; name: string; quantity: number; revenue: number; cogs: number; profit: number; itemsWithoutCost: number };
 
 /** Owners/admins: completed sales per product over a period. */
-export async function productSales(businessId: string, from: string, to: string): Promise<ProductFigures[]> {
+export async function productSales(businessId: string, from: string, to: string, branchId?: string): Promise<ProductFigures[]> {
   const db = await createClient();
-  const { data, error } = await db.rpc("product_sales", { p_business_id: businessId, p_from: from, p_to: to });
+  const { data, error } = await db.rpc("product_sales", { p_business_id: businessId, p_from: from, p_to: to, p_branch_id: branchId });
   if (error) return [];
   return (data ?? []).map((r) => ({
     productId: r.product_id,
@@ -93,17 +93,17 @@ export function groupDays(days: DayFigures[], by: "day" | "week" | "month"): Day
   return [...groups.values()].sort((a, b) => a.day.localeCompare(b.day));
 }
 
-/** Expenses between two dates (inclusive). RLS returns nothing to roles below admin. */
-export async function expensesBetween(businessId: string, from: string, to: string) {
+/** Expenses between two dates (inclusive), of one branch when given. RLS returns nothing to roles below admin. */
+export async function expensesBetween(businessId: string, from: string, to: string, branchId?: string) {
   const db = await createClient();
-  const { data } = await db
+  let q = db
     .from("expenses")
     .select("id, category, amount, spent_on, description, payment_method, reference")
     .eq("business_id", businessId)
     .gte("spent_on", from)
-    .lte("spent_on", to)
-    .order("spent_on")
-    .limit(10000);
+    .lte("spent_on", to);
+  if (branchId) q = q.eq("branch_id", branchId);
+  const { data } = await q.order("spent_on").limit(10000);
   return (data ?? []).map((e) => ({ ...e, amount: Number(e.amount) }));
 }
 
@@ -167,17 +167,18 @@ export async function customersWhoOwe(businessId: string, max = 10) {
 }
 
 /** Customers ranked by what they bought in a period (completed sales). */
-export async function topCustomers(businessId: string, timezone: string, from: string, to: string, max = 10) {
+export async function topCustomers(businessId: string, timezone: string, from: string, to: string, max = 10, branchId?: string) {
   const db = await createClient();
-  const { data } = await db
+  let q = db
     .from("orders")
     .select("customer_id, total, amount_paid, customers(name, whatsapp_phone)")
     .eq("business_id", businessId)
     .eq("status", "delivered")
     .not("customer_id", "is", null)
     .gte("created_at", localDayStart(from, timezone))
-    .lt("created_at", localDayStart(to, timezone, 1))
-    .limit(20000);
+    .lt("created_at", localDayStart(to, timezone, 1));
+  if (branchId) q = q.eq("branch_id", branchId);
+  const { data } = await q.limit(20000);
   const by = new Map<string, { id: string; name: string; sales: number; spent: number; paid: number }>();
   for (const o of data ?? []) {
     const id = o.customer_id!;
@@ -367,13 +368,18 @@ export function resolvePeriod(timezone: string, p: { range?: string; from?: stri
 
 export type ReportData = Awaited<ReturnType<typeof getReport>>;
 
-/** Everything on the reports page for one period (owners/admins). */
-export async function getReport(businessId: string, timezone: string, from: string, to: string) {
+/**
+ * Everything on the reports page for one period (owners/admins). With a
+ * branch: its sales, products, customers and the expenses tagged to it
+ * (expenses for the whole business, debts, stock alerts and invoice payments
+ * stay business-wide).
+ */
+export async function getReport(businessId: string, timezone: string, from: string, to: string, branchId?: string) {
   const [days, products, expenses, customers, owing, stock, invoicePayments] = await Promise.all([
-    salesByDay(businessId, from, to),
-    productSales(businessId, from, to),
-    expensesBetween(businessId, from, to),
-    topCustomers(businessId, timezone, from, to, 10),
+    salesByDay(businessId, from, to, branchId),
+    productSales(businessId, from, to, branchId),
+    expensesBetween(businessId, from, to, branchId),
+    topCustomers(businessId, timezone, from, to, 10, branchId),
     customersWhoOwe(businessId, 10),
     getStockAlerts(businessId, 10),
     invoicePaymentsBetween(businessId, timezone, from, to),

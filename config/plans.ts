@@ -23,6 +23,9 @@ export type Plan = {
   maxStudents: number | null;
   hasBulkReportCards: boolean;
   hasSchoolReports: boolean;
+  /** Locations included; extra branches at extraBranchPrice per month each (null: one location only). */
+  includedBranches: number;
+  extraBranchPrice: number | null;
 };
 
 export const plans: Plan[] = PLANS.map((p) => ({
@@ -39,6 +42,8 @@ export const plans: Plan[] = PLANS.map((p) => ({
   maxStudents: p.maxStudents,
   hasBulkReportCards: p.hasBulkReportCards,
   hasSchoolReports: p.hasSchoolReports,
+  includedBranches: p.includedBranches,
+  extraBranchPrice: p.extraBranchPrice,
   ...(p.highlighted ? { highlighted: true } : {}),
 }));
 

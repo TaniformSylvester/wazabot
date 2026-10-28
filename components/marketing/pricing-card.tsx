@@ -34,6 +34,10 @@ export function PricingCard({
     { label: f.profit, included: plan.hasProfit },
     { label: plan.maxDocuments === null ? f.documentsUnlimited : format(f.documents, { count: n(plan.maxDocuments) }), included: true },
     { label: plan.maxStudents === null ? f.studentsUnlimited : format(f.students, { count: n(plan.maxStudents) }), included: true },
+    {
+      label: plan.extraBranchPrice === null ? f.location : format(f.locations, { count: n(plan.includedBranches), price: formatXaf(plan.extraBranchPrice, locale) }),
+      included: true,
+    },
   ];
   return (
     <div

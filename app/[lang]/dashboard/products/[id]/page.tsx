@@ -5,7 +5,7 @@ import { FormAlert } from "@/components/auth/form-alert";
 import { ActionForm, DeleteButton, SelectField, SubmitButton, TextField } from "@/components/app/form";
 import { ProductForm } from "@/components/app/product-form";
 import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, formatMoney, formatPercent, td, th } from "@/components/app/ui";
-import { adjustStock, deleteProduct } from "@/lib/actions/products";
+import { adjustStock, deleteProduct, transferStock } from "@/lib/actions/products";
 import { isUuid } from "@/lib/actions/form";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
 import { getPlanLimits, getProduct, listStockMovements, profitAllowed } from "@/lib/data/queries";
@@ -16,6 +16,8 @@ import { localizePath } from "@/lib/i18n/paths";
 import { variantLabel } from "@/lib/products/options";
 import { ADJUST_REASONS, type StockReason } from "@/types/database";
 import { getBusinessModules } from "@/lib/modules";
+import { getBranchContext, listBranches } from "@/lib/branches";
+import { createClient } from "@/lib/supabase/server";
 
 export const generateMetadata = dashboardMetadata((d) => d.products.edit);
 
@@ -38,6 +40,18 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   const cost = product.cost_price === null ? null : Number(product.cost_price);
 
   const restaurant = (await getBusinessModules(business)).includes("restaurant");
+  // Several branches: each has its own stock (the big number stays the total).
+  const [branchCtx, branches] = await Promise.all([getBranchContext(business), listBranches(business.id)]);
+  const br = d.branches;
+  const perBranch = branchCtx.multi
+    ? ((await (await createClient()).from("branch_stock").select("branch_id, variant_id, quantity").eq("product_id", product.id)).data ?? [])
+    : [];
+  const tracked = [
+    ...(stock !== null ? [{ id: null as string | null, label: inv.adjust.wholeProduct }] : []),
+    ...product.product_variants.filter((v) => v.stock_quantity !== null).map((v) => ({ id: v.id as string | null, label: variantLabel(v, product.options) })),
+  ];
+  const qtyAt = (branchId: string, variantId: string | null) => perBranch.find((r) => r.branch_id === branchId && r.variant_id === variantId)?.quantity ?? 0;
+  const branchOptions = branches.filter((b) => b.active).map((b) => ({ value: b.id, label: b.name }));
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <PageHeader
@@ -82,6 +96,24 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
                 </p>
               </div>
             )}
+            {branchCtx.multi && tracked.length ? (
+              <div className="mt-3 border-t border-border pt-3" data-testid="stock-by-branch">
+                <p className="mb-2 text-sm font-semibold text-deep">{br.stockByBranch}</p>
+                <ul className="flex flex-col gap-1.5 text-sm">
+                  {branches.map((b) => (
+                    <li key={b.id} className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <span className={b.active ? "text-deep" : "text-slate"}>
+                        {b.name}
+                        {!b.active ? ` (${br.paused})` : ""}
+                      </span>
+                      <span className="font-semibold text-deep">
+                        {tracked.map((v) => (tracked.length > 1 ? `${v.label}: ${n(qtyAt(b.id, v.id))}` : n(qtyAt(b.id, v.id)))).join(" · ")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {showMargin ? (
               <p className="mt-3 border-t border-border pt-3 text-sm text-slate">
                 {inv.margin}:{" "}
@@ -97,6 +129,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
           <Panel id="adjust-stock" title={inv.adjust.title} description={inv.adjust.text}>
             {canEdit ? (
               <ActionForm action={adjustStock} text={{ errors: d.errors, saved: inv.adjust.saved, saving: inv.adjust.saving }} successMessage={inv.adjust.saved} hidden={{ product_id: product.id }}>
+                {branchCtx.multi ? <SelectField name="branch_id" label={br.branch} defaultValue={branchCtx.current.id} options={branchOptions} /> : null}
                 <SelectField name="reason" label={inv.adjust.reason} defaultValue="purchase" options={ADJUST_REASONS.map((r) => ({ value: r, label: inv.reasons[r] }))} />
                 {product.product_variants.length ? (
                   <SelectField
@@ -120,6 +153,25 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
               <p className="text-sm text-slate">{inv.adjust.ownersOnly}</p>
             )}
           </Panel>
+
+          {branchCtx.multi && canEdit && tracked.length ? (
+            <Panel id="transfer-stock" title={br.transfer.title} description={br.transfer.text}>
+              <ActionForm action={transferStock} text={{ errors: d.errors, saved: br.transfer.saved, saving: d.common.saving }} successMessage={br.transfer.saved} resetOnSuccess hidden={{ product_id: product.id }}>
+                {tracked.length > 1 || tracked[0].id ? (
+                  <SelectField name="variant_id" label={inv.adjust.variant} defaultValue={tracked[0].id ?? ""} options={tracked.map((v) => ({ value: v.id ?? "", label: v.label }))} />
+                ) : null}
+                <div className="grid grid-cols-2 gap-3">
+                  <SelectField name="from_branch" label={br.transfer.from} defaultValue={branchCtx.current.id} options={branchOptions} />
+                  <SelectField name="to_branch" label={br.transfer.to} defaultValue={branchOptions.find((o) => o.value !== branchCtx.current.id)?.value} options={branchOptions} />
+                </div>
+                <TextField name="quantity" label={inv.adjust.quantity} inputMode="numeric" />
+                <TextField name="note" label={inv.adjust.note} maxLength={300} />
+                <div>
+                  <SubmitButton>{br.transfer.submit}</SubmitButton>
+                </div>
+              </ActionForm>
+            </Panel>
+          ) : null}
         </div>
       </div>
 
@@ -128,7 +180,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
           <TableWrap>
             <thead>
               <tr>
-                {[inv.history.date, inv.history.reason, inv.history.change, inv.history.before, inv.history.after, inv.history.by].map((h) => (
+                {[inv.history.date, ...(branchCtx.multi ? [br.branch] : []), inv.history.reason, inv.history.change, inv.history.before, inv.history.after, inv.history.by].map((h) => (
                   <th key={h} className={th}>
                     {h}
                   </th>
@@ -139,6 +191,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
               {movements.map((m) => (
                 <tr key={m.id}>
                   <td className={`${td} whitespace-nowrap text-slate`}>{formatDate(m.created_at, locale, true)}</td>
+                  {branchCtx.multi ? <td className={td}>{m.branches?.name ?? "—"}</td> : null}
                   <td className={td}>
                     <span className="font-semibold">{inv.reasons[m.reason as StockReason] ?? m.reason}</span>
                     {m.product_variants ? <span className="block text-xs text-slate">{variantLabel(m.product_variants, product.options)}</span> : null}

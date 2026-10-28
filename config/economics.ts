@@ -153,17 +153,21 @@ export type PlanEconomics = {
   hasBulkReportCards: boolean;
   /** Advanced school reports: class and subject statistics, fee collection, CSV. */
   hasSchoolReports: boolean;
+  /** Locations included (the main one counts). */
+  includedBranches: number;
+  /** FCFA per month for each extra branch; null when the plan can't add branches. */
+  extraBranchPrice: number | null;
 };
 
 /** Must match the `plans` table (the admin margin page warns when they differ). */
 export const PLANS: PlanEconomics[] = [
   // Free: 30 conversations and a 300 FCFA Claude budget, then rules-only (businesses that signed up before Step 4: 50 until 1 Nov 2026).
-  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 30, maxProducts: 30, maxMonthlySales: 100, maxMembers: 1, reportDays: 7, hasProfit: false, maxDocuments: 20, maxStudents: 50, maxReportCardStudents: 50, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: false, hasSchoolReports: false },
+  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 30, maxProducts: 30, maxMonthlySales: 100, maxMembers: 1, reportDays: 7, hasProfit: false, maxDocuments: 20, maxStudents: 50, maxReportCardStudents: 50, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: false, hasSchoolReports: false, includedBranches: 1, extraBranchPrice: null },
   // Boutique: the business tools without WhatsApp AI, for very small shops.
-  { id: "boutique", monthlyPrice: 5_000, aiConversationsPerMonth: 0, maxProducts: null, maxMonthlySales: null, maxMembers: 1, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 200, maxReportCardStudents: 200, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: false },
-  { id: "starter", monthlyPrice: 10_000, aiConversationsPerMonth: 500, maxProducts: null, maxMonthlySales: null, maxMembers: 2, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 200, maxReportCardStudents: 200, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: false },
-  { id: "business", monthlyPrice: 25_000, aiConversationsPerMonth: 2_000, highlighted: true, maxProducts: null, maxMonthlySales: null, maxMembers: 5, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 500, maxReportCardStudents: 500, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: true },
-  { id: "pro", monthlyPrice: 50_000, aiConversationsPerMonth: 5_000, maxProducts: null, maxMonthlySales: null, maxMembers: 10, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: null, maxReportCardStudents: null, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: true },
+  { id: "boutique", monthlyPrice: 5_000, aiConversationsPerMonth: 0, maxProducts: null, maxMonthlySales: null, maxMembers: 1, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 200, maxReportCardStudents: 200, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: false, includedBranches: 1, extraBranchPrice: null },
+  { id: "starter", monthlyPrice: 10_000, aiConversationsPerMonth: 500, maxProducts: null, maxMonthlySales: null, maxMembers: 2, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 200, maxReportCardStudents: 200, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: false, includedBranches: 1, extraBranchPrice: null },
+  { id: "business", monthlyPrice: 25_000, aiConversationsPerMonth: 2_000, highlighted: true, maxProducts: null, maxMonthlySales: null, maxMembers: 5, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 500, maxReportCardStudents: 500, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: true, includedBranches: 2, extraBranchPrice: 5_000 },
+  { id: "pro", monthlyPrice: 50_000, aiConversationsPerMonth: 5_000, maxProducts: null, maxMonthlySales: null, maxMembers: 10, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: null, maxReportCardStudents: null, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: true, includedBranches: 5, extraBranchPrice: 5_000 },
 ];
 
 /** Businesses that existed before the plan limits keep full access on Free until this date (businesses.free_limits_from). */

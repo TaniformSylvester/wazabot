@@ -144,6 +144,8 @@ type DbPlanEntitlements = {
   max_report_card_students?: number | null;
   max_teachers?: number;
   max_kitchen?: number;
+  included_branches?: number;
+  extra_branch_price?: number | string | null;
   has_bulk_report_cards?: boolean;
   has_school_reports?: boolean;
 };
@@ -159,6 +161,8 @@ export function planConfigDrift(dbPlans: ({ id: string; monthly_price: number; a
       [db.max_report_card_students, p.maxReportCardStudents],
       [db.max_teachers, p.maxTeachers],
       [db.max_kitchen, p.maxKitchen],
+      [db.included_branches, p.includedBranches],
+      [db.extra_branch_price === undefined ? undefined : db.extra_branch_price === null ? null : Number(db.extra_branch_price), p.extraBranchPrice],
       [db.has_bulk_report_cards, p.hasBulkReportCards],
       [db.has_school_reports, p.hasSchoolReports],
     ];
@@ -169,7 +173,7 @@ export function planConfigDrift(dbPlans: ({ id: string; monthly_price: number; a
 export async function getMarginReport(admin: Admin, month: string) {
   const [{ data, error }, { data: dbPlans }, { data: subs }] = await Promise.all([
     admin.rpc("admin_cost_report", { p_month: month, p_free_service: META_PRICING.freeServicePerNumberPerMonth }),
-    admin.from("plans").select("id, monthly_price, ai_conversations_per_month, max_documents, max_students, max_report_card_students, max_teachers, max_kitchen, has_bulk_report_cards, has_school_reports"),
+    admin.from("plans").select("id, monthly_price, ai_conversations_per_month, max_documents, max_students, max_report_card_students, max_teachers, max_kitchen, has_bulk_report_cards, has_school_reports, included_branches, extra_branch_price"),
     admin.from("subscriptions").select("business_id, billing_interval"),
   ]);
   if (error) throw error;

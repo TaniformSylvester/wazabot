@@ -11,6 +11,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBranchContext } from "@/lib/branches";
 import { cn } from "@/lib/utils";
 
 export const generateMetadata = dashboardMetadata((d) => d.restaurant.kitchen.title);
@@ -29,7 +30,7 @@ export default async function KitchenPage() {
   const d = t.dashboard;
   const r = d.restaurant;
   const k = r.kitchen;
-  const { tickets, at: now } = await kitchenQueue(business.id);
+  const { tickets, at: now } = await kitchenQueue(business.id, (await getBranchContext(business)).current.id);
   const label = { new: k.start, preparing: k.ready, ready: k.served } as const;
 
   return (

@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { authorize } from "@/lib/auth/dal";
+import { getBranchContext } from "@/lib/branches";
 import { emit } from "@/lib/core/events";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
@@ -39,7 +40,7 @@ const saleSchema = z.object({
   notes: optionalText(500),
 });
 export type SaleInput = z.input<typeof saleSchema>;
-export type SaleError = "forbidden" | "invalid" | "empty" | "customer" | "out_of_stock" | "credit_needs_customer" | "discount_not_allowed" | "too_much" | "plan_limit_sales" | "failed";
+export type SaleError = "forbidden" | "invalid" | "empty" | "customer" | "out_of_stock" | "credit_needs_customer" | "discount_not_allowed" | "too_much" | "plan_limit_sales" | "branch_closed" | "failed";
 export type SaleResult = { ok: true; id: string } | { ok: false; error: SaleError; item?: string };
 
 export async function createSale(input: SaleInput): Promise<SaleResult> {
@@ -82,6 +83,8 @@ export async function createSale(input: SaleInput): Promise<SaleResult> {
     p_discount: s.discount,
     p_payments: payments,
     p_notes: s.notes ?? undefined,
+    // The branch the cashier works in (the database checks they may sell there).
+    p_branch_id: (await getBranchContext(ctx.business)).current.id,
   });
   if (error || !data) {
     logServerError("sales.create", error);
@@ -92,6 +95,7 @@ export async function createSale(input: SaleInput): Promise<SaleResult> {
     if (m.includes("more than the total")) return { ok: false, error: "too_much" };
     if (error?.code === "WB412") return { ok: false, error: "plan_limit_sales" };
     if (error?.code === "42501") return { ok: false, error: "forbidden" };
+    if (error?.code === "WB453") return { ok: false, error: "branch_closed" };
     return { ok: false, error: "failed" };
   }
   revalidatePath("/[lang]/dashboard", "layout");

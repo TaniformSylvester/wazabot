@@ -22,6 +22,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Smartphone,
+  Store,
   Users,
   UsersRound,
   Wallet,
@@ -111,6 +112,7 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
     items: [
       { key: "whatsapp", href: "/dashboard/whatsapp", icon: Smartphone },
       { key: "team", href: "/dashboard/team", icon: UsersRound, teacher: true, kitchen: true },
+      { key: "branches", href: "/dashboard/branches", icon: Store, minRole: "admin" },
       { key: "billing", href: "/dashboard/billing", icon: CreditCard },
       { key: "settings", href: "/dashboard/settings", icon: Settings },
     ],

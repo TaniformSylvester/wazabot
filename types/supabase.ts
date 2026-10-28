@@ -401,6 +401,105 @@ export type Database = {
           },
         ];
       };
+      branch_stock: {
+        Row: {
+          branch_id: string;
+          business_id: string;
+          product_id: string;
+          quantity: number;
+          updated_at: string;
+          variant_id: string | null;
+        };
+        Insert: {
+          branch_id: string;
+          business_id: string;
+          product_id: string;
+          quantity?: number;
+          updated_at?: string;
+          variant_id?: string | null;
+        };
+        Update: {
+          branch_id?: string;
+          business_id?: string;
+          product_id?: string;
+          quantity?: number;
+          updated_at?: string;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "branch_stock_business_id_branch_id_fkey";
+            columns: ["business_id", "branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "branch_stock_business_id_product_id_fkey";
+            columns: ["business_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["business_id", "id"];
+          },
+          {
+            foreignKeyName: "branch_stock_business_id_variant_id_fkey";
+            columns: ["business_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["business_id", "id"];
+          },
+        ];
+      };
+      branches: {
+        Row: {
+          active: boolean;
+          address: string | null;
+          business_id: string;
+          city: string | null;
+          created_at: string;
+          hours: string | null;
+          id: string;
+          is_main: boolean;
+          name: string;
+          phone: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          address?: string | null;
+          business_id: string;
+          city?: string | null;
+          created_at?: string;
+          hours?: string | null;
+          id?: string;
+          is_main?: boolean;
+          name: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          address?: string | null;
+          business_id?: string;
+          city?: string | null;
+          created_at?: string;
+          hours?: string | null;
+          id?: string;
+          is_main?: boolean;
+          name?: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "branches_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       broadcast_recipients: {
         Row: {
           broadcast_id: string;
@@ -653,24 +752,34 @@ export type Database = {
       };
       business_members: {
         Row: {
+          branch_id: string | null;
           business_id: string;
           created_at: string;
           role: Database["public"]["Enums"]["business_role"];
           user_id: string;
         };
         Insert: {
+          branch_id?: string | null;
           business_id: string;
           created_at?: string;
           role?: Database["public"]["Enums"]["business_role"];
           user_id: string;
         };
         Update: {
+          branch_id?: string | null;
           business_id?: string;
           created_at?: string;
           role?: Database["public"]["Enums"]["business_role"];
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "business_members_branch_fkey";
+            columns: ["business_id", "branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["business_id", "id"];
+          },
           {
             foreignKeyName: "business_members_business_id_fkey";
             columns: ["business_id"];
@@ -1476,6 +1585,7 @@ export type Database = {
       expenses: {
         Row: {
           amount: number;
+          branch_id: string | null;
           business_id: string;
           category: string;
           created_at: string;
@@ -1489,6 +1599,7 @@ export type Database = {
         };
         Insert: {
           amount: number;
+          branch_id?: string | null;
           business_id: string;
           category: string;
           created_at?: string;
@@ -1502,6 +1613,7 @@ export type Database = {
         };
         Update: {
           amount?: number;
+          branch_id?: string | null;
           business_id?: string;
           category?: string;
           created_at?: string;
@@ -1514,6 +1626,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "expenses_branch_fkey";
+            columns: ["business_id", "branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["business_id", "id"];
+          },
           {
             foreignKeyName: "expenses_business_id_fkey";
             columns: ["business_id"];
@@ -2457,6 +2576,7 @@ export type Database = {
           amount_refunded: number;
           balance_due: number | null;
           bill_closed_at: string | null;
+          branch_id: string;
           business_id: string;
           channel: string;
           client_key: string | null;
@@ -2494,6 +2614,7 @@ export type Database = {
           amount_refunded?: number;
           balance_due?: never;
           bill_closed_at?: string | null;
+          branch_id: string;
           business_id: string;
           channel?: string;
           client_key?: string | null;
@@ -2531,6 +2652,7 @@ export type Database = {
           amount_refunded?: number;
           balance_due?: never;
           bill_closed_at?: string | null;
+          branch_id?: string;
           business_id?: string;
           channel?: string;
           client_key?: string | null;
@@ -2564,6 +2686,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "orders_branch_fkey";
+            columns: ["business_id", "branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["business_id", "id"];
+          },
           {
             foreignKeyName: "orders_business_id_conversation_id_fkey";
             columns: ["business_id", "conversation_id"];
@@ -2608,6 +2737,7 @@ export type Database = {
           contact_phone: string | null;
           created_at: string;
           decided_at: string | null;
+          extra_branches: number | null;
           from_plan_id: string | null;
           id: string;
           kind: string;
@@ -2622,6 +2752,7 @@ export type Database = {
           contact_phone?: string | null;
           created_at?: string;
           decided_at?: string | null;
+          extra_branches?: number | null;
           from_plan_id?: string | null;
           id?: string;
           kind?: string;
@@ -2636,6 +2767,7 @@ export type Database = {
           contact_phone?: string | null;
           created_at?: string;
           decided_at?: string | null;
+          extra_branches?: number | null;
           from_plan_id?: string | null;
           id?: string;
           kind?: string;
@@ -2674,11 +2806,13 @@ export type Database = {
           ai_conversations_per_month: number;
           created_at: string;
           currency: string;
+          extra_branch_price: number | null;
           has_bulk_report_cards: boolean;
           has_profit: boolean;
           has_school_reports: boolean;
           highlighted: boolean;
           id: string;
+          included_branches: number;
           legacy_conversations_per_month: number | null;
           max_documents: number | null;
           max_kitchen: number;
@@ -2698,11 +2832,13 @@ export type Database = {
           ai_conversations_per_month: number;
           created_at?: string;
           currency?: string;
+          extra_branch_price?: number | null;
           has_bulk_report_cards?: boolean;
           has_profit?: boolean;
           has_school_reports?: boolean;
           highlighted?: boolean;
           id: string;
+          included_branches?: number;
           legacy_conversations_per_month?: number | null;
           max_documents?: number | null;
           max_kitchen?: number;
@@ -2722,11 +2858,13 @@ export type Database = {
           ai_conversations_per_month?: number;
           created_at?: string;
           currency?: string;
+          extra_branch_price?: number | null;
           has_bulk_report_cards?: boolean;
           has_profit?: boolean;
           has_school_reports?: boolean;
           highlighted?: boolean;
           id?: string;
+          included_branches?: number;
           legacy_conversations_per_month?: number | null;
           max_documents?: number | null;
           max_kitchen?: number;
@@ -2947,6 +3085,7 @@ export type Database = {
         Row: {
           active: boolean;
           area: string | null;
+          branch_id: string;
           business_id: string;
           created_at: string;
           id: string;
@@ -2957,6 +3096,7 @@ export type Database = {
         Insert: {
           active?: boolean;
           area?: string | null;
+          branch_id: string;
           business_id: string;
           created_at?: string;
           id?: string;
@@ -2967,6 +3107,7 @@ export type Database = {
         Update: {
           active?: boolean;
           area?: string | null;
+          branch_id?: string;
           business_id?: string;
           created_at?: string;
           id?: string;
@@ -2975,6 +3116,13 @@ export type Database = {
           sort_order?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: "restaurant_tables_branch_fkey";
+            columns: ["business_id", "branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["business_id", "id"];
+          },
           {
             foreignKeyName: "restaurant_tables_business_id_fkey";
             columns: ["business_id"];
@@ -3629,6 +3777,7 @@ export type Database = {
       };
       stock_movements: {
         Row: {
+          branch_id: string | null;
           business_id: string;
           created_at: string;
           created_by: string | null;
@@ -3643,6 +3792,7 @@ export type Database = {
           variant_id: string | null;
         };
         Insert: {
+          branch_id?: string | null;
           business_id: string;
           created_at?: string;
           created_by?: string | null;
@@ -3657,6 +3807,7 @@ export type Database = {
           variant_id?: string | null;
         };
         Update: {
+          branch_id?: string | null;
           business_id?: string;
           created_at?: string;
           created_by?: string | null;
@@ -3671,6 +3822,13 @@ export type Database = {
           variant_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "stock_movements_branch_fkey";
+            columns: ["business_id", "branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["business_id", "id"];
+          },
           {
             foreignKeyName: "stock_movements_business_id_order_id_fkey";
             columns: ["business_id", "order_id"];
@@ -3774,6 +3932,7 @@ export type Database = {
           created_at: string;
           current_period_end: string;
           current_period_start: string;
+          extra_branches: number;
           plan_id: string;
           rules_from: string;
           status: string;
@@ -3785,6 +3944,7 @@ export type Database = {
           created_at?: string;
           current_period_end?: string;
           current_period_start?: string;
+          extra_branches?: number;
           plan_id: string;
           rules_from?: string;
           status?: string;
@@ -3796,6 +3956,7 @@ export type Database = {
           created_at?: string;
           current_period_end?: string;
           current_period_start?: string;
+          extra_branches?: number;
           plan_id?: string;
           rules_from?: string;
           status?: string;
@@ -4119,6 +4280,7 @@ export type Database = {
       accept_invitation: { Args: { p_token: string }; Returns: string };
       adjust_stock: {
         Args: {
+          p_branch_id?: string;
           p_business_id: string;
           p_new_stock?: number;
           p_note?: string;
@@ -4208,6 +4370,7 @@ export type Database = {
         };
         Returns: string;
       };
+      branch_allowance: { Args: { p_business_id: string }; Returns: number };
       business_entitlements: {
         Args: { p_business_id: string };
         Returns: {
@@ -4245,6 +4408,7 @@ export type Database = {
       business_slug: { Args: { p_id: string; p_name: string }; Returns: string };
       can_mark: { Args: { p_class_subject_id: string }; Returns: boolean };
       can_see_class: { Args: { p_business_id: string; p_class_id: string }; Returns: boolean };
+      can_use_branch: { Args: { p_branch_id: string; p_business_id: string }; Returns: boolean };
       can_use_kitchen: { Args: { p_business_id: string }; Returns: boolean };
       cancel_plan_change: { Args: { p_request_id: string }; Returns: undefined };
       claude_spend_since: { Args: { p_business_id: string; p_since: string }; Returns: number };
@@ -4264,6 +4428,7 @@ export type Database = {
       };
       create_order: {
         Args: {
+          p_branch_id?: string;
           p_business_id: string;
           p_channel?: string;
           p_client_key?: string;
@@ -4406,6 +4571,7 @@ export type Database = {
       };
       create_sale: {
         Args: {
+          p_branch_id?: string;
           p_business_id: string;
           p_client_key: string;
           p_customer_id?: string;
@@ -4416,6 +4582,7 @@ export type Database = {
         };
         Returns: string;
       };
+      current_member_branch: { Args: { p_business_id: string }; Returns: string };
       delivery_status_rank: { Args: { s: string }; Returns: number };
       format_reference: {
         Args: { p_n: number; p_prefix: string; p_width: number };
@@ -4523,7 +4690,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
-      kitchen_queue: { Args: { p_business_id: string }; Returns: Json };
+      kitchen_queue: { Args: { p_branch_id?: string; p_business_id: string }; Returns: Json };
       link_order_customer: {
         Args: { p_business_id: string; p_customer_id: string; p_order_id: string };
         Returns: undefined;
@@ -4545,7 +4712,7 @@ export type Database = {
         }[];
       };
       product_sales: {
-        Args: { p_business_id: string; p_from: string; p_to: string };
+        Args: { p_branch_id?: string; p_business_id: string; p_from: string; p_to: string };
         Returns: {
           cogs: number;
           items_without_cost: number;
@@ -4654,6 +4821,10 @@ export type Database = {
         Args: { p_invitation_id: string; p_token_hash: string };
         Returns: undefined;
       };
+      request_extra_branches: {
+        Args: { p_business_id: string; p_contact_phone?: string; p_extra: number; p_note?: string };
+        Returns: string;
+      };
       request_plan_change: {
         Args: {
           p_business_id: string;
@@ -4674,6 +4845,7 @@ export type Database = {
       };
       restaurant_open_order: {
         Args: {
+          p_branch_id?: string;
           p_business_id: string;
           p_client_key?: string;
           p_conversation_id?: string;
@@ -4699,7 +4871,7 @@ export type Database = {
       revoke_invitation: { Args: { p_invitation_id: string }; Returns: undefined };
       role_rank: { Args: { r: string }; Returns: number };
       sales_by_day: {
-        Args: { p_business_id: string; p_from: string; p_to: string };
+        Args: { p_branch_id?: string; p_business_id: string; p_from: string; p_to: string };
         Returns: {
           cogs: number;
           day: string;
@@ -4716,6 +4888,10 @@ export type Database = {
       school_results_locked: { Args: { p_class_id: string; p_term_id: string }; Returns: boolean };
       set_business_module: {
         Args: { p_business_id: string; p_enabled: boolean; p_module: string };
+        Returns: undefined;
+      };
+      set_member_branch: {
+        Args: { p_branch_id?: string; p_business_id: string; p_user_id: string };
         Returns: undefined;
       };
       set_quotation_status: {
@@ -4790,6 +4966,18 @@ export type Database = {
       teaches_student: { Args: { p_student_id: string }; Returns: boolean };
       term_report_card_usage: { Args: { p_term_id: string }; Returns: number };
       token_sha256: { Args: { p_token: string }; Returns: string };
+      transfer_stock: {
+        Args: {
+          p_business_id: string;
+          p_from: string;
+          p_note?: string;
+          p_product_id: string;
+          p_quantity: number;
+          p_to: string;
+          p_variant_id?: string;
+        };
+        Returns: undefined;
+      };
       update_business_language_settings: {
         Args: {
           p_business_id: string;

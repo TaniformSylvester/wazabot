@@ -12,10 +12,12 @@ import type { ServiceType, TicketStatus } from "@/types/database";
 
 export type RestaurantTable = { id: string; name: string; area: string | null; seats: number | null; active: boolean; sort_order: number };
 
-export async function listTables(businessId: string, includeOff = false): Promise<RestaurantTable[]> {
+/** Tables of the business, or of one branch. */
+export async function listTables(businessId: string, includeOff = false, branchId?: string): Promise<RestaurantTable[]> {
   const db = await createClient();
   let q = db.from("restaurant_tables").select("id, name, area, seats, active, sort_order").eq("business_id", businessId);
   if (!includeOff) q = q.eq("active", true);
+  if (branchId) q = q.eq("branch_id", branchId);
   const { data } = await q.order("sort_order").order("name");
   return data ?? [];
 }
@@ -38,22 +40,24 @@ export type OpenOrder = {
   readyRounds: number;
 };
 
-/** The floor: tables with their open bill (if any), and takeaway/delivery orders in progress. */
-export async function floorState(businessId: string) {
+/** The floor (of one branch when given): tables with their open bill (if any), and takeaway/delivery orders in progress. */
+export async function floorState(businessId: string, branchId?: string) {
   const db = await createClient();
-  const [tables, { data: orders }] = await Promise.all([
-    listTables(businessId),
-    db
-      .from("orders")
-      .select("id, order_number, service_type, table_id, status, channel, total, balance_due, guests, created_at, customers(name), order_items(quantity), kitchen_tickets(status)")
-      .eq("business_id", businessId)
+  let orders = db
+    .from("orders")
+    .select("id, order_number, service_type, table_id, status, channel, total, balance_due, guests, created_at, customers(name), order_items(quantity), kitchen_tickets(status)")
+    .eq("business_id", businessId);
+  if (branchId) orders = orders.eq("branch_id", branchId);
+  const [tables, { data: rows }] = await Promise.all([
+    listTables(businessId, false, branchId),
+    orders
       .not("service_type", "is", null)
       .is("bill_closed_at", null)
       .in("status", OPEN_STATUSES)
       .order("created_at")
       .limit(200),
   ]);
-  const open: OpenOrder[] = (orders ?? []).map((o) => ({
+  const open: OpenOrder[] = (rows ?? []).map((o) => ({
     id: o.id,
     order_number: o.order_number,
     service_type: o.service_type as ServiceType,
@@ -163,8 +167,8 @@ export type KitchenTicket = {
 };
 
 /** The kitchen screen (kitchen staff and any staff): open tickets, no prices or customers, and when they were read. */
-export async function kitchenQueue(businessId: string): Promise<{ tickets: KitchenTicket[] | null; at: number }> {
+export async function kitchenQueue(businessId: string, branchId?: string): Promise<{ tickets: KitchenTicket[] | null; at: number }> {
   const db = await createClient();
-  const { data, error } = await db.rpc("kitchen_queue", { p_business_id: businessId });
+  const { data, error } = await db.rpc("kitchen_queue", { p_business_id: businessId, p_branch_id: branchId });
   return { tickets: error ? null : ((Array.isArray(data) ? data : []) as unknown as KitchenTicket[]), at: Date.now() };
 }

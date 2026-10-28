@@ -41,16 +41,16 @@ const tool = <I extends z.ZodType, O>(def: ToolDefinition<I, O>) => def;
 
 export const getBusinessInformation = tool({
   name: "getBusinessInformation",
-  description: "Business name, description, address, phone, website and whether it is open now.",
+  description: "Business name, description, address, phone, website and whether it is open now; with several branches, each branch's address, phone and hours.",
   input: z.object({}),
   async run(ctx) {
-    const { data } = await ctx.db
-      .from("businesses")
-      .select("name, description, city, address, phone, website, timezone, opening_hours")
-      .eq("id", ctx.businessId)
-      .maybeSingle();
+    const [{ data }, branches] = await Promise.all([
+      ctx.db.from("businesses").select("name, description, city, address, phone, website, timezone, opening_hours").eq("id", ctx.businessId).maybeSingle(),
+      openBranches(ctx),
+    ]);
     if (!data) return null;
     return {
+      ...(branches.length > 1 ? { branches: branches.map((b) => ({ branchId: b.id, name: b.name, address: b.address, city: b.city, phone: b.phone, hours: b.hours })) } : {}),
       name: data.name,
       description: data.description,
       city: data.city,
@@ -249,21 +249,44 @@ async function fetchCatalogPhoto(url: string): Promise<InputImage | null> {
 
 export const checkProductStock = tool({
   name: "checkProductStock",
-  description: "Current stock for one product (and optionally one variant). inStock is null when stock isn't tracked.",
+  description: "Current stock for one product (and optionally one variant). inStock is null when stock isn't tracked. With several branches, byBranch gives each branch's quantity (quantity is the total).",
   input: z.object({ productId: z.uuid(), variantId: z.uuid().optional() }),
   async run(ctx, { productId, variantId }) {
-    const { data } = await ctx.db
-      .from("products")
-      .select("name, active, stock_quantity, options, product_variants(id, name, value, options, stock_quantity)")
-      .eq("business_id", ctx.businessId)
-      .eq("id", productId)
-      .maybeSingle();
+    const [{ data }, branches] = await Promise.all([
+      ctx.db
+        .from("products")
+        .select("name, active, stock_quantity, options, product_variants(id, name, value, options, stock_quantity)")
+        .eq("business_id", ctx.businessId)
+        .eq("id", productId)
+        .maybeSingle(),
+      openBranches(ctx),
+    ]);
     if (!data || !data.active) return { found: false as const };
     const variant = variantId ? data.product_variants.find((v) => v.id === variantId) : undefined;
     const qty = variant ? variant.stock_quantity : data.stock_quantity;
-    return { found: true as const, name: data.name, variant: variant ? variantLabel(variant, data.options) : null, inStock: qty === null ? null : qty > 0, quantity: qty };
+    let byBranch: { branch: string; branchId: string; quantity: number }[] | undefined;
+    if (qty !== null && branches.length > 1) {
+      // The same rule as the totals: a tracked variant's stock, otherwise the product's.
+      let q = ctx.db.from("branch_stock").select("branch_id, quantity").eq("business_id", ctx.businessId).eq("product_id", productId);
+      q = variant ? q.eq("variant_id", variant.id) : q.is("variant_id", null);
+      const { data: rows } = await q;
+      byBranch = branches.map((b) => ({ branch: b.name, branchId: b.id, quantity: rows?.find((r) => r.branch_id === b.id)?.quantity ?? 0 }));
+    }
+    return { found: true as const, name: data.name, variant: variant ? variantLabel(variant, data.options) : null, inStock: qty === null ? null : qty > 0, quantity: qty, ...(byBranch ? { byBranch } : {}) };
   },
 });
+
+/** Open branches of the business (the main one first). */
+async function openBranches(ctx: ToolContext) {
+  const { data } = await ctx.db
+    .from("branches")
+    .select("id, name, address, city, phone, hours")
+    .eq("business_id", ctx.businessId)
+    .eq("active", true)
+    .order("is_main", { ascending: false })
+    .order("created_at");
+  return data ?? [];
+}
 
 export const getBusinessHours = tool({
   name: "getBusinessHours",
@@ -316,7 +339,8 @@ export const createOrder = tool({
     "Create an order for the current customer from catalog products. Prices come from the catalog. Only after the customer confirmed items and quantities. " +
     "Fails with reason out_of_stock (and the item) when there isn't enough stock: tell the customer and offer what is available. " +
     "A product sold in combinations needs the variantId of the exact combination (checkProductOptions); without it the order fails with choose_options. " +
-    "Restaurants: a dish's extras (by name, from searchProducts) and a short note for the kitchen per item, and serviceType takeaway or delivery (delivery needs the address); the team checks the order before the kitchen starts.",
+    "Restaurants: a dish's extras (by name, from searchProducts) and a short note for the kitchen per item, and serviceType takeaway or delivery (delivery needs the address); the team checks the order before the kitchen starts. " +
+    "With several branches, branchId is the branch the order is from (ask the customer); without it the order fails with choose_branch and the list of branches.",
   input: z.object({
     items: z
       .array(
@@ -333,11 +357,18 @@ export const createOrder = tool({
     deliveryAddress: z.string().trim().max(500).optional(),
     notes: z.string().trim().max(1000).optional(),
     serviceType: z.enum(["takeaway", "delivery"]).optional(),
+    branchId: z.uuid().optional(),
   }),
-  async run(ctx, { items, deliveryAddress, notes, serviceType }) {
+  async run(ctx, { items, deliveryAddress, notes, serviceType, branchId }) {
+    // Several branches: the order needs to say which one (stock and the team are per branch).
+    const branches = await openBranches(ctx);
+    if (branches.length > 1 && !branches.some((b) => b.id === branchId)) {
+      return { ok: false as const, reason: "choose_branch", branches: branches.map((b) => ({ branchId: b.id, name: b.name, address: [b.address, b.city].filter(Boolean).join(", ") || null })) };
+    }
+    const branch = branches.length > 1 ? branchId : undefined;
     if (ctx.dryRun) return estimateOrder(ctx, items);
     if (!ctx.customerId) return { ok: false as const, reason: "no_customer" };
-    if (await usesRestaurant(ctx)) return restaurantOrder(ctx, items, serviceType ?? (deliveryAddress ? "delivery" : "takeaway"), deliveryAddress, notes);
+    if (await usesRestaurant(ctx)) return restaurantOrder(ctx, items, serviceType ?? (deliveryAddress ? "delivery" : "takeaway"), deliveryAddress, notes, branch);
     const { data, error } = await ctx.db.rpc("create_order", {
       p_business_id: ctx.businessId,
       p_customer_id: ctx.customerId,
@@ -345,6 +376,7 @@ export const createOrder = tool({
       p_conversation_id: ctx.conversationId ?? undefined,
       p_delivery_address: deliveryAddress,
       p_notes: notes,
+      p_branch_id: branch,
     });
     if (error?.code === "WB409") {
       return { ok: false as const, reason: "out_of_stock", item: error.message.replace(/^insufficient stock:\s*/, "").slice(0, 200) };
@@ -372,6 +404,7 @@ async function restaurantOrder(
   serviceType: "takeaway" | "delivery",
   address: string | undefined,
   notes: string | undefined,
+  branchId?: string,
 ) {
   if (serviceType === "delivery" && !address) return { ok: false as const, reason: "address_needed" };
   const { data, error } = await ctx.db.rpc("restaurant_open_order", {
@@ -382,6 +415,7 @@ async function restaurantOrder(
     p_notes: notes,
     p_delivery: serviceType === "delivery" ? { address } : undefined,
     p_conversation_id: ctx.conversationId ?? undefined,
+    p_branch_id: branchId,
   });
   if (error?.code === "WB409") return { ok: false as const, reason: "out_of_stock", item: error.message.replace(/^insufficient stock:\s*/, "").slice(0, 200) };
   if (error?.message?.startsWith("unknown extra")) return { ok: false as const, reason: "unknown_extra", item: error.message.replace(/^unknown extra for\s*/, "").slice(0, 200) };

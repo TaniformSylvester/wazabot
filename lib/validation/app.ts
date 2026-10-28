@@ -198,10 +198,25 @@ export const stockAdjustSchema = z
     quantity: optionalCount,
     counted: optionalCount,
     note: optionalText(300),
+    branch_id: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
   })
   .superRefine((v, ctx) => {
     if (v.reason === "adjustment" && v.counted === null) ctx.addIssue({ code: "custom", path: ["counted"], message: "required" });
     if (v.reason !== "adjustment" && !v.quantity) ctx.addIssue({ code: "custom", path: ["quantity"], message: "required" });
+  });
+
+export const stockTransferSchema = z
+  .object({
+    product_id: z.uuid(),
+    variant_id: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
+    from_branch: z.uuid({ error: "required" }),
+    to_branch: z.uuid({ error: "required" }),
+    quantity: optionalCount,
+    note: optionalText(300),
+  })
+  .superRefine((v, ctx) => {
+    if (!v.quantity) ctx.addIssue({ code: "custom", path: ["quantity"], message: "required" });
+    if (v.from_branch === v.to_branch) ctx.addIssue({ code: "custom", path: ["to_branch"], message: "invalid_option" });
   });
 
 export const faqSchema = z.object({
@@ -344,6 +359,8 @@ export const expenseSchema = z.object({
   description: optionalText(500),
   payment_method: z.preprocess((v) => (v === "" ? null : v), z.enum(RECEIVE_METHODS, { error: "invalid_option" }).nullable().optional()).transform((v) => v ?? null),
   reference: optionalText(100),
+  /** Several branches: the branch the expense is for (empty: the whole business). */
+  branch_id: z.preprocess((v) => (v === "" || v === undefined ? null : v), z.uuid().nullable()),
 });
 
 /** Settings → Receipts. */

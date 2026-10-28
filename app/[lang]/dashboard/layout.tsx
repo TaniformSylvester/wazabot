@@ -10,6 +10,8 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { Info, PauseCircle, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
+import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
+import { getBranchContext } from "@/lib/branches";
 import { currentUserIsPlatformAdmin, pendingRequestsForAdmin } from "@/lib/admin/access";
 import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/lib/auth/dal";
 import { formatDate, formatMoney } from "@/components/app/ui";
@@ -37,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const user = await requireUser(localizePath(locale, "/dashboard"));
   const business = await getCurrentBusiness();
-  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests, paused, modules] = await Promise.all([
+  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests, paused, modules, branchCtx] = await Promise.all([
     business ? getWhatsAppConnection(business.id) : null,
     // Owners and admins are warned before the monthly AI allowance runs out.
     business && hasRole(business.role, "admin") ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
@@ -46,6 +48,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     pendingRequestsForAdmin(),
     business ? aiPausedByWazaBolt(business.id) : false,
     business ? getBusinessModules(business) : defaultModules(null),
+    business ? getBranchContext(business) : null,
   ]);
   const billingHref = localizePath(locale, "/dashboard/billing");
   const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6 print:hidden";
@@ -104,7 +107,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
             ) : (
               <p className="truncate font-display text-base font-bold text-deep">{business?.name ?? d.header.yourBusiness}</p>
             )}
-            {business ? <p className="text-xs text-slate">{d.header.roles[business.role]}</p> : null}
+            {business ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-slate">
+                <span>{d.header.roles[business.role]}</span>
+                {/* Several branches: owners and admins switch; members tied to a branch see its name. */}
+                {branchCtx?.multi ? (
+                  branchCtx.locked ? (
+                    <span className="font-semibold" data-testid="branch-name">
+                      · {branchCtx.current.name}
+                    </span>
+                  ) : (
+                    <BranchSwitcher current={branchCtx.current.id} branches={branchCtx.branches.map((b) => ({ id: b.id, name: b.name }))} locale={locale} label={d.branches.switch} />
+                  )
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <Link
             href={localizePath(locale, "/dashboard/whatsapp")}

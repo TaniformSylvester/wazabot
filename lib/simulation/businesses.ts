@@ -109,6 +109,7 @@ function context(b: {
     faqs: b.faqs.map(([question, answer]) => ({ question, answer })),
     documents: b.documents,
     activeProductCount: b.productCount,
+    branches: [],
     booking: {
       enabled: Boolean(b.services?.length),
       services: (b.services ?? []).map((s, i) => ({ id: id(0x5e, i + 1), name: s.name, description: null, durationMinutes: s.minutes, price: s.price, currency: "XAF" })),

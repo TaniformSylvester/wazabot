@@ -31,8 +31,10 @@ export type PlanRequestRow = {
   contactPhone: string | null;
   note: string | null;
   interval: BillingInterval;
-  kind: "change" | "renewal";
-  /** What the business pays for this request (FCFA). */
+  kind: "change" | "renewal" | "branches";
+  /** For a "branches" request: the number of extra branches asked for (in total). */
+  extraBranches: number | null;
+  /** What the business pays for this request (FCFA; per month for extra branches). */
   amountDue: number;
 };
 
@@ -47,7 +49,7 @@ export async function pendingPlanRequestCount(admin: Admin) {
 async function loadRequests(admin: Admin, filter: { id?: string; limit?: number }): Promise<PlanRequestRow[]> {
   let q = admin
     .from("plan_change_requests")
-    .select("id, status, created_at, decided_at, business_id, from_plan_id, to_plan_id, contact_phone, note, requested_by, billing_interval, kind")
+    .select("id, status, created_at, decided_at, business_id, from_plan_id, to_plan_id, contact_phone, note, requested_by, billing_interval, kind, extra_branches")
     .order("created_at", { ascending: false })
     .limit(filter.limit ?? 100);
   if (filter.id) q = q.eq("id", filter.id);
@@ -57,7 +59,7 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
   if (!rows.length) return [];
   const [businesses, plans, users] = await Promise.all([
     admin.from("businesses").select("id, name").in("id", [...new Set(rows.map((r) => r.business_id))]),
-    admin.from("plans").select("id, name, monthly_price"),
+    admin.from("plans").select("id, name, monthly_price, extra_branch_price"),
     admin.from("users").select("id, full_name, email, ui_locale").in("id", [...new Set(rows.map((r) => r.requested_by).filter((x): x is string => !!x))]),
   ]);
   const plan = (id: string | null) => {
@@ -80,8 +82,12 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
       contactPhone: r.contact_phone,
       note: r.note,
       interval,
-      kind: r.kind === "renewal" ? "renewal" : "change",
-      amountDue: periodPrice(to.price, interval),
+      kind: r.kind === "renewal" ? "renewal" : r.kind === "branches" ? "branches" : "change",
+      extraBranches: r.extra_branches,
+      amountDue:
+        r.kind === "branches"
+          ? (r.extra_branches ?? 0) * Number((plans.data ?? []).find((x) => x.id === r.to_plan_id)?.extra_branch_price ?? 0)
+          : periodPrice(to.price, interval),
     };
   });
 }
@@ -99,6 +105,14 @@ export async function listPlanRequests(admin: Admin) {
 // Emails
 // ---------------------------------------------------------------------------
 
+/** One line for what was asked: "Starter → Business, monthly: 25,000 FCFA" or "2 extra branches on Business: 10,000 FCFA/month". */
+export function requestSummary(r: PlanRequestRow, html = false) {
+  const b = (x: string) => (html ? `<b>${esc(x)}</b>` : x);
+  if (r.kind === "branches") return `${b(`${r.extraBranches ?? 0} extra branch${r.extraBranches === 1 ? "" : "es"}`)} on ${html ? esc(r.to.name) : r.to.name}: ${fcfa(r.amountDue)}/month`;
+  const what = r.kind === "renewal" ? `Renewal of ${b(r.to.name)}` : `${html ? esc(r.from?.name ?? "—") : (r.from?.name ?? "—")} → ${b(r.to.name)}`;
+  return `${what}, ${r.interval === "year" ? "yearly" : "monthly"}: ${fcfa(r.amountDue)}`;
+}
+
 /** To the WazaBolt team, right after a business asks for a plan. */
 export async function notifyTeamOfPlanRequest(admin: Admin, requestId: string) {
   const [r] = await loadRequests(admin, { id: requestId });
@@ -107,23 +121,41 @@ export async function notifyTeamOfPlanRequest(admin: Admin, requestId: string) {
   const rows: [string, string][] = [
     ["Business", esc(r.business.name)],
     ["Requested by", r.requester ? `${esc(r.requester.name || "—")}${r.requester.email ? ` &lt;${esc(r.requester.email)}&gt;` : ""}` : "—"],
-    ["Plan", `${r.kind === "renewal" ? `Renewal of <b>${esc(r.to.name)}</b>` : `${esc(r.from?.name ?? "—")} → <b>${esc(r.to.name)}</b>`}, ${r.interval === "year" ? "yearly" : "monthly"}: ${fcfa(r.amountDue)}`],
+    [r.kind === "branches" ? "Branches" : "Plan", requestSummary(r, true)],
     ["Phone to call", esc(r.contactPhone ?? "—")],
     ["Note", esc(r.note ?? "—")],
   ];
   await sendEmail({
     to: siteConfig.email.teamInbox,
-    subject: `[WazaBolt] New plan request – ${r.business.name} → ${r.to.name}`,
+    subject: r.kind === "branches" ? `[WazaBolt] Extra branches – ${r.business.name}: ${r.extraBranches ?? 0}` : `[WazaBolt] New plan request – ${r.business.name} → ${r.to.name}`,
     html: emailLayout({
       title: "New plan request",
-      intro: `${esc(r.business.name)} asked for the <b>${esc(r.to.name)}</b> plan. Once they have paid, approve it in WazaBolt admin.`,
+      intro:
+        r.kind === "branches"
+          ? `${esc(r.business.name)} asked for <b>${r.extraBranches ?? 0}</b> extra branch${r.extraBranches === 1 ? "" : "es"} in total. Once they have paid, approve it in WazaBolt admin.`
+          : `${esc(r.business.name)} asked for the <b>${esc(r.to.name)}</b> plan. Once they have paid, approve it in WazaBolt admin.`,
       rows,
       button: { label: "Open plan requests", href: link },
       footer: "You receive this because you are on the WazaBolt team.",
     }),
-    text: `New plan request\n\n${r.business.name}: ${r.kind === "renewal" ? `renewal of ${r.to.name}` : `${r.from?.name ?? "—"} → ${r.to.name}`}, ${r.interval === "year" ? "yearly" : "monthly"}: ${fcfa(r.amountDue)}\nRequested by: ${r.requester?.name ?? "—"} ${r.requester?.email ?? ""}\nPhone: ${r.contactPhone ?? "—"}\nNote: ${r.note ?? "—"}\n\n${link}`,
+    text: `New plan request\n\n${r.business.name}: ${requestSummary(r)}\nRequested by: ${r.requester?.name ?? "—"} ${r.requester?.email ?? ""}\nPhone: ${r.contactPhone ?? "—"}\nNote: ${r.note ?? "—"}\n\n${link}`,
   });
 }
+
+const BRANCHES_APPROVED = {
+  en: (count: number) => ({
+    subject: "Your extra WazaBolt branches are active",
+    title: "Your extra branches are active",
+    intro: `Thank you! Your business can now have <b>${count}</b> extra branch${count === 1 ? "" : "es"}. Open them in Branches.`,
+    button: "Open Branches",
+  }),
+  fr: (count: number) => ({
+    subject: "Vos succursales WazaBolt supplémentaires sont activées",
+    title: "Vos succursales supplémentaires sont activées",
+    intro: `Merci ! Votre entreprise peut maintenant avoir <b>${count}</b> succursale${count === 1 ? "" : "s"} supplémentaire${count === 1 ? "" : "s"}. Ouvrez-les dans Succursales.`,
+    button: "Ouvrir Succursales",
+  }),
+};
 
 const CUSTOMER = {
   approved: {
@@ -164,8 +196,9 @@ async function emailCustomer(r: PlanRequestRow, decision: "approved" | "rejected
   if (!r.requester?.email) return;
   const lang = r.requester.locale;
   const until = periodEnd ? new Intl.DateTimeFormat(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Douala" }).format(new Date(periodEnd)) : "";
-  const t = decision === "approved" ? CUSTOMER.approved[lang](r.to.name, until) : CUSTOMER.rejected[lang](r.to.name);
-  const href = `${site()}/${lang}/dashboard${decision === "approved" ? "" : "/billing"}`;
+  const branches = r.kind === "branches" && decision === "approved";
+  const t = branches ? BRANCHES_APPROVED[lang](r.extraBranches ?? 0) : decision === "approved" ? CUSTOMER.approved[lang](r.to.name, until) : CUSTOMER.rejected[lang](r.to.name);
+  const href = `${site()}/${lang}/dashboard${branches ? "/branches" : decision === "approved" ? "" : "/billing"}`;
   await sendEmail({
     to: r.requester.email,
     subject: t.subject,

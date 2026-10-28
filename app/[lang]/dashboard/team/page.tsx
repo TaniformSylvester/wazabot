@@ -1,5 +1,5 @@
 import { ActionButton } from "@/components/app/form";
-import { InviteForm, LeaveBusiness, RemoveMember, RenewInvite, RoleSelect } from "@/components/app/team-controls";
+import { InviteForm, LeaveBusiness, MemberBranchSelect, RemoveMember, RenewInvite, RoleSelect } from "@/components/app/team-controls";
 import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, td, th } from "@/components/app/ui";
 import { UsageMeter } from "@/components/app/usage-meter";
 import { revokeInvitation } from "@/lib/actions/team";
@@ -10,6 +10,7 @@ import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { getBusinessModules } from "@/lib/modules";
+import { getBranchContext, listBranches } from "@/lib/branches";
 import { ROLES, type BusinessRole } from "@/types/database";
 
 export const generateMetadata = dashboardMetadata((d) => d.team.title);
@@ -24,6 +25,9 @@ export default async function TeamPage() {
   const { user, business } = await requireBusiness(localizePath(locale, "/dashboard/team"));
   const isAdmin = hasRole(business.role, "admin");
   const isOwner = business.role === "owner";
+  // Several branches: owners and admins tie agents, viewers and kitchen staff to one.
+  const [branchCtx, allBranches] = await Promise.all([getBranchContext(business), listBranches(business.id)]);
+  const openBranches = allBranches.filter((b) => b.active).map((b) => ({ id: b.id, name: b.name }));
   const [members, invitations, limits, ent] = await Promise.all([
     listTeam(business.id),
     isAdmin ? listPendingInvitations(business.id) : [],
@@ -95,12 +99,14 @@ export default async function TeamPage() {
       ) : null}
 
       <Panel>
+        {branchCtx.multi && isAdmin ? <p className="mb-3 text-sm text-slate">{d.branches.memberHint}</p> : null}
         <TableWrap>
           <thead>
             <tr>
               <th className={th}>{tm.columns.name}</th>
               <th className={th}>{tm.columns.email}</th>
               <th className={th}>{tm.columns.role}</th>
+              {branchCtx.multi ? <th className={th}>{d.branches.member}</th> : null}
               <th className={th}>{tm.columns.since}</th>
               {isAdmin ? (
                 <th className={th}>
@@ -127,6 +133,15 @@ export default async function TeamPage() {
                       <StatusBadge tone={m.role === "owner" ? "dark" : "neutral"}>{roleLabel(m.role)}</StatusBadge>
                     )}
                   </td>
+                  {branchCtx.multi ? (
+                    <td className={td}>
+                      {manage && ["agent", "viewer", "kitchen"].includes(m.role) ? (
+                        <MemberBranchSelect userId={m.user_id} branchId={m.branch_id} name={name} branches={openBranches} label={d.branches.member} allLabel={d.branches.memberAll} errors={d.errors} />
+                      ) : (
+                        <span className="text-slate">{openBranches.find((b) => b.id === m.branch_id)?.name ?? d.branches.memberAll}</span>
+                      )}
+                    </td>
+                  ) : null}
                   <td className={`${td} whitespace-nowrap text-slate`}>{formatDate(m.created_at, locale)}</td>
                   {isAdmin ? <td className={td}>{manage ? <RemoveMember userId={m.user_id} name={name} t={tm} errors={d.errors} cancel={d.common.cancel} /> : null}</td> : null}
                 </tr>

@@ -9,7 +9,7 @@ import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 import { combinationKey, combinationNameValue, parseCombination, type ProductOption } from "@/lib/products/options";
-import { productSchema, stockAdjustSchema } from "@/lib/validation/app";
+import { productSchema, stockAdjustSchema, stockTransferSchema } from "@/lib/validation/app";
 
 import { dbError, dbFail, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
 
@@ -193,9 +193,35 @@ export async function adjustStock(_prev: FormState, formData: FormData): Promise
     p_new_stock: a.reason === "adjustment" ? (a.counted ?? undefined) : undefined,
     p_variant_id: a.variant_id ?? undefined,
     p_note: a.note ?? undefined,
+    p_branch_id: a.branch_id ?? undefined,
   });
   if (error) {
     logServerError("products.adjustStock", error);
+    return dbFail(error);
+  }
+  revalidatePath("/[lang]/dashboard", "layout");
+  return ok(a.product_id);
+}
+
+/** Owners/admins: move stock from one branch to another (the total doesn't change). */
+export async function transferStock(_prev: FormState, formData: FormData): Promise<FormState> {
+  const ctx = await authorize("admin");
+  if (!ctx) return fail("forbidden");
+  const parsed = stockTransferSchema.safeParse(formObject(formData));
+  if (!parsed.success) return invalid(parsed.error);
+  const a = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("transfer_stock", {
+    p_business_id: ctx.business.id,
+    p_product_id: a.product_id,
+    p_from: a.from_branch,
+    p_to: a.to_branch,
+    p_quantity: a.quantity ?? 0,
+    p_variant_id: a.variant_id ?? undefined,
+    p_note: a.note ?? undefined,
+  });
+  if (error) {
+    logServerError("products.transferStock", error);
     return dbFail(error);
   }
   revalidatePath("/[lang]/dashboard", "layout");

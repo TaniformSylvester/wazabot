@@ -28,6 +28,7 @@ const business: BusinessContext = {
   documents: [{ type: "delivery", title: "Livraison", content: "Akwa, Bonanjo : 1 000 FCFA.\nBonamoussadi : 1 500 FCFA.\nBuea : 2 500 FCFA, 2 jours.\nAutres villes : nous contacter." }],
   activeProductCount: 3,
   booking: { enabled: false, services: [] },
+  branches: [],
 };
 const product = (id: string, name: string, price: number, extra: Partial<CatalogMatchItem> = {}): CatalogMatchItem => ({
   productId: id, name, description: null, category: null, price, currency: "XAF", inStock: true, hasPhoto: false, variants: [], ...extra,
@@ -104,5 +105,24 @@ describe("rules layer: left to Claude", () => {
   it("two products match as well → Claude asks which one", () => {
     const two = [product("a", "Robe wax rouge", 15000), product("b", "Robe wax bleue", 15000)];
     expect(answerWithRules({ text: "combien la robe wax ?", language: "fr", business, catalog: two })).toBeNull();
+  });
+});
+
+describe("rules layer: several branches", () => {
+  const branches = [
+    { id: "b1", name: "Akwa", address: "Rue Joss", city: "Douala", phone: null, hours: null, isMain: true },
+    { id: "b2", name: "Bonamoussadi", address: "Carrefour Kotto", city: "Douala", phone: null, hours: "Mon–Sat 8:00–20:00", isMain: false },
+  ];
+  it("where, when and what's in stock depend on the branch: left to Claude (with the branch tools)", () => {
+    expect(ask("Vous êtes où ?", "fr", { branches })).toBeNull();
+    expect(ask("What time do you close?", "en", { branches })).toBeNull();
+    expect(ask("Vous avez le sac en raphia en stock ?", "fr", { branches })).toBeNull();
+  });
+  it("greetings and prices are the same everywhere: still answered", () => {
+    expect(ask("Bonjour", "fr", { branches })?.intent).toBe("greeting");
+    expect(ask("C'est combien les black sneakers ?", "fr", { branches })?.intent).toBe("price");
+  });
+  it("one branch: answered as before", () => {
+    expect(ask("Vous êtes où ?", "fr", { branches: [branches[0]] })?.intent).toBe("location");
   });
 });

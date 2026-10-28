@@ -174,7 +174,7 @@ export async function listStockMovements(businessId: string, productId: string, 
   const db = await createClient();
   const { data } = await db
     .from("stock_movements")
-    .select("id, variant_id, reason, quantity_change, previous_stock, new_stock, order_id, note, created_by, created_at, product_variants(name, value, options), orders(order_number)")
+    .select("id, variant_id, reason, quantity_change, previous_stock, new_stock, order_id, note, created_by, created_at, product_variants(name, value, options), orders(order_number), branches(name)")
     .eq("business_id", businessId)
     .eq("product_id", productId)
     .order("created_at", { ascending: false })
@@ -435,7 +435,7 @@ export async function getConversation(businessId: string, id: string) {
 // ---------------------------------------------------------------------------
 // Orders
 // ---------------------------------------------------------------------------
-export type OrderFilter = { status?: string; payment?: string; q?: string; from?: string; to?: string; customer?: string; balance?: boolean; page?: number };
+export type OrderFilter = { status?: string; payment?: string; q?: string; from?: string; to?: string; customer?: string; balance?: boolean; branch?: string; page?: number };
 
 /** Customers whose name, phone or reference match the search box (for the orders search). */
 async function matchingCustomerIds(businessId: string, q: string | undefined) {
@@ -461,6 +461,7 @@ export async function listOrders(businessId: string, timezone: string, f: OrderF
     if (f.payment && (PAYMENT_STATUSES as readonly string[]).includes(f.payment)) q = q.eq("payment_status", f.payment);
     if (f.customer && UUID_RE.test(f.customer)) q = q.eq("customer_id", f.customer);
     if (f.balance) q = q.gt("balance_due", 0);
+    if (f.branch && UUID_RE.test(f.branch)) q = q.eq("branch_id", f.branch);
     if (f.from && DATE_RE.test(f.from)) q = q.gte("created_at", localDayStart(f.from, timezone));
     if (f.to && DATE_RE.test(f.to)) q = q.lt("created_at", localDayStart(f.to, timezone, 1));
     if (search.pattern) q = search.ids.length ? q.or(`order_number.ilike.${search.pattern},customer_id.in.(${search.ids.join(",")})`) : q.ilike("order_number", search.pattern);
@@ -470,7 +471,7 @@ export async function listOrders(businessId: string, timezone: string, f: OrderF
     filtered(
       db
         .from("orders")
-        .select("id, order_number, status, payment_status, channel, total, amount_paid, amount_refunded, balance_due, currency, created_at, customer_id, customers(id, reference, name, whatsapp_phone)", { count: "exact" })
+        .select("id, order_number, status, payment_status, channel, total, amount_paid, amount_refunded, balance_due, currency, created_at, customer_id, customers(id, reference, name, whatsapp_phone), branches(name)", { count: "exact" })
         .eq("business_id", businessId),
     )
       .order("created_at", { ascending: false })
@@ -549,7 +550,7 @@ export async function listPosProducts(businessId: string) {
 }
 export type PosProduct = Awaited<ReturnType<typeof listPosProducts>>[number];
 
-export type SalesFilter = { q?: string; from?: string; to?: string; method?: string; status?: string; customer?: string; page?: number };
+export type SalesFilter = { q?: string; from?: string; to?: string; method?: string; status?: string; customer?: string; branch?: string; page?: number };
 
 /** Completed sales, newest first, with items (for counts and profit), customer and staff. */
 export async function listSales(businessId: string, timezone: string, f: SalesFilter = {}, withCost = false) {
@@ -557,7 +558,7 @@ export async function listSales(businessId: string, timezone: string, f: SalesFi
   let q = db
     .from("orders")
     .select(
-      "id, order_number, created_at, total, amount_paid, payment_status, payment_method, channel, created_by, customer_id, customers(id, name, whatsapp_phone), order_items(id, quantity)",
+      "id, order_number, created_at, total, amount_paid, payment_status, payment_method, channel, created_by, customer_id, customers(id, name, whatsapp_phone), order_items(id, quantity), branches(name)",
       { count: "exact" },
     )
     .eq("business_id", businessId)
@@ -566,6 +567,7 @@ export async function listSales(businessId: string, timezone: string, f: SalesFi
   if (f.customer) q = q.eq("customer_id", f.customer);
   if (f.method) q = q.eq("payment_method", f.method);
   if (f.status) q = q.eq("payment_status", f.status);
+  if (f.branch && UUID_RE.test(f.branch)) q = q.eq("branch_id", f.branch);
   if (f.from) q = q.gte("created_at", localDayStart(f.from, timezone));
   if (f.to) q = q.lt("created_at", localDayStart(f.to, timezone, 1));
   const page = Math.max(1, f.page ?? 1);
@@ -630,7 +632,7 @@ export async function getBilling(businessId: string) {
     db.from("subscriptions").select("*, plans(*)").eq("business_id", businessId).maybeSingle(),
     getUsageStatus(db, businessId),
     // Owners/admins only (RLS): the plan change waiting for the WazaBolt team.
-    db.from("plan_change_requests").select("id, to_plan_id, created_at, contact_phone, billing_interval, kind").eq("business_id", businessId).eq("status", "pending").maybeSingle(),
+    db.from("plan_change_requests").select("id, to_plan_id, created_at, contact_phone, billing_interval, kind, extra_branches").eq("business_id", businessId).eq("status", "pending").maybeSingle(),
     // Owners/admins only (RLS).
     db.from("subscription_payments").select("id, plan_id, billing_interval, amount, currency, reference, period_start, period_end, created_at").eq("business_id", businessId).order("created_at", { ascending: false }).limit(12),
   ]);
@@ -645,7 +647,7 @@ export async function getBilling(businessId: string) {
 
 export async function listTeam(businessId: string) {
   const db = await createClient();
-  const { data: members } = await db.from("business_members").select("user_id, role, created_at").eq("business_id", businessId).order("created_at");
+  const { data: members } = await db.from("business_members").select("user_id, role, branch_id, created_at").eq("business_id", businessId).order("created_at");
   const ids = (members ?? []).map((m) => m.user_id);
   const { data: profiles } = ids.length ? await db.from("users").select("id, full_name, email, avatar_url").in("id", ids) : { data: [] };
   const byId = new Map((profiles ?? []).map((p) => [p.id, p]));

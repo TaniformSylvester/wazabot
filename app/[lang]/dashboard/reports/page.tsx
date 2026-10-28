@@ -7,6 +7,7 @@ import { ReportPeriodForm } from "@/components/app/report-period-form";
 import { PageHeader, Panel, StatusBadge, TableWrap, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { REPORT_GROUPS, REPORT_RANGES, addDays, getReport, groupDays, resolvePeriod } from "@/lib/data/reports";
+import { getBranchContext, listBranches } from "@/lib/branches";
 import { getPlanLimits, profitAllowed, reportDaysAllowed } from "@/lib/data/queries";
 import { PlanUpsell } from "@/components/app/plan-upsell";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
@@ -42,7 +43,10 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
     if (period.from < earliest) period.from = earliest;
     if (period.to < earliest) period.to = period.today;
   }
-  const data = await getReport(business.id, business.timezone, period.from, period.to);
+  // Several branches: one branch's figures, or all of them.
+  const branches = (await getBranchContext(business)).multi ? (await listBranches(business.id)) : [];
+  const branch = branches.find((b) => b.id === param(sp.branch))?.id;
+  const data = await getReport(business.id, business.timezone, period.from, period.to, branch);
   const money = (v: number) => formatMoney(v, business.currency, locale);
   const n = (v: number) => formatNumber(v, locale);
   const intl = locale === "fr" ? "fr-FR" : "en-GB";
@@ -54,7 +58,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
     period.group === "month" ? monthFmt.format(asDate(day)) : period.group === "week" ? format(r.sales.weekOf, { date: dayFmt.format(asDate(day)) }) : dayFmt.format(asDate(day));
   const grouped = groupDays(data.days, period.group);
   const tot = data.totals;
-  const csv = (type: string) => withQuery(localizePath(locale, "/dashboard/reports/export"), { type, from: period.from, to: period.to, group: period.group });
+  const csv = (type: string) => withQuery(localizePath(locale, "/dashboard/reports/export"), { type, from: period.from, to: period.to, group: period.group, branch });
   const csvLink = (type: string) => (
     <a href={csv(type)} className="inline-flex min-h-8 items-center gap-1.5 text-sm font-semibold text-waza-700 hover:underline" download>
       <Download className="size-4" aria-hidden /> {r.csv}
@@ -110,6 +114,19 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
               ))}
             </select>
           </label>
+          {branches.length ? (
+            <label className="flex flex-col gap-1 text-sm text-slate">
+              {d.branches.branch}
+              <select name="branch" defaultValue={branch ?? ""} className={field}>
+                <option value="">{d.branches.allBranches}</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button type="submit" className={secondaryLink}>
             {r.apply}
           </button>

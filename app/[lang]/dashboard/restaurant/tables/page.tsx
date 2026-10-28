@@ -8,6 +8,7 @@ import { listTables } from "@/lib/data/restaurant";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBranchContext } from "@/lib/branches";
 
 export const generateMetadata = dashboardMetadata((d) => d.restaurant.tables.title);
 
@@ -18,7 +19,8 @@ export default async function TablesPage() {
   if (!hasRole(business.role, "admin")) redirect(localizePath(locale, "/dashboard/restaurant"));
   const d = t.dashboard;
   const tb = d.restaurant.tables;
-  const tables = await listTables(business.id, true);
+  // Several branches: the tables of the branch you work in (new tables go there too).
+  const tables = await listTables(business.id, true, (await getBranchContext(business)).current.id);
   const text = { errors: d.errors, saved: tb.saved, saving: d.common.saving };
 
   return (

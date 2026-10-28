@@ -11,6 +11,7 @@ import { getExpense, localToday } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBranchContext, listBranches } from "@/lib/branches";
 
 export const generateMetadata = dashboardMetadata((d) => d.expenses.edit);
 
@@ -19,6 +20,10 @@ export default async function ExpensePage({ params }: PageProps<"/[lang]/dashboa
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/expenses/${id}`));
   const d = t.dashboard;
   const e = d.expenses;
+  const branchCtx = await getBranchContext(business);
+  const branchField = branchCtx.multi
+    ? { options: (await listBranches(business.id)).filter((b) => b.active).map((b) => ({ id: b.id, name: b.name })), label: d.branches.branch, whole: d.branches.wholeBusiness, current: branchCtx.current.id }
+    : undefined;
   const back = { href: localizePath(locale, "/dashboard/expenses"), label: e.title };
   if (!hasRole(business.role, "admin")) {
     return (
@@ -44,6 +49,7 @@ export default async function ExpensePage({ params }: PageProps<"/[lang]/dashboa
           methods={d.payments.methods}
           text={{ errors: d.errors, saved: d.common.saved, saving: d.common.saving }}
           submitLabel={d.common.save}
+          branches={branchField}
         />
       </Panel>
       <div>

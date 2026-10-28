@@ -4,7 +4,7 @@ import { Check, X } from "lucide-react";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { PageHeader, Panel, StatusBadge, TableWrap, td, th } from "@/components/app/ui";
 import { requirePlatformAdmin } from "@/lib/admin/access";
-import { listPlanRequests, pendingPlanRequestCount, type PlanRequestRow } from "@/lib/admin/plan-requests";
+import { listPlanRequests, pendingPlanRequestCount, requestSummary, type PlanRequestRow } from "@/lib/admin/plan-requests";
 import { approvePlanRequest, declinePlanRequest } from "@/lib/actions/admin";
 import { emailConfigured } from "@/lib/email/send";
 import { getLocale } from "@/lib/i18n/dictionaries";
@@ -79,9 +79,7 @@ export default async function PlanRequestsPage({ searchParams }: PageProps<"/[la
                 <tr key={r.id}>
                   <td className={`${td} whitespace-nowrap text-slate`}>{when.format(new Date(r.createdAt))}</td>
                   <td className={td}>{r.business.name}</td>
-                  <td className={td}>
-                    {r.kind === "renewal" ? `Renewal of ${r.to.name}` : `${r.from?.name ?? "—"} → ${r.to.name}`} ({r.interval === "year" ? "yearly" : "monthly"})
-                  </td>
+                  <td className={td}>{requestSummary(r)}</td>
                   <td className={td}>
                     <StatusBadge tone={r.status === "approved" ? "green" : r.status === "rejected" ? "red" : "neutral"}>{r.status}</StatusBadge>
                   </td>
@@ -104,7 +102,11 @@ function PendingCard({ r, locale }: { r: PlanRequestRow; locale: string }) {
       <div className="min-w-0 text-sm">
         <p className="font-display text-lg font-bold text-deep">{r.business.name}</p>
         <p className="mt-1">
-          {r.kind === "renewal" ? (
+          {r.kind === "branches" ? (
+            <>
+              <StatusBadge tone="blue">Extra branches</StatusBadge> <b>{r.extraBranches ?? 0}</b> in total on {r.to.name}: <b>{fcfa(r.amountDue)}</b>/month
+            </>
+          ) : r.kind === "renewal" ? (
             <>
               <StatusBadge tone="blue">Renewal</StatusBadge> <b>{r.to.name}</b>
             </>
@@ -112,8 +114,13 @@ function PendingCard({ r, locale }: { r: PlanRequestRow; locale: string }) {
             <>
               {r.from?.name ?? "—"} → <b>{r.to.name}</b>
             </>
-          )}{" "}
-          · {r.interval === "year" ? "yearly" : "monthly"}: <b>{fcfa(r.amountDue)}</b>
+          )}
+          {r.kind !== "branches" ? (
+            <>
+              {" "}
+              · {r.interval === "year" ? "yearly" : "monthly"}: <b>{fcfa(r.amountDue)}</b>
+            </>
+          ) : null}
         </p>
         <p className="mt-1 text-slate">
           {r.requester ? (

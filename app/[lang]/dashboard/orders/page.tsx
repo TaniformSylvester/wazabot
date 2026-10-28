@@ -27,6 +27,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBranchContext, listBranches } from "@/lib/branches";
 import { ORDER_STATUSES, PAYMENT_STATUSES } from "@/types/database";
 
 export const generateMetadata = dashboardMetadata((d) => d.orders.title);
@@ -44,15 +45,20 @@ export default async function OrdersPage({ searchParams }: PageProps<"/[lang]/da
     to: param(sp.to),
     customer: param(sp.customer),
     balance: param(sp.balance) === "1" ? "1" : undefined,
+    branch: param(sp.branch),
     page: Number(param(sp.page)) || 1,
   };
-  const [{ rows, total, page, summary }, customerFilter] = await Promise.all([
+  const [{ rows, total, page, summary }, customerFilter, branchCtx, branches] = await Promise.all([
     listOrders(business.id, business.timezone, { ...filters, balance: !!filters.balance }),
     filters.customer && /^[0-9a-f-]{36}$/i.test(filters.customer) ? getCustomer(business.id, filters.customer) : null,
+    getBranchContext(business),
+    listBranches(business.id),
   ]);
+  // Several branches: a Branch column, and a filter for owners and admins (members tied to a branch only see theirs).
+  const showBranch = branchCtx.multi;
   const canCreate = hasRole(business.role, "agent");
   const base = localizePath(locale, "/dashboard/orders");
-  const filtered = !!(filters.q || filters.status || filters.payment || filters.from || filters.to || filters.customer || filters.balance);
+  const filtered = !!(filters.q || filters.status || filters.payment || filters.from || filters.to || filters.customer || filters.balance || filters.branch);
   const money = (v: number | string) => formatMoney(v, business.currency, locale);
   const input = "h-10 rounded-xl border border-input bg-card px-3 text-sm";
   const newLink = canCreate ? (
@@ -107,6 +113,16 @@ export default async function OrdersPage({ searchParams }: PageProps<"/[lang]/da
                 </option>
               ))}
             </select>
+            {showBranch && !branchCtx.locked ? (
+              <select name="branch" defaultValue={filters.branch ?? ""} aria-label={d.branches.branch} className="h-10 rounded-xl border border-input bg-card px-3 text-sm">
+                <option value="">{d.branches.allBranches}</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <label className="flex items-center gap-1.5 text-sm text-slate">
               {o.filters.from}
               <input type="date" name="from" defaultValue={filters.from} className={input} />
@@ -144,6 +160,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/[lang]/da
                 <tr>
                   <th className={th}>{o.columns.number}</th>
                   <th className={th}>{o.columns.customer}</th>
+                  {showBranch ? <th className={th}>{d.branches.branch}</th> : null}
                   <th className={th}>{o.columns.status}</th>
                   <th className={th}>{o.columns.payment}</th>
                   <th className={`${th} text-right`}>{o.columns.total}</th>
@@ -172,6 +189,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/[lang]/da
                         <span className="text-slate italic">{r.channel === "pos" ? o.walkIn : o.notLinked}</span>
                       )}
                     </td>
+                    {showBranch ? <td className={`${td} text-slate`}>{r.branches?.name ?? "—"}</td> : null}
                     <td className={td}>
                       <StatusBadge tone={orderStatusTone[r.status]}>{o.statuses[r.status as keyof typeof o.statuses] ?? r.status}</StatusBadge>
                     </td>

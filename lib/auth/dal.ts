@@ -55,6 +55,8 @@ export type CurrentBusiness = {
   onboardingStep: number;
   onboardingCompletedAt: string | null;
   planId: string;
+  /** The branch this member is tied to (agents, viewers, kitchen staff); null: every branch. */
+  memberBranchId: string | null;
   /** An extra business added while its owner already had a Free one: Billing only until a paid plan is approved. */
   awaitingPaidPlan: boolean;
 };
@@ -115,7 +117,7 @@ export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null
   const supabase = await createClient();
   const preferred = (await cookies()).get(ACTIVE_BUSINESS_COOKIE)?.value;
   const select =
-    "role, businesses(id, name, slug, status, description, industry, country_code, city, address, phone, email, website, logo_url, currency, timezone, opening_hours, default_language, onboarding_step, onboarding_completed_at, needs_paid_plan, subscriptions(plan_id))";
+    "role, branch_id, businesses(id, name, slug, status, description, industry, country_code, city, address, phone, email, website, logo_url, currency, timezone, opening_hours, default_language, onboarding_step, onboarding_completed_at, needs_paid_plan, subscriptions(plan_id))";
   const first = () => supabase.from("business_members").select(select).eq("user_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
   let { data } = preferred && UUID_RE.test(preferred)
     ? await supabase.from("business_members").select(select).eq("user_id", user.id).eq("business_id", preferred).maybeSingle()
@@ -158,6 +160,7 @@ export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null
     onboardingStep: b.onboarding_step,
     onboardingCompletedAt: b.onboarding_completed_at,
     planId,
+    memberBranchId: data.branch_id,
     awaitingPaidPlan: b.needs_paid_plan && planId === "free",
   };
 });

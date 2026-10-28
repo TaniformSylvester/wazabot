@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 
+import { getBranchContext } from "@/lib/branches";
 import { authorize } from "@/lib/auth/dal";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
@@ -38,6 +39,7 @@ export async function createOrder(_prev: FormState, formData: FormData): Promise
     p_delivery_address: o.delivery_address ?? undefined,
     p_payment_method: o.payment_method ?? undefined,
     p_notes: o.notes ?? undefined,
+    p_branch_id: (await getBranchContext(ctx.business)).current.id,
     p_delivery: {
       method: o.delivery_method,
       recipient_name: o.recipient_name,

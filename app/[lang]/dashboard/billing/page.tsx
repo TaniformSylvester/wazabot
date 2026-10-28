@@ -171,6 +171,13 @@ export default async function BillingPage() {
                       ]
                     : []),
                   ...(restaurant ? [{ label: format(pf.kitchen, { count: formatNumber(p.max_kitchen, locale) }), on: true }] : []),
+                  {
+                    label:
+                      p.extra_branch_price === null
+                        ? pf.location
+                        : format(pf.locations, { count: formatNumber(p.included_branches, locale), price: formatMoney(Number(p.extra_branch_price), p.currency, locale) }),
+                    on: true,
+                  },
                 ]
                   .filter((f) => f.on || f.label === pf.profit || f.label === pf.bulkReportCards || f.label === pf.schoolReports)
                   .map((f) => (
@@ -187,11 +194,13 @@ export default async function BillingPage() {
       {pendingRequest ? (
         <Panel title={b.pending.title}>
           <p className="text-sm text-slate">
-            {format(b.pending.text, {
-              plan: requestedPlan?.name ?? pendingRequest.to_plan_id,
-              interval: b.interval[pendingRequest.billing_interval === "year" ? "year" : "month"],
-              date: formatDate(pendingRequest.created_at, locale),
-            })}
+            {pendingRequest.kind === "branches"
+              ? format(d.branches.plan.pending, { count: formatNumber(pendingRequest.extra_branches ?? 0, locale) })
+              : format(b.pending.text, {
+                  plan: requestedPlan?.name ?? pendingRequest.to_plan_id,
+                  interval: b.interval[pendingRequest.billing_interval === "year" ? "year" : "month"],
+                  date: formatDate(pendingRequest.created_at, locale),
+                })}
           </p>
           {canRequest ? (
             <div className="mt-4">

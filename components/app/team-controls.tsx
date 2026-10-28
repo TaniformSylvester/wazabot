@@ -9,6 +9,7 @@ import { useAuthText } from "@/components/auth/use-auth-text";
 import { Button } from "@/components/ui/button";
 import type { FormState } from "@/lib/actions/form";
 import { inviteMember, leaveBusiness, removeMember, renewInvitation, updateMemberRole } from "@/lib/actions/team";
+import { setMemberBranch } from "@/lib/actions/branches";
 import type { Locale } from "@/lib/i18n/config";
 import { format } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
@@ -183,6 +184,47 @@ export function RoleSelect({ userId, role, name, roles, t, errors }: { userId: s
           {roles.map((r) => (
             <option key={r.value} value={r.value}>
               {r.label}
+            </option>
+          ))}
+        </select>
+        {pending ? <Loader2 className="size-4 animate-spin text-slate" aria-hidden /> : null}
+      </span>
+      {error ? (
+        <span role="alert" className="text-xs font-medium text-coral-700">
+          {error}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/** Ties an agent, viewer or kitchen member to one branch (or every branch). */
+export function MemberBranchSelect({ userId, branchId, name, branches, label, allLabel, errors }: { userId: string; branchId: string | null; name: string; branches: { id: string; name: string }[]; label: string; allLabel: string; errors: Errors }) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  return (
+    <span className="inline-flex flex-col gap-1">
+      <span className="relative inline-flex items-center gap-2">
+        <select
+          aria-label={`${label}: ${name}`}
+          defaultValue={branchId ?? ""}
+          disabled={pending}
+          onChange={(e) => {
+            const next = e.target.value;
+            start(async () => {
+              setError(null);
+              const res = await setMemberBranch(userId, next);
+              if (res.status === "error") setError(errors[res.error ?? "unknown"] ?? errors.unknown);
+              router.refresh();
+            });
+          }}
+          className={cn(control, "h-9 w-auto pr-8 text-sm")}
+        >
+          <option value="">{allLabel}</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
             </option>
           ))}
         </select>

@@ -13,6 +13,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBranchContext } from "@/lib/branches";
 import { getBusinessModules } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ export default async function FloorPage() {
     );
   }
 
-  const { tables, others } = await floorState(business.id);
+  const { tables, others } = await floorState(business.id, (await getBranchContext(business)).current.id);
   const money = (v: number) => formatMoney(v, business.currency, locale);
   const time = (iso: string) => formatDate(iso, locale, true).split(" ").at(-1) ?? "";
 

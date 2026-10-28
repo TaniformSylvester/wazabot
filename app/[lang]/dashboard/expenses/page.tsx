@@ -12,6 +12,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBranchContext, listBranches } from "@/lib/branches";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 
 export const generateMetadata = dashboardMetadata((d) => d.expenses.title);
@@ -24,6 +25,10 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/[lang]/
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/expenses"));
   const d = t.dashboard;
   const e = d.expenses;
+  const branchCtx = await getBranchContext(business);
+  const branchField = branchCtx.multi
+    ? { options: (await listBranches(business.id)).filter((b) => b.active).map((b) => ({ id: b.id, name: b.name })), label: d.branches.branch, whole: d.branches.wholeBusiness, current: branchCtx.current.id }
+    : undefined;
   if (!hasRole(business.role, "admin")) {
     return (
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -147,7 +152,7 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/[lang]/
           ) : null}
         </div>
         <Panel title={e.add}>
-          <ExpenseForm today={today} currency={business.currency} locale={locale} t={e} methods={d.payments.methods} text={{ errors: d.errors, saved: d.common.saved, saving: d.common.saving }} submitLabel={e.add} />
+          <ExpenseForm today={today} currency={business.currency} locale={locale} t={e} methods={d.payments.methods} text={{ errors: d.errors, saved: d.common.saved, saving: d.common.saving }} submitLabel={e.add} branches={branchField} />
         </Panel>
       </div>
     </div>

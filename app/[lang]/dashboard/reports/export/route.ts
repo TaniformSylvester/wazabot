@@ -1,5 +1,6 @@
 import { authorize } from "@/lib/auth/dal";
 import { getPlanLimits, profitAllowed, reportDaysAllowed } from "@/lib/data/queries";
+import { listBranches } from "@/lib/branches";
 import { addDays, expensesBetween, groupDays, invoicePaymentsBetween, productSales, resolvePeriod, salesByDay, topCustomers, type ReportGroup } from "@/lib/data/reports";
 import { isLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/load";
@@ -38,6 +39,8 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
   }
   if (type === "expenses" && !withProfit) return new Response("Needs a paid plan", { status: 403 });
   const { from, to, group } = period;
+  const branchParam = url.searchParams.get("branch");
+  const branch = branchParam && (await listBranches(business.id)).some((b) => b.id === branchParam) ? branchParam : undefined;
   const r = (await getDictionary(lang)).dashboard;
   const rep = r.reports;
   const cur = business.currency;
@@ -46,7 +49,7 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
 
   switch (type) {
     case "sales": {
-      const days = groupDays(await salesByDay(business.id, from, to), group as ReportGroup);
+      const days = groupDays(await salesByDay(business.id, from, to, branch), group as ReportGroup);
       header = withProfit
         ? [rep.sales.period, rep.sales.sales, `${rep.sales.revenue} (${cur})`, `${rep.sales.cogs} (${cur})`, `${rep.sales.profit} (${cur})`, `${rep.summary.discounts} (${cur})`]
         : [rep.sales.period, rep.sales.sales, `${rep.sales.revenue} (${cur})`, `${rep.summary.discounts} (${cur})`];
@@ -54,7 +57,7 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
       break;
     }
     case "products": {
-      const products = await productSales(business.id, from, to);
+      const products = await productSales(business.id, from, to, branch);
       header = withProfit
         ? [rep.products.product, rep.products.quantity, `${rep.products.revenue} (${cur})`, `${rep.products.cost} (${cur})`, `${rep.products.profit} (${cur})`]
         : [rep.products.product, rep.products.quantity, `${rep.products.revenue} (${cur})`];
@@ -62,13 +65,13 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
       break;
     }
     case "customers": {
-      const customers = await topCustomers(business.id, business.timezone, from, to, 5000);
+      const customers = await topCustomers(business.id, business.timezone, from, to, 5000, branch);
       header = [rep.customers.name, rep.customers.purchases, `${rep.customers.spent} (${cur})`, `${rep.customers.paid} (${cur})`];
       rows = customers.map((c) => [c.name, c.sales, c.spent, c.paid]);
       break;
     }
     case "expenses": {
-      const expenses = await expensesBetween(business.id, from, to);
+      const expenses = await expensesBetween(business.id, from, to, branch);
       const cat = (c: string) => r.expenses.categories[c as keyof typeof r.expenses.categories] ?? c;
       const method = (m: string | null) => (m ? (r.payments.methods[m as keyof typeof r.payments.methods] ?? m) : "");
       header = [rep.expenses.date, rep.expenses.category, rep.expenses.description, `${rep.expenses.amount} (${cur})`, rep.expenses.method, rep.expenses.reference];

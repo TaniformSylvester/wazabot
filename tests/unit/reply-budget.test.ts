@@ -57,6 +57,7 @@ const minimal: BusinessContext = {
   documents: [],
   activeProductCount: 0,
   booking: { enabled: false, services: [] },
+  branches: [],
 };
 
 describe("cached prefix (Haiku caches only from 4,096 tokens)", () => {
@@ -106,5 +107,24 @@ describe("heavy knowledge base and the uncached part of a request", () => {
     console.log(`[budget] uncached part of a typical request: ~${tokens} tokens (≤ ${Math.ceil(request.length / 3.6)} at 3.6 chars/token)`);
     expect(request).toContain("<more_business_info>");
     expect(tokens).toBeLessThanOrEqual(2500);
+  });
+});
+
+describe("branches in the business prompt", () => {
+  it("one branch: no branch section", () => {
+    expect(buildKnowledgePrompt({ ...minimal, branches: [{ id: "m", name: "Ets Ngo", address: null, city: "Bafoussam", phone: null, hours: null, isMain: true }] })).not.toContain("## Branches");
+  });
+  it("several branches: each with its id, address and hours, and the rule to ask which branch before an order", () => {
+    const system = buildKnowledgePrompt({
+      ...minimal,
+      branches: [
+        { id: "11111111-1111-4111-8111-111111111111", name: "Marché A", address: "Face pharmacie", city: "Bafoussam", phone: "677000000", hours: null, isMain: true },
+        { id: "22222222-2222-4222-8222-222222222222", name: "Tamdja", address: null, city: null, phone: null, hours: "Lun–Sam 8h–19h", isMain: false },
+      ],
+    });
+    expect(system).toContain("The business has 2 branches.");
+    expect(system).toContain("- Marché A (main) (branchId: 11111111-1111-4111-8111-111111111111): Face pharmacie, Bafoussam; phone 677000000");
+    expect(system).toContain("- Tamdja (branchId: 22222222-2222-4222-8222-222222222222): address not set; hours Lun–Sam 8h–19h");
+    expect(system).toContain("pass its branchId to createOrder");
   });
 });

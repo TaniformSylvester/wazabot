@@ -229,12 +229,26 @@ export function buildKnowledgePrompt(ctx: BusinessContext): string {
       )
     : [];
 
+  // Several branches: where they are, and that orders and stock are per branch.
+  const branches =
+    ctx.branches.length > 1
+      ? ctx.branches.map((br) => `- ${br.name}${br.isMain ? " (main)" : ""} (branchId: ${br.id}): ${[[br.address, br.city].filter(Boolean).join(", ") || "address not set", br.phone && `phone ${br.phone}`, br.hours && `hours ${br.hours}`].filter(Boolean).join("; ")}`)
+      : [];
+
   return `# Business information
 ${profile.join("\n")}
 
 ## Opening hours (local time)
 ${hours.join("\n")}
-
+${
+  branches.length
+    ? `
+## Branches
+The business has ${branches.length} branches. Stock differs per branch (checkProductStock gives each branch's quantity). Before creating an order, ask which branch the customer wants it from (pickup, or the branch that delivers) unless they already said, and pass its branchId to createOrder. Give branch addresses exactly as written.
+${branches.join("\n")}
+`
+    : ""
+}
 # FAQs written by the business
 ${faqs.length ? faqs.join("\n\n") : "None yet."}
 
