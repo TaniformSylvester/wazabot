@@ -53,6 +53,13 @@ export default async function BillingPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <PageHeader title={b.title} description={b.description} />
+      {business.awaitingPaidPlan ? (
+        <FormAlert tone="info" className="text-base">
+          <p className="font-semibold" data-testid="awaiting-plan">{b.awaitingPlan.title}</p>
+          <p className="mt-1">{b.awaitingPlan.text}</p>
+          {!pendingRequest ? <p className="mt-1 font-semibold">{b.awaitingPlan.noRequest}</p> : null}
+        </FormAlert>
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title={b.currentPlan}>
           {current && subscription ? (

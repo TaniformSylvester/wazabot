@@ -27,7 +27,7 @@ const requestSchema = z.object({
 });
 
 export async function requestPlanChange(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await authorize("admin", { whileAwaitingPlan: true });
   if (!ctx) return fail("forbidden");
   const parsed = requestSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -56,7 +56,7 @@ export async function requestPlanChange(_prev: FormState, formData: FormData): P
 
 export async function cancelPlanChange(requestId: string): Promise<FormState> {
   if (!isUuid(requestId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await authorize("admin", { whileAwaitingPlan: true });
   if (!ctx) return fail("forbidden");
   const supabase = await createClient();
   const { error } = await supabase.rpc("cancel_plan_change", { p_request_id: requestId });

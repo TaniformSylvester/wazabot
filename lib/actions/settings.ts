@@ -13,7 +13,7 @@ import { languageSettingsSchema, type SettingsActionResult } from "@/lib/validat
 export async function saveLanguageSettings(input: unknown): Promise<SettingsActionResult> {
   await requireUser();
   const business = await getCurrentBusiness();
-  if (!business || !canManageBusiness(business.role)) return { ok: false, error: "forbidden" };
+  if (!business || !canManageBusiness(business.role) || business.awaitingPaidPlan) return { ok: false, error: "forbidden" };
 
   const parsed = languageSettingsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid", fieldErrors: z.flattenError(parsed.error).fieldErrors };

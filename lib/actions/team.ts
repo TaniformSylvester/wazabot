@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { siteConfig } from "@/config/site";
+import { setActiveBusiness } from "@/lib/auth/active-business";
 import { ACTIVE_BUSINESS_COOKIE, authorize, getCurrentUser, listMyBusinesses } from "@/lib/auth/dal";
 import { isLocale, type Locale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
@@ -35,12 +36,6 @@ function newToken() {
 
 const inviteUrl = (locale: Locale, token: string) => `${siteConfig.url}${localizePath(locale, `/invite/${token}`)}`;
 const localeOf = (v: FormDataEntryValue | string | null | undefined): Locale => (isLocale(v) ? v : "en");
-
-const ACTIVE_BUSINESS_MAX_AGE = 60 * 60 * 24 * 365;
-
-async function setActiveBusiness(businessId: string) {
-  (await cookies()).set(ACTIVE_BUSINESS_COOKIE, businessId, { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: ACTIVE_BUSINESS_MAX_AGE });
-}
 
 export async function inviteMember(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");

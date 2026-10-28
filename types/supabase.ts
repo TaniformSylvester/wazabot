@@ -727,6 +727,7 @@ export type Database = {
           industry: string | null;
           logo_url: string | null;
           name: string;
+          needs_paid_plan: boolean;
           onboarding_completed_at: string | null;
           onboarding_step: number;
           opening_hours: NonNullable<Json>;
@@ -752,6 +753,7 @@ export type Database = {
           industry?: string | null;
           logo_url?: string | null;
           name: string;
+          needs_paid_plan?: boolean;
           onboarding_completed_at?: string | null;
           onboarding_step?: number;
           opening_hours?: NonNullable<Json>;
@@ -777,6 +779,7 @@ export type Database = {
           industry?: string | null;
           logo_url?: string | null;
           name?: string;
+          needs_paid_plan?: boolean;
           onboarding_completed_at?: string | null;
           onboarding_step?: number;
           opening_hours?: NonNullable<Json>;
@@ -4080,6 +4083,7 @@ export type Database = {
         Returns: Json;
       };
       _documents_used: { Args: { p_business_id: string }; Returns: number };
+      _owns_free_business: { Args: { p_except?: string; p_user: string }; Returns: boolean };
       _payment_time: { Args: { p_received_at: string }; Returns: string };
       _plan_entitlements: {
         Args: { p_business_id: string };
@@ -4244,6 +4248,16 @@ export type Database = {
       can_use_kitchen: { Args: { p_business_id: string }; Returns: boolean };
       cancel_plan_change: { Args: { p_request_id: string }; Returns: undefined };
       claude_spend_since: { Args: { p_business_id: string; p_since: string }; Returns: number };
+      create_business: {
+        Args: {
+          p_contact_phone?: string;
+          p_industry?: string;
+          p_interval?: string;
+          p_name: string;
+          p_plan?: string;
+        };
+        Returns: string;
+      };
       create_invitation: {
         Args: { p_business_id: string; p_email: string; p_role: string; p_token_hash: string };
         Returns: string;

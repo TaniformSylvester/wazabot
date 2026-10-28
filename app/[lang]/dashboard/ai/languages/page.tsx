@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { LanguageSettingsForm } from "@/components/dashboard/language-settings-form";
-import { canManageBusiness, getBusinessAiSettings, getCurrentBusiness, requireUser } from "@/lib/auth/dal";
+import { canManageBusiness, getBusinessAiSettings, requireBusiness } from "@/lib/auth/dal";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
 import { localizePath } from "@/lib/i18n/paths";
@@ -12,8 +12,8 @@ export const generateMetadata = () => pageMetadata("languages", "/dashboard/ai/l
 /** FUNCTIONAL — reply languages, language mode and response style, saved to business_languages + ai_settings. */
 export default async function LanguageSettingsPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
-  await requireUser(localizePath(locale, "/dashboard/ai/languages"));
-  const [business, settings] = await Promise.all([getCurrentBusiness(), getBusinessAiSettings()]);
+  const { business } = await requireBusiness(localizePath(locale, "/dashboard/ai/languages"));
+  const settings = await getBusinessAiSettings();
   const l = t.dashboard.languages;
 
   return (
@@ -29,7 +29,7 @@ export default async function LanguageSettingsPage() {
         <p className="type-body mt-1 max-w-3xl text-slate">{l.intro}</p>
       </div>
 
-      {business && settings ? (
+      {settings ? (
         <LanguageSettingsForm
           t={l}
           canEdit={canManageBusiness(business.role)}

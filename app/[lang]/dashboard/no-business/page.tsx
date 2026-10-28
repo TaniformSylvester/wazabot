@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2 } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 
 import { getCurrentBusiness, requireUser } from "@/lib/auth/dal";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
@@ -21,6 +22,13 @@ export default async function NoBusinessPage() {
       </span>
       <h1 className="type-h2 mt-5">{nb.title}</h1>
       <p className="type-body mt-2 text-slate">{nb.text}</p>
+      <p className="type-body mt-6 text-slate">{nb.orCreate}</p>
+      <Link
+        href={localizePath(locale, "/dashboard/businesses/new")}
+        className="mt-3 inline-flex items-center gap-2 rounded-full bg-deep px-5 py-2.5 text-sm font-semibold text-cream hover:bg-deep/90"
+      >
+        <Plus className="size-4" aria-hidden /> {t.dashboard.newBusiness.title}
+      </Link>
     </div>
   );
 }

@@ -57,7 +57,10 @@ export type ActionErrorKey =
   | "bill_not_paid"
   | "table_busy"
   | "empty_order"
-  | "plan_limit_kitchen";
+  | "plan_limit_kitchen"
+  // Several businesses
+  | "business_limit"
+  | "free_business_used";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -110,6 +113,10 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "bill_not_paid";
     case "WB420":
       return "document_locked";
+    case "WB450":
+      return "business_limit";
+    case "WB451":
+      return "free_business_used";
     case "WB430":
       return "results_published";
     case "23505":

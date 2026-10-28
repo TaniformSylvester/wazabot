@@ -1,7 +1,9 @@
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Plus } from "lucide-react";
 
 import { signOut } from "@/lib/actions/auth";
 import type { Locale } from "@/lib/i18n/config";
+import { localizePath } from "@/lib/i18n/paths";
 
 export function initials(name: string, fallback: string) {
   const source = name.trim() || fallback;
@@ -18,7 +20,7 @@ export function UserCard({
   name: string;
   email: string;
   locale: Locale;
-  labels: { yourAccount: string; logout: string };
+  labels: { yourAccount: string; logout: string; addBusiness: string };
 }) {
   return (
     <div className="rounded-2xl bg-cream/5 p-3">
@@ -31,7 +33,13 @@ export function UserCard({
           <p className="truncate text-xs text-cream/60">{email}</p>
         </div>
       </div>
-      <form action={signOut.bind(null, locale)} className="mt-3">
+      <Link
+        href={localizePath(locale, "/dashboard/businesses/new")}
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-cream/80 transition-colors hover:bg-cream/5 hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-waza-400"
+      >
+        <Plus className="size-4" aria-hidden /> {labels.addBusiness}
+      </Link>
+      <form action={signOut.bind(null, locale)} className="mt-1">
         <button
           type="submit"
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-cream/15 px-3 py-2 text-sm font-medium text-cream/80 transition-colors hover:border-cream/40 hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-waza-400"

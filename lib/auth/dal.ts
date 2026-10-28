@@ -54,6 +54,9 @@ export type CurrentBusiness = {
   languages: LanguageCode[];
   onboardingStep: number;
   onboardingCompletedAt: string | null;
+  planId: string;
+  /** An extra business added while its owner already had a Free one: Billing only until a paid plan is approved. */
+  awaitingPaidPlan: boolean;
 };
 
 /** The signed-in user, verified with the Auth server. Memoised per request. */
@@ -112,7 +115,7 @@ export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null
   const supabase = await createClient();
   const preferred = (await cookies()).get(ACTIVE_BUSINESS_COOKIE)?.value;
   const select =
-    "role, businesses(id, name, slug, status, description, industry, country_code, city, address, phone, email, website, logo_url, currency, timezone, opening_hours, default_language, onboarding_step, onboarding_completed_at)";
+    "role, businesses(id, name, slug, status, description, industry, country_code, city, address, phone, email, website, logo_url, currency, timezone, opening_hours, default_language, onboarding_step, onboarding_completed_at, needs_paid_plan, subscriptions(plan_id))";
   const first = () => supabase.from("business_members").select(select).eq("user_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
   let { data } = preferred && UUID_RE.test(preferred)
     ? await supabase.from("business_members").select(select).eq("user_id", user.id).eq("business_id", preferred).maybeSingle()
@@ -128,6 +131,7 @@ export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null
     .eq("business_id", b.id)
     .order("sort_order", { ascending: true });
 
+  const planId = b.subscriptions?.plan_id ?? "free";
   const defaultLanguage = isLanguageCode(b.default_language) ? b.default_language : "en";
   const languages = (langs ?? []).map((l) => l.language_code).filter(isLanguageCode);
 
@@ -153,6 +157,8 @@ export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null
     languages: languages.length ? languages : [defaultLanguage],
     onboardingStep: b.onboarding_step,
     onboardingCompletedAt: b.onboarding_completed_at,
+    planId,
+    awaitingPaidPlan: b.needs_paid_plan && planId === "free",
   };
 });
 
@@ -175,6 +181,10 @@ export async function requireBusiness(next = "/dashboard"): Promise<BusinessCont
   if (business.role === "kitchen" && !/^\/(en|fr)\/dashboard\/(restaurant\/kitchen|team)(\/|$|\?)/.test(next)) {
     redirect(next.startsWith("/fr") ? "/fr/dashboard/restaurant/kitchen" : "/en/dashboard/restaurant/kitchen");
   }
+  // An extra business waiting for its paid plan: Billing (and Team, to see who is in it) only.
+  if (business.awaitingPaidPlan && !/^\/(en|fr)\/dashboard\/(billing|team|businesses\/new)(\/|$|\?)/.test(next)) {
+    redirect(next.startsWith("/fr") ? "/fr/dashboard/billing" : "/en/dashboard/billing");
+  }
   return { user, business };
 }
 
@@ -185,13 +195,15 @@ export function hasRole(role: BusinessRole, min: BusinessRole) {
 
 /**
  * For Server Actions: the business context when the user has at least `min`,
- * otherwise null (the action returns "forbidden").
+ * otherwise null (the action returns "forbidden"). A business waiting for its
+ * paid plan only allows the Billing actions (`whileAwaitingPlan`).
  */
-export async function authorize(min: BusinessRole): Promise<BusinessContext | null> {
+export async function authorize(min: BusinessRole, opts: { whileAwaitingPlan?: boolean } = {}): Promise<BusinessContext | null> {
   const user = await getCurrentUser();
   if (!user) return null;
   const business = await getCurrentBusiness();
   if (!business || !hasRole(business.role, min)) return null;
+  if (business.awaitingPaidPlan && !opts.whileAwaitingPlan) return null;
   return { user, business };
 }
 
