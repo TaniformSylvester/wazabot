@@ -156,6 +156,7 @@ export async function sendDocumentWhatsApp(documentId: string): Promise<FormStat
     pdf,
     fileName: pdfFileName(doc),
     caption: `${L.title[doc.type]} ${row.number} — ${ctx.business.name}`,
+    label: { en: `${DOCUMENT_LABELS.en.title[doc.type].toLowerCase()} ${row.number}`, fr: `${DOCUMENT_LABELS.fr.title[doc.type].toLowerCase()} ${row.number}` },
     meta: { document_id: row.id, number: row.number },
   });
   if (!r.ok) return fail(r.error);
@@ -192,6 +193,7 @@ export async function sendStatementWhatsApp(customerId: string, options: { from:
     pdf,
     fileName: statementFileName(st),
     caption: `${DOCUMENT_LABELS[st.language].statement.title} — ${ctx.business.name}`,
+    label: { en: DOCUMENT_LABELS.en.statement.title.toLowerCase(), fr: DOCUMENT_LABELS.fr.statement.title.toLowerCase() },
     meta: { statement: true, from: st.from, to: st.to },
   });
   if (!r.ok) return fail(r.error);

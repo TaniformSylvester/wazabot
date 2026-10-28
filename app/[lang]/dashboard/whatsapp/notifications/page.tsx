@@ -7,7 +7,7 @@ import { getNotificationSetup, getWhatsAppConnection } from "@/lib/data/queries"
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
-import { NOTIFICATION_KINDS, TEMPLATE_LANGUAGES } from "@/lib/notifications/templates";
+import { TEMPLATE_KINDS, TEMPLATE_LANGUAGES } from "@/lib/notifications/templates";
 
 export const generateMetadata = dashboardMetadata((d) => d.notifications.title);
 
@@ -79,7 +79,7 @@ export default async function NotificationsPage() {
             </tr>
           </thead>
           <tbody>
-            {NOTIFICATION_KINDS.map((kind) => (
+            {TEMPLATE_KINDS.map((kind) => (
               <tr key={kind}>
                 <td className={`${td} font-semibold`}>{n.templates.kinds[kind]}</td>
                 {TEMPLATE_LANGUAGES.map((l) => {

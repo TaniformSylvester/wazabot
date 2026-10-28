@@ -17,7 +17,7 @@ export function WhatsAppSendPanel({
   t,
   errors,
 }: {
-  state: { customer: { name: string; phone: string | null } | null; connected: boolean; windowOpen: boolean };
+  state: { customer: { name: string; phone: string | null } | null; connected: boolean; windowOpen: boolean; templateApproved: boolean };
   action: () => Promise<FormState>;
   canSend: boolean;
   locale: Locale;
@@ -40,12 +40,22 @@ export function WhatsAppSendPanel({
         ) : (
           <>
             <p className="text-slate">{format(t.text, { name: c.name, phone: c.phone })}</p>
-            {!state.windowOpen ? (
-              <p className="font-medium text-coral-700" data-testid="whatsapp-window-closed">
-                {format(t.windowClosed, { name: c.name })}
+            {!state.windowOpen && state.templateApproved ? (
+              <p className="text-slate" data-testid="whatsapp-template-route">
+                {format(t.viaTemplate, { name: c.name })}
               </p>
             ) : null}
-            {canSend ? <SendOnWhatsApp action={action} label={t.send} pendingLabel={t.sending} sentLabel={t.sent} errors={errors} disabled={!state.windowOpen} /> : null}
+            {!state.windowOpen && !state.templateApproved ? (
+              <p className="font-medium text-coral-700" data-testid="whatsapp-window-closed">
+                {format(t.windowClosed, { name: c.name })}{" "}
+                <Link href={localizePath(locale, "/dashboard/whatsapp/notifications")} className="font-semibold text-waza-700 hover:underline">
+                  {t.setUpTemplate}
+                </Link>
+              </p>
+            ) : null}
+            {canSend ? (
+              <SendOnWhatsApp action={action} label={t.send} pendingLabel={t.sending} sentLabel={t.sent} errors={errors} disabled={!state.windowOpen && !state.templateApproved} />
+            ) : null}
           </>
         )}
         <p className="text-xs text-slate">{t.windowRule}</p>

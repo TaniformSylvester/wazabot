@@ -26,6 +26,7 @@ export function startFakeGraph(port = 4010) {
   const reads = [];
   const templates = [];
   const uploads = [];
+  const exampleUploads = [];
   let n = 0;
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${port}`);
@@ -40,7 +41,7 @@ export function startFakeGraph(port = 4010) {
       res.writeHead(status, { "content-type": "application/json" });
       res.end(JSON.stringify(data));
     };
-    if (url.pathname === "/__sent") return json(200, { sent, reads, templates, uploads });
+    if (url.pathname === "/__sent") return json(200, { sent, reads, templates, uploads, exampleUploads });
     // Test hook: Meta approves every template under review.
     if (url.pathname === "/__approve") {
       for (const t of templates) if (t.status === "PENDING") t.status = "APPROVED";
@@ -50,6 +51,12 @@ export function startFakeGraph(port = 4010) {
       res.writeHead(200, { "content-type": "image/jpeg" });
       return res.end(IMAGE);
     }
+    // Resumable upload (example file for a document template): the bytes go with "OAuth <token>".
+    if (req.method === "POST" && url.pathname.includes("/upload:")) {
+      if (!(req.headers.authorization ?? "").startsWith("OAuth GOOD") || req.headers.file_offset !== "0") return json(401, { error: { code: 190, message: "Invalid upload" } });
+      exampleUploads.push({ isPdf: raw.toString("latin1").startsWith("%PDF-"), size: raw.length });
+      return json(200, { h: `handle_${exampleUploads.length}` });
+    }
     if (!(req.headers.authorization ?? "").startsWith("Bearer GOOD")) return json(401, { error: { code: 190, message: "Invalid OAuth access token" } });
     const parts = url.pathname.split("/").filter(Boolean); // [version, id, edge?]
     const [, id, edge] = parts;
@@ -57,6 +64,8 @@ export function startFakeGraph(port = 4010) {
       return id === FAKE.wabaId ? json(200, { data: [{ id: FAKE.phoneNumberId }] }) : json(400, { error: { code: 100, message: "Unknown account" } });
     }
     if (req.method === "POST" && edge === "subscribed_apps") return json(200, { success: true });
+    if (req.method === "GET" && id === "app" && !edge) return json(200, { id: "app_1" });
+    if (req.method === "POST" && id === "app_1" && edge === "uploads") return json(200, { id: `upload:sess${exampleUploads.length + 1}` });
     if (edge === "message_templates" && id === FAKE.wabaId) {
       if (req.method === "GET") return json(200, { data: templates.map(({ id: tid, name, language, status }) => ({ id: tid, name, language, status })) });
       if (req.method === "POST") {

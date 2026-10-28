@@ -20,13 +20,21 @@ export const NOTIFICATION_KINDS = [
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
+/**
+ * Every standard template a business submits: the notifications, plus
+ * "document" (a PDF in the header) used to send invoices, receipts,
+ * statements and report cards outside the 24-hour window.
+ */
+export const TEMPLATE_KINDS = [...NOTIFICATION_KINDS, "document"] as const;
+export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
+
 export const TEMPLATE_LANGUAGES = ["en", "fr"] as const;
 export type TemplateLanguage = (typeof TEMPLATE_LANGUAGES)[number];
 
-type Def = { params: readonly string[]; example: readonly string[]; body: Record<TemplateLanguage, string> };
+type Def = { params: readonly string[]; example: readonly string[]; body: Record<TemplateLanguage, string>; header?: "DOCUMENT" };
 
 /** Parameter names, in {{n}} order. */
-export const TEMPLATES: Record<NotificationKind, Def> = {
+export const TEMPLATES: Record<TemplateKind, Def> = {
   order_confirmed: {
     params: ["customer", "business", "order", "total"],
     example: ["Brenda", "Awa Styles", "ORD-00012", "30,000 XAF"],
@@ -91,19 +99,29 @@ export const TEMPLATES: Record<NotificationKind, Def> = {
       fr: "Bonjour {{1}}, {{2}} a une réponse à votre message. Répondez ici pour continuer la conversation.",
     },
   },
+  // The PDF goes in the header; {{2}} names it, e.g. "invoice INV-2026-000041" or "report card for Ngo Marie (Term 1)".
+  document: {
+    params: ["customer", "document", "business"],
+    example: ["Brenda", "invoice INV-2026-000041", "Awa Styles"],
+    header: "DOCUMENT",
+    body: {
+      en: "Hello {{1}}, here is your {{2}} from {{3}}. Reply here if you have any questions.",
+      fr: "Bonjour {{1}}, voici votre {{2}} de {{3}}. Répondez ici si vous avez des questions.",
+    },
+  },
 };
 
 /** Meta template name for a kind (one name, one template per language). */
-export const templateName = (kind: NotificationKind) => `wazabolt_${kind}`;
+export const templateName = (kind: TemplateKind) => `wazabolt_${kind}`;
 
 /** Fills {{1}}, {{2}} … with values (named by TEMPLATES[kind].params). */
-export function renderBody(kind: NotificationKind, language: TemplateLanguage, values: Record<string, string>) {
+export function renderBody(kind: TemplateKind, language: TemplateLanguage, values: Record<string, string>) {
   const def = TEMPLATES[kind];
   return def.body[language].replace(/\{\{(\d+)\}\}/g, (_, n: string) => values[def.params[Number(n) - 1]] ?? "");
 }
 
 /** Parameter values in {{n}} order, for the template API (never empty: WhatsApp rejects blank parameters). */
-export function bodyParams(kind: NotificationKind, values: Record<string, string>) {
+export function bodyParams(kind: TemplateKind, values: Record<string, string>) {
   return TEMPLATES[kind].params.map((p) => (values[p] ?? "").trim() || "-");
 }
 

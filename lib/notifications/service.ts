@@ -8,7 +8,7 @@ import { windowOpen } from "@/lib/whatsapp/service";
 import { recordWhatsAppSend } from "@/lib/whatsapp/usage";
 
 import {
-  NOTIFICATION_KINDS,
+  TEMPLATE_KINDS,
   TEMPLATE_LANGUAGES,
   TEMPLATES,
   bodyParams,
@@ -18,6 +18,7 @@ import {
   type NotificationKind,
   type TemplateLanguage,
 } from "./templates";
+import { SAMPLE_PDF } from "./sample-pdf";
 
 /*
  * Customer notifications on WhatsApp (Stage 7). Runs on the server with the
@@ -35,14 +36,14 @@ type Admin = NonNullable<ReturnType<typeof createAdminClient>>;
 type WhatsAppFor = (businessId: string) => Promise<BusinessWhatsApp | null>;
 
 const META_STATUS: Record<string, string> = { APPROVED: "approved", REJECTED: "rejected", PAUSED: "paused", DISABLED: "disabled", PENDING: "pending", IN_APPEAL: "pending" };
-const kindFromName = (name: string) => NOTIFICATION_KINDS.find((k) => templateName(k) === name) ?? null;
+const kindFromName = (name: string) => TEMPLATE_KINDS.find((k) => templateName(k) === name) ?? null;
 
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
 export type TemplateSubmitResult = { submitted: number; failed: number; error?: "whatsapp_not_connected" | "no_account" };
 
-/** Submits WazaBolt's standard templates (each kind, English and French) that aren't already pending or approved. */
+/** Submits WazaBolt's standard templates (each kind, English and French, the document one included) that aren't already pending or approved. */
 export async function submitTemplates(admin: Admin, businessId: string, wa: WhatsAppFor = whatsappForBusiness): Promise<TemplateSubmitResult> {
   const conn = await wa(businessId);
   if (!conn) return { submitted: 0, failed: 0, error: "whatsapp_not_connected" };
@@ -52,13 +53,22 @@ export async function submitTemplates(admin: Admin, businessId: string, wa: What
 
   let submitted = 0;
   let failed = 0;
-  for (const kind of NOTIFICATION_KINDS) {
+  let sampleHandle: string | null = null;
+  for (const kind of TEMPLATE_KINDS) {
     for (const language of TEMPLATE_LANGUAGES) {
       if (keep.has(`${kind}:${language}`)) continue;
       const def = TEMPLATES[kind];
       const row = { business_id: businessId, kind, language, name: templateName(kind), body: def.body[language], submitted_at: new Date().toISOString() };
       try {
-        const created = await conn.client.createTemplate(conn.wabaId, { name: row.name, language, body: row.body, example: [...def.example] });
+        // A document template needs an example file for Meta's review: a one-page sample PDF, uploaded once.
+        if (def.header === "DOCUMENT" && !sampleHandle) sampleHandle = await conn.client.uploadExampleFile(SAMPLE_PDF, "application/pdf", "sample-invoice.pdf");
+        const created = await conn.client.createTemplate(conn.wabaId, {
+          name: row.name,
+          language,
+          body: row.body,
+          example: [...def.example],
+          ...(def.header === "DOCUMENT" && sampleHandle ? { header: { format: "DOCUMENT" as const, exampleHandle: sampleHandle } } : {}),
+        });
         const { error } = await admin
           .from("whatsapp_templates")
           .upsert({ ...row, meta_template_id: created.id, status: META_STATUS[created.status] ?? "pending", rejected_reason: null }, { onConflict: "business_id,kind,language" });

@@ -241,9 +241,9 @@ export async function orderInvoice(businessId: string, orderId: string) {
 
 /** Can a document go to this customer on WhatsApp right now? (Shown before sending; the send checks again.) */
 export async function whatsappSendState(businessId: string, customerId: string | null) {
-  if (!customerId) return { customer: null, connected: false, windowOpen: false };
+  if (!customerId) return { customer: null, connected: false, windowOpen: false, templateApproved: false };
   const db = await createClient();
-  const [{ data: customer }, { data: connection }, { data: conversation }] = await Promise.all([
+  const [{ data: customer }, { data: connection }, { data: conversation }, { count: approved }] = await Promise.all([
     db.from("customers").select("id, name, whatsapp_phone").eq("business_id", businessId).eq("id", customerId).maybeSingle(),
     db.from("whatsapp_connections").select("status").eq("business_id", businessId).maybeSingle(),
     db
@@ -255,10 +255,13 @@ export async function whatsappSendState(businessId: string, customerId: string |
       .order("last_customer_message_at", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle(),
+    // Outside the 24-hour window, the approved "document" template carries the PDF.
+    db.from("whatsapp_templates").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("kind", "document").eq("status", "approved"),
   ]);
   return {
     customer: customer ? { id: customer.id, name: customer.name || `+${customer.whatsapp_phone}`, phone: customer.whatsapp_phone } : null,
     connected: connection?.status === "connected",
     windowOpen: windowOpen(conversation?.last_customer_message_at),
+    templateApproved: (approved ?? 0) > 0,
   };
 }

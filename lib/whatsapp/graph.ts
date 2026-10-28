@@ -144,17 +144,25 @@ export class WhatsAppGraphClient {
    * A message template, outside the 24-hour window (Stage 7). Parameters fill
    * {{1}}, {{2}} … of the approved body in order.
    */
-  async sendTemplate(phoneNumberId: string, to: string, name: string, language: string, bodyParams: string[]): Promise<{ messageId: string }> {
+  async sendTemplate(
+    phoneNumberId: string,
+    to: string,
+    name: string,
+    language: string,
+    bodyParams: string[],
+    /** For a template with a document header: the uploaded media id and the file name the customer sees. */
+    document?: { mediaId: string; fileName: string },
+  ): Promise<{ messageId: string }> {
+    const components = [
+      ...(document ? [{ type: "header", parameters: [{ type: "document", document: { id: document.mediaId, filename: document.fileName } }] }] : []),
+      ...(bodyParams.length ? [{ type: "body", parameters: bodyParams.map((text) => ({ type: "text", text })) }] : []),
+    ];
     const r = await this.request<{ messages?: { id: string }[] }>("POST", `${encodeURIComponent(phoneNumberId)}/messages`, {
       messaging_product: "whatsapp",
       recipient_type: "individual",
       to,
       type: "template",
-      template: {
-        name,
-        language: { code: language },
-        components: bodyParams.length ? [{ type: "body", parameters: bodyParams.map((text) => ({ type: "text", text })) }] : [],
-      },
+      template: { name, language: { code: language }, components },
     });
     const messageId = r.messages?.[0]?.id;
     if (!messageId) throw new GraphApiError(502, null, "no message id returned");
@@ -168,16 +176,42 @@ export class WhatsAppGraphClient {
    */
   async createTemplate(
     wabaId: string,
-    t: { name: string; language: string; body: string; example: string[]; category?: "UTILITY" | "MARKETING" },
+    t: { name: string; language: string; body: string; example: string[]; category?: "UTILITY" | "MARKETING"; header?: { format: "DOCUMENT"; exampleHandle: string } },
   ): Promise<{ id: string; status: string }> {
     const r = await this.request<{ id?: string; status?: string }>("POST", `${encodeURIComponent(wabaId)}/message_templates`, {
       name: t.name,
       language: t.language,
       category: t.category ?? "UTILITY",
-      components: [{ type: "BODY", text: t.body, ...(t.example.length ? { example: { body_text: [t.example] } } : {}) }],
+      components: [
+        ...(t.header ? [{ type: "HEADER", format: t.header.format, example: { header_handle: [t.header.exampleHandle] } }] : []),
+        { type: "BODY", text: t.body, ...(t.example.length ? { example: { body_text: [t.example] } } : {}) },
+      ],
     });
     if (!r.id) throw new GraphApiError(502, null, "no template id returned");
     return { id: r.id, status: r.status ?? "PENDING" };
+  }
+
+  /**
+   * Uploads an example file for a template review (Meta's Resumable Upload
+   * API, on the app that owns the token) and returns its handle: the app id,
+   * an upload session, then the bytes.
+   */
+  async uploadExampleFile(bytes: Uint8Array, mimeType: string, fileName: string): Promise<string> {
+    const app = await this.request<{ id?: string }>("GET", "app?fields=id");
+    if (!app.id) throw new GraphApiError(502, null, "no app id returned");
+    const query = new URLSearchParams({ file_name: fileName, file_length: String(bytes.byteLength), file_type: mimeType });
+    const session = await this.request<{ id?: string }>("POST", `${encodeURIComponent(app.id)}/uploads?${query}`);
+    if (!session.id) throw new GraphApiError(502, null, "no upload session returned");
+    const res = await (this.options.fetchImpl ?? fetch)(this.url(session.id), {
+      method: "POST",
+      headers: { Authorization: `OAuth ${this.accessToken}`, file_offset: "0", "Content-Type": mimeType },
+      body: new Uint8Array(bytes),
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
+    });
+    const json = (await res.json().catch(() => ({}))) as { h?: string; error?: { code?: number; message?: string } };
+    if (!res.ok || json.error || !json.h) throw new GraphApiError(res.status, json.error?.code ?? null, String(json.error?.message ?? "example upload failed").slice(0, 150));
+    return json.h;
   }
 
   /** The account's templates with their review status. */

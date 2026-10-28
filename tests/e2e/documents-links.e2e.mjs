@@ -287,6 +287,33 @@ mkdirSync("test-results", { recursive: true });
     const sup = graph.sent().uploads.at(-1);
     ok("WhatsApp: the statement PDF goes too (French file name)", sup?.isPdf === true && sup.filename?.startsWith(`releve-${custRef}-`) && graph.sent().sent.at(-1)?.document?.caption === `Relevé de compte — ${OWNER.business}`, JSON.stringify(sup));
 
+    // ---------------------------------------------------------------- Outside the 24 hours, with the approved Documents template
+    sql(`update conversations set last_customer_message_at = now() - interval '3 days' where business_id = '${biz}' and customer_id = '${cust}'`);
+    // The template, as Meta approved it (submitting and approval are covered by the notifications suite).
+    sql(`insert into whatsapp_templates (business_id, kind, language, name, body, meta_template_id, status) values
+         ('${biz}', 'document', 'en', 'wazabolt_document', 'Hello {{1}}, here is your {{2}} from {{3}}. Reply here if you have any questions.', 'tmpl_doc_en', 'approved')`);
+    await page.goto(invoiceUrl);
+    await main.getByTestId("whatsapp-template-route").waitFor({ timeout: 10000 }).catch(() => {});
+    ok("outside 24 h with an approved template: the page says the PDF goes with it, and the button is on", (await main.getByTestId("whatsapp-template-route").count()) === 1 && !(await main.getByTestId("send-whatsapp").isDisabled()));
+    await main.getByTestId("send-whatsapp").click();
+    await main.getByText("Sent on WhatsApp. It's in the customer's conversation.").waitFor({ timeout: 20000 });
+    const tup = graph.sent().uploads.at(-1);
+    const tmsg = graph.sent().sent.at(-1);
+    ok(
+      "outside 24 h: the PDF is uploaded and sent with the Documents template (header document, the customer and the invoice named)",
+      tmsg?.type === "template" && tmsg.template.name === "wazabolt_document" && tmsg.template.language.code === "en" &&
+        tmsg.template.components[0].parameters[0].document.id === tup?.id && tmsg.template.components[0].parameters[0].document.filename === `invoice-${invNumber}.pdf` &&
+        tmsg.template.components[1].parameters.map((p) => p.text).join("|") === `Brenda Nkeng|invoice ${invNumber}|${OWNER.business}`,
+      JSON.stringify(tmsg),
+    );
+    ok(
+      "outside 24 h: recorded as a utility message, with the template's words, and audited",
+      sql(`select delivery_status || ' ' || wa_category from messages where business_id = '${biz}' and direction = 'outbound' order by created_at desc limit 1`) === "sent utility" &&
+        sql(`select caption from messages where business_id = '${biz}' and direction = 'outbound' order by created_at desc limit 1`).startsWith("Hello Brenda Nkeng, here is your invoice") &&
+        sql(`select metadata->>'channel' from audit_logs where business_id = '${biz}' and action = 'document.sent_whatsapp' order by created_at desc limit 1`) === "template",
+    );
+    sql(`delete from whatsapp_templates where business_id = '${biz}'`);
+
     // A draft can't be sent.
     sql(`insert into documents (business_id, doc_type, customer_id, business_snapshot, customer_snapshot, items, subtotal, total, created_by)
          values ('${biz}', 'quotation', '${cust}', ${snap}, '{"name":"Brenda Nkeng"}', '[{"description":"x","quantity":1,"unitPrice":1}]', 1, 1, '${userId}')`);

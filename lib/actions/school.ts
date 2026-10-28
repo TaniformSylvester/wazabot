@@ -505,6 +505,7 @@ export async function sendReportCard(classId: string, termId: string, studentId:
     pdf,
     fileName: reportCardFileName(pub.data, st),
     caption: `${L.title} — ${st.name} — ${pub.data.term} — ${ctx.business.name}`,
+    label: { en: `${REPORT_LABELS.en.title.toLowerCase()} for ${st.name} (${pub.data.term})`, fr: `${REPORT_LABELS.fr.title.toLowerCase()} de ${st.name} (${pub.data.term})` },
     meta: { report_card: true, publication_id: pub.id, student_id: studentId },
   });
   if (!r.ok) return fail(r.error);

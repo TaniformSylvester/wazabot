@@ -165,13 +165,21 @@ mkdirSync("test-results", { recursive: true });
   // Submit the templates; Meta approves; refresh.
   await page.goto(`${APP}/en/dashboard/whatsapp/notifications`);
   await main.getByRole("button", { name: "Submit templates to Meta" }).click();
-  await waitFor(async () => (await main.getByText("In review").count()) === 16);
+  await waitFor(async () => (await main.getByText("In review").count()) === 18);
   const tpl = graph.templates();
-  ok("all 16 templates submitted (8 messages × English, French), category UTILITY with examples", tpl.length === 16 && tpl.every((t) => t.category === "UTILITY" && t.components[0].example.body_text[0].length > 0) && (await main.getByText("In review").count()) === 16);
+  const bodyOf = (t) => t.components.find((c) => c.type === "BODY");
+  ok("all 18 templates submitted (8 messages + documents × English, French), category UTILITY with examples", tpl.length === 18 && tpl.every((t) => t.category === "UTILITY" && bodyOf(t).example.body_text[0].length > 0) && (await main.getByText("In review").count()) === 18);
+  const docTpl = tpl.filter((t) => t.name === "wazabolt_document");
+  const examples = (await (await fetch("http://localhost:4010/__sent")).json()).exampleUploads;
+  ok(
+    "the documents template has a PDF header, with one sample PDF uploaded for Meta's review",
+    docTpl.length === 2 && docTpl.every((t) => t.components[0].type === "HEADER" && t.components[0].format === "DOCUMENT" && t.components[0].example.header_handle[0] === "handle_1") && examples.length === 1 && examples[0].isPdf,
+    JSON.stringify({ docTpl: docTpl.map((t) => t.components[0]), examples }),
+  );
   graph.approveAll();
   await main.getByRole("button", { name: "Refresh status" }).click();
-  await waitFor(async () => (await main.getByText("Approved", { exact: true }).count()) === 16);
-  ok("refresh shows Meta's approval", (await main.getByText("Approved", { exact: true }).count()) === 16);
+  await waitFor(async () => (await main.getByText("Approved", { exact: true }).count()) === 18);
+  ok("refresh shows Meta's approval", (await main.getByText("Approved", { exact: true }).count()) === 18);
 
   // Meta's webhook can also report a review result.
   const rejected = tpl.find((t) => t.name === "wazabolt_order_delivered" && t.language === "fr");
