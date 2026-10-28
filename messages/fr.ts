@@ -1017,7 +1017,8 @@ const fr: Messages = {
       pause: "Mettre en pause",
       reopen: "Rouvrir",
       pauseConfirm: "Mettre cette succursale en pause ? Aucune vente ne pourra y être enregistrée jusqu'à sa réouverture. Son stock et son historique sont conservés.",
-      limitUpgrade: "Votre forfait comprend un seul point de vente. Business en comprend 2 et Pro 5 : changez de forfait dans Facturation pour ouvrir des succursales.",
+      limitUpgrade: "Votre forfait comprend un seul point de vente. Business en comprend 2 et Pro 5.",
+      changePlan: "Changer de forfait dans Facturation",
       limitExtra: "Tous vos points de vente sont utilisés. Demandez une succursale supplémentaire ci-dessus, ou mettez-en une en pause.",
       plan: {
         title: "Points de vente de votre forfait",

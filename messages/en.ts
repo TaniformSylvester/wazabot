@@ -1018,7 +1018,8 @@ const en = {
       pause: "Pause",
       reopen: "Reopen",
       pauseConfirm: "Pause this branch? No sales can be recorded there until you reopen it. Its stock and history are kept.",
-      limitUpgrade: "Your plan includes one location. Business includes 2 and Pro 5: change plan in Billing to open branches.",
+      limitUpgrade: "Your plan includes one location. Business includes 2 and Pro 5.",
+      changePlan: "Change plan in Billing",
       limitExtra: "All your locations are in use. Ask for an extra branch above, or pause a branch.",
       plan: {
         title: "Locations on your plan",

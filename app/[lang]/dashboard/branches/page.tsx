@@ -1,4 +1,5 @@
-import { MapPin } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, MapPin } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, ActionForm, SubmitButton, TextField } from "@/components/app/form";
@@ -129,6 +130,14 @@ export default async function BranchesPage() {
           ) : (
             <p className="text-sm text-slate" data-testid="branch-limit">
               {extraPrice !== null ? br.limitExtra : br.limitUpgrade}
+              {extraPrice === null ? (
+                <>
+                  {" "}
+                  <Link href={localizePath(locale, "/dashboard/billing#change-plan")} className="inline-flex items-center gap-1 font-semibold text-waza-700 hover:underline">
+                    {br.changePlan} <ArrowRight className="size-3.5" aria-hidden />
+                  </Link>
+                </>
+              ) : null}
             </p>
           )}
         </Panel>
