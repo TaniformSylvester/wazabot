@@ -94,7 +94,7 @@ The instant answers that don't use AI (location, hours, stock) are left to the a
 
 ## Changes
 
-- **Migration** `20261030120000_branches.sql`:
+- **Migrations** `20261030120000_branches.sql`, plus `20261031120000_branches_read_policy.sql` (kitchen staff and teachers read their branches):
   - tables `branches` and `branch_stock`;
   - columns:
     - `plans.included_branches` and `extra_branch_price`;
