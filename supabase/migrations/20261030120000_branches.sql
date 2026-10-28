@@ -71,8 +71,10 @@ create trigger branches_set_updated_at before update on public.branches
   for each row execute function public.set_updated_at();
 
 alter table public.branches enable row level security;
+-- Every member reads the branches, kitchen staff and teachers included (is_business_member leaves them out): the kitchen screen needs its branch.
 create policy "branches: members read" on public.branches
-  for select to authenticated using (public.is_business_member(business_id));
+  for select to authenticated
+  using (exists (select 1 from public.business_members m where m.business_id = branches.business_id and m.user_id = (select auth.uid())));
 create policy "branches: admins insert" on public.branches
   for insert to authenticated with check (public.has_min_role(business_id, 'admin') and not is_main);
 create policy "branches: admins update" on public.branches

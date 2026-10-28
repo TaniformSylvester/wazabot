@@ -119,7 +119,7 @@ The instant answers that don't use AI (location, hours, stock) are left to the a
 
 ## Tests
 
-- **SQL** (`supabase/tests/branches.sql`, 18 checks):
+- **SQL** (`supabase/tests/branches.sql`, 19 checks):
   - plan allowances (Free 1, Business 2, plus an approved extra branch);
   - stock in, counts and transfers per branch;
   - a sale takes stock from its branch and is refused when that branch has none;

@@ -288,6 +288,19 @@ begin
   raise notice 'PASS a plan without extra branches resets them to none';
 end $$;
 
+-- Kitchen staff read their business's branches (the kitchen screen needs its branch).
+reset role;
+insert into public.business_members (business_id, user_id, role) values (pg_temp.v('other_biz'), '00000000-0000-4000-a977-00000000000a', 'kitchen');
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-4000-a977-00000000000a');
+do $$
+begin
+  if not exists (select 1 from public.branches where business_id = pg_temp.v('other_biz') and is_main) then raise exception 'FAIL: kitchen staff can''t read branches'; end if;
+  raise notice 'PASS kitchen staff can read their branches';
+end $$;
+reset role;
+delete from public.business_members where business_id = pg_temp.v('other_biz') and user_id = '00000000-0000-4000-a977-00000000000a';
+
 -- Strangers see nothing.
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-4000-a977-00000000000c');
