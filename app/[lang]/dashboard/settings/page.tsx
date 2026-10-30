@@ -5,7 +5,11 @@ import { FormAlert } from "@/components/auth/form-alert";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { BusinessProfileForm, OpeningHoursForm, ReceiptSettingsForm } from "@/components/app/business-forms";
 import { ActionButton } from "@/components/app/form";
-import { DefinitionList, PageHeader, Panel, StatusBadge } from "@/components/app/ui";
+import { CopyText } from "@/components/app/copy-button";
+import { DefinitionList, PageHeader, Panel, StatusBadge, secondaryLink } from "@/components/app/ui";
+import { siteConfig } from "@/config/site";
+import { setShopEnabled } from "@/lib/actions/shop";
+import { format } from "@/lib/i18n/format";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
 import { DEFAULT_OPENING_HOURS, hasOpeningHours } from "@/lib/business/hours";
@@ -27,7 +31,14 @@ export default async function SettingsPage() {
   const countries: Record<string, string> = s.countries;
   const canEdit = canManageBusiness(business.role);
   const text = { errors: d.errors, saved: d.common.saved, saving: d.common.saving };
-  const { data: receipt } = await (await createClient()).from("businesses").select("receipt_footer").eq("id", business.id).maybeSingle();
+  const db = await createClient();
+  const [{ data: receipt }, { data: wa }] = await Promise.all([
+    db.from("businesses").select("receipt_footer, shop_enabled").eq("id", business.id).maybeSingle(),
+    db.from("whatsapp_connections").select("status").eq("business_id", business.id).maybeSingle(),
+  ]);
+  const shopUrl = `${siteConfig.url.replace(/\/$/, "")}/s/${business.slug}`;
+  const shopOn = !!receipt?.shop_enabled;
+  const sh = s.shop;
   const modules = await getBusinessModules(business);
 
   return (
@@ -91,6 +102,50 @@ export default async function SettingsPage() {
           >
             {s.business.manageLanguages} <ArrowRight className="size-4" aria-hidden />
           </Link>
+        </div>
+      </Panel>
+
+      <Panel id="shop" title={sh.title} description={sh.description}>
+        <div className="flex flex-col gap-3" data-testid="shop-settings">
+          <p className="flex items-center gap-2 text-sm font-semibold text-deep">
+            <StatusBadge tone={shopOn ? "green" : "neutral"} dot>
+              {shopOn ? sh.on : sh.off}
+            </StatusBadge>
+          </p>
+          {shopOn ? (
+            <>
+              <p className="text-sm text-slate">
+                {sh.link}: <CopyText value={shopUrl} label={sh.copy} copiedLabel={sh.copied} />
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <a href={shopUrl} target="_blank" rel="noopener" className={secondaryLink}>
+                  {sh.open}
+                </a>
+                <a href={`https://wa.me/?text=${encodeURIComponent(format(sh.shareText, { url: shopUrl }))}`} target="_blank" rel="noopener" className={secondaryLink}>
+                  {sh.share}
+                </a>
+                {canEdit ? (
+                  <ActionButton action={setShopEnabled.bind(null, false)} errors={d.errors} pendingLabel={d.common.saving} confirm={sh.offConfirm} variant="ghost">
+                    {sh.turnOff}
+                  </ActionButton>
+                ) : null}
+              </div>
+              {wa?.status !== "connected" && !business.phone ? <FormAlert tone="info">{sh.noWhatsApp}</FormAlert> : null}
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-slate">{sh.offText}</p>
+              {canEdit ? (
+                <div>
+                  <ActionButton action={setShopEnabled.bind(null, true)} errors={d.errors} pendingLabel={d.common.saving} variant="default">
+                    {sh.turnOn}
+                  </ActionButton>
+                </div>
+              ) : (
+                <p className="text-sm text-slate">{sh.ownersOnly}</p>
+              )}
+            </>
+          )}
         </div>
       </Panel>
 

@@ -842,6 +842,7 @@ export type Database = {
           opening_hours: NonNullable<Json>;
           phone: string | null;
           receipt_footer: string | null;
+          shop_enabled: boolean;
           slug: string;
           status: string;
           timezone: string;
@@ -868,6 +869,7 @@ export type Database = {
           opening_hours?: NonNullable<Json>;
           phone?: string | null;
           receipt_footer?: string | null;
+          shop_enabled?: boolean;
           slug: string;
           status?: string;
           timezone?: string;
@@ -894,6 +896,7 @@ export type Database = {
           opening_hours?: NonNullable<Json>;
           phone?: string | null;
           receipt_footer?: string | null;
+          shop_enabled?: boolean;
           slug?: string;
           status?: string;
           timezone?: string;
@@ -4959,6 +4962,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_shop_enabled: { Args: { p_business_id: string; p_enabled: boolean }; Returns: undefined };
       set_ticket_status: { Args: { p_status: string; p_ticket_id: string }; Returns: undefined };
       set_ui_locale: { Args: { p_locale: string }; Returns: undefined };
       shares_business_with: { Args: { other_user: string }; Returns: boolean };

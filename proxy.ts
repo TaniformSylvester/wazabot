@@ -74,8 +74,8 @@ function rememberLocale(response: NextResponse, locale: Locale, request: NextReq
 }
 
 export const config = {
-  // Skip static assets and metadata files.
+  // Skip static assets, metadata files and the public shop pages (no session, cacheable).
   matcher: [
-    "/((?!api/|_next/static|_next/image|icon.svg|apple-icon.png|manifest.webmanifest|robots.txt|sitemap.xml|images/|logo/|og/|.*/opengraph-image|.*/twitter-image).*)",
+    "/((?!api/|s/|_next/static|_next/image|icon.svg|apple-icon.png|manifest.webmanifest|robots.txt|sitemap.xml|images/|logo/|og/|.*/opengraph-image|.*/twitter-image).*)",
   ],
 };
