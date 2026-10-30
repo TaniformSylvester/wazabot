@@ -57,7 +57,7 @@ const en = {
       faq: { title: "Frequently asked questions", description: "Answers about WazaBolt: the free plan, payments in FCFA, WhatsApp, languages, the AI assistant and your data." },
       resources: { title: "Resources", description: "Guides, answers and help for getting your business running on WazaBolt." },
       about: { title: "About WazaBolt", description: "WazaBolt is a business registered in Bamenda, Cameroon, building business software and WhatsApp automation for African businesses." },
-      contact: { title: "Contact", description: "Contact the WazaBolt team in Bamenda, Cameroon: phone and WhatsApp +237 651 575 933, email contact@wazabolt.com." },
+      contact: { title: "Contact", description: "Contact the WazaBolt team in Bamenda, Cameroon: phone and WhatsApp +237 675 12 98 68, email contact@wazabolt.com." },
       privacy: { title: "Privacy Policy", description: "How WazaBolt handles your data." },
       terms: { title: "Terms of Service", description: "The terms for using WazaBolt." },
       login: { title: "Log In", description: "Log in to WazaBolt." },

@@ -87,8 +87,8 @@ Every canonical link, the sitemap and the structured data use it. If it's missin
 1. Create a profile at business.google.com:
    - name: WazaBolt;
    - category: Software company;
-   - address: Mile Six Nkwen, Bamenda, Behind Mawa Hotel;
-   - phone: +237 651 575 933;
+   - address: Mawa Hotel Junction, opposite Mawa Hotel, Mile 6 Nkwen, Bamenda III;
+   - phone: +237 675 12 98 68;
    - website: your domain.
 2. Use exactly the same name, address and phone as on the site.
 3. Ask your first customers to leave a Google review.

@@ -54,7 +54,7 @@ const fr: Messages = {
         title: "À propos de WazaBolt",
         description: "WazaBolt est une entreprise immatriculée à Bamenda, au Cameroun, qui conçoit des logiciels de gestion et l'automatisation WhatsApp pour les entreprises africaines.",
       },
-      contact: { title: "Nous contacter", description: "Contactez l'équipe WazaBolt à Bamenda, au Cameroun : téléphone et WhatsApp +237 651 575 933, e-mail contact@wazabolt.com." },
+      contact: { title: "Nous contacter", description: "Contactez l'équipe WazaBolt à Bamenda, au Cameroun : téléphone et WhatsApp +237 675 12 98 68, e-mail contact@wazabolt.com." },
       privacy: { title: "Politique de confidentialité", description: "Comment WazaBolt traite vos données." },
       terms: { title: "Conditions d'utilisation", description: "Les conditions d'utilisation de WazaBolt." },
       login: { title: "Connexion", description: "Connectez-vous à WazaBolt." },

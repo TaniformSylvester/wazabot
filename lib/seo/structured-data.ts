@@ -29,8 +29,8 @@ export function organizationGraph(locale: Locale, t: Messages) {
       telephone: c.phone,
       address: {
         "@type": "PostalAddress",
-        streetAddress: "Mile Six Nkwen, Behind Mawa Hotel",
-        addressLocality: "Bamenda",
+        streetAddress: "Mawa Hotel Junction, opposite Mawa Hotel, Mile 6 Nkwen",
+        addressLocality: "Bamenda III",
         addressRegion: "North-West",
         addressCountry: "CM",
       },
