@@ -51,6 +51,12 @@ export async function SiteFooter() {
           <p className="shrink-0">© 2026 {siteConfig.name}</p>
           <p className="md:text-right">{t.common.brand.trademarkNotice}</p>
         </div>
+        {/* The registered business, as on the RCCM form (Meta's business verification compares the website with it). */}
+        {siteConfig.legal.entityName ? (
+          <p className="container-page pb-6 text-xs text-cream/55" data-testid="footer-legal">
+            {[siteConfig.legal.entityName, siteConfig.legal.rccm && `RCCM ${siteConfig.legal.rccm}`, siteConfig.contact.address, siteConfig.contact.phone].filter(Boolean).join(" · ")}
+          </p>
+        ) : null}
       </div>
     </footer>
   );
