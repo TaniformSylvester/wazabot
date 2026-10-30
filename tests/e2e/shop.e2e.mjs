@@ -97,6 +97,11 @@ mkdirSync("test-results", { recursive: true });
     await panel.getByRole("button", { name: "Turn on my shop page" }).click();
     await panel.getByText("Your shop page is on").waitFor({ timeout: 15000 });
     ok("the owner turns it on: the link, Open and Share on WhatsApp appear", (await panel.innerText()).includes(`/s/${slug}`) && (await panel.getByRole("link", { name: "Share on WhatsApp" }).count()) === 1);
+    // On a phone the link wraps: the settings page never scrolls sideways.
+    await page.setViewportSize({ width: 360, height: 800 });
+    await panel.waitFor();
+    ok("on a phone (360 px) the shop link wraps, with no sideways scrolling", await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+    await page.setViewportSize({ width: 1280, height: 900 });
     ok("…recorded in the audit log", sql(`select count(*) from audit_logs where business_id = '${biz}' and action = 'shop.enabled'`) === "1");
 
     // ---------------------------------------------------------------- A visitor (no account)

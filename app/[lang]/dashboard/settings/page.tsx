@@ -114,9 +114,10 @@ export default async function SettingsPage() {
           </p>
           {shopOn ? (
             <>
-              <p className="text-sm text-slate">
-                {sh.link}: <CopyText value={shopUrl} label={sh.copy} copiedLabel={sh.copied} />
-              </p>
+              <div className="min-w-0 text-sm text-slate">
+                <p>{sh.link}</p>
+                <CopyText value={shopUrl} label={sh.copy} copiedLabel={sh.copied} wrap className="text-deep" />
+              </div>
               <div className="flex flex-wrap gap-2">
                 <a href={shopUrl} target="_blank" rel="noopener" className={secondaryLink}>
                   {sh.open}

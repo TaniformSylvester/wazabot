@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 
-/** A reference (CUS-000012, ORD-00045) with a button that copies it. */
-export function CopyText({ value, label, copiedLabel, className }: { value: string; label: string; copiedLabel: string; className?: string }) {
+/** A reference (CUS-000012, ORD-00045) with a button that copies it. `wrap`: a long value (a link) breaks across lines on small screens. */
+export function CopyText({ value, label, copiedLabel, className, wrap = false }: { value: string; label: string; copiedLabel: string; className?: string; wrap?: boolean }) {
   const [copied, setCopied] = useState(false);
   return (
-    <span className={`inline-flex items-center gap-1 whitespace-nowrap ${className ?? ""}`}>
-      <span className="font-mono text-[0.8125rem]">{value}</span>
+    <span className={`${wrap ? "flex max-w-full items-start" : "inline-flex items-center whitespace-nowrap"} gap-1 ${className ?? ""}`}>
+      <span className={`font-mono text-[0.8125rem] ${wrap ? "min-w-0 break-all pt-1" : ""}`}>{value}</span>
       <button
         type="button"
         aria-label={copied ? copiedLabel : label}
