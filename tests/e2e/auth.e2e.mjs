@@ -119,7 +119,8 @@ mkdirSync("test-results", { recursive: true });
   await page.goto(`${APP}/en/login`);
   ok("signed-in user visiting /login goes to dashboard", page.url().includes("/en/dashboard"), page.url());
 
-  // reused confirmation link
+  // reused confirmation link (the dashboard may still be navigating: let it finish, then open the link)
+  await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
   await page.goto(linkFrom(conf));
   ok("reused confirmation link is rejected", page.url().includes("error=link_invalid") || page.url().includes("/dashboard"), page.url());
 

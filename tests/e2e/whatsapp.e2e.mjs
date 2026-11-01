@@ -200,6 +200,8 @@ async function signUp(browser, user) {
   await main.getByLabel("Reply").fill("Hello!");
   await main.getByRole("button", { name: "Send" }).click();
   await main.getByText("WhatsApp didn't accept the message").waitFor({ timeout: 15000 });
+  // The page refreshes to show the message's status just after the error.
+  await main.getByText("Not delivered").waitFor({ timeout: 15000 }).catch(() => {});
   ok("rejected send: clear error, message kept as Not delivered", (await main.getByText("Not delivered").count()) === 1);
   const old = inbound("237670000777", "Old Customer", { id: "wamid.IN4", type: "text", text: { body: "Merci" } });
   old.entry[0].changes[0].value.messages[0].timestamp = String(Math.floor(Date.now() / 1000) - 2 * 86400);
