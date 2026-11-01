@@ -9,7 +9,7 @@
  *
  * Optional: APP_URL, MAILPIT_URL, NEXT_PUBLIC_SUPABASE_URL.
  */
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 const APP = process.env.APP_URL ?? "http://localhost:3000";
 const MAIL = process.env.MAILPIT_URL ?? "http://localhost:54324"; // Supabase CLI default
 const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:54321";
@@ -107,6 +107,7 @@ mkdirSync("test-results", { recursive: true });
   await page.goto(linkFrom(conf));
   await page.waitForURL(/\/dashboard\/onboarding/);
   ok("confirmation link signs in and starts onboarding", page.url().includes("/en/dashboard/onboarding?step=1&welcome=1"), page.url());
+  await page.getByText("Your email is confirmed").waitFor({ timeout: 15000 }).catch(() => {});
   ok("onboarding shows welcome + setup wizard", (await page.getByText("Your email is confirmed").count()) === 1 && (await page.getByRole("heading", { name: "Set up your business" }).count()) === 1);
   ok("dashboard header shows business from DB", (await page.locator("header").getByText("MJ Fashion").count()) >= 1);
   const cookies = await ctx.cookies();

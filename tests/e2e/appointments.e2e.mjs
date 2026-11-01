@@ -11,7 +11,7 @@
 import { createHmac } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 import { startFakeAnthropic } from "./fake-anthropic.mjs";
 import { FAKE, startFakeGraph } from "./fake-graph.mjs";
@@ -202,6 +202,7 @@ mkdirSync("test-results", { recursive: true });
     ok(`no horizontal overflow at 390px on ${p}`, over <= 1, `+${over}px`);
   }
   await page.goto(`${APP}/fr/dashboard/appointments`);
+  await main.getByRole("heading", { name: "Rendez-vous", exact: true }).waitFor({ timeout: 15000 }).catch(() => {});
   ok("appointments in French", (await main.getByRole("heading", { name: "Rendez-vous", exact: true }).count()) === 1);
 
   // Leave the shared fake number free for other suites.

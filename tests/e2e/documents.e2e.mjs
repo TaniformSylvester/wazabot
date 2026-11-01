@@ -9,7 +9,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 import sharp from "sharp";
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
@@ -279,6 +279,7 @@ mkdirSync("test-results", { recursive: true });
 
     // French dashboard.
     await page.goto(`${APP}/fr/dashboard/documents/${inv2}`);
+    await main.getByRole("link", { name: "Télécharger le PDF" }).waitFor({ timeout: 15000 }).catch(() => {});
     ok("French dashboard: labels translated", (await main.getByRole("link", { name: "Télécharger le PDF" }).count()) === 1);
 
     ok("no page errors", errors.length === 0, errors.join(" | "));

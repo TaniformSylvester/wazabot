@@ -10,7 +10,7 @@
 import { execFile, execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { promisify } from "node:util";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
 const MAIL = process.env.MAILPIT_URL ?? "http://localhost:54324";
@@ -112,6 +112,7 @@ mkdirSync("test-results", { recursive: true });
     ok("20 customers created at the same time get 20 different IDs (CUS-000003 … CUS-000022)", refs === "22 22 CUS-000022", refs);
 
     await page.goto(`${APP}/en/dashboard/customers?q=CUS-000002`);
+    await main.locator("tbody tr").first().waitFor({ timeout: 15000 }).catch(() => {});
     const rowsByRef = await main.locator("tbody tr").allInnerTexts();
     ok("customers can be found by their ID", rowsByRef.length === 1 && /CUS-000002/.test(rowsByRef[0]), rowsByRef.join(" | "));
     await page.goto(`${APP}/en/dashboard/customers?q=${encodeURIComponent("+237 670 10 00 02")}`);

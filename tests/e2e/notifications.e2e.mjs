@@ -12,7 +12,7 @@
 import { createHmac } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 import { FAKE, startFakeGraph } from "./fake-graph.mjs";
 

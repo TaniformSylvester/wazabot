@@ -8,7 +8,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
 const MAIL = process.env.MAILPIT_URL ?? "http://localhost:54324";
@@ -362,6 +362,7 @@ mkdirSync("test-results", { recursive: true });
       nav.replace(/\n/g, " "),
     );
     await cp.goto(`${APP}/en/dashboard/reports`);
+    await cm.getByText(/Only the owner and admins can see reports/).waitFor({ timeout: 15000 }).catch(() => {});
     const cashierReports = await cm.innerText();
     const cashierCsv = await cp.request.get(`${APP}/en/dashboard/reports/export?type=products&from=2026-01-01&to=2030-01-01`);
     await cp.goto(`${APP}/en/dashboard/sales/${cashSale}`);

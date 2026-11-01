@@ -10,7 +10,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 import sharp from "sharp";
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";

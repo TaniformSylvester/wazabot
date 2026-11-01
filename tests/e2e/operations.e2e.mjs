@@ -10,7 +10,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 import { startFakeResend } from "./fake-resend.mjs";
 
@@ -112,6 +112,7 @@ mkdirSync("test-results", { recursive: true });
   ok("dashboard: stock alert for a product at its low-stock threshold", (await main.getByRole("region", { name: "Stock alerts" }).getByText("1 left").count()) === 1);
   await page.screenshot({ path: "test-results/stage4-stock-alerts.png", fullPage: true });
   await page.goto(`${APP}/en/dashboard/products?stock=low`);
+  await main.getByText("Robe Ankara").first().waitFor({ timeout: 15000 }).catch(() => {});
   ok("products: low-stock filter uses the product's own threshold", (await main.getByText("Robe Ankara").count()) === 1);
 
   await page.goto(orderUrl);

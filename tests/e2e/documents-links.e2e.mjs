@@ -10,7 +10,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 import { FAKE, startFakeGraph } from "./fake-graph.mjs";
 

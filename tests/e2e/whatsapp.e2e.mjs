@@ -13,7 +13,7 @@
 import { execFileSync } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 import { FAKE, startFakeGraph } from "./fake-graph.mjs";
 
@@ -90,6 +90,8 @@ async function signUp(browser, user) {
   const { ctx, page } = await signUp(browser, A);
   page.on("pageerror", (e) => errors.push(String(e)));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  // Name the address behind a "Failed to load resource" error.
+  page.on("response", (r) => r.status() >= 400 && errors.push(`${r.status()} ${new URL(r.url()).pathname}`));
   const main = page.locator("main");
 
   // ------------------------------------------------------------- webhook guards
@@ -238,6 +240,7 @@ async function signUp(browser, user) {
   const after = await (await deliver(inbound("237670000123", "Chantal", { id: "wamid.IN9", type: "text", text: { body: "Allô ?" } }))).json();
   ok("after disconnecting, messages for the number are no longer stored", after.stored === 0, JSON.stringify(after));
   await page.goto(`${APP}/fr/dashboard/whatsapp`);
+  await page.locator("main").getByRole("heading", { name: "Connecter votre numéro" }).waitFor({ timeout: 15000 }).catch(() => {});
   ok("French WhatsApp page", (await page.locator("main").getByRole("heading", { name: "Connecter votre numéro" }).count()) === 1);
 
   ok("no browser errors", errors.length === 0, errors.join(" | "));

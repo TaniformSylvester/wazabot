@@ -11,7 +11,7 @@
 import { execFileSync } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "./playwright.mjs";
 
 import { startFakeAnthropic } from "./fake-anthropic.mjs";
 import { FAKE, startFakeGraph } from "./fake-graph.mjs";
