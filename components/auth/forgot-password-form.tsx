@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { FormField } from "@/components/auth/form-field";
@@ -12,12 +11,12 @@ import { Button } from "@/components/ui/button";
 import { requestPasswordReset } from "@/lib/actions/auth";
 import { format } from "@/lib/i18n/format";
 import { rich } from "@/lib/i18n/rich";
-import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validation/auth";
+import { type ForgotPasswordInput, authRules, rulesResolver } from "@/lib/validation/auth-rules";
 
 export function ForgotPasswordForm({ disabled = false }: { disabled?: boolean }) {
   const { a, locale, href, fieldError, errorText } = useAuthText();
   const form = useForm<ForgotPasswordInput>({
-    resolver: zodResolver(forgotPasswordSchema),
+    resolver: rulesResolver<ForgotPasswordInput>(authRules.forgotPassword),
     defaultValues: { email: "" },
   });
   const { onSubmit, pending, result } = useServerForm(form, (values) => requestPasswordReset(values, locale));

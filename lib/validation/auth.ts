@@ -1,7 +1,12 @@
 import { z } from "zod";
 
+import { SIGNUP_BUSINESS_TYPES } from "./auth-rules";
+
+export { SIGNUP_BUSINESS_TYPES, type SignupBusinessType } from "./auth-rules";
+
 /**
- * Shared by the browser (instant feedback) and Server Actions (authoritative).
+ * Applied by the Server Actions (authoritative). The browser checks the same
+ * rules without Zod (./auth-rules.ts, kept in step by a unit test).
  * Messages are keys into the `auth.validation` dictionary, so the same schema
  * serves every UI language; forms translate them with useValidationMessage().
  */
@@ -14,10 +19,6 @@ const newPassword = z
   .max(72, "password_max")
   .regex(/[A-Za-z]/, "password_letter")
   .regex(/[0-9]/, "password_number");
-
-/** The kind of business chosen at sign-up; it decides the modules and the setup steps (businesses.industry). */
-export const SIGNUP_BUSINESS_TYPES = ["retail", "school", "restaurant", "other"] as const;
-export type SignupBusinessType = (typeof SIGNUP_BUSINESS_TYPES)[number];
 
 export const registerSchema = z.object({
   fullName: z.string().trim().min(2, "name_required").max(120, "too_long"),

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { I18nProvider } from "@/components/i18n/i18n-provider";
 import { siteConfig } from "@/config/site";
@@ -9,12 +9,7 @@ import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { alternatesFor, socialFor } from "@/lib/i18n/metadata";
 import "../globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
+// Body text uses the phone's own font (globals.css): one font file less to download on weak connections.
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
@@ -56,7 +51,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   return (
-    <html lang={locale} className={`${inter.variable} ${jakarta.variable} h-full`}>
+    <html lang={locale} className={`${jakarta.variable} h-full`}>
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale} messages={{ common: t.common, auth: t.auth }}>
           {children}

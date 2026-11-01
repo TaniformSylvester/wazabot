@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { FormField } from "@/components/auth/form-field";
@@ -10,12 +9,12 @@ import { useAuthText } from "@/components/auth/use-auth-text";
 import { useServerForm } from "@/components/auth/use-server-form";
 import { Button } from "@/components/ui/button";
 import { signIn } from "@/lib/actions/auth";
-import { loginSchema, type LoginInput } from "@/lib/validation/auth";
+import { type LoginInput, authRules, rulesResolver } from "@/lib/validation/auth-rules";
 
 export function LoginForm({ next, disabled = false }: { next?: string; disabled?: boolean }) {
   const { a, locale, href, fieldError, errorText } = useAuthText();
   const form = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
+    resolver: rulesResolver<LoginInput>(authRules.login),
     defaultValues: { email: "", password: "" },
   });
   const { onSubmit, pending, result } = useServerForm(form, (values) => signIn(values, next, locale));

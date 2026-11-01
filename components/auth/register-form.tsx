@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { GraduationCap, MailCheck, Store, Shapes, UtensilsCrossed } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
@@ -14,7 +13,7 @@ import { signUp } from "@/lib/actions/auth";
 import { format } from "@/lib/i18n/format";
 import { rich } from "@/lib/i18n/rich";
 import { cn } from "@/lib/utils";
-import { SIGNUP_BUSINESS_TYPES, registerSchema, type RegisterInput, type SignupBusinessType } from "@/lib/validation/auth";
+import { SIGNUP_BUSINESS_TYPES, type RegisterInput, type SignupBusinessType, authRules, rulesResolver } from "@/lib/validation/auth-rules";
 
 const TYPE_ICONS = { retail: Store, school: GraduationCap, restaurant: UtensilsCrossed, other: Shapes } as const;
 
@@ -22,7 +21,7 @@ const TYPE_ICONS = { retail: Store, school: GraduationCap, restaurant: UtensilsC
 export function RegisterForm({ disabled = false, defaultType }: { disabled?: boolean; defaultType?: SignupBusinessType }) {
   const { a, locale, href, fieldError, errorText } = useAuthText();
   const form = useForm<RegisterInput>({
-    resolver: zodResolver(registerSchema),
+    resolver: rulesResolver<RegisterInput>(authRules.register),
     defaultValues: { fullName: "", businessName: "", businessType: defaultType, email: "", password: "" },
   });
   const { onSubmit, pending, result } = useServerForm(form, (values) => signUp(values, locale));

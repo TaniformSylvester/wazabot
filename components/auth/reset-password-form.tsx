@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { FormField } from "@/components/auth/form-field";
@@ -10,13 +9,13 @@ import { useAuthText } from "@/components/auth/use-auth-text";
 import { useServerForm } from "@/components/auth/use-server-form";
 import { Button } from "@/components/ui/button";
 import { updatePassword } from "@/lib/actions/auth";
-import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validation/auth";
+import { type ResetPasswordInput, authRules, rulesResolver } from "@/lib/validation/auth-rules";
 
 /** Used on /reset-password (after an email link) and in dashboard settings. */
 export function ResetPasswordForm({ continueHref = "/dashboard", submitLabel }: { continueHref?: string; submitLabel?: string }) {
   const { a, href, fieldError, errorText } = useAuthText();
   const form = useForm<ResetPasswordInput>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: rulesResolver<ResetPasswordInput>(authRules.resetPassword),
     defaultValues: { password: "", confirmPassword: "" },
   });
   const { onSubmit, pending, result } = useServerForm(form, updatePassword);

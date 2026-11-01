@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
     globalNotFound: true,
     // Product photos are uploaded through a Server Action (max 4 MB each; Vercel caps request bodies at 4.5 MB).
     serverActions: { bodySizeLimit: "4.5mb" },
+    // Styles in the page itself: on weak connections the first text shows one round trip sooner (no separate CSS file to wait for).
+    inlineCss: true,
   },
   // PDF documents (lib/documents/pdf) read their font files at run time.
   outputFileTracingIncludes: {

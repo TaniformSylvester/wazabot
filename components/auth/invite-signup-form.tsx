@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { MailCheck } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
@@ -13,12 +12,12 @@ import { Button } from "@/components/ui/button";
 import { signUpWithInvite } from "@/lib/actions/auth";
 import { format } from "@/lib/i18n/format";
 import { rich } from "@/lib/i18n/rich";
-import { inviteSignUpSchema, type InviteSignUpInput } from "@/lib/validation/auth";
+import { type InviteSignUpInput, authRules, rulesResolver } from "@/lib/validation/auth-rules";
 
 /** Create an account from an invitation: name + password; the email is the invited one. */
 export function InviteSignUpForm({ token, email, submitLabel, disabled = false }: { token: string; email: string; submitLabel: string; disabled?: boolean }) {
   const { a, locale, href, fieldError, errorText } = useAuthText();
-  const form = useForm<InviteSignUpInput>({ resolver: zodResolver(inviteSignUpSchema), defaultValues: { fullName: "", password: "" } });
+  const form = useForm<InviteSignUpInput>({ resolver: rulesResolver<InviteSignUpInput>(authRules.inviteSignUp), defaultValues: { fullName: "", password: "" } });
   const { onSubmit, pending, result } = useServerForm(form, (values) => signUpWithInvite({ ...values, token }, locale));
   const errors = form.formState.errors;
 
