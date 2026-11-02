@@ -9,7 +9,8 @@
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=... SUPABASE_SERVICE_ROLE_KEY=... DATABASE_URL=... npm run test:e2e:shop
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import jsQR from "jsqr";
 import { chromium } from "./playwright.mjs";
 import sharp from "sharp";
 
@@ -47,6 +48,12 @@ async function uploadPhoto(path, colour) {
   const res = await fetch(`${SUPABASE}/storage/v1/object/product-images/${path}`, { method: "POST", headers: { authorization: `Bearer ${SERVICE}`, apikey: SERVICE, "content-type": "image/jpeg", "x-upsert": "true" }, body: jpg });
   if (!res.ok) throw new Error(`upload ${res.status}`);
   return { url: `${SUPABASE}/storage/v1/object/public/product-images/${path}`, bytes: jpg.length };
+}
+
+/** Reads a QR code in a picture, the way a phone camera would. */
+async function scanQr(png) {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  return jsQR(new Uint8ClampedArray(data), info.width, info.height)?.data ?? null;
 }
 
 mkdirSync("test-results", { recursive: true });
@@ -104,6 +111,33 @@ mkdirSync("test-results", { recursive: true });
     await page.setViewportSize({ width: 1280, height: 900 });
     ok("…recorded in the audit log", sql(`select count(*) from audit_logs where business_id = '${biz}' and action = 'shop.enabled'`) === "1");
 
+    // ---------------------------------------------------------------- Poster, Status image, sitemap
+    ok("Settings offers the QR poster and the WhatsApp Status image", (await panel.getByTestId("shop-poster").getAttribute("href"))?.endsWith(`/s/${slug}/poster`) && (await panel.getByTestId("shop-status-image").getAttribute("download")) === `${slug}-whatsapp-status.png`);
+    const poster = await (await browser.newContext({ viewport: { width: 900, height: 1300 }, locale: "en-US" })).newPage();
+    poster.on("pageerror", (e) => errors.push(`poster: ${e}`));
+    res = await poster.goto(`${APP}/s/${slug}/poster`);
+    const posterText = await poster.locator("main").innerText();
+    ok("the poster: business name, city and 'Scan to see our products' in the business's language (French)", res.status() === 200 && posterText.includes(`Awa Styles ${stamp}`) && posterText.includes("Douala") && posterText.includes("Scannez pour voir nos produits") && posterText.includes(`/s/${slug}`));
+    const posterQr = await scanQr(await poster.locator(".qr").screenshot());
+    ok("…its QR code, as seen on screen, opens the shop", !!posterQr && posterQr.endsWith(`/s/${slug}`), posterQr);
+    await poster.emulateMedia({ media: "print" });
+    ok("…printing hides the Print button", !(await poster.getByRole("button", { name: "Imprimer" }).isVisible()));
+    const pdf = await poster.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
+    ok("…and fits on one A4 page", (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length === 1);
+    await poster.emulateMedia({ media: "screen" });
+    await poster.screenshot({ path: "test-results/shop-poster.png", fullPage: true });
+
+    const status = await visitor.request.get(`${APP}/s/${slug}/status.png`);
+    const statusPng = await status.body();
+    const statusMeta = await sharp(statusPng).metadata();
+    ok(`the WhatsApp Status image: a 1080 × 1920 PNG (${Math.round(statusPng.length / 1024)} KB)`, status.status() === 200 && status.headers()["content-type"] === "image/png" && statusMeta.width === 1080 && statusMeta.height === 1920);
+    const statusQr = await scanQr(statusPng);
+    ok("…its QR code opens the shop", !!statusQr && statusQr.endsWith(`/s/${slug}`), statusQr);
+    writeFileSync("test-results/shop-status.png", statusPng);
+
+    const sitemap = await (await fetch(`${APP}/s/sitemap.xml`)).text();
+    ok("the shop is listed in the shop sitemap, which robots.txt points to", sitemap.includes(`/s/${slug}</loc>`) && (await (await fetch(`${APP}/robots.txt`)).text()).includes("/s/sitemap.xml"));
+
     // ---------------------------------------------------------------- A visitor (no account)
     res = await visitor.goto(`${APP}/s/${slug}`);
     const html = await res.text();
@@ -150,6 +184,7 @@ mkdirSync("test-results", { recursive: true });
     await panel.getByText("Your shop page is off").waitFor({ timeout: 15000 });
     res = await visitor.goto(`${APP}/s/${slug}?again=1`);
     ok("turned off: the link shows 'Shop not found' again", res.status() === 404);
+    ok("…and the poster, the Status image and the sitemap entry are gone too", (await visitor.request.get(`${APP}/s/${slug}/poster?again=1`)).status() === 404 && (await visitor.request.get(`${APP}/s/${slug}/status.png?again=1`)).status() === 404 && !(await (await fetch(`${APP}/s/sitemap.xml`)).text()).includes(`/s/${slug}<`));
 
     ok("no page errors", errors.length === 0, errors.join(" | "));
   } catch (e) {

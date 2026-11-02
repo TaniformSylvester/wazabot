@@ -80,7 +80,27 @@ A full page of 48 products is under 20 KB once compressed. A unit test enforces 
   - search works with JavaScript turned off;
   - turning the shop off takes the page down.
 
+## Poster, WhatsApp Status image and sitemap (2 November 2026)
+
+Once the shop is on, **Settings → Shop page** also offers:
+
+- **Print a QR code poster** (`/s/<name>/poster`): one A4 page with:
+  - the logo, name and city;
+  - "Scan to see our products and order on WhatsApp";
+  - a large QR code of the shop link, and the link written out.
+
+  It's in the business's language (`?lang=` switches it), and the Print button isn't printed. The QR code uses error correction Q (25%), so a creased or dirty print still scans. It's drawn in the page as a small SVG, so there's nothing else to download.
+- **Image for WhatsApp Status** (`/s/<name>/status.png`): a 1080 × 1920 picture with the logo, name, city, the same message, the QR code and the link. The top and bottom stay clear, where WhatsApp puts its own buttons. It's cached for an hour.
+- **Search engines:** the shops that are on are listed in `/s/sitemap.xml`, and `robots.txt` points to it next to the site's own sitemap. It's read on each request and cached for an hour at the CDN, so a shop that's turned off drops out within the hour (its page answers 404 straight away).
+
+All three answer 404 for a shop that's off.
+
+**Code:** `lib/shop/qr.ts` (QR code to SVG, with the free `uqr` library, MIT, no dependencies), `lib/shop/poster.ts`, `app/s/[slug]/poster/route.ts`, `app/s/[slug]/status.png/route.tsx`, `app/s/sitemap.xml/route.ts`, and `loadShopCard` / `listOpenShops` in `lib/shop/data.ts`.
+
+**Tests:**
+- **Unit** (`tests/unit/shop-extras.test.ts`, 6 checks): the QR code is read back with a real QR reader (`jsqr`, test-only), including at about 2 cm; the poster's content, escaping, A4 print layout and noindex.
+- **E2E** (`tests/e2e/shop.e2e.mjs`, now 29 checks): the Settings links; the poster's QR code read from a screenshot; the poster prints on one A4 page without the button; the Status image is 1080 × 1920 and its QR code opens the shop; the sitemap lists the shop; all three disappear when the shop is turned off.
+
 ## Next ideas (not built)
 
-- List the shops that are on in the sitemap, so Google finds them.
-- A QR code of the link, for printing in the shop.
+- A "Share this shop" link preview image (Open Graph) for shops without a logo.

@@ -973,6 +973,13 @@ const fr: Messages = {
     poweredBy: "Page boutique par WazaBolt",
     notFound: "Cette boutique n'existe pas ou n'est pas ouverte.",
     notFoundTitle: "Boutique introuvable",
+    posterTitle: "{name} : scannez pour voir notre boutique",
+    posterHeadline: "Scannez pour voir nos produits",
+    posterSub: "et commandez sur WhatsApp",
+    posterOrOpen: "Ou ouvrez",
+    posterPrint: "Imprimer",
+    posterTip: "Imprimez sur une feuille A4 et posez-la sur votre comptoir, votre porte ou vos prospectus. Les clients la scannent avec l'appareil photo de leur téléphone.",
+    shareHeadline: "Découvrez nos produits et commandez sur WhatsApp",
   },
   dashboard: {
     title: "Tableau de bord",
@@ -3062,6 +3069,9 @@ const fr: Messages = {
         shareText: "Découvrez nos produits et commandez sur WhatsApp : {url}",
         noWhatsApp: "Les clients commandent via votre numéro WhatsApp : connectez WhatsApp, ou ajoutez un numéro de téléphone dans Informations de l'entreprise.",
         ownersOnly: "Seul le propriétaire ou un administrateur peut activer ou désactiver la page boutique.",
+        poster: "Imprimer une affiche avec QR code",
+        statusImage: "Image pour le Statut WhatsApp",
+        extrasHint: "L'affiche est une page A4 avec un QR code, pour votre comptoir ou vos prospectus. L'image est pour votre Statut WhatsApp : téléchargez-la, puis publiez-la.",
       },
       account: { title: "Compte", description: "Vos informations de connexion personnelles.", name: "Nom", email: "E-mail" },
       interface: {

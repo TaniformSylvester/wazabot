@@ -125,12 +125,19 @@ export default async function SettingsPage() {
                 <a href={`https://wa.me/?text=${encodeURIComponent(format(sh.shareText, { url: shopUrl }))}`} target="_blank" rel="noopener" className={secondaryLink}>
                   {sh.share}
                 </a>
+                <a href={`${shopUrl}/poster`} target="_blank" rel="noopener" className={secondaryLink} data-testid="shop-poster">
+                  {sh.poster}
+                </a>
+                <a href={`${shopUrl}/status.png`} download={`${business.slug}-whatsapp-status.png`} className={secondaryLink} data-testid="shop-status-image">
+                  {sh.statusImage}
+                </a>
                 {canEdit ? (
                   <ActionButton action={setShopEnabled.bind(null, false)} errors={d.errors} pendingLabel={d.common.saving} confirm={sh.offConfirm} variant="ghost">
                     {sh.turnOff}
                   </ActionButton>
                 ) : null}
               </div>
+              <p className="text-xs text-slate">{sh.extrasHint}</p>
               {wa?.status !== "connected" && !business.phone ? <FormAlert tone="info">{sh.noWhatsApp}</FormAlert> : null}
             </>
           ) : (

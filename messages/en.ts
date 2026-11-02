@@ -974,6 +974,13 @@ const en = {
     poweredBy: "Shop page by WazaBolt",
     notFound: "This shop doesn't exist or isn't open.",
     notFoundTitle: "Shop not found",
+    posterTitle: "{name}: scan to see our shop",
+    posterHeadline: "Scan to see our products",
+    posterSub: "and order on WhatsApp",
+    posterOrOpen: "Or open",
+    posterPrint: "Print",
+    posterTip: "Print on A4 paper and put it on your counter, door or flyers. Customers scan it with their phone camera.",
+    shareHeadline: "See our products and order on WhatsApp",
   },
   dashboard: {
     title: "Dashboard",
@@ -3063,6 +3070,9 @@ const en = {
         shareText: "See our products and order on WhatsApp: {url}",
         noWhatsApp: "Customers order through your WhatsApp number: connect WhatsApp, or add a phone number in Business details.",
         ownersOnly: "Only the owner or an admin can turn the shop page on or off.",
+        poster: "Print a QR code poster",
+        statusImage: "Image for WhatsApp Status",
+        extrasHint: "The poster is an A4 page with a QR code, for your counter or flyers. The image is for your WhatsApp Status: download it, then post it.",
       },
       account: { title: "Account", description: "Your personal login details.", name: "Name", email: "Email" },
       interface: {

@@ -11,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: [...privatePaths, ...LOCALES.flatMap((l) => privatePaths.map((p) => `/${l}${p}`)), "/brand-assets/"],
     },
-    sitemap: `${siteConfig.url}/sitemap.xml`,
+    // The site's pages, and the shop pages that are on (app/s/sitemap.xml).
+    sitemap: [`${siteConfig.url}/sitemap.xml`, `${siteConfig.url}/s/sitemap.xml`],
   };
 }

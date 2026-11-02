@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     "/\\[lang\\]/dashboard/customers/**": ["./assets/fonts/**"],
     // School report cards (PDF route and "Send to parent").
     "/\\[lang\\]/dashboard/school/**": ["./assets/fonts/**"],
+    // The shop's WhatsApp Status image (app/s/[slug]/status.png).
+    "/s/**": ["./assets/fonts/**"],
   },
   // Routes renamed in the WazaBolt rebrand — keep old links working (proxy.ts adds the locale).
   async redirects() {

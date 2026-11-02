@@ -109,3 +109,29 @@ export async function shopPhotoSource(slug: string, id: string): Promise<string 
   const safe = catalogPhotoUrl(url);
   return safe && safe.includes(`/product-images/${b.id}/`) ? safe : null;
 }
+
+/** What the poster and the share image show: an open shop's name, city and logo. */
+export type ShopCard = { slug: string; name: string; city: string | null; defaultLocale: "en" | "fr"; logo: string | null };
+
+export async function loadShopCard(slug: string): Promise<ShopCard | null> {
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 120) return null;
+  const db = createAdminClient();
+  if (!db) return null;
+  const { data: b } = await db.from("businesses").select("slug, name, city, default_language, logo_url, updated_at, shop_enabled").eq("slug", slug).maybeSingle();
+  if (!b || !b.shop_enabled) return null;
+  return {
+    slug: b.slug,
+    name: b.name,
+    city: b.city,
+    defaultLocale: b.default_language === "fr" ? "fr" : "en",
+    logo: catalogPhotoUrl(b.logo_url) ? String(Math.floor(new Date(b.updated_at ?? 0).getTime() / 1000)) : null,
+  };
+}
+
+/** The shops that are on, for the sitemap (most recently changed first). */
+export async function listOpenShops(limit = 50000): Promise<{ slug: string; updatedAt: string | null }[]> {
+  const db = createAdminClient();
+  if (!db) return [];
+  const { data } = await db.from("businesses").select("slug, updated_at").eq("shop_enabled", true).order("updated_at", { ascending: false }).limit(limit);
+  return (data ?? []).map((b) => ({ slug: b.slug, updatedAt: b.updated_at }));
+}
