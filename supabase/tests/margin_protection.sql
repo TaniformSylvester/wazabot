@@ -20,6 +20,8 @@ select c.id, i.biz, (select id from public.customers where business_id = i.biz a
 grant select on convs to service_role;
 -- B signed up before Step 4: still on the old counting rules until its switch date.
 update public.subscriptions set rules_from = now() + interval '20 days' where business_id = (select legacy from ids);
+-- These tests start from no plan ("free"), as before the trials (plans_v2.sql tests the trials).
+update public.subscriptions set plan_id = 'free', status = 'active', trial_started_at = null where business_id in ((select biz from ids), (select legacy from ids));
 
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
@@ -33,10 +35,8 @@ declare
   b uuid := (select biz from ids);
 begin
   select * into u from public.ai_usage_status(b);
-  if u.counting <> 'windows' or u.conversation_limit <> 30 or u.conversations_used <> 0 then raise exception 'FAIL: new sign-up on Free 30 with 24-hour windows (%)', row(u.*); end if;
-  select * into u from public.ai_usage_status((select legacy from ids));
-  if u.counting <> 'legacy' or u.conversation_limit <> 50 then raise exception 'FAIL: older Free business keeps 50 until its switch date'; end if;
-  raise notice 'PASS Free is 30 conversations for new sign-ups; older businesses keep the old rules until their switch date';
+  if u.counting <> 'windows' or u.conversation_limit <> 0 or u.conversations_used <> 0 then raise exception 'FAIL: no plan: no AI conversations, 24-hour windows (%)', u.conversation_limit; end if;
+  raise notice 'PASS without a plan or the AI add-on there are no AI conversations; usage is counted in 24-hour windows';
 
   w := public.record_ai_reply(b, c1, true);
   w := public.record_ai_reply(b, c1, true);
@@ -76,11 +76,11 @@ begin
   exception when invalid_parameter_value then null;
   end;
   begin
-    perform public.request_plan_change(b, 'starter', null, null, 'week');
+    perform public.request_plan_change(b, 'business', null, null, 'week');
     raise exception 'FAIL: unknown interval';
   exception when invalid_parameter_value then null;
   end;
-  insert into req select public.request_plan_change(b, 'starter', '+237 670 00 00 00', null, 'year'), 'annual';
+  insert into req select public.request_plan_change(b, 'business', '+237 670 00 00 00', null, 'year'), 'annual';
   if (select billing_interval || '/' || kind from public.plan_change_requests where id = (select id from req where label = 'annual')) <> 'year/change' then raise exception 'FAIL: annual request'; end if;
   raise notice 'PASS owners request a plan monthly or annually';
 
@@ -134,16 +134,16 @@ declare
 begin
   perform public.approve_plan_change((select id from req where label = 'annual'), 83330, 'mobile_money', 'MP2610.1234', null, 3);
   select * into s from public.subscriptions where business_id = b;
-  if s.plan_id <> 'starter' or s.billing_interval <> 'year' or s.current_period_end <> s.current_period_start + interval '1 year' then raise exception 'FAIL: annual Starter for a year (%)', row(s.*); end if;
+  if s.plan_id <> 'business' or s.billing_interval <> 'year' or s.current_period_end <> s.current_period_start + interval '1 year' then raise exception 'FAIL: annual Business for a year (%)', row(s.*); end if;
   if (select amount from public.subscription_payments where business_id = b) <> 83330 then raise exception 'FAIL: payment recorded'; end if;
   select * into u from public.ai_usage_status(b);
-  if u.conversation_limit <> 500 or u.period_end <> u.period_start + interval '1 month' then raise exception 'FAIL: annual plans have a monthly allowance'; end if;
+  if u.conversation_limit <> 0 or u.period_end <> u.period_start + interval '1 month' then raise exception 'FAIL: annual plans count usage per month'; end if;
   raise notice 'PASS approving records the payment; an annual plan runs a year with a monthly allowance';
 
   -- Renewal paid just before the end: the next period follows on, no gap and no free days.
   update public.subscriptions set billing_interval = 'month', current_period_start = now() - interval '29 days', current_period_end = now() + interval '1 day' where business_id = b;
   v_end := now() + interval '1 day';
-  insert into public.plan_change_requests (business_id, from_plan_id, to_plan_id, billing_interval, kind) values (b, 'starter', 'starter', 'month', 'renewal') returning id into r;
+  insert into public.plan_change_requests (business_id, from_plan_id, to_plan_id, billing_interval, kind) values (b, 'business', 'business', 'month', 'renewal') returning id into r;
   perform public.approve_plan_change(r.id, 10000, 'mobile_money', null, null, 3);
   select * into s from public.subscriptions where business_id = b;
   if s.current_period_start <> v_end or s.current_period_end <> v_end + interval '1 month' then raise exception 'FAIL: renewal follows on (%)', row(s.*); end if;

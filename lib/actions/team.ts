@@ -16,6 +16,7 @@ import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /*
  * Team (Stage 4): invitation links, roles, removing members, leaving, and
@@ -39,7 +40,7 @@ const localeOf = (v: FormDataEntryValue | string | null | undefined): Locale => 
 
 export async function inviteMember(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = inviteSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const { token, hash } = newToken();
@@ -62,7 +63,7 @@ export async function inviteMember(_prev: FormState, formData: FormData): Promis
 export async function renewInvitation(invitationId: string, locale: string): Promise<FormState> {
   if (!isUuid(invitationId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const { token, hash } = newToken();
   const supabase = await createClient();
   const { error } = await supabase.rpc("renew_invitation", { p_invitation_id: invitationId, p_token_hash: hash });
@@ -77,7 +78,7 @@ export async function renewInvitation(invitationId: string, locale: string): Pro
 export async function revokeInvitation(invitationId: string): Promise<FormState> {
   if (!isUuid(invitationId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("revoke_invitation", { p_invitation_id: invitationId });
   if (error) {
@@ -91,7 +92,7 @@ export async function revokeInvitation(invitationId: string): Promise<FormState>
 export async function updateMemberRole(userId: string, role: string): Promise<FormState> {
   if (!isUuid(userId) || !["admin", "agent", "viewer", "teacher", "kitchen"].includes(role)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_member_role", { p_business_id: ctx.business.id, p_user_id: userId, p_role: role });
   if (error) {
@@ -105,7 +106,7 @@ export async function updateMemberRole(userId: string, role: string): Promise<Fo
 export async function removeMember(userId: string): Promise<FormState> {
   if (!isUuid(userId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   if (userId === ctx.user.id) return fail("forbidden");
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_member", { p_business_id: ctx.business.id, p_user_id: userId });
@@ -121,7 +122,7 @@ export async function removeMember(userId: string): Promise<FormState> {
 export async function leaveBusiness(locale: string): Promise<FormState> {
   // Any member, teachers included.
   const ctx = await authorize("teacher");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   if (ctx.business.role === "owner") return fail("forbidden");
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_member", { p_business_id: ctx.business.id, p_user_id: ctx.user.id });

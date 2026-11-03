@@ -632,9 +632,9 @@ export async function getBilling(businessId: string) {
     db.from("subscriptions").select("*, plans(*)").eq("business_id", businessId).maybeSingle(),
     getUsageStatus(db, businessId),
     // Owners/admins only (RLS): the plan change waiting for the WazaBolt team.
-    db.from("plan_change_requests").select("id, to_plan_id, created_at, contact_phone, billing_interval, kind, extra_branches").eq("business_id", businessId).eq("status", "pending").maybeSingle(),
+    db.from("plan_change_requests").select("id, to_plan_id, addon_id, created_at, contact_phone, billing_interval, kind, extra_branches").eq("business_id", businessId).eq("status", "pending").maybeSingle(),
     // Owners/admins only (RLS).
-    db.from("subscription_payments").select("id, plan_id, billing_interval, amount, currency, reference, period_start, period_end, created_at").eq("business_id", businessId).order("created_at", { ascending: false }).limit(12),
+    db.from("subscription_payments").select("id, plan_id, addon_id, kind, billing_interval, amount, currency, reference, period_start, period_end, created_at").eq("business_id", businessId).order("created_at", { ascending: false }).limit(12),
   ]);
   return {
     plans: plans.data ?? [],

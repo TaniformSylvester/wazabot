@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { documentSchema, faqSchema } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 type Table = "faqs" | "knowledge_documents";
 const TABLES: readonly Table[] = ["faqs", "knowledge_documents"];
@@ -23,7 +24,7 @@ function done(formData: FormData, tab: "faqs" | "documents") {
 
 export async function saveFaq(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = faqSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const id = String(formData.get("id") ?? "");
@@ -42,7 +43,7 @@ export async function saveFaq(_prev: FormState, formData: FormData): Promise<For
 
 export async function saveDocument(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = documentSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const id = String(formData.get("id") ?? "");
@@ -62,7 +63,7 @@ export async function saveDocument(_prev: FormState, formData: FormData): Promis
 export async function setKnowledgeActive(table: Table, id: string, active: boolean): Promise<FormState> {
   if (!TABLES.includes(table) || !isUuid(id)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from(table).update({ active }).eq("id", id).eq("business_id", ctx.business.id);
   if (error) return fail(dbError(error));
@@ -73,7 +74,7 @@ export async function setKnowledgeActive(table: Table, id: string, active: boole
 export async function deleteKnowledge(table: Table, id: string): Promise<FormState> {
   if (!TABLES.includes(table) || !isUuid(id)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from(table).delete().eq("id", id).eq("business_id", ctx.business.id);
   if (error) {

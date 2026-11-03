@@ -5,6 +5,8 @@
 -- newest branches.
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/branches.sql
 begin;
+-- The arithmetic below (included + extra) is tested with Multi-shop including 2 locations.
+update public.plans set included_branches = 2 where id = 'multishop';
 
 insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
   ('00000000-0000-4000-a977-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'branch-owner@test.local', '{"business_name":"Awa Styles"}', now(), now()),
@@ -47,10 +49,10 @@ begin
   perform public.request_extra_branches(pg_temp.v('biz'), 1);
   raise exception 'FAIL: extra branches on Free';
 exception when sqlstate 'WB454' then
-  raise notice 'PASS extra branches can only be bought on Business and Pro';
+  raise notice 'PASS extra shops can only be bought on Multi-shop';
 end $$;
 reset role;
-update public.subscriptions set plan_id = 'business' where business_id = pg_temp.v('biz');
+update public.subscriptions set plan_id = 'multishop' where business_id = pg_temp.v('biz');
 insert into public.business_members (business_id, user_id, role)
 values (pg_temp.v('biz'), '00000000-0000-4000-a977-00000000000b', 'agent');
 set local role authenticated;
@@ -63,10 +65,10 @@ begin
   insert into t values ('b2', b);
   begin
     insert into public.branches (business_id, name) values (pg_temp.v('biz'), 'Akwa');
-    raise exception 'FAIL: third branch on Business';
+    raise exception 'FAIL: third branch on Multi-shop (2 included in this test)';
   exception when sqlstate 'WB452' then null;
   end;
-  raise notice 'PASS Business includes two locations';
+  raise notice 'PASS Multi-shop includes its locations (2 in this test)';
 end $$;
 do $$
 declare
@@ -74,7 +76,7 @@ declare
 begin
   r := public.request_extra_branches(pg_temp.v('biz'), 1, '677000000');
   insert into t values ('req', r);
-  if (select kind || ' ' || extra_branches || ' ' || to_plan_id from public.plan_change_requests where id = r) <> 'branches 1 business' then
+  if (select kind || ' ' || extra_branches || ' ' || to_plan_id from public.plan_change_requests where id = r) <> 'branches 1 multishop' then
     raise exception 'FAIL: request';
   end if;
 end $$;
@@ -83,7 +85,7 @@ select public.approve_plan_change(pg_temp.v('req'), 5000, 'mobile_money', 'MP123
 do $$
 begin
   if public.branch_allowance(pg_temp.v('biz')) <> 3 then raise exception 'FAIL: allowance after approval'; end if;
-  if (select plan_id || ' ' || extra_branches from public.subscriptions where business_id = pg_temp.v('biz')) <> 'business 1' then raise exception 'FAIL: subscription'; end if;
+  if (select plan_id || ' ' || extra_branches from public.subscriptions where business_id = pg_temp.v('biz')) <> 'multishop 1' then raise exception 'FAIL: subscription'; end if;
   if (select amount from public.subscription_payments where request_id = pg_temp.v('req')) <> 5000 then raise exception 'FAIL: payment'; end if;
   insert into public.branches (business_id, name) values (pg_temp.v('biz'), 'Akwa');
   raise notice 'PASS an approved extra branch (5,000 FCFA recorded) opens a third location';
@@ -256,7 +258,7 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------- Downgrade pauses the newest branches
-update public.subscriptions set plan_id = 'starter' where business_id = pg_temp.v('biz');
+update public.subscriptions set plan_id = 'boutique' where business_id = pg_temp.v('biz');
 do $$
 begin
   if (select extra_branches from public.subscriptions where business_id = pg_temp.v('biz')) <> 1 then null; end if;
@@ -281,10 +283,10 @@ do $$
 declare
   r uuid;
 begin
-  update public.subscriptions set plan_id = 'business', extra_branches = 1 where business_id = pg_temp.v('biz');
-  insert into public.plan_change_requests (business_id, from_plan_id, to_plan_id, kind) values (pg_temp.v('biz'), 'business', 'starter', 'change') returning id into r;
+  update public.subscriptions set plan_id = 'multishop', extra_branches = 1 where business_id = pg_temp.v('biz');
+  insert into public.plan_change_requests (business_id, from_plan_id, to_plan_id, kind) values (pg_temp.v('biz'), 'multishop', 'boutique', 'change') returning id into r;
   perform public.approve_plan_change(r);
-  if (select extra_branches from public.subscriptions where business_id = pg_temp.v('biz')) <> 0 then raise exception 'FAIL: extra branches kept on Starter'; end if;
+  if (select extra_branches from public.subscriptions where business_id = pg_temp.v('biz')) <> 0 then raise exception 'FAIL: extra branches kept on Boutique'; end if;
   raise notice 'PASS a plan without extra branches resets them to none';
 end $$;
 

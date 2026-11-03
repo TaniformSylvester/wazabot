@@ -10,7 +10,7 @@ import { toCsv, type Cell } from "@/lib/reports/csv";
 export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard/school/reports/export">) {
   const { lang } = await ctx.params;
   if (!isLocale(lang)) return new Response("Not found", { status: 404 });
-  const auth = await authorize("admin");
+  const auth = await authorize("admin", { readOnlyOk: true });
   if (!auth) return new Response("Forbidden", { status: 403 });
   const { business } = auth;
   if (!schoolReportsAllowed(await getEntitlements(business.id)))

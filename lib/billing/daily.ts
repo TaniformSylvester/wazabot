@@ -1,13 +1,15 @@
 import "server-only";
 
-import { ALERTS, PAYMENT_GRACE_DAYS, RENEWAL_REMINDER_DAYS, claudeBudgetFcfa, periodPrice, type PlanId } from "@/config/economics";
+import { ALERTS, PAYMENT_GRACE_DAYS, RENEWAL_REMINDER_DAYS, claudeBudgetFcfa, periodPrice } from "@/config/economics";
+import { currentPlanId } from "./entitlements";
+import { quote } from "./price";
 import { siteConfig } from "@/config/site";
 import { emailLayout, esc, sendEmail } from "@/lib/email/send";
 import { logServerError } from "@/lib/log";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 import { claimAlert, sendBudgetAlert, sendSpendJumpAlert } from "./alerts";
-import { getUsageStatus } from "./usage";
+import { aiMonthlyRevenue, getUsageStatus } from "./usage";
 
 /*
  * Once a day (Vercel Cron → /api/cron/billing):
@@ -122,7 +124,7 @@ export async function runDailyBilling(admin: Admin, now = new Date()): Promise<D
   // 2. Renewal reminders.
   const { data: ending } = await admin
     .from("subscriptions")
-    .select("business_id, plan_id, billing_interval, current_period_end")
+    .select("business_id, plan_id, addon_id, billing_interval, current_period_end")
     .eq("status", "active")
     .gt("current_period_end", now.toISOString())
     .lte("current_period_end", new Date(now.getTime() + RENEWAL_REMINDER_DAYS[0] * DAY).toISOString());
@@ -133,7 +135,11 @@ export async function runDailyBilling(admin: Admin, now = new Date()): Promise<D
     // The reminder for the nearest step not yet passed (5 days, then 1 day).
     const step = [...RENEWAL_REMINDER_DAYS].sort((a, b) => a - b).find((d) => daysLeft <= d);
     if (step === undefined || !(await claimAlert(admin, "renewal_reminder", s.business_id, `${s.current_period_end.slice(0, 10)}:${step}`))) continue;
-    const price = periodPrice(Number(plan.monthly_price), s.billing_interval === "year" ? "year" : "month");
+    const interval = s.billing_interval === "year" ? "year" : "month";
+    // The plan with its AI add-on (a bundle at its set price).
+    const current = currentPlanId(s.plan_id);
+    const addon = s.addon_id === "ai_basic" || s.addon_id === "ai_plus" ? s.addon_id : null;
+    const price = current === "free" ? periodPrice(Number(plan.monthly_price), interval) : quote(current, addon, interval).period;
     await emailOwner(admin, s.business_id, (lang) => OWNER.renewal[lang](plan.name, date(s.current_period_end, lang), money(price, lang)));
     tally.reminders++;
   }
@@ -143,7 +149,7 @@ export async function runDailyBilling(admin: Admin, now = new Date()): Promise<D
   for (const businessId of new Set((recent ?? []).map((r) => r.business_id))) {
     const status = await getUsageStatus(admin, businessId, now);
     if (!status) continue;
-    const budget = claudeBudgetFcfa({ id: status.planId as PlanId, monthlyPrice: status.monthlyPrice }, status.interval);
+    const budget = claudeBudgetFcfa(aiMonthlyRevenue(status), status.interval, { trial: status.aiTrial });
     const { data: spent } = await admin.rpc("claude_spend_since", { p_business_id: businessId, p_since: status.periodStart });
     const total = Number(spent ?? 0);
     if (!budget || total < budget * ALERTS.budgetShare) continue;

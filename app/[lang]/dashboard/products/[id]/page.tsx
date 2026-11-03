@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { businessCanUse } from "@/lib/billing/plan-access";
+import { PlanUpsell } from "@/components/app/plan-upsell";
 import { notFound } from "next/navigation";
 
 import { FormAlert } from "@/components/auth/form-alert";
@@ -8,7 +10,7 @@ import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, formatMoney, for
 import { adjustStock, deleteProduct, transferStock } from "@/lib/actions/products";
 import { isUuid } from "@/lib/actions/form";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
-import { getPlanLimits, getProduct, listStockMovements, profitAllowed } from "@/lib/data/queries";
+import { getProduct, listStockMovements } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -24,13 +26,17 @@ export const generateMetadata = dashboardMetadata((d) => d.products.edit);
 export default async function ProductPage({ params, searchParams }: PageProps<"/[lang]/dashboard/products/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/products/${id}`));
-  const [product, movements] = isUuid(id) ? await Promise.all([getProduct(business.id, id, canManageBusiness(business.role)), listStockMovements(business.id, id)]) : [null, []];
+  // Stock history is in the Business plan (Boutique sees an upgrade note instead).
+  const withHistory = await businessCanUse(business.id, "stock_history");
+  const [product, movements] = isUuid(id)
+    ? await Promise.all([getProduct(business.id, id, canManageBusiness(business.role)), withHistory ? listStockMovements(business.id, id) : Promise.resolve([])])
+    : [null, []];
   if (!product) notFound();
   const d = t.dashboard;
   const p = d.products;
   const inv = p.inventory;
   const canEdit = canManageBusiness(business.role);
-  const showMargin = canEdit && profitAllowed(await getPlanLimits(business.id));
+  const showMargin = canEdit && (await businessCanUse(business.id, "profit"));
   const n = (v: number) => formatNumber(v, locale);
   const money = (v: number) => formatMoney(v, product.currency, locale);
   const unit = p.units[product.unit as keyof typeof p.units] ?? product.unit;
@@ -176,7 +182,9 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
       </div>
 
       <Panel id="stock-history" title={inv.history.title}>
-        {movements.length ? (
+        {!withHistory ? (
+          <PlanUpsell text={d.plan.stockHistoryLocked} cta={d.plan.upgrade} locale={locale} compact />
+        ) : movements.length ? (
           <TableWrap>
             <thead>
               <tr>

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { PLANS } from "@/config/economics";
+import { ADDONS, AI_TRIAL, BUNDLE_PRICES, PLANS } from "@/config/economics";
 import { checkPlan, type PlanCheck } from "@/lib/billing/pricing";
 
 import { runGeneralSimulation, runVolumeSimulation, type SimulationSummary, type VolumeResult } from "./run";
@@ -27,16 +27,31 @@ export function volumeSimulation(conversationsPerMonth: number) {
   return volumes.get(n)!;
 }
 
-/** Every plan in config/economics.ts at its full allowance, against the most expensive industry at that volume. */
+/**
+ * The AI offers in config/economics.ts at their full allowance — each add-on
+ * (its own price), each bundle (what it adds over the plan alone) and the AI
+ * trial (no revenue: acquisition cost) — against the most expensive industry
+ * at that volume. The plans themselves carry no AI cost.
+ */
+export function aiOffers(): { planId: string; price: number; conversations: number }[] {
+  return [
+    ...ADDONS.map((a) => ({ planId: a.id, price: a.monthlyPrice, conversations: a.conversationsPerMonth })),
+    ...BUNDLE_PRICES.map((b) => {
+      const plan = PLANS.find((p) => p.id === b.planId)!;
+      const addon = ADDONS.find((a) => a.id === b.addonId)!;
+      return { planId: `${b.planId}+${b.addonId}`, price: b.monthlyPrice - plan.monthlyPrice, conversations: addon.conversationsPerMonth };
+    }),
+    { planId: "ai_trial", price: 0, conversations: AI_TRIAL.conversations },
+  ];
+}
+
 export async function planChecks(): Promise<(PlanCheck & { volume: VolumeResult })[]> {
   const out = [];
-  for (const plan of PLANS) {
-    const volume = await volumeSimulation(plan.aiConversationsPerMonth);
+  for (const offer of aiOffers()) {
+    const volume = await volumeSimulation(offer.conversations);
     out.push({
       ...checkPlan({
-        planId: plan.id,
-        price: plan.monthlyPrice,
-        conversations: plan.aiConversationsPerMonth,
+        ...offer,
         costPerConversation: volume.worst.costPerConversationFcfa,
         repliesPerConversation: volume.worst.repliesPerConversation,
       }),

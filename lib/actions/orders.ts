@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { orderSchema, orderUpdateSchema } from "@/lib/validation/app";
 
 import { dbError, dbFail, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /**
  * Records an order (e.g. taken by phone or in a chat). Prices, names and
@@ -23,7 +24,7 @@ import { dbError, dbFail, fail, formObject, invalid, isUuid, ok, type FormState 
  */
 export async function createOrder(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = orderSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const o = parsed.data;
@@ -69,7 +70,7 @@ export async function createOrder(_prev: FormState, formData: FormData): Promise
  */
 export async function updateOrder(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const id = String(formData.get("id") ?? "");
   if (!isUuid(id)) return fail("invalid");
   const parsed = orderUpdateSchema.safeParse(formObject(formData));
@@ -92,7 +93,7 @@ export async function updateOrder(_prev: FormState, formData: FormData): Promise
 export async function deleteOrder(orderId: string, locale: string): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("orders").delete().eq("id", orderId).eq("business_id", ctx.business.id);
   if (error) {
@@ -107,7 +108,7 @@ export async function deleteOrder(orderId: string, locale: string): Promise<Form
 /** Owners/admins: a sale recorded without a customer (walk-in) is linked to the customer who bought it. Once only. */
 export async function linkOrderCustomer(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const orderId = String(formData.get("order_id") ?? "");
   const customerId = String(formData.get("customer_id") ?? "");
   if (!isUuid(orderId)) return fail("invalid");

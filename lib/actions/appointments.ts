@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { APPOINTMENT_STATUSES, appointmentSchema, bookingSettingsSchema, serviceSchema } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /*
  * Appointments (Stage 6). Booking goes through book_appointment() in the
@@ -26,7 +27,7 @@ const revalidate = () => revalidatePath("/[lang]/dashboard", "layout");
 
 export async function saveBookingSettings(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = bookingSettingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const { min_notice_hours, ...rest } = parsed.data;
@@ -47,7 +48,7 @@ export async function saveBookingSettings(_prev: FormState, formData: FormData):
 
 export async function saveService(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = serviceSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const id = String(formData.get("id") ?? "");
@@ -66,7 +67,7 @@ export async function saveService(_prev: FormState, formData: FormData): Promise
 export async function deleteService(serviceId: string): Promise<FormState> {
   if (!isUuid(serviceId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("services").delete().eq("id", serviceId).eq("business_id", ctx.business.id);
   if (error) {
@@ -90,7 +91,7 @@ export async function getFreeTimes(serviceId: string, date: string): Promise<str
 
 export async function createAppointment(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = appointmentSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const a = parsed.data;
@@ -121,7 +122,7 @@ export async function createAppointment(_prev: FormState, formData: FormData): P
 export async function setAppointmentStatus(appointmentId: string, status: string): Promise<FormState> {
   if (!isUuid(appointmentId) || !(APPOINTMENT_STATUSES as readonly string[]).includes(status)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("appointments").update({ status }).eq("id", appointmentId).eq("business_id", ctx.business.id).select("id");
   if (error) {

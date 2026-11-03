@@ -38,6 +38,7 @@ export function Pos({
   payments,
   picker,
   productsHref,
+  withReference = true,
 }: {
   products: PosProduct[];
   customers: Customer[];
@@ -50,6 +51,8 @@ export function Pos({
   payments: Messages["dashboard"]["payments"];
   picker: Messages["dashboard"]["products"]["picker"];
   productsHref: string;
+  /** A payment reference (Business plan and up). */
+  withReference?: boolean;
 }) {
   const router = useRouter();
   const { href } = useI18n();
@@ -360,7 +363,7 @@ export function Pos({
               {p.amountPaid}
               <input aria-label={p.amountPaid} value={amount ?? String(total)} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className={field} />
             </label>
-            {method !== "cash" ? (
+            {method !== "cash" && withReference ? (
               <label className="grid gap-1.5 text-sm font-semibold text-deep">
                 {p.reference}
                 <input aria-label={p.reference} value={reference} onChange={(e) => setReference(e.target.value)} maxLength={100} className={field} />

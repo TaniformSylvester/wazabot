@@ -16,6 +16,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /*
  * Branches: owners and admins open, edit, pause and reopen locations, ask for
@@ -35,7 +36,7 @@ const branchSchema = z.object({
 
 export async function saveBranch(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = branchSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const { id, ...fields } = parsed.data;
@@ -55,7 +56,7 @@ export async function saveBranch(_prev: FormState, formData: FormData): Promise<
 export async function setBranchActive(branchId: string, active: boolean): Promise<FormState> {
   if (!isUuid(branchId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("branches").update({ active }).eq("id", branchId).eq("business_id", ctx.business.id).select("id").maybeSingle();
   if (error || !data) {
@@ -89,7 +90,7 @@ const extraSchema = z.object({
 /** Ask WazaBolt for a number of extra branches (Business and Pro); approved once paid, like a plan change. */
 export async function requestExtraBranches(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = extraSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();
@@ -115,7 +116,7 @@ export async function requestExtraBranches(_prev: FormState, formData: FormData)
 export async function setMemberBranch(userId: string, branchId: string): Promise<FormState> {
   if (!isUuid(userId) || (branchId !== "" && !isUuid(branchId))) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_member_branch", { p_business_id: ctx.business.id, p_user_id: userId, p_branch_id: branchId || undefined });
   if (error) {

@@ -1,6 +1,7 @@
 import "server-only";
 
-import { PAYMENT_GRACE_DAYS, periodPrice, type BillingInterval } from "@/config/economics";
+import { AI_TOPUP, PAYMENT_GRACE_DAYS, periodPrice, type BillingInterval } from "@/config/economics";
+import { isAddonId, isPlanOnSale, quote } from "@/lib/billing/price";
 import { siteConfig } from "@/config/site";
 import type { PaymentRecord } from "@/lib/billing/payments";
 import { emailLayout, esc, sendEmail } from "@/lib/email/send";
@@ -31,12 +32,22 @@ export type PlanRequestRow = {
   contactPhone: string | null;
   note: string | null;
   interval: BillingInterval;
-  kind: "change" | "renewal" | "branches";
+  kind: "change" | "renewal" | "branches" | "topup";
+  /** The AI add-on asked for with the plan (or "ai_topup" for a top-up); null: none. */
+  addonId: string | null;
+  /** The business's one-off setup fee, while it's still owed (0: none). Collected with this payment. */
+  setupFeeDue: number;
   /** For a "branches" request: the number of extra branches asked for (in total). */
   extraBranches: number | null;
-  /** What the business pays for this request (FCFA; per month for extra branches). */
+  /** What the business pays for this request (FCFA; per month for extra branches), the setup fee included while owed. */
   amountDue: number;
 };
+
+/** The period price of a plan with its AI add-on (a bundle at its set price); an old plan at its stored price. */
+function requestPrice(planId: string, addonId: string | null, interval: BillingInterval, storedMonthly: number) {
+  if (!isPlanOnSale(planId)) return periodPrice(storedMonthly, interval);
+  return quote(planId, addonId && isAddonId(addonId) ? addonId : null, interval).period;
+}
 
 const fcfa = (n: number, lang: Lang = "en") => `${new Intl.NumberFormat(lang === "fr" ? "fr-FR" : "en-US").format(n).replace(/ | /g, " ")} FCFA`;
 const site = () => siteConfig.url.replace(/\/$/, "");
@@ -49,7 +60,7 @@ export async function pendingPlanRequestCount(admin: Admin) {
 async function loadRequests(admin: Admin, filter: { id?: string; limit?: number }): Promise<PlanRequestRow[]> {
   let q = admin
     .from("plan_change_requests")
-    .select("id, status, created_at, decided_at, business_id, from_plan_id, to_plan_id, contact_phone, note, requested_by, billing_interval, kind, extra_branches")
+    .select("id, status, created_at, decided_at, business_id, from_plan_id, to_plan_id, addon_id, contact_phone, note, requested_by, billing_interval, kind, extra_branches")
     .order("created_at", { ascending: false })
     .limit(filter.limit ?? 100);
   if (filter.id) q = q.eq("id", filter.id);
@@ -57,14 +68,20 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
   if (error) throw error;
   const rows = data ?? [];
   if (!rows.length) return [];
-  const [businesses, plans, users] = await Promise.all([
-    admin.from("businesses").select("id, name").in("id", [...new Set(rows.map((r) => r.business_id))]),
+  const businessIds = [...new Set(rows.map((r) => r.business_id))];
+  const [businesses, plans, users, subs] = await Promise.all([
+    admin.from("businesses").select("id, name").in("id", businessIds),
     admin.from("plans").select("id, name, monthly_price, extra_branch_price"),
     admin.from("users").select("id, full_name, email, ui_locale").in("id", [...new Set(rows.map((r) => r.requested_by).filter((x): x is string => !!x))]),
+    admin.from("subscriptions").select("business_id, setup_fee, setup_fee_paid_at").in("business_id", businessIds),
   ]);
   const plan = (id: string | null) => {
     const p = (plans.data ?? []).find((x) => x.id === id);
     return p ? { id: p.id, name: p.name, price: Number(p.monthly_price) } : null;
+  };
+  const setupFeeDue = (businessId: string) => {
+    const sub = (subs.data ?? []).find((x) => x.business_id === businessId);
+    return sub && !sub.setup_fee_paid_at ? Number(sub.setup_fee) : 0;
   };
   return rows.map((r) => {
     const u = (users.data ?? []).find((x) => x.id === r.requested_by);
@@ -82,12 +99,16 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
       contactPhone: r.contact_phone,
       note: r.note,
       interval,
-      kind: r.kind === "renewal" ? "renewal" : r.kind === "branches" ? "branches" : "change",
+      kind: r.kind === "renewal" ? "renewal" : r.kind === "branches" ? "branches" : r.kind === "topup" ? "topup" : "change",
+      addonId: r.addon_id,
       extraBranches: r.extra_branches,
+      setupFeeDue: r.kind === "change" || r.kind === "renewal" ? setupFeeDue(r.business_id) : 0,
       amountDue:
         r.kind === "branches"
           ? (r.extra_branches ?? 0) * Number((plans.data ?? []).find((x) => x.id === r.to_plan_id)?.extra_branch_price ?? 0)
-          : periodPrice(to.price, interval),
+          : r.kind === "topup"
+            ? AI_TOPUP.price
+            : requestPrice(r.to_plan_id, r.addon_id, interval, to.price) + setupFeeDue(r.business_id),
     };
   });
 }
@@ -109,8 +130,10 @@ export async function listPlanRequests(admin: Admin) {
 export function requestSummary(r: PlanRequestRow, html = false) {
   const b = (x: string) => (html ? `<b>${esc(x)}</b>` : x);
   if (r.kind === "branches") return `${b(`${r.extraBranches ?? 0} extra branch${r.extraBranches === 1 ? "" : "es"}`)} on ${html ? esc(r.to.name) : r.to.name}: ${fcfa(r.amountDue)}/month`;
-  const what = r.kind === "renewal" ? `Renewal of ${b(r.to.name)}` : `${html ? esc(r.from?.name ?? "—") : (r.from?.name ?? "—")} → ${b(r.to.name)}`;
-  return `${what}, ${r.interval === "year" ? "yearly" : "monthly"}: ${fcfa(r.amountDue)}`;
+  if (r.kind === "topup") return `${b(`AI top-up (+${AI_TOPUP.conversations} conversations)`)}: ${fcfa(r.amountDue)}`;
+  const to = r.addonId ? `${r.to.name} + ${r.addonId === "ai_plus" ? "AI Plus" : "AI Basic"}` : r.to.name;
+  const what = r.kind === "renewal" ? `Renewal of ${b(to)}` : `${html ? esc(r.from?.name ?? "—") : (r.from?.name ?? "—")} → ${b(to)}`;
+  return `${what}, ${r.interval === "year" ? "yearly" : "monthly"}: ${fcfa(r.amountDue)}${r.setupFeeDue ? ` (setup fee ${fcfa(r.setupFeeDue)} included)` : ""}`;
 }
 
 /** To the WazaBolt team, right after a business asks for a plan. */
@@ -224,6 +247,7 @@ export async function decidePlanRequest(admin: Admin, requestId: string, decisio
           p_reference: payment?.reference ?? undefined,
           p_actor: payment?.actorUserId ?? undefined,
           p_grace_days: PAYMENT_GRACE_DAYS,
+          p_setup_fee_paid: payment?.setupFeePaid ?? false,
         })
       : await admin.rpc("reject_plan_change", { p_request_id: requestId });
   if (error) {

@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { conversationStatusSchema } from "@/lib/validation/app";
 
 import { dbError, fail, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /**
  * Opens a conversation record for a customer (or returns the open one).
@@ -19,7 +20,7 @@ import { dbError, fail, isUuid, ok, type FormState } from "./form";
 export async function startConversation(customerId: string, locale: string): Promise<FormState> {
   if (!isUuid(customerId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("conversations")
@@ -55,7 +56,7 @@ export async function startConversation(customerId: string, locale: string): Pro
 export async function setConversationAi(conversationId: string, aiEnabled: boolean): Promise<FormState> {
   if (!isUuid(conversationId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("conversations")
@@ -76,7 +77,7 @@ export async function setConversationStatus(conversationId: string, status: stri
   const parsed = conversationStatusSchema.safeParse(status);
   if (!isUuid(conversationId) || !parsed.success) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase
     .from("conversations")

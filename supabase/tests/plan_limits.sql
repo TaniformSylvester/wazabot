@@ -17,6 +17,8 @@ grant select on ids to authenticated;
 -- A business that existed before the limits keeps full access until its grace date.
 update public.businesses set free_limits_from = current_date + 30 where id = (select grace_biz from ids);
 update public.subscriptions set plan_id = 'boutique' where business_id = (select boutique_biz from ids);
+-- The limits of the "free" row (now "no plan", read-only in the app) are still enforced by the database: tested here.
+update public.subscriptions set plan_id = 'free', status = 'active' where business_id in ((select free_biz from ids), (select grace_biz from ids));
 
 do $$
 declare
@@ -33,13 +35,13 @@ begin
   select * into l from public._plan_limits((select grace_biz from ids));
   if l.enforced then raise exception 'FAIL: grace business should not be limited yet'; end if;
   select * into l from public._plan_limits((select boutique_biz from ids));
-  if l.plan_id <> 'boutique' or not l.enforced or l.max_products is not null or l.max_members <> 1 or not l.has_profit then
+  if l.plan_id <> 'boutique' or not l.enforced or l.max_products is not null or l.max_members <> 1 or l.has_profit then
     raise exception 'FAIL: boutique limits %', l;
   end if;
-  if (select monthly_price from public.plans where id = 'boutique') <> 5000 or (select ai_conversations_per_month from public.plans where id = 'boutique') <> 0 then
+  if (select monthly_price from public.plans where id = 'boutique') <> 3000 or (select ai_conversations_per_month from public.plans where id = 'boutique') <> 0 then
     raise exception 'FAIL: boutique price or AI allowance';
   end if;
-  raise notice 'PASS plans: Free limits for new businesses, grace for existing ones, Boutique at 5,000 with no AI';
+  raise notice 'PASS plans: Free limits for new businesses, grace for existing ones, Boutique at 3,000 with no AI and no expenses';
 end $$;
 
 -- ---------------------------------------------------------------------------
@@ -145,16 +147,23 @@ begin
     insert into public.products (business_id, name, price) values (g, 'Grace ' || i, 1000);
     insert into public.products (business_id, name, price) values (bo, 'Boutique ' || i, 1000);
   end loop;
-  insert into public.expenses (business_id, category, amount) values (g, 'rent', 1000), (bo, 'rent', 1000);
+  insert into public.expenses (business_id, category, amount) values (g, 'rent', 1000);
+  -- Expenses are in the Business plan: the database refuses them on Boutique (WB414).
+  begin
+    insert into public.expenses (business_id, category, amount) values (bo, 'rent', 1000);
+    raise exception 'FAIL: Boutique recorded an expense';
+  exception when sqlstate 'WB414' then null;
+  end;
   insert into public.business_members (business_id, user_id, role) select grace_biz, '00000000-0000-4000-a930-00000000000b', 'agent' from ids;
   begin
     insert into public.business_members (business_id, user_id, role) select boutique_biz, '00000000-0000-4000-a930-00000000000b', 'agent' from ids;
     raise exception 'FAIL: Boutique allows one user';
   exception when sqlstate 'WB413' then null;
   end;
-  update public.subscriptions set plan_id = 'starter' where business_id = bo;
+  update public.subscriptions set plan_id = 'business' where business_id = bo;
   insert into public.business_members (business_id, user_id, role) select boutique_biz, '00000000-0000-4000-a930-00000000000b', 'agent' from ids;
-  raise notice 'PASS grace keeps full access; Boutique: unlimited products and expenses, 1 user; Starter: 2 users';
+  insert into public.expenses (business_id, category, amount) values (bo, 'rent', 1000);
+  raise notice 'PASS grace keeps full access; Boutique: unlimited products, no expenses, 1 user; Business: 3 users and expenses';
 end $$;
 
 -- Another business can't read someone else's limits.

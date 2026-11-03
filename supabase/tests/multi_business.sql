@@ -32,7 +32,7 @@ exception when insufficient_privilege then
 end $$;
 reset role;
 
--- The owner's first business is on Free: a second one must ask for a paid plan.
+-- The owner's first business had the free trial: a second one must ask for a plan.
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-4000-a966-00000000000a');
 do $$
@@ -40,7 +40,7 @@ begin
   perform public.create_business('Chez Awa', 'restaurant');
   raise exception 'FAIL: a second Free business';
 exception when sqlstate 'WB451' then
-  raise notice 'PASS one Free business per owner: the second one needs a paid plan';
+  raise notice 'PASS one free trial per owner: the second business needs a plan';
 end $$;
 do $$
 begin
@@ -50,19 +50,19 @@ exception when sqlstate 'WB451' then null;
 end $$;
 do $$
 begin
-  perform public.create_business(' x ', 'retail', 'starter');
+  perform public.create_business(' x ', 'retail', 'business');
   raise exception 'FAIL: one-letter name';
 exception when invalid_parameter_value then null;
 end $$;
 do $$
 begin
-  perform public.create_business('Chez Awa', 'retail', 'starter', 'week');
+  perform public.create_business('Chez Awa', 'retail', 'business', 'week');
   raise exception 'FAIL: unknown interval';
 exception when invalid_parameter_value then null;
 end $$;
 do $$
 begin
-  perform public.create_business('Chez Awa', 'spaceship', 'starter');
+  perform public.create_business('Chez Awa', 'spaceship', 'business');
   raise exception 'FAIL: unknown type';
 exception when invalid_parameter_value then
   raise notice 'PASS a business needs a name and a known type';
@@ -72,7 +72,7 @@ do $$
 declare
   b uuid;
 begin
-  b := public.create_business('Chez Awa', 'restaurant', 'starter', 'year', ' 677 00 00 00 ');
+  b := public.create_business('Chez Awa', 'restaurant', 'business', 'year', ' 677 00 00 00 ');
   insert into t values ('second', b);
   if not exists (select 1 from public.business_members where business_id = b and user_id = '00000000-0000-4000-a966-00000000000a' and role = 'owner') then
     raise exception 'FAIL: not the owner';
@@ -88,7 +88,7 @@ declare
 begin
   if (select plan_id from public.subscriptions where business_id = b) <> 'free' then raise exception 'FAIL: subscription'; end if;
   if not (select needs_paid_plan from public.businesses where id = b) then raise exception 'FAIL: needs_paid_plan not set'; end if;
-  if (select to_plan_id || ' ' || status || ' ' || billing_interval || ' ' || contact_phone from public.plan_change_requests where business_id = b) <> 'starter pending year 677 00 00 00' then raise exception 'FAIL: no plan request'; end if;
+  if (select to_plan_id || ' ' || status || ' ' || billing_interval || ' ' || contact_phone from public.plan_change_requests where business_id = b) <> 'business pending year 677 00 00 00' then raise exception 'FAIL: no plan request'; end if;
   if not exists (select 1 from public.ai_settings where business_id = b) or not exists (select 1 from public.whatsapp_connections where business_id = b)
      or not exists (select 1 from public.notification_settings where business_id = b) then
     raise exception 'FAIL: per-business rows missing';
@@ -100,7 +100,7 @@ begin
   end if;
   if not exists (select 1 from public.business_languages where business_id = b) then raise exception 'FAIL: languages'; end if;
   if (select count(*) from public.audit_logs where business_id = b and action = 'business.created') <> 1 then raise exception 'FAIL: audit'; end if;
-  raise notice 'PASS the new business is set up like a sign-up (Free until approved, settings, languages, audit) with its plan request pending';
+  raise notice 'PASS the new business is set up like a sign-up (no plan until approved, settings, languages, audit) with its plan request pending';
 end $$;
 
 -- The two businesses are separate: data in one is not in the other.
@@ -115,27 +115,26 @@ begin
   raise notice 'PASS each business keeps its own data';
 end $$;
 
--- Once the first business is paid, a new business can be the Free one again.
+-- One free trial per owner, ever: even once the first business is paid, a new one needs a plan.
 reset role;
-update public.subscriptions set plan_id = 'starter' where business_id = (select first from ids);
+update public.subscriptions set plan_id = 'business', status = 'active' where business_id = (select first from ids);
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-4000-a966-00000000000a');
+do $$
+begin
+  perform public.create_business('Awa Couture', 'fashion');
+  raise exception 'FAIL: a second free trial';
+exception when sqlstate 'WB451' then
+  raise notice 'PASS one free trial per owner, even after paying for the first business';
+end $$;
 do $$
 declare
   b uuid;
 begin
-  b := public.create_business('Awa Couture', 'fashion');
-  if (select needs_paid_plan from public.businesses where id = b) then raise exception 'FAIL: marked as needing a paid plan'; end if;
-  if exists (select 1 from public.plan_change_requests where business_id = b) then raise exception 'FAIL: request filed for a Free business'; end if;
+  b := public.create_business('Awa Couture', 'fashion', 'boutique');
   insert into t values ('third', b);
-  raise notice 'PASS with no other Free business, the new one is Free';
-end $$;
-do $$
-begin
-  perform public.create_business('Awa Market', 'retail');
-  raise exception 'FAIL: two Free businesses';
-exception when sqlstate 'WB451' then
-  raise notice 'PASS still only one Free business at a time';
+  if not (select needs_paid_plan from public.businesses where id = b) then raise exception 'FAIL: should wait for its plan'; end if;
+  raise notice 'PASS …with a plan, it waits for the payment';
 end $$;
 
 -- Another user can't see or use the owner's businesses.

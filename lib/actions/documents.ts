@@ -15,6 +15,7 @@ import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /*
  * WazaBolt Docs — saving, issuing, voiding and duplicating business documents.
@@ -101,7 +102,7 @@ export async function saveDocument(locale: string, id: string | null, input: unk
 
 async function rpcAction(name: "issue_document" | "void_document" | "set_quotation_status", args: Record<string, string>, min: "agent" | "admin"): Promise<FormState> {
   const ctx = await authorize(min);
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc(name, args as never);
   if (error) {
@@ -134,7 +135,7 @@ export async function voidDocument(id: string, _prev: FormState, formData: FormD
 export async function deleteDraft(id: string, locale: string): Promise<FormState> {
   if (!isUuid(id)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("documents").delete().eq("id", id).eq("business_id", ctx.business.id).eq("status", "draft").select("id");
   if (error) return fail(dbError(error));
@@ -147,7 +148,7 @@ export async function deleteDraft(id: string, locale: string): Promise<FormState
 export async function duplicateDocument(id: string, locale: string): Promise<FormState> {
   if (!isUuid(id)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const src = await getDocument(ctx.business.id, id);
   if (!src) return fail("not_found");
   // An order's invoice is remade from the order; a payment's receipt from the payment.
@@ -215,7 +216,7 @@ const settingsSchema = z.object({
 /** Documents → Settings (owners and admins): numbering and defaults. */
 export async function saveDocumentSettings(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = settingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();

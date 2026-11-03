@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { MARGIN_TARGET, PLANS, SIMULATION } from "@/config/economics";
+import { MARGIN_TARGET, SIMULATION } from "@/config/economics";
+import { aiOffers } from "@/lib/simulation/report";
 import { checkPlan, recommendation, type PlanCheck } from "@/lib/billing/pricing";
 import { runGeneralSimulation, runVolumeSimulation, type SimulationSummary } from "@/lib/simulation/run";
 
@@ -19,13 +20,12 @@ const plans: PlanCheck[] = [];
 
 beforeAll(async () => {
   report = await runGeneralSimulation();
-  for (const plan of PLANS) {
-    const volume = await runVolumeSimulation(plan.aiConversationsPerMonth);
+  // The AI offers (add-ons, bundles, the AI trial): the plans themselves carry no AI cost.
+  for (const offer of aiOffers()) {
+    const volume = await runVolumeSimulation(offer.conversations);
     plans.push(
       checkPlan({
-        planId: plan.id,
-        price: plan.monthlyPrice,
-        conversations: plan.aiConversationsPerMonth,
+        ...offer,
         costPerConversation: volume.worst.costPerConversationFcfa,
         repliesPerConversation: volume.worst.repliesPerConversation,
       }),
@@ -72,13 +72,25 @@ describe(`simulation of ${SIMULATION.conversations} conversations`, () => {
   });
 });
 
-describe("plan margins at full allowance", () => {
-  it(`every paid plan keeps at least ${MARGIN_TARGET * 100}% margin, monthly and annual`, () => {
-    const paid = plans.filter((p) => p.price > 0);
-    expect(paid.length).toBe(PLANS.filter((p) => p.monthlyPrice > 0).length);
-    for (const p of paid) {
+describe("AI margins at full allowance", () => {
+  it(`every AI add-on keeps at least ${MARGIN_TARGET * 100}% margin, monthly and annual`, () => {
+    const addons = plans.filter((p) => p.planId.startsWith("ai_") && p.price > 0);
+    expect(addons.map((a) => a.planId)).toEqual(["ai_basic", "ai_plus"]);
+    for (const p of addons) {
       expect({ plan: p.planId, monthly: p.margin! >= MARGIN_TARGET, annual: p.annualMargin! >= MARGIN_TARGET }).toEqual({ plan: p.planId, monthly: true, annual: true });
     }
+  });
+
+  it("a bundle's discount comes out of the AI's share: below the target at full use, so the hidden budget caps Claude there", () => {
+    // Business + AI Basic: 11,500 − 7,500 = 4,000 FCFA for the AI. The owner set this price; the
+    // budget (claudeBudgetFcfa) stops Claude spend at the target, so a fully used bundle gets
+    // short replies, then the team, near the end of the month — it never loses money.
+    const bundle = plans.find((p) => p.planId === "business+ai_basic")!;
+    expect(bundle.price).toBe(4_000);
+    const atBudget = (bundle.price - bundle.paymentFees - bundle.budget) / bundle.price;
+    expect(atBudget).toBeGreaterThanOrEqual(MARGIN_TARGET - 1e-9);
+    // Recorded so a price change is a deliberate decision: today it is under the target at full use.
+    expect(bundle.ok).toBe(false);
   });
 });
 
@@ -95,10 +107,10 @@ describe("pricing calculator", () => {
     expect(checkPlan({ ...c, price: c.minPrice }).ok).toBe(true);
   });
 
-  it("checks Free against its hidden budget, not a margin", () => {
-    const c = checkPlan({ planId: "free", price: 0, conversations: 50, costPerConversation: 8, repliesPerConversation: 3 });
+  it("checks the AI trial against its hidden budget, not a margin", () => {
+    const c = checkPlan({ planId: "ai_trial", price: 0, conversations: 50, costPerConversation: 12, repliesPerConversation: 3 });
     expect(c.margin).toBeNull();
     expect(c.ok).toBe(false);
-    expect(c.maxConversations).toBe(37);
+    expect(c.maxConversations).toBe(41);
   });
 });

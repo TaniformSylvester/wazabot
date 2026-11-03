@@ -1,4 +1,6 @@
 import { FormAlert } from "@/components/auth/form-alert";
+import { PlanUpsell } from "@/components/app/plan-upsell";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { Pos } from "@/components/app/pos";
 import { PageHeader, param } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
@@ -15,7 +17,7 @@ export default async function NewSalePage({ searchParams }: PageProps<"/[lang]/d
   const [locale, t, sp] = await Promise.all([getLocale(), getMessages(), searchParams]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/sales/new"));
   const d = t.dashboard;
-  const canSell = hasRole(business.role, "agent");
+  const canSell = hasRole(business.role, "agent") && !business.readOnly;
   const [all, customers, branch] = canSell ? await Promise.all([listPosProducts(business.id), listCustomerOptions(business.id), getBranchContext(business)]) : [[], [], null];
   // Several branches: the till shows (and sells) the stock of the branch it's in.
   const products = branch?.multi ? withBranchStock(all, await branchStock(business.id, branch.current.id)) : all;
@@ -39,7 +41,10 @@ export default async function NewSalePage({ searchParams }: PageProps<"/[lang]/d
           picker={d.products.picker}
           payments={d.payments}
           productsHref={localizePath(locale, "/dashboard/products/new")}
+          withReference={await businessCanUse(business.id, "payment_notes")}
         />
+      ) : business.readOnly ? (
+        <PlanUpsell text={d.billingBanner.readOnly} cta={d.billingBanner.choosePlan} locale={locale} />
       ) : (
         <FormAlert tone="info">{d.common.readOnly}</FormAlert>
       )}

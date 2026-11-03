@@ -14,6 +14,7 @@ import { windowOpen } from "@/lib/whatsapp/service";
 import { recordWhatsAppSend } from "@/lib/whatsapp/usage";
 
 import { fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 const connectSchema = z.object({
   phone_number_id: z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string().regex(/^[0-9]{5,32}$/, "invalid_number")),
@@ -24,7 +25,7 @@ const connectSchema = z.object({
 /** Dashboard → WhatsApp: verify the number with Meta and store the token encrypted (owners/admins). */
 export async function connectWhatsAppAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = connectSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const res = await connectWhatsApp(ctx.business.id, ctx.user.id, {
@@ -39,7 +40,7 @@ export async function connectWhatsAppAction(_prev: FormState, formData: FormData
 
 export async function disconnectWhatsAppAction(): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const done = await disconnectWhatsApp(ctx.business.id, ctx.user.id);
   revalidatePath("/[lang]/dashboard", "layout");
   return done ? ok() : fail("unknown");
@@ -57,7 +58,7 @@ const sendSchema = z.object({
  */
 export async function sendWhatsAppMessage(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = sendSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const { conversation_id, text } = parsed.data;

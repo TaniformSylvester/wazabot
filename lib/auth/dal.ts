@@ -57,8 +57,10 @@ export type CurrentBusiness = {
   planId: string;
   /** The branch this member is tied to (agents, viewers, kitchen staff); null: every branch. */
   memberBranchId: string | null;
-  /** An extra business added while its owner already had a Free one: Billing only until a paid plan is approved. */
+  /** An extra business added after its owner already had a free trial: Billing only until a paid plan is approved. */
   awaitingPaidPlan: boolean;
+  /** No plan: the trial or paid period ended unpaid. Pages and exports work; recording anything waits for a plan (Billing). */
+  readOnly: boolean;
 };
 
 /** The signed-in user, verified with the Auth server. Memoised per request. */
@@ -162,6 +164,7 @@ export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null
     planId,
     memberBranchId: data.branch_id,
     awaitingPaidPlan: b.needs_paid_plan && planId === "free",
+    readOnly: !b.needs_paid_plan && planId === "free",
   };
 });
 
@@ -198,15 +201,18 @@ export function hasRole(role: BusinessRole, min: BusinessRole) {
 
 /**
  * For Server Actions: the business context when the user has at least `min`,
- * otherwise null (the action returns "forbidden"). A business waiting for its
- * paid plan only allows the Billing actions (`whileAwaitingPlan`).
+ * otherwise null (the action returns denied(): "forbidden", or "plan_required"
+ * when the business has no plan). A business waiting for its paid plan only
+ * allows the Billing actions (`whileAwaitingPlan`); a read-only business (no
+ * plan) allows those, viewer-level actions and reads such as exports (`readOnlyOk`).
  */
-export async function authorize(min: BusinessRole, opts: { whileAwaitingPlan?: boolean } = {}): Promise<BusinessContext | null> {
+export async function authorize(min: BusinessRole, opts: { whileAwaitingPlan?: boolean; readOnlyOk?: boolean } = {}): Promise<BusinessContext | null> {
   const user = await getCurrentUser();
   if (!user) return null;
   const business = await getCurrentBusiness();
   if (!business || !hasRole(business.role, min)) return null;
   if (business.awaitingPaidPlan && !opts.whileAwaitingPlan) return null;
+  if (business.readOnly && min !== "viewer" && !opts.whileAwaitingPlan && !opts.readOnlyOk) return null;
   return { user, business };
 }
 

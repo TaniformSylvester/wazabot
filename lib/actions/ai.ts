@@ -14,11 +14,12 @@ import { createClient } from "@/lib/supabase/server";
 import { aiSettingsSchema } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /** AI Assistant → General settings (owners/admins). Languages are saved by saveLanguageSettings. */
 export async function saveAiSettings(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = aiSettingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   if (parsed.data.after_hours_mode === "after_hours_message" && !parsed.data.after_hours_message) {
@@ -48,7 +49,7 @@ const personalitySchema = z.object({
  */
 export async function saveOnboardingPersonality(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = personalitySchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const current = await getBusinessAiSettings();

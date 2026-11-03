@@ -39,6 +39,7 @@ export function PaymentsPanel({
   t,
   errors,
   receipts,
+  withNotes = true,
 }: {
   order: { id: string; total: number; paid: number; refunded: number; currency: string; closed: boolean };
   payments: Payment[];
@@ -51,6 +52,8 @@ export function PaymentsPanel({
   errors: Messages["dashboard"]["errors"];
   /** WazaBolt Docs: each payment's receipt (payment id → receipt); shows the Receipt column. */
   receipts?: Map<string, { id: string; number: string | null }>;
+  /** Reference and note on new payments (Business plan and up). */
+  withNotes?: boolean;
 }) {
   const due = order.closed ? 0 : Math.max(0, order.total - order.paid);
   const refundable = Math.max(0, order.paid - order.refunded);
@@ -129,7 +132,7 @@ export function PaymentsPanel({
       {canRecord && due > 0 ? (
         <div className="mt-5 border-t border-border pt-5" data-testid="record-payment">
           <p className="mb-3 font-semibold text-deep">{t.record}</p>
-          <PaymentForm target={{ orderId: order.id }} balance={due} currency={order.currency} t={t} errors={errors} today={today} />
+          <PaymentForm target={{ orderId: order.id }} balance={due} currency={order.currency} t={t} errors={errors} today={today} withNotes={withNotes} />
           <p className="mt-3 text-xs text-slate">{t.manualNote}</p>
         </div>
       ) : null}
@@ -137,7 +140,7 @@ export function PaymentsPanel({
         <div className="mt-5 border-t border-border pt-5" data-testid="record-refund">
           <p className="font-semibold text-deep">{t.refund.title}</p>
           <p className="mb-3 text-sm text-slate">{t.refund.text}</p>
-          <PaymentForm target={{ orderId: order.id }} balance={refundable} currency={order.currency} t={t} errors={errors} today={today} refund />
+          <PaymentForm target={{ orderId: order.id }} balance={refundable} currency={order.currency} t={t} errors={errors} today={today} refund withNotes={withNotes} />
         </div>
       ) : null}
       {canManage && valid.length ? (

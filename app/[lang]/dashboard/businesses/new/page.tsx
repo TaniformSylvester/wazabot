@@ -1,5 +1,7 @@
 import { ActionForm, SelectField, SubmitButton, TextField } from "@/components/app/form";
-import { PageHeader, Panel, formatMoney } from "@/components/app/ui";
+import { plans } from "@/config/plans";
+import { formatXaf } from "@/lib/i18n/format";
+import { PageHeader, Panel } from "@/components/app/ui";
 import { createBusiness } from "@/lib/actions/businesses";
 import { listMyBusinesses, requireUser } from "@/lib/auth/dal";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
@@ -21,12 +23,12 @@ export default async function NewBusinessPage() {
   // Not requireBusiness: someone with no business (or only a teacher seat) can start one too.
   const user = await requireUser(localizePath(locale, "/dashboard/businesses/new"));
   const db = await createClient();
-  const [mine, owned, plans] = await Promise.all([
+  const [mine, owned] = await Promise.all([
     listMyBusinesses(),
-    db.from("business_members").select("businesses(name, needs_paid_plan, subscriptions(plan_id))").eq("user_id", user.id).eq("role", "owner"),
-    db.from("plans").select("id, name, monthly_price, currency").eq("active", true).gt("monthly_price", 0).order("monthly_price"),
+    db.from("business_members").select("businesses(name, needs_paid_plan, subscriptions(trial_started_at))").eq("user_id", user.id).eq("role", "owner"),
   ]);
-  const freeBusiness = (owned.data ?? []).map((m) => m.businesses).find((b) => b && !b.needs_paid_plan && (b.subscriptions?.plan_id ?? "free") === "free");
+  // One free trial per owner: once a business they own has had it, a new one needs a plan (create_business enforces it).
+  const freeBusiness = (owned.data ?? []).map((m) => m.businesses).find((b) => b && b.subscriptions?.trial_started_at);
   const nb = t.dashboard.newBusiness;
   const b = t.dashboard.billing;
   const a = t.auth.fields;
@@ -53,7 +55,7 @@ export default async function NewBusinessPage() {
               <SelectField
                 name="plan_id"
                 label={nb.plan}
-                options={(plans.data ?? []).map((p) => ({ value: p.id, label: `${p.name} — ${formatMoney(Number(p.monthly_price), p.currency, locale)}${b.perMonth}` }))}
+                options={plans.map((p) => ({ value: p.id, label: `${t.pricing.plans[p.id].name} — ${formatXaf(p.monthlyPrice, locale)}${b.perMonth}` }))}
               />
               <SelectField
                 name="billing_interval"

@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { money, optionalText, requiredText } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /*
  * WazaBolt Restaurants — every action calls a database function that checks
@@ -56,7 +57,7 @@ const tableSchema = z.object({
 /** Owners/admins: add a table, or rename one (id). */
 export async function saveTable(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = tableSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const id = formData.get("id");
@@ -79,7 +80,7 @@ export async function saveTable(_prev: FormState, formData: FormData): Promise<F
 export async function setTableActive(tableId: string, active: boolean): Promise<FormState> {
   if (!isUuid(tableId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("restaurant_tables").update({ active }).eq("id", tableId).eq("business_id", ctx.business.id);
   if (error) return fail(dbError(error));
@@ -91,7 +92,7 @@ export async function setTableActive(tableId: string, active: boolean): Promise<
 export async function openBill(tableId: string, locale: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(tableId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const guests = Number(formData.get("guests") || 0);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("restaurant_open_order", {
@@ -112,7 +113,7 @@ export async function openBill(tableId: string, locale: string, _prev: FormState
 /** Agents: a takeaway or delivery order with its dishes (sent to the kitchen). */
 export async function createRestaurantOrder(serviceType: "takeaway" | "delivery", locale: string, _prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const raw = formObject(formData);
   const items = itemsSchema.safeParse(raw.items);
   if (!items.success) return fail(items.error.issues[0]?.message === "empty_order" ? "empty_order" : "invalid", { items: [items.error.issues[0]?.message ?? "invalid"] });
@@ -145,7 +146,7 @@ export async function createRestaurantOrder(serviceType: "takeaway" | "delivery"
 export async function addDishes(orderId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const items = itemsSchema.safeParse(formObject(formData).items);
   if (!items.success) return fail(items.error.issues[0]?.message === "empty_order" ? "empty_order" : "invalid");
   const supabase = await createClient();
@@ -162,7 +163,7 @@ export async function addDishes(orderId: string, _prev: FormState, formData: For
 export async function sendToKitchen(orderId: string): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("restaurant_send_to_kitchen", { p_business_id: ctx.business.id, p_order_id: orderId });
   if (error) return fail(dbError(error));
@@ -174,7 +175,7 @@ export async function sendToKitchen(orderId: string): Promise<FormState> {
 export async function removeDish(itemId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(itemId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const reason = String(formData.get("reason") ?? "").trim();
   if (reason.length < 3 || reason.length > 300) return fail("invalid", { reason: ["required"] });
   const supabase = await createClient();
@@ -188,7 +189,7 @@ export async function removeDish(itemId: string, _prev: FormState, formData: For
 export async function closeBill(orderId: string): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("restaurant_close_bill", { p_business_id: ctx.business.id, p_order_id: orderId });
   if (error) return fail(dbError(error));
@@ -200,7 +201,7 @@ export async function closeBill(orderId: string): Promise<FormState> {
 export async function moveTicket(ticketId: string, status: "preparing" | "ready" | "served"): Promise<FormState> {
   if (!isUuid(ticketId) || !["preparing", "ready", "served"].includes(status)) return fail("invalid");
   const ctx = await authorize("kitchen");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_ticket_status", { p_ticket_id: ticketId, p_status: status });
   if (error) return fail(dbError(error));

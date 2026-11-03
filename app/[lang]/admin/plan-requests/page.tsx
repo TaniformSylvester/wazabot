@@ -106,19 +106,24 @@ function PendingCard({ r, locale }: { r: PlanRequestRow; locale: string }) {
             <>
               <StatusBadge tone="blue">Extra branches</StatusBadge> <b>{r.extraBranches ?? 0}</b> in total on {r.to.name}: <b>{fcfa(r.amountDue)}</b>/month
             </>
+          ) : r.kind === "topup" ? (
+            <>
+              <StatusBadge tone="blue">AI top-up</StatusBadge> <b>{requestSummary(r)}</b>
+            </>
           ) : r.kind === "renewal" ? (
             <>
-              <StatusBadge tone="blue">Renewal</StatusBadge> <b>{r.to.name}</b>
+              <StatusBadge tone="blue">Renewal</StatusBadge> <b>{r.to.name}{r.addonId ? ` + ${r.addonId === "ai_plus" ? "AI Plus" : "AI Basic"}` : ""}</b>
             </>
           ) : (
             <>
-              {r.from?.name ?? "—"} → <b>{r.to.name}</b>
+              {r.from?.name ?? "—"} → <b>{r.to.name}{r.addonId ? ` + ${r.addonId === "ai_plus" ? "AI Plus" : "AI Basic"}` : ""}</b>
             </>
           )}
-          {r.kind !== "branches" ? (
+          {r.kind !== "branches" && r.kind !== "topup" ? (
             <>
               {" "}
               · {r.interval === "year" ? "yearly" : "monthly"}: <b>{fcfa(r.amountDue)}</b>
+              {r.setupFeeDue ? <span className="text-slate"> (setup fee {fcfa(r.setupFeeDue)} included)</span> : null}
             </>
           ) : null}
         </p>
@@ -171,8 +176,13 @@ function PendingCard({ r, locale }: { r: PlanRequestRow; locale: string }) {
           </div>
           <label className="grid gap-1 text-xs font-semibold text-slate">
             Reference (optional)
-            <input name="reference" maxLength={100} placeholder="Mobile Money transaction ID" className={field} />
+            <input name="reference" maxLength={100} placeholder="MTN MoMo / Orange Money transaction ID" className={field} />
           </label>
+          {r.setupFeeDue ? (
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate">
+              <input type="checkbox" name="setup_fee_paid" defaultChecked className="size-4 accent-waza-600" /> The setup fee ({fcfa(r.setupFeeDue)}) is paid with this
+            </label>
+          ) : null}
           <button type="submit" className="inline-flex items-center justify-center gap-1.5 rounded-full bg-waza-500 px-4 py-2 text-sm font-bold text-deep hover:bg-waza-600">
             <Check className="size-4" aria-hidden /> Approve
           </button>

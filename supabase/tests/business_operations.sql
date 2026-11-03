@@ -22,6 +22,8 @@ select
 grant select on ids to anon, authenticated, service_role;
 -- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
 update public.businesses set free_limits_from = '2099-01-01' where id in (select biz from ids);
+-- These tests start from no plan ("free"), as before the trials (plans_v2.sql tests the trials).
+update public.subscriptions set plan_id = 'free', status = 'active', trial_started_at = null where business_id in (select biz from ids);
 insert into public.business_members (business_id, user_id, role)
 select biz, '00000000-0000-4000-e000-00000000000b'::uuid, 'admin'::public.business_role from ids union all
 select biz, '00000000-0000-4000-e000-00000000000c'::uuid, 'agent'::public.business_role from ids;
@@ -138,12 +140,10 @@ do $$
 declare conv uuid;
 begin
   insert into public.conversations (business_id, customer_id) select biz, (select customer from fx) from ids returning id into conv;
-  insert into public.messages (business_id, conversation_id, direction, sender_type, message_type, content, ai_generated)
-  select biz, conv, 'outbound', 'ai', 'text', 'Bonjour', true from ids union all
-  select biz, conv, 'outbound', 'ai', 'text', 'Encore', true from ids;
+  -- Two AI replies to the same customer within 24 hours: one AI conversation.
+  insert into public.ai_conversation_windows (business_id, conversation_id, ends_at, claude_replies)
+  select biz, conv, now() + interval '24 hours', 2 from ids;
 end $$;
--- The counting rules from before Step 4 (see margin_protection.sql for the 24-hour windows).
-update public.subscriptions set rules_from = now() + interval '1 day' where business_id = (select biz from ids);
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-e000-00000000000c","role":"authenticated"}', true);
@@ -151,7 +151,7 @@ do $$
 declare r record;
 begin
   select * into r from public.ai_usage_status((select biz from ids));
-  if r.plan_id <> 'free' or r.conversation_limit <> 50 or r.conversations_used <> 1 then
+  if r.plan_id <> 'free' or r.conversation_limit <> 0 or r.conversations_used <> 1 then
     raise exception 'FAIL: usage status %', row_to_json(r);
   end if;
   begin
@@ -348,7 +348,7 @@ begin
     raise exception 'FAIL: requested the current plan';
   exception when invalid_parameter_value then null;
   end;
-  perform public.request_plan_change((select biz from ids), 'starter');
+  perform public.request_plan_change((select biz from ids), 'boutique');
   select public.request_plan_change((select biz from ids), 'business', '+237 670 00 00 00', 'Paid by MoMo') into r;
   insert into req values (r);
   if (select count(*) from public.plan_change_requests where status = 'pending') <> 1 then raise exception 'FAIL: one pending request at a time'; end if;
@@ -369,8 +369,8 @@ begin
   perform public.approve_plan_change((select id from req));
   if (select plan_id from public.subscriptions where business_id = (select biz from ids)) <> 'business' then raise exception 'FAIL: plan not changed'; end if;
   if (select status from public.plan_change_requests where id = (select id from req)) <> 'approved' then raise exception 'FAIL: request not approved'; end if;
-  if (select conversation_limit from public.ai_usage_status((select biz from ids))) <> 2000 then raise exception 'FAIL: new allowance'; end if;
-  raise notice 'PASS the operator approves a request: new plan, new allowance';
+  if (select conversation_limit from public.ai_usage_status((select biz from ids))) <> 0 then raise exception 'FAIL: a plan alone includes no AI conversations'; end if;
+  raise notice 'PASS the operator approves a request: the new plan (AI conversations come only with the add-on)';
 end $$;
 
 rollback;

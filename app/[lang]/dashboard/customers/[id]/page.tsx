@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { notFound } from "next/navigation";
 import { CalendarClock, CalendarPlus, CircleDollarSign, FileText, HandCoins, MessagesSquare, Plus, ShoppingBag, ShoppingCart, Wallet } from "lucide-react";
 
@@ -126,7 +127,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
           {canEdit ? (
             <Panel title={c.credit.title} description={stats.outstanding > 0 ? c.credit.text : undefined}>
               {stats.outstanding > 0 ? (
-                <PaymentForm target={{ customerId: customer.id }} balance={stats.outstanding} currency={business.currency} t={d.payments} errors={d.errors} today={localToday(business.timezone)} />
+                <PaymentForm withNotes={await businessCanUse(business.id, "payment_notes")} target={{ customerId: customer.id }} balance={stats.outstanding} currency={business.currency} t={d.payments} errors={d.errors} today={localToday(business.timezone)} />
               ) : (
                 <p className="text-sm text-slate">{c.credit.clear}</p>
               )}

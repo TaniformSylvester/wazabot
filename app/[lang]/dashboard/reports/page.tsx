@@ -6,9 +6,10 @@ import { BarChart } from "@/components/app/bar-chart";
 import { ReportPeriodForm } from "@/components/app/report-period-form";
 import { PageHeader, Panel, StatusBadge, TableWrap, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { REPORT_GROUPS, REPORT_RANGES, addDays, getReport, groupDays, resolvePeriod } from "@/lib/data/reports";
+import { REPORT_GROUPS, REPORT_RANGES, getReport, groupDays, resolvePeriod } from "@/lib/data/reports";
 import { getBranchContext, listBranches } from "@/lib/branches";
-import { getPlanLimits, profitAllowed, reportDaysAllowed } from "@/lib/data/queries";
+import { businessCanUse } from "@/lib/billing/plan-access";
+import { PLANS } from "@/config/economics";
 import { PlanUpsell } from "@/components/app/plan-upsell";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -33,16 +34,18 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
       </div>
     );
   }
-  const period = resolvePeriod(business.timezone, { range: param(sp.range), from: param(sp.from), to: param(sp.to), group: param(sp.group) });
-  // Free plan: the last few days only, and no costs or profit.
-  const limits = await getPlanLimits(business.id);
-  const withProfit = profitAllowed(limits);
-  const maxDays = reportDaysAllowed(limits);
-  if (maxDays) {
-    const earliest = addDays(period.today, -(maxDays - 1));
-    if (period.from < earliest) period.from = earliest;
-    if (period.to < earliest) period.to = period.today;
+  // Reports are in the Business plan (read-only businesses can still see theirs).
+  if (!(await businessCanUse(business.id, "reports"))) {
+    const price = formatMoney(PLANS.find((p) => p.id === "business")?.monthlyPrice ?? 0, business.currency, locale);
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <PageHeader title={r.title} description={r.description} />
+        <PlanUpsell title={d.plan.reportsLocked.title} text={format(d.plan.reportsLocked.text, { price })} cta={d.plan.upgrade} locale={locale} />
+      </div>
+    );
   }
+  const period = resolvePeriod(business.timezone, { range: param(sp.range), from: param(sp.from), to: param(sp.to), group: param(sp.group) });
+  const withProfit = await businessCanUse(business.id, "profit");
   // Several branches: one branch's figures, or all of them.
   const branches = (await getBranchContext(business)).multi ? (await listBranches(business.id)) : [];
   const branch = branches.find((b) => b.id === param(sp.branch))?.id;
@@ -136,9 +139,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/[lang]/d
         </p>
       </Panel>
 
-      {maxDays || !withProfit ? (
-        <PlanUpsell text={maxDays ? format(d.plan.reportsLimited, { days: n(maxDays) }) : d.plan.profitLocked} cta={d.plan.upgrade} locale={locale} compact />
-      ) : null}
+      {!withProfit ? <PlanUpsell text={d.plan.profitLocked} cta={d.plan.upgrade} locale={locale} compact /> : null}
 
       <section aria-label={r.summary.revenue}>
         <dl className="grid grid-cols-2 gap-3 md:grid-cols-3" data-testid="report-summary">

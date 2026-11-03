@@ -8,8 +8,9 @@ import { PrintButton } from "@/components/app/print-button";
 import { Receipt } from "@/components/app/receipt";
 import { DefinitionList, PageHeader, Panel, StatusBadge, buttonLink, formatMoney, paymentStatusTone, secondaryLink } from "@/components/app/ui";
 import { isUuid } from "@/lib/actions/form";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { getPlanLimits, getSale, localToday, profitAllowed } from "@/lib/data/queries";
+import { getSale, localToday } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
@@ -21,7 +22,7 @@ export const generateMetadata = dashboardMetadata((d) => d.sales.title);
 export default async function SalePage({ params, searchParams }: PageProps<"/[lang]/dashboard/sales/[id]">) {
   const [locale, t, { id }, sp] = await Promise.all([getLocale(), getMessages(), params, searchParams]);
   const { business } = await requireBusiness(localizePath(locale, `/dashboard/sales/${id}`));
-  const isAdmin = hasRole(business.role, "admin") && profitAllowed(await getPlanLimits(business.id));
+  const isAdmin = hasRole(business.role, "admin") && (await businessCanUse(business.id, "profit"));
   const sale = isUuid(id) ? await getSale(business.id, id, isAdmin) : null;
   if (!sale) notFound();
   const { order, payments, staff } = sale;
@@ -121,6 +122,7 @@ export default async function SalePage({ params, searchParams }: PageProps<"/[la
           ) : null}
 
           <PaymentsPanel
+            withNotes={await businessCanUse(business.id, "payment_notes")}
             order={{ id: order.id, total: Number(order.total), paid: Number(order.amount_paid), refunded: Number(order.amount_refunded), currency: order.currency, closed: order.status === "cancelled" || order.status === "returned" }}
             payments={payments}
             canRecord={hasRole(business.role, "agent")}

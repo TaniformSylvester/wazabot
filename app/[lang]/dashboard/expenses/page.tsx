@@ -4,8 +4,9 @@ import { Tags, Wallet } from "lucide-react";
 import { FormAlert } from "@/components/auth/form-alert";
 import { ExpenseForm } from "@/components/app/expense-form";
 import { PageHeader, Pagination, Panel, StatCard, TableWrap, formatDate, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { PAGE_SIZE, getPlanLimits, listExpenses, localToday, profitAllowed } from "@/lib/data/queries";
+import { PAGE_SIZE, listExpenses, localToday } from "@/lib/data/queries";
 import { PlanUpsell } from "@/components/app/plan-upsell";
 import { PLANS } from "@/config/economics";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
@@ -37,8 +38,8 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/[lang]/
       </div>
     );
   }
-  if (!profitAllowed(await getPlanLimits(business.id))) {
-    const price = formatMoney(PLANS.find((p) => p.id === "boutique")?.monthlyPrice ?? 0, business.currency, locale);
+  if (!(await businessCanUse(business.id, "profit"))) {
+    const price = formatMoney(PLANS.find((p) => p.id === "business")?.monthlyPrice ?? 0, business.currency, locale);
     return (
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <PageHeader title={e.title} description={e.description} />

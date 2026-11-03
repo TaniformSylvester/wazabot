@@ -9,7 +9,6 @@ import {
   SAVER_HISTORY_MESSAGES,
   SAVER_RULE_MAX_CHARS,
   claudeBudgetFcfa,
-  type PlanId,
 } from "@/config/economics";
 import { AiNoReplyError, AiRefusalError, ClaudeResponder, aiConfigured, describeAiError } from "@/lib/ai/claude";
 import { buildBusinessContext, buildConversationContext, type BusinessContext } from "@/lib/ai/context";
@@ -23,7 +22,7 @@ import { WHATSAPP_TEXT_LIMIT, validateAIResponse, type AiResponder, type AiUsage
 import { sendBudgetAlert } from "@/lib/billing/alerts";
 import { claudeCostUsd, logClaudeCalls, usdToFcfa, type ClaudeCallUsage } from "@/lib/billing/costs";
 import { decideAllowance, elapsedShare, type Allowance } from "@/lib/billing/guard";
-import { getUsageStatus } from "@/lib/billing/usage";
+import { aiMonthlyRevenue, getUsageStatus } from "@/lib/billing/usage";
 import { isOpenAt } from "@/lib/business/hours";
 import { rowToDocument } from "@/lib/data/documents";
 import { DOCUMENT_LABELS } from "@/lib/documents/labels";
@@ -82,6 +81,9 @@ export function defaultDeps(admin: Admin): PipelineDeps {
 export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<AiOutcome> {
   if (!aiConfigured()) return { outcome: "skipped", reason: "not_configured" };
   const { admin } = deps;
+  // Until the WazaBolt team launches the assistant, messages simply wait in the inbox.
+  const { data: launched } = await admin.rpc("ai_assistant_launched");
+  if (launched !== true) return { outcome: "skipped", reason: "not_launched" };
   if (DEBOUNCE_MS > 0) await deps.sleep(DEBOUNCE_MS);
 
   const { data: latest } = await admin
@@ -519,7 +521,8 @@ async function loadGuard(admin: Admin, job: AiJob, now: Date): Promise<Guard> {
   ]);
   if (spend.error) logServerError("ai.budget", spend.error);
   const spent = Number(spend.data ?? 0);
-  const budget = claudeBudgetFcfa({ id: status.planId as PlanId, monthlyPrice: status.monthlyPrice }, status.interval);
+  // The hidden Claude budget comes from what the AI add-on earns (or the AI trial's allowance).
+  const budget = claudeBudgetFcfa(aiMonthlyRevenue(status), status.interval, { trial: status.aiTrial });
   const allowance = decideAllowance({
     used: status.used,
     limit: status.limit,

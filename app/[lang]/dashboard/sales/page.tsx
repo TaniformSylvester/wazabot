@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Plus, Receipt, Search } from "lucide-react";
 
 import { EmptyState, PageHeader, Pagination, Panel, StatusBadge, TableWrap, buttonLink, formatDate, formatMoney, param, paymentStatusTone, secondaryLink, td, th, withQuery } from "@/components/app/ui";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { PAGE_SIZE, getPlanLimits, listSales, profitAllowed } from "@/lib/data/queries";
+import { PAGE_SIZE, listSales } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -35,7 +36,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/[lang]/das
   };
   const [branchCtx, branches] = await Promise.all([getBranchContext(business), listBranches(business.id)]);
   const showBranch = branchCtx.multi;
-  const isAdmin = hasRole(business.role, "admin") && profitAllowed(await getPlanLimits(business.id));
+  const isAdmin = hasRole(business.role, "admin") && (await businessCanUse(business.id, "profit"));
   const { rows, total, page } = await listSales(business.id, business.timezone, filters, isAdmin);
   const filtered = !!(filters.q || filters.from || filters.to || filters.method || filters.status || filters.customer || filters.branch);
   const base = localizePath(locale, "/dashboard/sales");

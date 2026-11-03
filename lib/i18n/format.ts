@@ -9,9 +9,10 @@ export function formatNumber(value: number, locale: Locale): string {
   return new Intl.NumberFormat(intlLocale[locale]).format(value);
 }
 
-/** 15000 → "15,000 XAF" (en) / "15 000 XAF" (fr). XAF has no minor unit. */
+/** 7500 → "7,500 FCFA" (en) / "7 500 FCFA" (fr; a non-breaking space, so the price never splits). XAF has no minor unit. */
 export function formatXaf(amount: number, locale: Locale): string {
-  return `${formatNumber(amount, locale)} XAF`;
+  // French groups thousands with a narrow space, which some fonts draw almost invisibly ("7500"): use a full non-breaking space.
+  return `${formatNumber(amount, locale).replace(/\u202f/g, "\u00a0")}\u00a0FCFA`;
 }
 
 /** How a currency is written for people: the CFA franc (XAF) is "FCFA" in Cameroon. */

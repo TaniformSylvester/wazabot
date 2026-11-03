@@ -11,11 +11,12 @@ import { createClient } from "@/lib/supabase/server";
 import { customerSchema } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /** Create or edit a customer (agents and above). */
 export async function saveCustomer(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = customerSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const id = String(formData.get("id") ?? "");
@@ -61,7 +62,7 @@ export async function saveCustomer(_prev: FormState, formData: FormData): Promis
 export async function deleteCustomer(customerId: string, locale: string): Promise<FormState> {
   if (!isUuid(customerId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("customers").delete().eq("id", customerId).eq("business_id", ctx.business.id);
   if (error) {

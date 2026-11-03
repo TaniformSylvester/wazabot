@@ -1,7 +1,7 @@
 import { authorize } from "@/lib/auth/dal";
-import { getPlanLimits, profitAllowed, reportDaysAllowed } from "@/lib/data/queries";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { listBranches } from "@/lib/branches";
-import { addDays, expensesBetween, groupDays, invoicePaymentsBetween, productSales, resolvePeriod, salesByDay, topCustomers, type ReportGroup } from "@/lib/data/reports";
+import { expensesBetween, groupDays, invoicePaymentsBetween, productSales, resolvePeriod, salesByDay, topCustomers, type ReportGroup } from "@/lib/data/reports";
 import { isLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/load";
 import { toCsv, type Cell } from "@/lib/reports/csv";
@@ -16,7 +16,8 @@ const TYPES = ["sales", "products", "customers", "expenses", "invoice-payments"]
 export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard/reports/export">) {
   const { lang } = await ctx.params;
   if (!isLocale(lang)) return new Response("Not found", { status: 404 });
-  const auth = await authorize("admin");
+  // Exports are reads: a business without a plan (read-only) can still download its records.
+  const auth = await authorize("admin", { readOnlyOk: true });
   if (!auth) return new Response("Forbidden", { status: 403 });
   const { business } = auth;
   const url = new URL(request.url);
@@ -28,15 +29,9 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
     to: url.searchParams.get("to") ?? undefined,
     group: url.searchParams.get("group") ?? undefined,
   });
-  // Same plan rules as the reports page: Free = recent days only, no costs or profit.
-  const limits = await getPlanLimits(business.id);
-  const withProfit = profitAllowed(limits);
-  const maxDays = reportDaysAllowed(limits);
-  if (maxDays) {
-    const earliest = addDays(period.today, -(maxDays - 1));
-    if (period.from < earliest) period.from = earliest;
-    if (period.to < earliest) period.to = period.today;
-  }
+  // Same plan rules as the reports page: reports from Business; expenses and profit with them.
+  if (!(await businessCanUse(business.id, "reports"))) return new Response("Needs the Business plan", { status: 403 });
+  const withProfit = await businessCanUse(business.id, "profit");
   if (type === "expenses" && !withProfit) return new Response("Needs a paid plan", { status: 403 });
   const { from, to, group } = period;
   const branchParam = url.searchParams.get("branch");

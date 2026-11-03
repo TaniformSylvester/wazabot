@@ -38,6 +38,9 @@ export type BusinessRow = {
   planStatus: string | null;
   interval: "month" | "year";
   periodEnd: string | null;
+  addonId: string | null;
+  setupFee: number;
+  setupFeePaid: boolean;
   /** The WazaBolt kill switch. */
   aiPaused: boolean;
   whatsapp: { status: string; number: string | null } | null;
@@ -55,7 +58,7 @@ export async function listAllBusinesses(admin: Admin, limit = 500): Promise<Busi
 
   const [members, subs, wa, controls] = await Promise.all([
     inBatches("members", ids, (b) => admin.from("business_members").select("business_id, user_id, role").in("business_id", b)),
-    inBatches("subscriptions", ids, (b) => admin.from("subscriptions").select("business_id, plan_id, status, billing_interval, current_period_end").in("business_id", b)),
+    inBatches("subscriptions", ids, (b) => admin.from("subscriptions").select("business_id, plan_id, addon_id, status, billing_interval, current_period_end, setup_fee, setup_fee_paid_at").in("business_id", b)),
     inBatches("whatsapp", ids, (b) => admin.from("whatsapp_connections").select("business_id, status, display_phone_number").in("business_id", b)),
     admin.from("platform_business_controls").select("business_id, ai_paused").eq("ai_paused", true),
   ]);
@@ -88,6 +91,9 @@ export async function listAllBusinesses(admin: Admin, limit = 500): Promise<Busi
       planStatus: sub?.status ?? null,
       interval: sub?.billing_interval === "year" ? "year" : "month",
       periodEnd: sub?.current_period_end ?? null,
+      addonId: sub?.addon_id ?? null,
+      setupFee: Number(sub?.setup_fee ?? 0),
+      setupFeePaid: Boolean(sub?.setup_fee_paid_at),
       aiPaused: paused.has(b.id),
       whatsapp: conn ? { status: conn.status, number: conn.display_phone_number } : null,
     };

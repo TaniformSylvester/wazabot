@@ -24,10 +24,11 @@ import { BusinessOverview } from "@/components/app/business-overview";
 import { FreeMessagesPanel } from "@/components/app/free-messages-panel";
 import { PlanUpsell } from "@/components/app/plan-upsell";
 import { EmptyState, Panel, StatCard, StatusBadge, conversationStatusTone, formatDate, formatMoney, formatPercent, orderStatusTone } from "@/components/app/ui";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { getBusinessModules } from "@/lib/modules";
 import { hasOpeningHours } from "@/lib/business/hours";
-import { getDashboardMetrics, getFreeWhatsAppMessages, getPlanLimits, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders, listSales, profitAllowed } from "@/lib/data/queries";
+import { getDashboardMetrics, getFreeWhatsAppMessages, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders, listSales } from "@/lib/data/queries";
 import { getOverview } from "@/lib/data/reports";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -59,7 +60,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
   const h = d.home;
 
   const isAdmin = hasRole(business.role, "admin");
-  const planAllowsProfit = profitAllowed(await getPlanLimits(business.id));
+  const planAllowsProfit = (await businessCanUse(business.id, "profit"));
   const showProfit = isAdmin && planAllowsProfit;
   const [metrics, progress, conversations, orders, stock, appointments, freeMessages, overview, recentSales] = await Promise.all([
     getDashboardMetrics(business.id),

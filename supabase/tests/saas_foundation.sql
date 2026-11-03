@@ -30,14 +30,14 @@ begin
   if (select slug from public.businesses where id = b) !~ '^boutique-awa-fils-[a-z0-9]{6}$' then
     raise exception 'FAIL: slug not generated (%)', (select slug from public.businesses where id = b);
   end if;
-  if (select plan_id from public.subscriptions where business_id = b) <> 'free' then raise exception 'FAIL: free plan not assigned'; end if;
+  if (select plan_id || ' ' || status from public.subscriptions where business_id = b) <> 'business trialing' then raise exception 'FAIL: 14-day trial not started'; end if;
   if (select status from public.whatsapp_connections where business_id = b) <> 'not_connected' then
     raise exception 'FAIL: WhatsApp must start as not_connected';
   end if;
   if (select email from public.users where id = '00000000-0000-4000-f000-00000000000a') <> 'saas-a@test.local' then
     raise exception 'FAIL: email not copied to profile';
   end if;
-  raise notice 'PASS new business gets slug, free plan, WhatsApp state and profile email';
+  raise notice 'PASS new business gets slug, a free trial, WhatsApp state and profile email';
 end $$;
 
 -- Not testing plan limits here: keep the Free plan but outside its limits (grace date far ahead).
@@ -155,8 +155,8 @@ begin
   exception when insufficient_privilege then null;
   end;
 
-  select count(*) into n from public.plans where id in ('free', 'boutique', 'starter', 'business', 'pro');
-  if n <> 5 then raise exception 'FAIL: plans not readable'; end if;
+  select count(*) into n from public.plans where id in ('boutique', 'business', 'multishop');
+  if n <> 3 then raise exception 'FAIL: plans not readable'; end if;
   raise notice 'PASS owner manages profile, catalog, knowledge, customers, takeover, orders and AI settings';
 end $$;
 
@@ -263,7 +263,7 @@ reset role;
 set local role anon;
 do $$
 begin
-  if (select count(*) from public.plans where id in ('free', 'boutique', 'starter', 'business', 'pro')) <> 5 then raise exception 'FAIL: plans should be public'; end if;
+  if (select count(*) from public.plans where id in ('boutique', 'business', 'multishop')) <> 3 or (select count(*) from public.addons) <> 3 then raise exception 'FAIL: plans and add-ons should be public'; end if;
   begin
     perform 1 from public.products;
     raise exception 'FAIL: anon can read products';

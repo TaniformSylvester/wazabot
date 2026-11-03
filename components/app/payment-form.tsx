@@ -17,6 +17,7 @@ export function PaymentForm({
   errors,
   today,
   refund = false,
+  withNotes = true,
 }: {
   target: { orderId: string } | { customerId: string };
   /** Pre-filled amount: what is still owed (or, for a refund, what can be refunded). */
@@ -27,6 +28,8 @@ export function PaymentForm({
   /** Today in the business's time zone (the latest date that can be chosen). */
   today: string;
   refund?: boolean;
+  /** Reference and note on the payment (Business plan and up). */
+  withNotes?: boolean;
 }) {
   const hidden = { client_key: crypto.randomUUID(), ...("orderId" in target ? { order_id: target.orderId } : { customer_id: target.customerId }) };
   const action = refund ? recordOrderRefund : "orderId" in target ? recordOrderPayment : recordCustomerPayment;
@@ -37,8 +40,12 @@ export function PaymentForm({
         <TextField name="amount" label={format(refund ? t.refund.amount : t.amount, { currency: currencyLabel(currency) })} defaultValue={String(balance)} inputMode="decimal" required />
         <SelectField name="method" label={refund ? t.refund.method : t.method} defaultValue="cash" options={RECEIVE_METHODS.map((m) => ({ value: m, label: t.methods[m] }))} />
         <TextField name="received_on" label={t.date} hint={t.dateHint} type="date" defaultValue={today} max={today} />
-        <TextField name="reference" label={t.reference} hint={t.referenceHint} maxLength={100} />
-        <TextField name="note" label={t.note} maxLength={500} className="sm:col-span-2" />
+        {withNotes ? (
+          <>
+            <TextField name="reference" label={t.reference} hint={t.referenceHint} maxLength={100} />
+            <TextField name="note" label={t.note} maxLength={500} className="sm:col-span-2" />
+          </>
+        ) : null}
       </div>
       <div>
         <SubmitButton>{refund ? t.refund.submit : t.submit}</SubmitButton>

@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { businessProfileSchema, receiptSettingsSchema } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 const ONBOARDING_STEPS = 6;
 
@@ -30,7 +31,7 @@ function onboardingRedirect(formData: FormData) {
 /** Onboarding step 1 and Settings → Business profile. */
 export async function saveBusinessProfile(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = businessProfileSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
 
@@ -51,7 +52,7 @@ export async function saveBusinessProfile(_prev: FormState, formData: FormData):
 /** Onboarding step 2 and Settings → Opening hours. Fields: hours.<day>.open|close|closed */
 export async function saveOpeningHours(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
 
   const hours: OpeningHours = {};
   const fieldErrors: Record<string, string[]> = {};
@@ -83,7 +84,7 @@ export async function saveOpeningHours(_prev: FormState, formData: FormData): Pr
 /** Records onboarding progress for steps that have their own forms elsewhere (products, FAQs, WhatsApp). */
 export async function advanceOnboarding(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const finishing = formData.get("next_step") === "done";
   const supabase = await createClient();
   const { error } = await supabase
@@ -112,7 +113,7 @@ const MAX_LOGO_BYTES = 2 * 1024 * 1024;
  */
 export async function saveReceiptSettings(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = receiptSettingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();

@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 import { expenseSchema } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
+import { businessCanUse } from "@/lib/billing/plan-access";
 
 /*
  * Business expenses (owners and admins). Row-level security enforces the
@@ -19,7 +21,9 @@ import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "
 
 export async function saveExpense(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
+  // Expenses are in the Business plan.
+  if (!(await businessCanUse(ctx.business.id, "expenses"))) return fail("plan_limit_feature");
   const parsed = expenseSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const id = String(formData.get("id") ?? "");
@@ -42,7 +46,7 @@ export async function saveExpense(_prev: FormState, formData: FormData): Promise
 export async function deleteExpense(id: string, locale: string): Promise<FormState> {
   if (!isUuid(id)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("expenses").delete().eq("id", id).eq("business_id", ctx.business.id).select("id").maybeSingle();
   if (error) {

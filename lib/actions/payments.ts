@@ -13,6 +13,8 @@ import { money, optionalText } from "@/lib/validation/app";
 import { RECEIVE_METHODS } from "@/types/database";
 
 import { fail, formObject, invalid, ok, type FormState } from "./form";
+import { denied } from "./denied";
+import { businessCanUse } from "@/lib/billing/plan-access";
 
 /*
  * Payments received for sales, recorded by hand (cash, MTN MoMo, Orange
@@ -36,7 +38,7 @@ const paymentSchema = z.object({
 /** Agents and up: a payment towards one sale or order. */
 export async function recordOrderPayment(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const orderId = z.uuid().safeParse(formData.get("order_id"));
   const parsed = paymentSchema.safeParse(formObject(formData));
   if (!orderId.success) return fail("invalid");
@@ -49,10 +51,11 @@ export async function recordOrderPayment(_prev: FormState, formData: FormData): 
     p_order_id: orderId.data,
     p_amount: parsed.data.amount,
     p_method: parsed.data.method,
-    p_reference: parsed.data.reference ?? undefined,
+    p_reference: (await businessCanUse(ctx.business.id, "payment_notes")) ? (parsed.data.reference ?? undefined) : undefined,
     p_client_key: parsed.data.client_key,
     p_received_at: at ?? undefined,
-    p_note: parsed.data.note ?? undefined,
+    // Notes on how a sale was paid are in the Business plan.
+    p_note: (await businessCanUse(ctx.business.id, "payment_notes")) ? (parsed.data.note ?? undefined) : undefined,
   });
   if (error) {
     logServerError("payments.order", error);
@@ -67,7 +70,7 @@ export async function recordOrderPayment(_prev: FormState, formData: FormData): 
 /** Agents and up: a customer pays towards what they owe (oldest sales first). */
 export async function recordCustomerPayment(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const customerId = z.uuid().safeParse(formData.get("customer_id"));
   const parsed = paymentSchema.safeParse(formObject(formData));
   if (!customerId.success) return fail("invalid");
@@ -80,10 +83,11 @@ export async function recordCustomerPayment(_prev: FormState, formData: FormData
     p_customer_id: customerId.data,
     p_amount: parsed.data.amount,
     p_method: parsed.data.method,
-    p_reference: parsed.data.reference ?? undefined,
+    p_reference: (await businessCanUse(ctx.business.id, "payment_notes")) ? (parsed.data.reference ?? undefined) : undefined,
     p_client_key: parsed.data.client_key,
     p_received_at: at ?? undefined,
-    p_note: parsed.data.note ?? undefined,
+    // Notes on how a sale was paid are in the Business plan.
+    p_note: (await businessCanUse(ctx.business.id, "payment_notes")) ? (parsed.data.note ?? undefined) : undefined,
   });
   if (error) {
     logServerError("payments.customer", error);
@@ -98,7 +102,7 @@ export async function recordCustomerPayment(_prev: FormState, formData: FormData
 /** Owners/admins: money given back for a cancelled or returned order. */
 export async function recordOrderRefund(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const orderId = z.uuid().safeParse(formData.get("order_id"));
   const parsed = paymentSchema.safeParse(formObject(formData));
   if (!orderId.success) return fail("invalid");
@@ -111,10 +115,11 @@ export async function recordOrderRefund(_prev: FormState, formData: FormData): P
     p_order_id: orderId.data,
     p_amount: parsed.data.amount,
     p_method: parsed.data.method,
-    p_reference: parsed.data.reference ?? undefined,
+    p_reference: (await businessCanUse(ctx.business.id, "payment_notes")) ? (parsed.data.reference ?? undefined) : undefined,
     p_client_key: parsed.data.client_key,
     p_received_at: at ?? undefined,
-    p_note: parsed.data.note ?? undefined,
+    // Notes on how a sale was paid are in the Business plan.
+    p_note: (await businessCanUse(ctx.business.id, "payment_notes")) ? (parsed.data.note ?? undefined) : undefined,
   });
   if (error) {
     logServerError("payments.refund", error);
@@ -127,7 +132,7 @@ export async function recordOrderRefund(_prev: FormState, formData: FormData): P
 /** Owners/admins: void a payment or refund recorded by mistake (it stays in the history). */
 export async function voidPayment(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = z.object({ group_id: z.uuid({ error: "required" }), reason: z.string().trim().min(3, "reason_required").max(300, "too_long") }).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();

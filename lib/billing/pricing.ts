@@ -2,7 +2,7 @@ import {
   ALLOWANCE_ROUNDING,
   ANNUAL_MONTHS_PAID,
   FCFA_PER_USD,
-  FREE_PLAN_CLAUDE_BUDGET_FCFA,
+  AI_TRIAL_CLAUDE_BUDGET_FCFA,
   MARGIN_TARGET,
   META_PRICING,
   MOBILE_MONEY_FEE_RATE,
@@ -34,7 +34,7 @@ export type PlanInput = {
 export type PlanCheck = PlanInput & {
   claudeAtFullUse: number;
   paymentFees: number;
-  /** null for Free (no revenue: its cost is acquisition cost). */
+  /** null for the AI trial (no revenue: its cost is acquisition cost). */
   margin: number | null;
   annualMargin: number | null;
   /** Most Claude may cost a month at MARGIN_TARGET (annual price for paid plans); the Free budget for Free. */
@@ -61,7 +61,7 @@ export function checkPlan(input: PlanInput): PlanCheck {
   const claude = conversations * costPerConversation;
   const free = price <= 0;
   // The annual plan earns less per month, so it sets the limit.
-  const budget = free ? FREE_PLAN_CLAUDE_BUDGET_FCFA : carry(annualMonthlyPrice(price));
+  const budget = free ? AI_TRIAL_CLAUDE_BUDGET_FCFA : carry(annualMonthlyPrice(price));
   const fit = costPerConversation > 0 ? budget / costPerConversation : Infinity;
   const margin = marginOf(price, claude);
   const annualMargin = free ? null : marginOf(annualMonthlyPrice(price), claude);
@@ -87,8 +87,8 @@ export function recommendation(c: PlanCheck): string {
   const fmt = (v: number) => new Intl.NumberFormat("en-US").format(Math.round(v));
   if (c.price <= 0) {
     return c.ok
-      ? `Fits the ${fmt(c.budget)} FCFA Free budget (covers about ${fmt(c.maxConversations)} conversations).`
-      : `Over the ${fmt(c.budget)} FCFA Free budget: it covers about ${fmt(c.maxConversations)} conversations, not ${fmt(c.conversations)}.`;
+      ? `Fits the ${fmt(c.budget)} FCFA AI-trial budget (covers about ${fmt(c.maxConversations)} conversations).`
+      : `Over the ${fmt(c.budget)} FCFA AI-trial budget: it covers about ${fmt(c.maxConversations)} conversations, not ${fmt(c.conversations)}.`;
   }
   if (c.ok && c.conversations === 0) return `Keep ${fmt(c.price)} FCFA: no AI conversations, so no Claude cost.`;
   if (c.ok) return `Keep ${fmt(c.price)} FCFA for ${fmt(c.conversations)} conversations: room for ${(c.headroom ?? 0).toFixed(1)}× the simulated cost.`;

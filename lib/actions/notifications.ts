@@ -12,6 +12,7 @@ import { checkbox } from "@/lib/validation/app";
 import { z } from "zod";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /*
  * Customer notifications (Stage 7): settings (owners/admins), WazaBolt's
@@ -24,7 +25,7 @@ const revalidate = () => revalidatePath("/[lang]/dashboard", "layout");
 
 export async function saveNotificationSettings(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = settingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();
@@ -40,7 +41,7 @@ export async function saveNotificationSettings(_prev: FormState, formData: FormD
 
 export async function submitTemplatesAction(): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const admin = createAdminClient();
   if (!admin) return fail("whatsapp_not_configured");
   const r = await submitTemplates(admin, ctx.business.id);
@@ -51,7 +52,7 @@ export async function submitTemplatesAction(): Promise<FormState> {
 
 export async function syncTemplatesAction(): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const admin = createAdminClient();
   if (!admin) return fail("whatsapp_not_configured");
   if (!(await syncTemplates(admin, ctx.business.id))) return fail("whatsapp_not_connected");
@@ -63,7 +64,7 @@ export async function syncTemplatesAction(): Promise<FormState> {
 export async function sendFollowUp(conversationId: string): Promise<FormState> {
   if (!isUuid(conversationId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const admin = createAdminClient();
   if (!admin) return fail("whatsapp_not_configured");
   const r = await notifyFollowUp(admin, ctx.business.id, conversationId);

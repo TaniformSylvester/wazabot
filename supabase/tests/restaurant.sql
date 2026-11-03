@@ -18,6 +18,8 @@ insert into public.business_members (business_id, user_id, role) select biz, '00
 insert into public.customers (business_id, whatsapp_phone, name) select biz, '237670000965', 'Client Resto' from ids;
 create temp table t (k text primary key, v uuid) on commit drop;
 grant select on ids to authenticated, service_role;
+-- These tests start from no plan ("free"), as before the trials (plans_v2.sql tests the trials).
+update public.subscriptions set plan_id = 'free', status = 'active', trial_started_at = null where business_id in (select business_id from public.business_members where user_id::text like '00000000-0000-4000-%');
 grant all on t to authenticated, service_role;
 
 create function pg_temp.as_user(u text) returns void language sql as $$

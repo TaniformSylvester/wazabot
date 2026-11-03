@@ -7,20 +7,17 @@ import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { defaultModules, getBusinessModules } from "@/lib/modules";
 import { UserCard, initials } from "@/components/dashboard/user-card";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { Info, PauseCircle, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Clock, Lock, PauseCircle, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
 import { getBranchContext } from "@/lib/branches";
 import { currentUserIsPlatformAdmin, pendingRequestsForAdmin } from "@/lib/admin/access";
 import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/lib/auth/dal";
-import { formatDate, formatMoney } from "@/components/app/ui";
-import { FREE_LIMITS_GRACE_UNTIL, PLANS } from "@/config/economics";
+import { formatDate } from "@/components/app/ui";
 import { siteConfig } from "@/config/site";
 import { aiPausedByWazaBolt } from "@/lib/billing/controls";
 import { getUsageStatus } from "@/lib/billing/usage";
-import { getEntitlements, getPlanLimits } from "@/lib/data/queries";
-import { graceText } from "@/lib/billing/grace";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { createClient } from "@/lib/supabase/server";
 import { getWhatsAppConnection } from "@/lib/data/queries";
@@ -53,12 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const billingHref = localizePath(locale, "/dashboard/billing");
   const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6 print:hidden";
   const billingState = usage?.billing.state;
-  // Existing Free businesses: the plan limits start after a grace period — say so to owners/admins.
-  const planLimits = business && hasRole(business.role, "admin") ? await getPlanLimits(business.id) : null;
-  // Only the standard grace date is announced (a later date is a deliberate exemption, e.g. the demo shop).
-  const freeGrace =
-    planLimits && planLimits.planId === "free" && !planLimits.enforced && planLimits.limitsFrom && planLimits.limitsFrom <= FREE_LIMITS_GRACE_UNTIL ? planLimits : null;
-  const graceEnt = freeGrace && business ? await getEntitlements(business.id) : null;
+  const trialLeft = usage && usage.billing.state === "trial" ? usage.billing.daysLeft : null;
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
   // Only the WazaBolt team (platform_admins) sees the way to the admin pages.
@@ -160,7 +152,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </div>
         ) : null}
-        {usage && usage.level !== "ok" ? (
+        {usage && usage.limit > 0 && usage.level !== "ok" ? (
           <div
             role="status"
             className={
@@ -182,32 +174,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </div>
         ) : null}
-        {freeGrace ? (
-          <div role="status" data-testid="plan-grace-notice" className={`${bar} border-gold-200 bg-gold-50 text-deep`}>
-            <Info className="size-4 shrink-0 text-gold-800" aria-hidden />
-            <p className="min-w-0 flex-1">
-              {graceText(d.plan, {
-                date: formatDate(`${freeGrace.limitsFrom}T12:00:00Z`, locale),
-                limits: freeGrace,
-                ent: graceEnt,
-                school: modules.includes("school"),
-                price: formatMoney(PLANS.find((p) => p.id === "boutique")?.monthlyPrice ?? 0, business?.currency ?? "XAF", locale),
-                locale,
-              })}
-            </p>
-            <Link href={billingHref} className="font-semibold underline underline-offset-2">
-              {d.plan.upgrade}
+        {business?.readOnly && hasRole(business.role, "admin") ? (
+          <div role="status" data-testid="read-only-banner" className={`${bar} border-coral-200 bg-coral-50 text-coral-800`}>
+            <Lock className="size-4 shrink-0" aria-hidden />
+            <p className="min-w-0 flex-1">{d.billingBanner.readOnly}</p>
+            <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
+              {d.billingBanner.choosePlan}
             </Link>
           </div>
+        ) : business?.readOnly ? (
+          <div role="status" data-testid="read-only-banner" className={`${bar} border-coral-200 bg-coral-50 text-coral-800`}>
+            <Lock className="size-4 shrink-0" aria-hidden />
+            <p className="min-w-0 flex-1">{d.billingBanner.readOnlyMember}</p>
+          </div>
         ) : null}
-        {usage?.counting === "legacy" ? (
-          <div role="status" data-testid="rules-notice" className={`${bar} border-waza-100 bg-mint/60 text-deep`}>
-            <Info className="size-4 shrink-0 text-waza-700" aria-hidden />
+        {trialLeft !== null && usage ? (
+          <div role="status" data-testid="trial-banner" className={`${bar} ${trialLeft <= 3 ? "border-gold-200 bg-gold-50 text-gold-800" : "border-waza-100 bg-mint/60 text-deep"}`}>
+            <Clock className="size-4 shrink-0" aria-hidden />
             <p className="min-w-0 flex-1">
-              {format(usage.monthlyPrice > 0 ? d.billingBanner.newRules : d.billingBanner.newRulesFree, { date: formatDate(usage.rulesFrom, locale), limit: formatNumber(PLANS.find((p) => p.id === usage.planId)?.aiConversationsPerMonth ?? usage.limit, locale) })}
+              {format(trialLeft <= 1 ? d.billingBanner.trialLastDay : d.billingBanner.trial, { plan: usage.planName, days: formatNumber(trialLeft, locale), date: formatDate(usage.currentPeriodEnd, locale) })}
             </p>
-            <Link href={billingHref} className="font-semibold underline underline-offset-2">
-              {d.billingBanner.learnMore}
+            <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
+              {d.billingBanner.choosePlan}
             </Link>
           </div>
         ) : null}

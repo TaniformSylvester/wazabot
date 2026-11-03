@@ -17,7 +17,7 @@ export const PAYMENT_METHODS = ["mobile_money", "cash", "bank", "other"] as cons
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /** A payment for a plan request, ready to approve it with. */
-export type PaymentRecord = { amount: number; method: PaymentMethod; reference: string | null; actorUserId: string | null };
+export type PaymentRecord = { amount: number; method: PaymentMethod; reference: string | null; actorUserId: string | null; setupFeePaid?: boolean };
 
 export interface PaymentProvider {
   id: string;

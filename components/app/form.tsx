@@ -1,13 +1,14 @@
 "use client";
 
 import { createContext, startTransition, useActionState, useContext, useEffect, useId, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Loader2, Trash2 } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { useAuthText } from "@/components/auth/use-auth-text";
 import { Button } from "@/components/ui/button";
-import type { FormState } from "@/lib/actions/form";
+import { UPGRADE_ERRORS, type ActionErrorKey, type FormState } from "@/lib/actions/form";
 import { cn } from "@/lib/utils";
 
 /*
@@ -18,6 +19,33 @@ import { cn } from "@/lib/utils";
  */
 
 type Action = (prev: FormState, formData: FormData) => Promise<FormState>;
+
+/**
+ * A refused action: a plan limit or "no plan" is an upgrade prompt with a
+ * link to Billing (never shown as an error); anything else is an error.
+ */
+export function ActionError({ errorKey, errors, detail, small }: { errorKey: string; errors: Record<string, string>; detail?: string; small?: boolean }) {
+  const pathname = usePathname() ?? "";
+  const lang = pathname.startsWith("/fr") ? "fr" : "en";
+  const message = (errors[errorKey] ?? errors.unknown ?? "").replace("{item}", detail ?? "");
+  if (UPGRADE_ERRORS.includes(errorKey as ActionErrorKey)) {
+    return (
+      <p role="status" className={cn("rounded-xl bg-gold-50 px-3 py-2 text-deep", small ? "text-xs" : "text-sm")} data-testid="upgrade-prompt">
+        {message}{" "}
+        <Link href={`/${lang}/dashboard/billing`} className="font-semibold whitespace-nowrap text-waza-700 hover:underline">
+          {errors.see_plans ?? (lang === "fr" ? "Voir les forfaits" : "See plans")} →
+        </Link>
+      </p>
+    );
+  }
+  return small ? (
+    <span role="alert" className="text-xs font-medium text-coral-700">
+      {message}
+    </span>
+  ) : (
+    <FormAlert tone="error">{message}</FormAlert>
+  );
+}
 export type FormText = { errors: Record<string, string>; saved: string; saving: string };
 
 type Ctx = { state: FormState; pending: boolean; disabled: boolean; text: FormText };
@@ -79,9 +107,7 @@ export function ActionForm({
               value === null || value === undefined ? null : <input key={name} type="hidden" name={name} value={String(value)} />,
             )
           : null}
-        {state.status === "error" && state.error ? (
-          <FormAlert tone="error">{(text.errors[state.error] ?? text.errors.unknown).replace("{item}", state.detail ?? "")}</FormAlert>
-        ) : null}
+        {state.status === "error" && state.error ? <ActionError errorKey={state.error} errors={text.errors} detail={state.detail} /> : null}
         {state.status === "success" && successMessage !== null ? <FormAlert tone="success">{successMessage ?? text.saved}</FormAlert> : null}
         <fieldset disabled={disabled || pending} className="flex min-w-0 flex-col gap-5">
           {children}
@@ -329,7 +355,7 @@ export function ActionButton({
           start(async () => {
             setError(null);
             const res = await action();
-            if (res && res.status === "error") setError(errors[res.error ?? "unknown"] ?? errors.unknown);
+            if (res && res.status === "error") setError(res.error ?? "unknown");
             else router.refresh();
           });
         }}
@@ -337,11 +363,7 @@ export function ActionButton({
         {pending ? <Loader2 className="animate-spin" aria-hidden /> : null}
         {pending && pendingLabel ? pendingLabel : children}
       </Button>
-      {error ? (
-        <span role="alert" className="text-xs font-medium text-coral-700">
-          {error}
-        </span>
-      ) : null}
+      {error ? <ActionError errorKey={error} errors={errors} small /> : null}
     </span>
   );
 }

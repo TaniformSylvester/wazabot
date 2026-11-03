@@ -118,15 +118,22 @@ export const META_PRICING = {
 export const META_PAYMENT_PROMPT_AT = 800;
 
 // ---------------------------------------------------------------------------
-// Plans (customer-facing prices — change only with the owner's approval)
+// Plans and the AI add-on (customer-facing prices — change only with the owner's approval)
 // ---------------------------------------------------------------------------
-export type PlanId = "free" | "boutique" | "starter" | "business" | "pro";
+/**
+ * "free" is not on sale: it is "no plan" — a trial or paid period that ended
+ * unpaid. The business is read-only (it can see and export its data) and
+ * Billing stays open. The old Starter and Pro plans stay in the database
+ * (inactive) for history only.
+ */
+export type PlanId = "free" | "boutique" | "business" | "multishop";
+export const PLANS_ON_SALE = ["boutique", "business", "multishop"] as const satisfies readonly PlanId[];
 
 export type PlanEconomics = {
   id: PlanId;
   /** FCFA per month. */
   monthlyPrice: number;
-  /** AI conversations included per month. Never "unlimited". */
+  /** AI conversations included without the add-on (none: AI is an add-on). */
   aiConversationsPerMonth: number;
   highlighted?: boolean;
   /** Business-tool limits; null = unlimited. Enforced by the database (plans table). */
@@ -137,9 +144,15 @@ export type PlanEconomics = {
   maxMembers: number;
   /** How far back reports go; null = any period. */
   reportDays: number | null;
-  /** Expenses, cost-based profit and margins. */
+  /** Expenses and estimated profit. */
   hasProfit: boolean;
-  /** Saved business documents (invoices, receipts, quotations; drafts, issued and voided). School fee invoices and their receipts don't count. */
+  /** The Reports page and its exports. */
+  hasReports: boolean;
+  /** The history of stock changes per product. */
+  hasStockHistory: boolean;
+  /** Notes on how a sale was paid (method, reference). */
+  hasPaymentNotes: boolean;
+  /** Saved business documents (invoices, receipts, quotations). School fee invoices and their receipts don't count. */
   maxDocuments: number | null;
   /** Active students (School module); null = unlimited, subject to fair use. */
   maxStudents: number | null;
@@ -153,44 +166,69 @@ export type PlanEconomics = {
   hasBulkReportCards: boolean;
   /** Advanced school reports: class and subject statistics, fee collection, CSV. */
   hasSchoolReports: boolean;
-  /** Locations included (the main one counts). */
+  /** Shops (locations) included; the main one counts. */
   includedBranches: number;
-  /** FCFA per month for each extra branch; null when the plan can't add branches. */
+  /** FCFA per month for each extra shop; null when the plan can't add shops. */
   extraBranchPrice: number | null;
 };
 
+const base = { aiConversationsPerMonth: 0, maxProducts: null, maxMonthlySales: null, reportDays: null, maxDocuments: null, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true } as const;
+
 /** Must match the `plans` table (the admin margin page warns when they differ). */
 export const PLANS: PlanEconomics[] = [
-  // Free: 30 conversations and a 300 FCFA Claude budget, then rules-only (businesses that signed up before Step 4: 50 until 1 Nov 2026).
-  { id: "free", monthlyPrice: 0, aiConversationsPerMonth: 30, maxProducts: 30, maxMonthlySales: 100, maxMembers: 1, reportDays: 7, hasProfit: false, maxDocuments: 20, maxStudents: 50, maxReportCardStudents: 50, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: false, hasSchoolReports: false, includedBranches: 1, extraBranchPrice: null },
-  // Boutique: the business tools without WhatsApp AI, for very small shops.
-  { id: "boutique", monthlyPrice: 5_000, aiConversationsPerMonth: 0, maxProducts: null, maxMonthlySales: null, maxMembers: 1, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 200, maxReportCardStudents: 200, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: false, includedBranches: 1, extraBranchPrice: null },
-  { id: "starter", monthlyPrice: 10_000, aiConversationsPerMonth: 500, maxProducts: null, maxMonthlySales: null, maxMembers: 2, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 200, maxReportCardStudents: 200, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: false, includedBranches: 1, extraBranchPrice: null },
-  { id: "business", monthlyPrice: 25_000, aiConversationsPerMonth: 2_000, highlighted: true, maxProducts: null, maxMonthlySales: null, maxMembers: 5, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: 500, maxReportCardStudents: 500, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: true, includedBranches: 2, extraBranchPrice: 5_000 },
-  { id: "pro", monthlyPrice: 50_000, aiConversationsPerMonth: 5_000, maxProducts: null, maxMonthlySales: null, maxMembers: 10, reportDays: null, hasProfit: true, maxDocuments: null, maxStudents: null, maxReportCardStudents: null, maxTeachers: 30, maxKitchen: 10, hasBulkReportCards: true, hasSchoolReports: true, includedBranches: 5, extraBranchPrice: 5_000 },
+  // Boutique: products, stock alerts, sales, customer credit, receipts. 1 user, 1 shop.
+  { ...base, id: "boutique", monthlyPrice: 3_000, maxMembers: 1, hasProfit: false, hasReports: false, hasStockHistory: false, hasPaymentNotes: false, maxStudents: 200, maxReportCardStudents: 200, hasSchoolReports: false, includedBranches: 1, extraBranchPrice: null },
+  // Business: everything in Boutique + expenses, estimated profit, reports, stock history, payment notes. 3 users, 1 shop.
+  { ...base, id: "business", monthlyPrice: 7_500, highlighted: true, maxMembers: 3, hasProfit: true, hasReports: true, hasStockHistory: true, hasPaymentNotes: true, maxStudents: 500, maxReportCardStudents: 500, hasSchoolReports: true, includedBranches: 1, extraBranchPrice: null },
+  // Multi-shop: everything in Business, several shops and more users.
+  { ...base, id: "multishop", monthlyPrice: 15_000, maxMembers: 10, hasProfit: true, hasReports: true, hasStockHistory: true, hasPaymentNotes: true, maxStudents: null, maxReportCardStudents: null, hasSchoolReports: true, includedBranches: 3, extraBranchPrice: 5_000 },
+  // No plan (read-only; not on sale).
+  { ...base, id: "free", monthlyPrice: 0, maxMembers: 1, hasProfit: false, hasReports: false, hasStockHistory: false, hasPaymentNotes: false, maxProducts: 30, maxMonthlySales: 100, reportDays: 7, maxDocuments: 20, maxStudents: 50, maxReportCardStudents: 50, hasBulkReportCards: false, hasSchoolReports: false, includedBranches: 1, extraBranchPrice: null },
 ];
 
-/** Businesses that existed before the plan limits keep full access on Free until this date (businesses.free_limits_from). */
-export const FREE_LIMITS_GRACE_UNTIL = "2026-12-01";
+/** The WhatsApp AI assistant, sold as an add-on to any plan. None by default. Must match the `addons` table. */
+export type AddonId = "ai_basic" | "ai_plus";
+export type AddonEconomics = { id: AddonId; monthlyPrice: number; conversationsPerMonth: number };
+export const ADDONS: AddonEconomics[] = [
+  { id: "ai_basic", monthlyPrice: 5_000, conversationsPerMonth: 300 },
+  { id: "ai_plus", monthlyPrice: 12_000, conversationsPerMonth: 1_000 },
+];
+/** A one-off top-up: extra conversations for the current usage period only. */
+export const AI_TOPUP = { price: 2_000, conversations: 100 } as const;
+/** A plan and an add-on together at a set monthly price (instead of the sum). Must match the `bundle_prices` table. */
+export const BUNDLE_PRICES: { planId: PlanId; addonId: AddonId; monthlyPrice: number }[] = [{ planId: "business", addonId: "ai_basic", monthlyPrice: 11_500 }];
+
+/** Free trial of the Business plan for a new business, once per owner. */
+export const TRIAL_DAYS = 14;
+/** The AI trial, once per business (only once AI launches): whichever comes first. */
+export const AI_TRIAL = { days: 14, conversations: 50 } as const;
+/** Our Claude spend allowed during an AI trial — counted as acquisition cost. */
+export const AI_TRIAL_CLAUDE_BUDGET_FCFA = 500;
+/** One-off setup fee an admin may set per business (0 = none). */
+export const SETUP_FEE_RANGE = { min: 10_000, max: 25_000 } as const;
 
 /** Annual plans: pay this many months, get 12. */
 export const ANNUAL_MONTHS_PAID = 10;
 export type BillingInterval = "month" | "year";
-/** What a plan costs for one billing period. */
+/** What a monthly price costs for one billing period. */
 export const periodPrice = (monthlyPrice: number, interval: BillingInterval) => (interval === "year" ? monthlyPrice * ANNUAL_MONTHS_PAID : monthlyPrice);
 
-/** Free plan: Claude spend per business per month before it becomes rules-only — counted as acquisition cost. */
+/** No plan (read-only): no AI. Kept for the pricing calculator's acquisition-cost row. */
 export const FREE_PLAN_CLAUDE_BUDGET_FCFA = 300;
 
 /**
- * The most a paid plan may spend on Claude in a month and still keep
- * MARGIN_TARGET after the Mobile Money fee:
- *   price − fee − claude ≥ target × price  ⇒  claude ≤ price × (1 − target − fee)
+ * The most the AI may spend on Claude in a month and still keep MARGIN_TARGET
+ * on what the AI add-on earns, after the Mobile Money fee:
+ *   ai − fee − claude ≥ target × ai  ⇒  claude ≤ ai × (1 − target − fee)
+ * `aiMonthlyRevenue` is the add-on's share of the monthly price (a bundle
+ * counts what it adds over the plan alone). The AI trial gets a small fixed
+ * budget (acquisition cost); no add-on and no trial: nothing.
  */
-export function claudeBudgetFcfa(plan: Pick<PlanEconomics, "id" | "monthlyPrice">, interval: BillingInterval = "month"): number {
-  if (plan.monthlyPrice === 0) return FREE_PLAN_CLAUDE_BUDGET_FCFA;
-  // An annual plan earns less per month (ANNUAL_MONTHS_PAID ÷ 12), so its monthly budget is smaller.
-  const perMonth = interval === "year" ? (plan.monthlyPrice * ANNUAL_MONTHS_PAID) / 12 : plan.monthlyPrice;
+export function claudeBudgetFcfa(aiMonthlyRevenue: number, interval: BillingInterval = "month", opts: { trial?: boolean } = {}): number {
+  if (opts.trial) return AI_TRIAL_CLAUDE_BUDGET_FCFA;
+  if (aiMonthlyRevenue <= 0) return 0;
+  // Annual billing earns less per month (ANNUAL_MONTHS_PAID ÷ 12), so its monthly budget is smaller.
+  const perMonth = interval === "year" ? (aiMonthlyRevenue * ANNUAL_MONTHS_PAID) / 12 : aiMonthlyRevenue;
   return Math.floor(perMonth * (1 - MARGIN_TARGET - MOBILE_MONEY_FEE_RATE) + 1e-9);
 }
 

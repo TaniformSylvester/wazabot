@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { authorize } from "@/lib/auth/dal";
+import { authorize, getCurrentBusiness } from "@/lib/auth/dal";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { getBranchContext } from "@/lib/branches";
 import { emit } from "@/lib/core/events";
 import { logServerError } from "@/lib/log";
@@ -40,12 +41,12 @@ const saleSchema = z.object({
   notes: optionalText(500),
 });
 export type SaleInput = z.input<typeof saleSchema>;
-export type SaleError = "forbidden" | "invalid" | "empty" | "customer" | "out_of_stock" | "credit_needs_customer" | "discount_not_allowed" | "too_much" | "plan_limit_sales" | "branch_closed" | "failed";
+export type SaleError = "forbidden" | "plan_required" | "invalid" | "empty" | "customer" | "out_of_stock" | "credit_needs_customer" | "discount_not_allowed" | "too_much" | "plan_limit_sales" | "branch_closed" | "failed";
 export type SaleResult = { ok: true; id: string } | { ok: false; error: SaleError; item?: string };
 
 export async function createSale(input: SaleInput): Promise<SaleResult> {
   const ctx = await authorize("agent");
-  if (!ctx) return { ok: false, error: "forbidden" };
+  if (!ctx) return { ok: false, error: (await getCurrentBusiness())?.readOnly ? "plan_required" : "forbidden" };
   const parsed = saleSchema.safeParse(input);
   if (!parsed.success) {
     const path = parsed.error.issues[0]?.path[0];
@@ -74,7 +75,9 @@ export async function createSale(input: SaleInput): Promise<SaleResult> {
     }
   }
 
-  const payments = s.payment.method !== "credit" && s.payment.amount > 0 ? [{ method: s.payment.method, amount: s.payment.amount, reference: s.payment.reference }] : [];
+  // Payment references are in the Business plan.
+  const withNotes = await businessCanUse(ctx.business.id, "payment_notes");
+  const payments = s.payment.method !== "credit" && s.payment.amount > 0 ? [{ method: s.payment.method, amount: s.payment.amount, reference: withNotes ? s.payment.reference : null }] : [];
   const { data, error } = await supabase.rpc("create_sale", {
     p_business_id: ctx.business.id,
     p_client_key: s.client_key,

@@ -64,7 +64,12 @@ export type ActionErrorKey =
   // Branches
   | "branch_limit"
   | "branch_closed"
-  | "branch_plan";
+  | "branch_plan"
+  | "plan_required"
+  | "ai_not_launched"
+  | "meta_notice_required"
+  | "topup_needs_addon"
+  | "ai_trial_used";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -84,6 +89,24 @@ export const initialFormState: FormState = { status: "idle" };
 
 export const ok = (id?: string): FormState => ({ status: "success", id, at: Date.now() });
 export const fail = (error: ActionErrorKey, fieldErrors?: FormState["fieldErrors"], detail?: string): FormState => ({ status: "error", error, fieldErrors, detail });
+/** Error keys shown as an upgrade prompt with a link to Billing, never as an error. */
+export const UPGRADE_ERRORS: readonly ActionErrorKey[] = [
+  "plan_required",
+  "plan_limit_products",
+  "plan_limit_sales",
+  "plan_limit_members",
+  "plan_limit_feature",
+  "plan_limit_students",
+  "plan_limit_teachers",
+  "plan_limit_documents",
+  "plan_limit_report_cards",
+  "plan_limit_kitchen",
+  "branch_limit",
+  "branch_plan",
+  "free_business_used",
+  "topup_needs_addon",
+];
+
 export const invalid = (error: z.ZodError): FormState => fail("invalid", z.flattenError(error).fieldErrors as FormState["fieldErrors"]);
 
 /** Maps a PostgREST/Postgres error to an action error key. */
@@ -129,6 +152,16 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "branch_plan";
     case "WB430":
       return "results_published";
+    case "WB460":
+      return "ai_not_launched";
+    case "WB461":
+      return "meta_notice_required";
+    case "WB462":
+      return "topup_needs_addon";
+    case "WB463":
+      return "plan_required";
+    case "WB464":
+      return "ai_trial_used";
     case "23505":
       return "duplicate";
     case "22023":

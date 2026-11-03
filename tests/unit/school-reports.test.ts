@@ -118,51 +118,22 @@ describe("advanced school report", () => {
 });
 
 describe("plan entitlements (config)", () => {
-  it("matches the owner's decisions and keeps prices unchanged", () => {
+  it("matches the owner's decisions", () => {
     const by = Object.fromEntries(PLANS.map((p) => [p.id, p]));
-    expect(by.free).toMatchObject({
-      monthlyPrice: 0,
-      maxDocuments: 20,
-      maxStudents: 50,
-      maxReportCardStudents: 50,
-      maxTeachers: 30,
-      hasBulkReportCards: false,
-      hasSchoolReports: false,
-    });
-    expect(by.boutique).toMatchObject({
-      monthlyPrice: 5_000,
-      maxDocuments: null,
-      maxStudents: 200,
-      hasBulkReportCards: true,
-      hasSchoolReports: false,
-    });
-    expect(by.starter).toMatchObject({
-      monthlyPrice: 10_000,
-      maxDocuments: null,
-      maxStudents: 200,
-      hasBulkReportCards: true,
-      hasSchoolReports: false,
-    });
-    expect(by.business).toMatchObject({
-      monthlyPrice: 25_000,
-      maxStudents: 500,
-      hasSchoolReports: true,
-    });
-    expect(by.pro).toMatchObject({
-      monthlyPrice: 50_000,
-      maxStudents: null,
-      maxReportCardStudents: null,
-      hasSchoolReports: true,
-    });
+    expect(by.boutique).toMatchObject({ monthlyPrice: 3_000, maxDocuments: null, maxStudents: 200, hasBulkReportCards: true, hasSchoolReports: false });
+    expect(by.business).toMatchObject({ monthlyPrice: 7_500, maxDocuments: null, maxStudents: 500, hasSchoolReports: true });
+    expect(by.multishop).toMatchObject({ monthlyPrice: 15_000, maxStudents: null, maxReportCardStudents: null, hasSchoolReports: true });
+    // No plan (read-only): not on sale.
+    expect(by.free).toMatchObject({ monthlyPrice: 0, hasBulkReportCards: false, hasSchoolReports: false });
     expect(PLANS.every((p) => p.maxTeachers === 30)).toBe(true);
     // Kitchen accounts: free seats on every plan, like teacher seats.
     expect(PLANS.every((p) => p.maxKitchen === 10)).toBe(true);
   });
 
-  it("names the cheapest plan that includes a feature", () => {
+  it("names the cheapest plan on sale that includes a feature", () => {
     expect(cheapestPlanWith((p) => p.hasBulkReportCards)?.id).toBe("boutique");
     expect(cheapestPlanWith((p) => p.hasSchoolReports)?.id).toBe("business");
     expect(cheapestPlanWith(() => false)).toBeUndefined();
-    expect(plans.find((p) => p.id === "free")?.maxDocuments).toBe(20);
+    expect(plans.some((p) => p.id === "free")).toBe(false);
   });
 });

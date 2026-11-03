@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { notFound } from "next/navigation";
 import { FileText, Printer } from "lucide-react";
 
@@ -187,6 +188,7 @@ export default async function RestaurantOrderPage({ params }: PageProps<"/[lang]
             ) : null}
           </Panel>
           <PaymentsPanel
+            withNotes={await businessCanUse(business.id, "payment_notes")}
             order={{ id: order.id, total: order.total, paid: order.amount_paid, refunded: order.amount_refunded, currency: order.currency, closed: ["cancelled", "returned"].includes(order.status) }}
             payments={payments}
             canRecord={canOrder}

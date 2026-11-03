@@ -1,6 +1,8 @@
 import "server-only";
 
-import { ANNUAL_MONTHS_PAID, FCFA_PER_USD, MARGIN_TARGET, META_PRICING, MOBILE_MONEY_FEE_RATE, PLANS, claudeBudgetFcfa, type BillingInterval } from "@/config/economics";
+import { ANNUAL_MONTHS_PAID, FCFA_PER_USD, MARGIN_TARGET, META_PRICING, MOBILE_MONEY_FEE_RATE, PLANS, claudeBudgetFcfa, type AddonId, type BillingInterval } from "@/config/economics";
+import { currentPlanId } from "@/lib/billing/entitlements";
+import { quote } from "@/lib/billing/price";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 /*
@@ -78,16 +80,18 @@ export function metaEstimateFcfa(w: BusinessMargin["whatsapp"]) {
   return (w.serviceOverFree * r.service + w.utility * r.utility + w.marketing * r.marketing) * FCFA_PER_USD;
 }
 
-export function businessMargin(row: CostRow, interval: BillingInterval = "month"): BusinessMargin {
+export function businessMargin(row: CostRow, interval: BillingInterval = "month", addonId: AddonId | null = null): BusinessMargin {
   const planId = row.plan_id ?? "free";
-  const plan = PLANS.find((p) => p.id === planId);
-  const price = plan?.monthlyPrice ?? 0;
+  const current = currentPlanId(planId);
+  // What the business pays per month: the plan with its AI add-on (a bundle at its set price).
+  const q = current === "free" ? null : quote(current, addonId);
+  const price = q?.monthly ?? 0;
   const perMonth = interval === "year" ? (price * ANNUAL_MONTHS_PAID) / 12 : price;
   const revenue = price > 0 && PAID_STATUSES.has(row.subscription_status ?? "") ? perMonth : 0;
   const paymentFees = revenue * MOBILE_MONEY_FEE_RATE;
   const claude = Number(row.claude_reply_fcfa) + Number(row.claude_test_fcfa);
   const margin = revenue > 0 ? (revenue - claude - paymentFees) / revenue : null;
-  const budget = claudeBudgetFcfa({ id: plan?.id ?? "free", monthlyPrice: price }, interval);
+  const budget = claudeBudgetFcfa(q?.aiMonthly ?? 0, interval);
   const whatsapp = { service: row.service_sent, serviceOverFree: row.service_over_free, utility: row.utility_sent, marketing: row.marketing_sent };
   return {
     businessId: row.business_id,
@@ -174,10 +178,14 @@ export async function getMarginReport(admin: Admin, month: string) {
   const [{ data, error }, { data: dbPlans }, { data: subs }] = await Promise.all([
     admin.rpc("admin_cost_report", { p_month: month, p_free_service: META_PRICING.freeServicePerNumberPerMonth }),
     admin.from("plans").select("id, monthly_price, ai_conversations_per_month, max_documents, max_students, max_report_card_students, max_teachers, max_kitchen, has_bulk_report_cards, has_school_reports, included_branches, extra_branch_price"),
-    admin.from("subscriptions").select("business_id, billing_interval"),
+    admin.from("subscriptions").select("business_id, billing_interval, addon_id"),
   ]);
   if (error) throw error;
   const yearly = new Set((subs ?? []).filter((s) => s.billing_interval === "year").map((s) => s.business_id));
-  const businesses = (data ?? []).map((r) => businessMargin(r as CostRow, yearly.has((r as CostRow).business_id) ? "year" : "month"));
+  const addons = new Map((subs ?? []).map((s) => [s.business_id, s.addon_id === "ai_basic" || s.addon_id === "ai_plus" ? (s.addon_id as AddonId) : null]));
+  const businesses = (data ?? []).map((r) => {
+    const id = (r as CostRow).business_id;
+    return businessMargin(r as CostRow, yearly.has(id) ? "year" : "month", addons.get(id) ?? null);
+  });
   return { month, businesses, plans: planMargins(businesses), drift: planConfigDrift(dbPlans ?? []) };
 }

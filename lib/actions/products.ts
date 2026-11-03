@@ -12,6 +12,7 @@ import { combinationKey, combinationNameValue, parseCombination, type ProductOpt
 import { productSchema, stockAdjustSchema, stockTransferSchema } from "@/lib/validation/app";
 
 import { dbError, dbFail, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 const IMAGE_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -20,7 +21,7 @@ const PRODUCT_IMAGES_BUCKET = "product-images";
 /** Create or update a product with its variants (owners/admins). */
 export async function saveProduct(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = productSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const { variants, options: optionInput, ...fields } = parsed.data;
@@ -165,7 +166,7 @@ async function uploadImage(businessId: string, productId: string, file: File) {
 export async function setProductActive(productId: string, active: boolean): Promise<FormState> {
   if (!isUuid(productId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("products").update({ active }).eq("id", productId).eq("business_id", ctx.business.id);
   if (error) return fail(dbError(error));
@@ -180,7 +181,7 @@ export async function setProductActive(productId: string, active: boolean): Prom
  */
 export async function adjustStock(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = stockAdjustSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const a = parsed.data;
@@ -206,7 +207,7 @@ export async function adjustStock(_prev: FormState, formData: FormData): Promise
 /** Owners/admins: move stock from one branch to another (the total doesn't change). */
 export async function transferStock(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = stockTransferSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const a = parsed.data;
@@ -232,7 +233,7 @@ export async function transferStock(_prev: FormState, formData: FormData): Promi
 export async function deleteProduct(productId: string, locale: string): Promise<FormState> {
   if (!isUuid(productId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("products").delete().eq("id", productId).eq("business_id", ctx.business.id);
   if (error) {

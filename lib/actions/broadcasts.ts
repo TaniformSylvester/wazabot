@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkbox, requiredText } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /*
  * Broadcasts (Stage 8): owners/admins write a promotion, WazaBolt submits it
@@ -42,7 +43,7 @@ const revalidate = () => revalidatePath("/[lang]/dashboard/broadcasts", "layout"
 
 export async function createBroadcast(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = broadcastSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const admin = createAdminClient();
@@ -125,7 +126,7 @@ export async function resumeBroadcast(broadcastId: string): Promise<FormState> {
 export async function deleteBroadcast(broadcastId: string, locale: string): Promise<FormState> {
   if (!isUuid(broadcastId)) return fail("invalid");
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("broadcasts").delete().eq("id", broadcastId).eq("business_id", ctx.business.id).select("id");
   if (error) {

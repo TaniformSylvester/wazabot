@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MARGIN_TARGET, MOBILE_MONEY_FEE_RATE, PLANS, claudeBudgetFcfa } from "@/config/economics";
+import { ADDONS, AI_TRIAL_CLAUDE_BUDGET_FCFA, MARGIN_TARGET, MOBILE_MONEY_FEE_RATE, claudeBudgetFcfa } from "@/config/economics";
 import { claudeCostUsd, claudeRates, usdToFcfa } from "@/lib/billing/costs";
 
 const call = (model: string, t: Partial<Record<"inputTokens" | "outputTokens" | "cacheReadTokens" | "cacheWrite5mTokens" | "cacheWrite1hTokens", number>>) => ({
@@ -29,13 +29,18 @@ describe("Claude costs", () => {
     expect(unknown.rates.output).toBeGreaterThanOrEqual(20);
   });
 
-  it("derives each paid plan's Claude budget from the margin target", () => {
-    for (const plan of PLANS.filter((p) => p.monthlyPrice > 0)) {
-      const budget = claudeBudgetFcfa(plan);
-      const margin = (plan.monthlyPrice - plan.monthlyPrice * MOBILE_MONEY_FEE_RATE - budget) / plan.monthlyPrice;
+  it("derives each AI add-on's Claude budget from the margin target on what the add-on earns", () => {
+    for (const addon of ADDONS) {
+      const budget = claudeBudgetFcfa(addon.monthlyPrice);
+      const margin = (addon.monthlyPrice - addon.monthlyPrice * MOBILE_MONEY_FEE_RATE - budget) / addon.monthlyPrice;
       expect(margin).toBeGreaterThanOrEqual(MARGIN_TARGET);
     }
-    expect(claudeBudgetFcfa({ id: "starter", monthlyPrice: 10_000 })).toBe(3_700);
-    expect(claudeBudgetFcfa({ id: "free", monthlyPrice: 0 })).toBe(300);
-  });
-});
+    expect(claudeBudgetFcfa(5_000)).toBe(1_850);
+    // A bundle counts what it adds over the plan alone (Business + AI Basic: 11,500 − 7,500).
+    expect(claudeBudgetFcfa(4_000)).toBe(1_480);
+    // Annual billing: 10/12 of the monthly revenue.
+    expect(claudeBudgetFcfa(6_000, "year")).toBe(1_850);
+    // No add-on: nothing; the AI trial: its small fixed budget.
+    expect(claudeBudgetFcfa(0)).toBe(0);
+    expect(claudeBudgetFcfa(0, "month", { trial: true })).toBe(AI_TRIAL_CLAUDE_BUDGET_FCFA);
+  });});

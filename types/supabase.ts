@@ -41,6 +41,39 @@ export type Database = {
           },
         ];
       };
+      addons: {
+        Row: {
+          active: boolean;
+          conversations: number;
+          created_at: string;
+          id: string;
+          kind: string;
+          name: string;
+          price: number;
+          sort_order: number;
+        };
+        Insert: {
+          active?: boolean;
+          conversations: number;
+          created_at?: string;
+          id: string;
+          kind: string;
+          name: string;
+          price: number;
+          sort_order?: number;
+        };
+        Update: {
+          active?: boolean;
+          conversations?: number;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          name?: string;
+          price?: number;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
       ai_conversation_windows: {
         Row: {
           business_id: string;
@@ -159,6 +192,54 @@ export type Database = {
             columns: ["business_id"];
             isOneToOne: true;
             referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_topups: {
+        Row: {
+          business_id: string;
+          conversations: number;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          period_end: string;
+          period_start: string;
+          request_id: string | null;
+        };
+        Insert: {
+          business_id: string;
+          conversations: number;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          period_end: string;
+          period_start: string;
+          request_id?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          conversations?: number;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          period_end?: string;
+          period_start?: string;
+          request_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_topups_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_topups_request_id_fkey";
+            columns: ["request_id"];
+            isOneToOne: false;
+            referencedRelation: "plan_change_requests";
             referencedColumns: ["id"];
           },
         ];
@@ -631,6 +712,39 @@ export type Database = {
             columns: ["business_id"];
             isOneToOne: false;
             referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      bundle_prices: {
+        Row: {
+          addon_id: string;
+          monthly_price: number;
+          plan_id: string;
+        };
+        Insert: {
+          addon_id: string;
+          monthly_price: number;
+          plan_id: string;
+        };
+        Update: {
+          addon_id?: string;
+          monthly_price?: number;
+          plan_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bundle_prices_addon_id_fkey";
+            columns: ["addon_id"];
+            isOneToOne: false;
+            referencedRelation: "addons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bundle_prices_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "plans";
             referencedColumns: ["id"];
           },
         ];
@@ -2735,6 +2849,7 @@ export type Database = {
       };
       plan_change_requests: {
         Row: {
+          addon_id: string | null;
           billing_interval: string;
           business_id: string;
           contact_phone: string | null;
@@ -2744,12 +2859,14 @@ export type Database = {
           from_plan_id: string | null;
           id: string;
           kind: string;
+          meta_notice_accepted_at: string | null;
           note: string | null;
           requested_by: string | null;
           status: string;
           to_plan_id: string;
         };
         Insert: {
+          addon_id?: string | null;
           billing_interval?: string;
           business_id: string;
           contact_phone?: string | null;
@@ -2759,12 +2876,14 @@ export type Database = {
           from_plan_id?: string | null;
           id?: string;
           kind?: string;
+          meta_notice_accepted_at?: string | null;
           note?: string | null;
           requested_by?: string | null;
           status?: string;
           to_plan_id: string;
         };
         Update: {
+          addon_id?: string | null;
           billing_interval?: string;
           business_id?: string;
           contact_phone?: string | null;
@@ -2774,12 +2893,20 @@ export type Database = {
           from_plan_id?: string | null;
           id?: string;
           kind?: string;
+          meta_notice_accepted_at?: string | null;
           note?: string | null;
           requested_by?: string | null;
           status?: string;
           to_plan_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "plan_change_requests_addon_id_fkey";
+            columns: ["addon_id"];
+            isOneToOne: false;
+            referencedRelation: "addons";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "plan_change_requests_business_id_fkey";
             columns: ["business_id"];
@@ -2811,8 +2938,11 @@ export type Database = {
           currency: string;
           extra_branch_price: number | null;
           has_bulk_report_cards: boolean;
+          has_payment_notes: boolean;
           has_profit: boolean;
+          has_reports: boolean;
           has_school_reports: boolean;
+          has_stock_history: boolean;
           highlighted: boolean;
           id: string;
           included_branches: number;
@@ -2837,8 +2967,11 @@ export type Database = {
           currency?: string;
           extra_branch_price?: number | null;
           has_bulk_report_cards?: boolean;
+          has_payment_notes?: boolean;
           has_profit?: boolean;
+          has_reports?: boolean;
           has_school_reports?: boolean;
+          has_stock_history?: boolean;
           highlighted?: boolean;
           id: string;
           included_branches?: number;
@@ -2863,8 +2996,11 @@ export type Database = {
           currency?: string;
           extra_branch_price?: number | null;
           has_bulk_report_cards?: boolean;
+          has_payment_notes?: boolean;
           has_profit?: boolean;
+          has_reports?: boolean;
           has_school_reports?: boolean;
+          has_stock_history?: boolean;
           highlighted?: boolean;
           id?: string;
           included_branches?: number;
@@ -2962,6 +3098,27 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      platform_settings: {
+        Row: {
+          key: string;
+          updated_at: string;
+          updated_by: string | null;
+          value: NonNullable<Json>;
+        };
+        Insert: {
+          key: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          value: NonNullable<Json>;
+        };
+        Update: {
+          key?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          value?: NonNullable<Json>;
+        };
+        Relationships: [];
       };
       product_variants: {
         Row: {
@@ -3857,12 +4014,14 @@ export type Database = {
       };
       subscription_payments: {
         Row: {
+          addon_id: string | null;
           amount: number;
           billing_interval: string;
           business_id: string;
           created_at: string;
           currency: string;
           id: string;
+          kind: string;
           method: string;
           period_end: string;
           period_start: string;
@@ -3873,12 +4032,14 @@ export type Database = {
           request_id: string | null;
         };
         Insert: {
+          addon_id?: string | null;
           amount: number;
           billing_interval: string;
           business_id: string;
           created_at?: string;
           currency?: string;
           id?: string;
+          kind?: string;
           method: string;
           period_end: string;
           period_start: string;
@@ -3889,12 +4050,14 @@ export type Database = {
           request_id?: string | null;
         };
         Update: {
+          addon_id?: string | null;
           amount?: number;
           billing_interval?: string;
           business_id?: string;
           created_at?: string;
           currency?: string;
           id?: string;
+          kind?: string;
           method?: string;
           period_end?: string;
           period_start?: string;
@@ -3905,6 +4068,13 @@ export type Database = {
           request_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "subscription_payments_addon_id_fkey";
+            columns: ["addon_id"];
+            isOneToOne: false;
+            referencedRelation: "addons";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "subscription_payments_business_id_fkey";
             columns: ["business_id"];
@@ -3930,42 +4100,70 @@ export type Database = {
       };
       subscriptions: {
         Row: {
+          addon_id: string | null;
+          ai_trial_ends_at: string | null;
+          ai_trial_started_at: string | null;
           billing_interval: string;
           business_id: string;
           created_at: string;
           current_period_end: string;
           current_period_start: string;
           extra_branches: number;
+          meta_notice_accepted_at: string | null;
           plan_id: string;
           rules_from: string;
+          setup_fee: number;
+          setup_fee_paid_at: string | null;
           status: string;
+          trial_started_at: string | null;
           updated_at: string;
         };
         Insert: {
+          addon_id?: string | null;
+          ai_trial_ends_at?: string | null;
+          ai_trial_started_at?: string | null;
           billing_interval?: string;
           business_id: string;
           created_at?: string;
           current_period_end?: string;
           current_period_start?: string;
           extra_branches?: number;
+          meta_notice_accepted_at?: string | null;
           plan_id: string;
           rules_from?: string;
+          setup_fee?: number;
+          setup_fee_paid_at?: string | null;
           status?: string;
+          trial_started_at?: string | null;
           updated_at?: string;
         };
         Update: {
+          addon_id?: string | null;
+          ai_trial_ends_at?: string | null;
+          ai_trial_started_at?: string | null;
           billing_interval?: string;
           business_id?: string;
           created_at?: string;
           current_period_end?: string;
           current_period_start?: string;
           extra_branches?: number;
+          meta_notice_accepted_at?: string | null;
           plan_id?: string;
           rules_from?: string;
+          setup_fee?: number;
+          setup_fee_paid_at?: string | null;
           status?: string;
+          trial_started_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_addon_id_fkey";
+            columns: ["addon_id"];
+            isOneToOne: false;
+            referencedRelation: "addons";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "subscriptions_business_id_fkey";
             columns: ["business_id"];
@@ -4247,6 +4445,7 @@ export type Database = {
         Returns: Json;
       };
       _documents_used: { Args: { p_business_id: string }; Returns: number };
+      _owner_used_trial: { Args: { p_except?: string; p_user: string }; Returns: boolean };
       _owns_free_business: { Args: { p_except?: string; p_user: string }; Returns: boolean };
       _payment_time: { Args: { p_received_at: string }; Returns: string };
       _plan_entitlements: {
@@ -4294,6 +4493,19 @@ export type Database = {
         };
         Returns: number;
       };
+      admin_ai_conversation_costs: {
+        Args: { p_since: string };
+        Returns: {
+          business_id: string;
+          calls: number;
+          claude_replies: number;
+          cost_fcfa: number;
+          cost_usd: number;
+          rule_replies: number;
+          started_at: string;
+          window_id: string;
+        }[];
+      };
       admin_cost_report: {
         Args: { p_free_service: number; p_month: string };
         Returns: {
@@ -4312,9 +4524,21 @@ export type Database = {
           utility_sent: number;
         }[];
       };
+      admin_extend_trial: {
+        Args: { p_actor?: string; p_business_id: string; p_days: number };
+        Returns: string;
+      };
+      admin_set_ai_launched: { Args: { p_actor?: string; p_on: boolean }; Returns: undefined };
+      admin_set_setup_fee: {
+        Args: { p_actor?: string; p_amount: number; p_business_id: string };
+        Returns: undefined;
+      };
+      ai_assistant_launched: { Args: Record<PropertyKey, never>; Returns: boolean };
       ai_usage_status: {
         Args: { p_business_id: string };
         Returns: {
+          addon_id: string;
+          ai_trial: boolean;
           billing_interval: string;
           conversation_limit: number;
           conversations_used: number;
@@ -4327,6 +4551,7 @@ export type Database = {
           plan_name: string;
           rules_from: string;
           subscription_status: string;
+          topup_conversations: number;
         }[];
       };
       apply_billing_expiry: {
@@ -4347,6 +4572,7 @@ export type Database = {
           p_method?: string;
           p_reference?: string;
           p_request_id: string;
+          p_setup_fee_paid?: boolean;
         };
         Returns: undefined;
       };
@@ -4390,6 +4616,34 @@ export type Database = {
           plan_id: string;
           students_used: number;
           teachers_used: number;
+        }[];
+      };
+      business_features: {
+        Args: { p_business_id: string };
+        Returns: {
+          access: string;
+          addon_id: string;
+          ai_launched: boolean;
+          ai_trial_ends_at: string;
+          ai_trial_started_at: string;
+          billing_interval: string;
+          branch_allowance: number;
+          branches_used: number;
+          current_period_end: string;
+          current_period_start: string;
+          has_payment_notes: boolean;
+          has_profit: boolean;
+          has_reports: boolean;
+          has_stock_history: boolean;
+          max_members: number;
+          members_used: number;
+          meta_notice_accepted_at: string;
+          plan_id: string;
+          plan_name: string;
+          setup_fee: number;
+          setup_fee_paid_at: string;
+          status: string;
+          trial_started_at: string;
         }[];
       };
       business_plan_limits: {
@@ -4824,12 +5078,18 @@ export type Database = {
         Args: { p_invitation_id: string; p_token_hash: string };
         Returns: undefined;
       };
+      request_ai_topup: {
+        Args: { p_business_id: string; p_contact_phone?: string };
+        Returns: string;
+      };
       request_extra_branches: {
         Args: { p_business_id: string; p_contact_phone?: string; p_extra: number; p_note?: string };
         Returns: string;
       };
       request_plan_change: {
         Args: {
+          p_accept_meta_notice?: boolean;
+          p_addon_id?: string;
           p_business_id: string;
           p_contact_phone?: string;
           p_interval?: string;
@@ -4966,6 +5226,10 @@ export type Database = {
       set_ticket_status: { Args: { p_status: string; p_ticket_id: string }; Returns: undefined };
       set_ui_locale: { Args: { p_locale: string }; Returns: undefined };
       shares_business_with: { Args: { other_user: string }; Returns: boolean };
+      start_ai_trial: {
+        Args: { p_accept_meta_notice: boolean; p_business_id: string };
+        Returns: string;
+      };
       teaches_class: { Args: { p_class_id: string }; Returns: boolean };
       teaches_student: { Args: { p_student_id: string }; Returns: boolean };
       term_report_card_usage: { Args: { p_term_id: string }; Returns: number };

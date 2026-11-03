@@ -14,6 +14,8 @@ create temp table ids on commit drop as
 select (select business_id from public.business_members where user_id = '00000000-0000-4000-a963-00000000000a') as biz;
 create temp table t (k text primary key, v uuid) on commit drop;
 grant select on ids to authenticated, service_role;
+-- These tests start from no plan ("free"), as before the trials (plans_v2.sql tests the trials).
+update public.subscriptions set plan_id = 'free', status = 'active', trial_started_at = null where business_id in (select business_id from public.business_members where user_id::text like '00000000-0000-4000-%');
 grant all on t to authenticated, service_role;
 
 create function pg_temp.as_user(u text) returns void language sql as $$
@@ -32,14 +34,14 @@ do $$
 begin
   if (select string_agg(concat_ws(':', id, coalesce(max_documents::text, '-'), coalesce(max_students::text, '-'), coalesce(max_report_card_students::text, '-'),
                                   max_teachers, has_bulk_report_cards::text, has_school_reports::text), ' ' order by monthly_price)
-      from public.plans where id in ('free', 'boutique', 'starter', 'business', 'pro'))
-     <> 'free:20:50:50:30:false:false boutique:-:200:200:30:true:false starter:-:200:200:30:true:false business:-:500:500:30:true:true pro:-:-:-:30:true:true' then
+      from public.plans where id in ('free', 'boutique', 'business', 'multishop'))
+     <> 'free:20:50:50:30:false:false boutique:-:200:200:30:true:false business:-:500:500:30:true:true multishop:-:-:-:30:true:true' then
     raise exception 'FAIL: plan entitlements %', (select string_agg(id || ':' || coalesce(max_documents::text, '-') || ':' || coalesce(max_students::text, '-'), ' ') from public.plans);
   end if;
-  if (select monthly_price from public.plans where id = 'starter') <> 10000 or (select monthly_price from public.plans where id = 'business') <> 25000 then
+  if (select monthly_price from public.plans where id = 'boutique') <> 3000 or (select monthly_price from public.plans where id = 'business') <> 7500 then
     raise exception 'FAIL: prices changed';
   end if;
-  raise notice 'PASS plans carry the Docs and School entitlements (Free 20 docs / 50 students, Starter 200, Business 500, Pro unlimited; 30 teachers everywhere); prices unchanged';
+  raise notice 'PASS plans carry the Docs and School entitlements (no plan 20 docs / 50 students, Boutique 200, Business 500, Multi-shop unlimited; 30 teachers everywhere)';
 end $$;
 
 -- Owner (Free, limits in force from today) sets up a school.
@@ -141,8 +143,8 @@ begin
 end $$;
 
 reset role;
-update public.subscriptions set plan_id = 'starter' where business_id = (select biz from ids);
-update public.plans set max_teachers = 2 where id = 'starter';
+update public.subscriptions set plan_id = 'business' where business_id = (select biz from ids);
+update public.plans set max_teachers = 2 where id = 'business';
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-4000-a963-00000000000a');
 do $$
@@ -165,7 +167,7 @@ end $$;
 
 reset role;
 update public.subscriptions set plan_id = 'free' where business_id = (select biz from ids);
-update public.plans set max_teachers = 30 where id in ('free', 'starter');
+update public.plans set max_teachers = 30 where id in ('free', 'business');
 delete from public.business_members where business_id = (select biz from ids) and user_id = '00000000-0000-4000-a963-000000000001';
 
 -- ---------------------------------------------------------------------------

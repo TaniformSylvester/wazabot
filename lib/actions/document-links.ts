@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { money, optionalText } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
+import { denied } from "./denied";
 
 /*
  * WazaBolt Docs (Phase 2) — documents linked to orders, payments and customers.
@@ -42,7 +43,7 @@ function linkError(error: { code?: string; message?: string } | null): FormState
 export async function createOrderInvoice(orderId: string, locale: string): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const settings = await getDocumentSettings(ctx.business.id);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_order_invoice", { p_order_id: orderId, p_business_snapshot: businessSnapshot(ctx.business, settings) });
@@ -67,7 +68,7 @@ const invoicePaymentSchema = z.object({
 export async function recordInvoicePayment(documentId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(documentId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = invoicePaymentSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const at = receivedAt(parsed.data.received_on, ctx.business.timezone);
@@ -98,7 +99,7 @@ const voidSchema = z.object({
 /** Owners/admins: void a payment recorded on an invoice by mistake (not while it has a receipt). */
 export async function voidInvoicePayment(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const parsed = voidSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();
@@ -115,7 +116,7 @@ export async function voidInvoicePayment(_prev: FormState, formData: FormData): 
 export async function createPaymentReceipt(source: "order" | "invoice", paymentId: string, locale: string): Promise<FormState> {
   if (!isUuid(paymentId) || (source !== "order" && source !== "invoice")) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const settings = await getDocumentSettings(ctx.business.id);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_payment_receipt", {
@@ -135,7 +136,7 @@ export async function createPaymentReceipt(source: "order" | "invoice", paymentI
 export async function sendDocumentWhatsApp(documentId: string): Promise<FormState> {
   if (!isUuid(documentId)) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   // Read with the user's session: RLS proves the document is theirs.
   const row = await getDocument(ctx.business.id, documentId);
   if (!row || !row.customer_id) return fail("not_found");
@@ -176,7 +177,7 @@ export async function sendStatementWhatsApp(customerId: string, options: { from:
   const p = period.safeParse(options);
   if (!p.success) return fail("invalid");
   const ctx = await authorize("agent");
-  if (!ctx) return fail("forbidden");
+  if (!ctx) return denied();
   const st = await customerStatement(ctx.business, customerId, p.data);
   if (!st) return fail("not_found");
   let pdf: Buffer;
