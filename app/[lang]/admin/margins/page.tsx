@@ -59,7 +59,7 @@ export default async function MarginsPage({ searchParams }: PageProps<"/[lang]/a
         </p>
       ) : null}
 
-      <Panel id="plans" title="By plan" description="Revenue is the price of active (or past-due) subscriptions — there is no payment history yet. Free has no revenue: its Claude cost is acquisition cost.">
+      <Panel id="plans" title="By plan" description="Revenue is the price of active (or past-due) subscriptions: the plan with its AI add-on (a bundle at its set price). Trials and no plan earn nothing: their Claude cost is acquisition cost.">
         <TableWrap>
           <thead>
             <tr>
@@ -80,7 +80,7 @@ export default async function MarginsPage({ searchParams }: PageProps<"/[lang]/a
                 <td className={td}>{fcfa(p.claude)}</td>
                 <td className={td}>{fcfa(p.paymentFees)}</td>
                 <td className={td}>
-                  {p.planId === "free" ? (
+                  {p.revenue === 0 ? (
                     <span>Acquisition cost {fcfa(p.claude)}</span>
                   ) : p.margin === null ? (
                     "—"

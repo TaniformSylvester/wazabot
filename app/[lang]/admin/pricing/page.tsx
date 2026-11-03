@@ -110,13 +110,13 @@ async function Plans() {
   return (
     <Panel
       id="plans"
-      title="Plans at full allowance"
-      description="Each plan simulated at its full monthly allowance for the four sample businesses; the most expensive one sets the cost. Headroom: how many times that cost the plan can absorb before falling below the target."
+      title="AI offers at full allowance"
+      description="The plans carry no AI cost: each AI offer (AI Basic, AI Plus, each bundle — counted at what it adds over the plan alone — and the AI trial) simulated at its full monthly allowance for the four sample businesses; the most expensive one sets the cost. Headroom: how many times that cost the offer can absorb before falling below the target. Below the target, the hidden Claude budget caps the spend (short replies, then the team)."
     >
       <TableWrap>
         <thead>
           <tr>
-            {["Plan", "Price", "Conversations", "Claude / conv.", "Claude at full use", "Margin", "Annual", "Headroom", "Meta (paid by the business)", "Recommendation"].map((h) => (
+            {["AI offer", "AI price", "Conversations", "Claude / conv.", "Claude at full use", "Margin", "Annual", "Headroom", "Meta (paid by the business)", "Recommendation"].map((h) => (
               <th key={h} className={th}>
                 {h}
               </th>
@@ -172,7 +172,7 @@ async function Calculation({ price, conversations, cost }: { price: number; conv
     ["Claude cost per conversation", `${fcfa(c.costPerConversation)} ${cost === null ? `(simulated, ${label(volume.worst.industry)})` : "(entered)"}`],
     ["Claude at full use", fcfa(c.claudeAtFullUse)],
     ["Mobile Money fee", fcfa(c.paymentFees)],
-    ["Margin (monthly)", c.margin === null ? "— (Free)" : pct(c.margin)],
+    ["Margin (monthly)", c.margin === null ? "— (trial)" : pct(c.margin)],
     ["Margin (annual)", pct(c.annualMargin)],
     ["Headroom", c.headroom === null ? "—" : `${c.headroom.toFixed(1)}×`],
     ["Most conversations at this price", int(c.maxConversations)],

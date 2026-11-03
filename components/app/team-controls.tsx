@@ -1,10 +1,10 @@
 "use client";
 
+import { ActionError } from "@/components/app/form";
 import { startTransition, useActionState, useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, Link2, Loader2, LogOut, MessageCircle, UserMinus } from "lucide-react";
 
-import { FormAlert } from "@/components/auth/form-alert";
 import { useAuthText } from "@/components/auth/use-auth-text";
 import { Button } from "@/components/ui/button";
 import type { FormState } from "@/lib/actions/form";
@@ -129,7 +129,7 @@ export function InviteForm({ t, errors, roles, locale, businessName }: { t: T; e
           <span>{pending ? t.creating : t.createLink}</span>
         </Button>
       </form>
-      {state.status === "error" && state.error && state.error !== "invalid" ? <FormAlert tone="error">{errors[state.error] ?? errors.unknown}</FormAlert> : null}
+      {state.status === "error" && state.error && state.error !== "invalid" ? <ActionError errorKey={state.error} errors={errors} /> : null}
       {state.status === "success" && state.value ? (
         <InviteLink key={state.at} link={state.value} title={format(t.linkFor, { email: invited })} note={t.linkNote} t={t} businessName={businessName} />
       ) : null}

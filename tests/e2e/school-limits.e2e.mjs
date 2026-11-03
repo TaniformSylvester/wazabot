@@ -66,7 +66,7 @@ mkdirSync("test-results", { recursive: true });
   };
 
   try {
-    // ---------------------------------------------------------------- A new Free school (limits apply now)
+    // ---------------------------------------------------------------- A new school, then Boutique (tight limits for this test)
     const OWNER = { name: "Marie Ngo", business: "École Les Palmiers", email: `limits-owner+${stamp}@example.com`, password: "Wazabolt2026" };
     await page.goto(`${APP}/en/register`);
     await page.getByLabel("Your name").fill(OWNER.name);
@@ -82,7 +82,10 @@ mkdirSync("test-results", { recursive: true });
     const owner = sql(`select id from auth.users where email = '${OWNER.email}'`);
     sql(`update businesses set onboarding_step = 6, onboarding_completed_at = now(), industry = 'school', default_language = 'en' where id = '${biz}'`);
     sql(`insert into business_modules (business_id, module, enabled) values ('${biz}', 'school', true), ('${biz}', 'docs', true) on conflict (business_id, module) do update set enabled = true`);
-    ok("a new business is on Free with the limits in force today", sql(`select s.plan_id || '|' || (b.free_limits_from <= current_date) from subscriptions s join businesses b on b.id = s.business_id where b.id = '${biz}'`) === "free|true");
+    ok("a new business starts its trial", sql(`select plan_id || '|' || status from subscriptions where business_id = '${biz}'`) === "business|trialing");
+    // The limits below are tested on Boutique, made tight for this test (restored at the end): 20 documents, 50 students, one report card at a time.
+    sql(`update plans set max_documents = 20, max_students = 50, max_report_card_students = 50, has_bulk_report_cards = false where id = 'boutique'`);
+    sql(`update subscriptions set plan_id = 'boutique', status = 'active', current_period_end = now() + interval '1 month' where business_id = '${biz}'`);
 
     // School setup (year, term, class, subject) and 49 students, through SQL.
     sql(`insert into school_settings (business_id, grading_preset, scale_max, pass_mark, student_prefix) values ('${biz}', 'francophone_20', 20, 10, 'ELV')`);
@@ -98,7 +101,7 @@ mkdirSync("test-results", { recursive: true });
     sql(`insert into school_marks (business_id, class_subject_id, assessment_id, student_id, mark, entered_by) select '${biz}', '${cs}', '${assess}', id, case last_name when 'N01' then 15 else 8 end, '${owner}' from school_students where business_id = '${biz}' and last_name in ('N01', 'N02')`);
     const n01 = sql(`select id from school_students where business_id = '${biz}' and last_name = 'N01'`);
 
-    // ---------------------------------------------------------------- Students: 50 on Free
+    // ---------------------------------------------------------------- Students: 50 on Boutique (tight)
     await open(`/en/dashboard/school`);
     ok("the school overview shows students, teacher seats and report cards for the term", (await main.getByTestId("school-usage").innerText()).replace(/\s+/g, " ").includes("49 of 50") && (await main.getByTestId("school-usage").innerText()).includes("0 of 30") && (await main.getByTestId("school-usage").innerText()).includes("Report cards · Term 1"));
     await open(`/en/dashboard/school/students`);
@@ -122,30 +125,30 @@ mkdirSync("test-results", { recursive: true });
     ok("the 51st student is refused on the server with a clear message", (await main.getByText("Your plan's student limit is reached", { exact: false }).count()) === 1 && sql(`select count(*) from school_students where business_id = '${biz}' and last_name = 'Late'`) === "0");
     ok("the database refuses a 51st student however it's added", sqlError(`insert into school_students (business_id, first_name, last_name) values ('${biz}', 'X', 'Y')`).includes("plan limit"));
 
-    // ---------------------------------------------------------------- Teachers beside the one Free user
+    // ---------------------------------------------------------------- Teachers beside the one Boutique user
     await open(`/en/dashboard/team`);
     ok("the team page shows users and teacher seats separately", (await main.getByTestId("team-seats").innerText()).replace(/\s+/g, " ").includes("1 of 1") && (await main.getByTestId("team-seats").innerText()).includes("0 of 30"));
     await main.getByLabel("Their email address").fill(`limits-teacher+${stamp}@example.com`);
     await main.getByLabel("Role", { exact: true }).selectOption("teacher");
     await main.getByRole("button", { name: "Create invitation link" }).click();
     await main.getByRole("textbox", { name: `Invitation link for limits-teacher+${stamp}@example.com` }).waitFor({ timeout: 10000 });
-    ok("a Free school invites a teacher although its one user is taken", sql(`select count(*) from business_invitations where business_id = '${biz}' and role = 'teacher'`) === "1");
+    ok("a Boutique school invites a teacher although its one user is taken", sql(`select count(*) from business_invitations where business_id = '${biz}' and role = 'teacher'`) === "1");
     await open(`/en/dashboard/team`);
     await main.getByLabel("Their email address").fill(`limits-agent+${stamp}@example.com`);
     await main.getByLabel("Role", { exact: true }).selectOption("agent");
     await main.getByRole("button", { name: "Create invitation link" }).click();
-    await main.getByText("Your plan's user limit is reached", { exact: false }).waitFor({ timeout: 10000 }).catch(() => {});
-    ok("but a second user (agent) is refused", (await main.getByText("Your plan's user limit is reached", { exact: false }).count()) === 1 && sql(`select count(*) from business_invitations where business_id = '${biz}' and role = 'agent'`) === "0");
+    await main.getByTestId("upgrade-prompt").waitFor({ timeout: 10000 }).catch(() => {});
+    ok("but a second user (agent) is refused, with an upgrade prompt", /no more users/.test(await main.getByTestId("upgrade-prompt").innerText()) && sql(`select count(*) from business_invitations where business_id = '${biz}' and role = 'agent'`) === "0");
     await open(`/en/dashboard/team`);
     ok("the pending teacher invitation holds a seat (1 of 30)", (await main.getByTestId("team-seats").innerText()).includes("1 of 30"));
 
-    // ---------------------------------------------------------------- Report cards: one at a time on Free
+    // ---------------------------------------------------------------- Report cards: one at a time on Boutique (tight)
     const results = `/en/dashboard/school/results?class=${klass}&term=${term}`;
     await open(results);
-    ok("Free: no whole-class PDF or print button, an upgrade notice instead", (await main.getByTestId("report-cards-pdf").count()) === 0 && (await main.getByTestId("plan-upsell").innerText()).includes("Boutique"));
-    ok("Free: report card usage for the term is shown", (await main.getByTestId("report-card-usage").innerText()).includes("0 of 50"));
+    ok("Boutique (tight): no whole-class PDF or print button, an upgrade notice instead", (await main.getByTestId("report-cards-pdf").count()) === 0 && (await main.getByTestId("plan-upsell").innerText()).includes("Boutique"));
+    ok("Boutique (tight): report card usage for the term is shown", (await main.getByTestId("report-card-usage").innerText()).includes("0 of 50"));
     const one = await page.request.get(`${APP}/en/dashboard/school/results/pdf?class=${klass}&term=${term}&student=${n01}`);
-    ok("Free: one student's report card still downloads", one.status() === 200 && one.headers()["content-type"] === "application/pdf");
+    ok("Boutique (tight): one student's report card still downloads", one.status() === 200 && one.headers()["content-type"] === "application/pdf");
     const all = await page.request.get(`${APP}/en/dashboard/school/results/pdf?class=${klass}&term=${term}`);
     ok("Free: the server refuses a whole-class PDF", all.status() === 403);
     await main.getByRole("button", { name: "Publish results" }).click();
@@ -195,23 +198,16 @@ mkdirSync("test-results", { recursive: true });
     // ---------------------------------------------------------------- Billing shows it all
     await open(`/en/dashboard/billing`);
     const usage = (await main.getByTestId("plan-usage").innerText()).replace(/\s+/g, " ");
-    ok("billing shows saved documents, students and teacher accounts", usage.includes("Saved documents") && usage.includes("20 of 20") && usage.includes("Active students") && usage.includes("50 of 50") && usage.includes("Teacher accounts") && usage.includes("1 of 30"), usage);
-    ok("billing's plan cards list the new entitlements", (await main.getByText("20 saved invoices, receipts and quotations").count()) >= 1 && (await main.getByText("Advanced school reports").count()) >= 1);
+    ok("billing shows the school's active students against the plan (50 of 50)", usage.includes("Active students") && usage.includes("50 of 50"), usage);
 
-    // The grace notice (a Free business whose limits start later) names the school limits too.
-    sql(`update businesses set free_limits_from = '2026-12-01' where id = '${biz}'`);
-    await open(`/en/dashboard/billing`);
-    const grace = (await page.getByTestId("plan-grace-notice").innerText()).replace(/\s+/g, " ");
-    ok("grace notice: saved documents and the school's students and report cards", grace.includes("20 saved documents") && grace.includes("For your school: up to 50 active students and report cards for 50 students"), grace);
-    sql(`update businesses set free_limits_from = current_date where id = '${biz}'`);
 
-    // ---------------------------------------------------------------- Fair use (WazaBolt team): the school on Pro
-    sql(`update subscriptions set plan_id = 'pro' where business_id = '${biz}'`);
+    // ---------------------------------------------------------------- Fair use (WazaBolt team): the school on Multi-shop (no student limit)
+    sql(`update subscriptions set plan_id = 'multishop' where business_id = '${biz}'`);
     sql(`insert into platform_admins (user_id) values ('${owner}')`);
     await open(`/en/admin/fair-use`);
     const fair = page.locator(`tr[data-business-id="${biz}"]`);
     const fairText = (await fair.count()) ? (await fair.innerText()).replace(/\s+/g, " ") : "";
-    ok("fair use: a Pro school with its active students, classes, teachers and documents (50 students: not flagged)", /pro/.test(fairText) && /\b50\b/.test(fairText) && /Normal/.test(fairText), fairText);
+    ok("fair use: a Multi-shop school with its active students, classes, teachers and documents (50 students: not flagged)", /multishop/.test(fairText) && /\b50\b/.test(fairText) && /Normal/.test(fairText), fairText);
     sql(`insert into school_students (business_id, first_name, last_name, status) select '${biz}', 'Extra', 'Student ' || g, 'active' from generate_series(1, 451) g`);
     await page.reload();
     ok("fair use: above 500 active students it is flagged for review", /Above business/.test(await fair.innerText()));
@@ -237,7 +233,7 @@ mkdirSync("test-results", { recursive: true });
     ok("Business: no document limit", (await main.getByTestId("documents-usage").count()) === 0 && (await main.getByTestId("plan-upsell").count()) === 0 && (await main.getByRole("link", { name: "New invoice" }).count()) === 1);
     await open(`/en/dashboard/school/students`);
     ok("Business: students can be added again (50 of 500)", (await main.getByTestId("students-usage").innerText()).includes("50 of 500") && (await main.getByTestId("new-student").count()) === 1);
-    ok("no plan or price changed by the app", sql(`select plan_id from subscriptions where business_id = '${biz}'`) === "business" && sql(`select monthly_price::int from plans where id = 'business'`) === "25000");
+    ok("no plan or price changed by the app", sql(`select plan_id from subscriptions where business_id = '${biz}'`) === "business" && sql(`select monthly_price::int from plans where id = 'business'`) === "7500");
 
     await open(`/fr/dashboard/school/reports`);
     ok("school reports in French", (await main.getByRole("heading", { name: "Rapports scolaires", exact: true }).count()) === 1);
@@ -257,6 +253,7 @@ mkdirSync("test-results", { recursive: true });
     ok("suite ran to the end", false, String(e?.stack ?? e));
     await page.screenshot({ path: "test-results/school-limits-failure.png", fullPage: true }).catch(() => {});
   } finally {
+    sql(`update plans set max_documents = null, max_students = 200, max_report_card_students = 200, has_bulk_report_cards = true where id = 'boutique'`);
     await browser.close();
     console.log(results.join("\n"));
     console.log(`\n${results.filter((r) => r.startsWith("PASS")).length}/${results.length} passed`);

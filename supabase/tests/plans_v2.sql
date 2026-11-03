@@ -253,6 +253,20 @@ begin
   raise notice 'PASS an unpaid renewal: payment due for 3 days, then read-only';
 end $$;
 
+-- Teachers and kitchen staff see their business's plan (20261104120000_staff_plan_access.sql).
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
+  ('00000000-0000-4000-a990-00000000000c', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'plans-teacher@test.local', '{"business_name":"Teacher Own"}', now(), now());
+insert into public.business_members (business_id, user_id, role) values (pg_temp.v('biz'), '00000000-0000-4000-a990-00000000000c', 'teacher');
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-4000-a990-00000000000c');
+do $$
+begin
+  if (select plan_id from public.subscriptions where business_id = pg_temp.v('biz')) is null then raise exception 'FAIL: a teacher can''t see the plan'; end if;
+  if (select access from public.business_features(pg_temp.v('biz'))) is null then raise exception 'FAIL: teacher access'; end if;
+  raise notice 'PASS teachers see their business''s plan and access, like the owner';
+end $$;
+reset role;
+
 -- What each AI conversation really cost (for the WazaBolt team).
 do $$
 begin

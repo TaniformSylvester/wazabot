@@ -1115,10 +1115,10 @@ const en = {
       yours: "Your businesses",
     },
     usageBanner: {
-      warning: "You've used {used} of the {limit} AI conversations in your {plan} plan this month.",
-      reached: "Your {plan} plan's {limit} AI conversations are used up for this month. The assistant continues conversations it already answered and still answers simple questions (prices, hours, location); other messages go to your team.",
+      warning: "You've used {used} of your {limit} AI conversations this month.",
+      reached: "Your {limit} AI conversations are used up for this month. The assistant continues conversations it already answered and still answers simple questions (prices, hours, location); other messages go to your team.",
       cta: "See plans",
-      upgrade: "Upgrade",
+      upgrade: "Buy a top-up",
     },
     billingBanner: {
       renewSoon: "Your {plan} plan ends on {date}. Pay for the next period to keep using WazaBolt without a break.",
@@ -1176,7 +1176,7 @@ const en = {
       image_invalid: "Saved, but the image wasn't accepted. Use a JPG, PNG or WebP under 4 MB.",
       whatsapp_not_configured: "WhatsApp isn't set up on the WazaBolt server yet. Contact WazaBolt support.",
       whatsapp_number_in_use: "This number is already connected to another WazaBolt business.",
-      whatsapp_free_number_used: "This WhatsApp number was already used with another WazaBolt account. One Free account per number: choose a paid plan on Billing to connect it here.",
+      whatsapp_free_number_used: "This WhatsApp number was already used with another WazaBolt account. One free trial per number: choose a plan on Billing to connect it here.",
       whatsapp_not_in_account: "This Phone Number ID doesn't belong to that WhatsApp Business Account.",
       whatsapp_token_invalid: "Meta rejected the access token. Check it hasn't expired and has the whatsapp_business_messaging and whatsapp_business_management permissions.",
       whatsapp_verify_failed: "Meta couldn't confirm this number. Check the IDs and try again.",

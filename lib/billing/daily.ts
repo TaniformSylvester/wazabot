@@ -13,7 +13,7 @@ import { aiMonthlyRevenue, getUsageStatus } from "./usage";
 
 /*
  * Once a day (Vercel Cron → /api/cron/billing):
- *   1. prepaid periods: payment due at the end, Free after PAYMENT_GRACE_DAYS
+ *   1. prepaid periods: payment due at the end, read-only (no plan) after PAYMENT_GRACE_DAYS; trials end read-only at once
  *      (apply_billing_expiry); the owner is emailed each time
  *   2. renewal reminders RENEWAL_REMINDER_DAYS before a paid period ends
  *   3. businesses past ALERTS.budgetShare of their hidden Claude budget
@@ -35,13 +35,13 @@ const OWNER = {
     en: (plan: string, end: string, price: string) => ({
       subject: `Your WazaBolt ${plan} plan ends on ${end}`,
       title: `Your ${plan} plan ends on ${end}`,
-      intro: `To keep your assistant at full strength, renew it before then: <b>${esc(price)}</b> by Mobile Money. Request the renewal on your Billing page and our team will contact you.`,
+      intro: `To keep using WazaBolt without a break, renew it before then: <b>${esc(price)}</b> by MTN Mobile Money or Orange Money. Request the renewal on your Billing page and our team will contact you.`,
       button: "Renew my plan",
     }),
     fr: (plan: string, end: string, price: string) => ({
       subject: `Votre forfait WazaBolt ${plan} se termine le ${end}`,
       title: `Votre forfait ${plan} se termine le ${end}`,
-      intro: `Pour garder votre assistant au complet, renouvelez-le avant cette date : <b>${esc(price)}</b> par Mobile Money. Demandez le renouvellement depuis votre page Facturation et notre équipe vous contactera.`,
+      intro: `Pour continuer sans interruption, renouvelez-le avant cette date : <b>${esc(price)}</b> par MTN Mobile Money ou Orange Money. Demandez le renouvellement depuis votre page Facturation et notre équipe vous contactera.`,
       button: "Renouveler mon forfait",
     }),
   },
@@ -49,27 +49,27 @@ const OWNER = {
     en: (plan: string, end: string, grace: string) => ({
       subject: `Your WazaBolt ${plan} plan has ended: renew by ${grace}`,
       title: `Your ${plan} plan ended on ${end}`,
-      intro: `It keeps working until <b>${esc(grace)}</b>. Renew it before then on your Billing page; after that your business moves to the Free plan (nothing is deleted).`,
+      intro: `It keeps working until <b>${esc(grace)}</b>. Renew it before then on your Billing page; after that you can still see your records, but not add new ones until you renew (nothing is deleted).`,
       button: "Renew now",
     }),
     fr: (plan: string, end: string, grace: string) => ({
       subject: `Votre forfait WazaBolt ${plan} est terminé : renouvelez avant le ${grace}`,
       title: `Votre forfait ${plan} s'est terminé le ${end}`,
-      intro: `Il continue de fonctionner jusqu'au <b>${esc(grace)}</b>. Renouvelez-le d'ici là depuis votre page Facturation ; ensuite votre entreprise passe au forfait Gratuit (rien n'est supprimé).`,
+      intro: `Il continue de fonctionner jusqu'au <b>${esc(grace)}</b>. Renouvelez-le d'ici là depuis votre page Facturation ; ensuite vous pourrez voir vos données, mais pas en ajouter tant que vous n'aurez pas renouvelé (rien n'est supprimé).`,
       button: "Renouveler maintenant",
     }),
   },
   downgraded: {
     en: (plan: string) => ({
-      subject: "Your business is now on the WazaBolt Free plan",
-      title: "You're now on the Free plan",
-      intro: `Your ${esc(plan)} plan wasn't renewed, so your business moved to the Free plan. Everything is still there; renew any time on your Billing page to get your plan back.`,
+      subject: "Your WazaBolt trial or plan has ended",
+      title: "Your records are safe: choose a plan to continue",
+      intro: `Your ${esc(plan)} trial or plan has ended. Everything is still there and you can still see and export it; choose a plan on your Billing page to record new sales again.`,
       button: "See plans",
     }),
     fr: (plan: string) => ({
-      subject: "Votre entreprise est passée au forfait WazaBolt Gratuit",
-      title: "Vous êtes maintenant au forfait Gratuit",
-      intro: `Votre forfait ${esc(plan)} n'a pas été renouvelé : votre entreprise est passée au forfait Gratuit. Tout est conservé ; renouvelez quand vous voulez depuis votre page Facturation.`,
+      subject: "Votre essai ou votre forfait WazaBolt est terminé",
+      title: "Vos données sont conservées : choisissez un forfait pour continuer",
+      intro: `Votre essai ou votre forfait ${esc(plan)} est terminé. Tout est conservé et vous pouvez toujours le voir et l'exporter ; choisissez un forfait depuis votre page Facturation pour enregistrer de nouvelles ventes.`,
       button: "Voir les forfaits",
     }),
   },

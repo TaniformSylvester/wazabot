@@ -152,6 +152,9 @@ export async function setAiLaunched(formData: FormData) {
   const { error } = await admin.rpc("admin_set_ai_launched", { p_on: on, p_actor: actor ?? undefined });
   if (error) backToBusinesses(formData, "error=failed");
   console.info(`[admin.aiLaunched] on=${on}`);
-  revalidatePath("/", "layout");
+  // The dashboard at once. The public pages read the switch with a 5-minute cache (lib/billing/ai-flag.ts):
+  // revalidating the whole site would throw away the pre-built marketing pages.
+  revalidatePath("/[lang]/dashboard", "layout");
+  revalidatePath("/[lang]/admin/businesses", "page");
   backToBusinesses(formData, on ? "done=ai_on" : "done=ai_off");
 }

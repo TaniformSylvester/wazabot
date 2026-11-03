@@ -124,8 +124,8 @@ mkdirSync("test-results", { recursive: true });
   ok("stock alert gone once restocked", (await main.getByRole("heading", { name: "Stock alerts" }).count()) === 0);
 
   // ------------------------------------------------------------ AI allowance
-  sql(`insert into public.plans (id, name, monthly_price, ai_conversations_per_month, active, sort_order) values ('e2e_tiny_${stamp}', 'Tiny', 0, 5, false, 99)`);
-  sql(`update public.subscriptions set plan_id = 'e2e_tiny_${stamp}' where business_id = '${biz.id}'`);
+  // The AI add-on's allowance (made 5 conversations for this test), with the assistant launched.
+  sql(`select public.admin_set_ai_launched(true); update public.addons set conversations = 5 where id = 'ai_basic'; update public.subscriptions set addon_id = 'ai_basic' where business_id = '${biz.id}'`);
   const addAiConversations = (n) =>
     sql(`do $$ declare c uuid; begin for i in 1..${n} loop
       insert into public.conversations (business_id, customer_id) values ('${biz.id}', '${customer.id}') returning id into c;
@@ -135,24 +135,26 @@ mkdirSync("test-results", { recursive: true });
     end loop; end $$`);
   addAiConversations(4);
   await page.goto(`${APP}/en/dashboard/products`);
-  ok("banner at 80% of the AI allowance", (await page.getByText("You've used 4 of the 5 AI conversations in your Tiny plan this month.").count()) === 1);
+  ok("banner at 80% of the AI allowance", (await page.getByText("You've used 4 of your 5 AI conversations this month.").count()) === 1);
   addAiConversations(1);
   await page.reload();
-  ok("banner when the allowance is used up", (await page.getByText(/Tiny plan's 5 AI conversations are used up/).count()) === 1);
+  ok("banner when the allowance is used up", (await page.getByText(/Your 5 AI conversations are used up/).count()) === 1);
   await page.screenshot({ path: "test-results/stage4-usage-banner.png" });
 
   // ------------------------------------------------------------ plan change
   await page.goto(`${APP}/en/dashboard/billing`);
-  ok("billing: usage from the plan allowance", (await main.getByText("5 of 5").count()) === 1);
-  await main.getByLabel("New plan").selectOption("business");
+  ok("billing: AI usage from the add-on's allowance", (await main.getByTestId("ai-usage").innerText()).trim() === "5 of 5");
+  sql(`update public.addons set conversations = 300 where id = 'ai_basic'; update public.subscriptions set addon_id = null where business_id = '${biz.id}'; select public.admin_set_ai_launched(false)`);
+  await page.reload();
+  await main.getByLabel("Plan", { exact: true }).selectOption("business");
   await main.getByLabel("Phone or WhatsApp number to reach you").fill("+237 670 00 00 00");
   await main.getByRole("button", { name: "Send request" }).click();
-  await main.getByText("Plan change requested").waitFor({ timeout: 10000 });
-  ok("plan change request sent and shown as pending", (await main.getByText(/You asked for the Business plan/).count()) === 1);
+  await main.getByText("Plan requested").waitFor({ timeout: 10000 });
+  ok("plan request sent and shown as pending", /You asked for Business \(monthly\)/.test(await main.getByTestId("pending-request").innerText()));
   await page.screenshot({ path: "test-results/stage4-billing.png", fullPage: true });
   const requestId = sql(`select id from public.plan_change_requests where business_id = '${biz.id}' and status = 'pending'`);
   const teamEmail = await waitFor(() => emailTo("contact@wazabolt.com", /New plan request – Awa Styles → Business/));
-  ok("the WazaBolt team is emailed about the new request (business, plan, phone)", !!teamEmail && teamEmail.html.includes("+237 670 00 00 00") && teamEmail.html.includes("25,000 FCFA") && teamEmail.html.includes("/en/admin/plan-requests"), teamEmail?.subject);
+  ok("the WazaBolt team is emailed about the new request (business, plan, phone)", !!teamEmail && teamEmail.html.includes("+237 670 00 00 00") && teamEmail.html.includes("7,500 FCFA") && teamEmail.html.includes("/en/admin/plan-requests"), teamEmail?.subject);
 
   // The WazaBolt team approves it in admin (this owner stands in for the team).
   sql(`insert into public.platform_admins (user_id) select id from auth.users where email = '${OWNER.email}'`);
@@ -163,49 +165,45 @@ mkdirSync("test-results", { recursive: true });
   await adminLink.click();
   await page.getByRole("heading", { name: "Waiting for you (1)" }).waitFor({ timeout: 10000 });
   const card = page.locator(`li[data-request-id="${requestId}"]`);
-  ok("plan requests page: business, plan and price, requester and phone", /Awa Styles/.test(await card.innerText()) && /Business/.test(await card.innerText()) && /25,000 FCFA/.test(await card.innerText()) && (await card.innerText()).includes(OWNER.email) && (await card.innerText()).includes("+237 670 00 00 00"));
+  ok("plan requests page: business, plan and price, requester and phone", /Awa Styles/.test(await card.innerText()) && /Business/.test(await card.innerText()) && /7,500 FCFA/.test(await card.innerText()) && (await card.innerText()).includes(OWNER.email) && (await card.innerText()).includes("+237 670 00 00 00"));
   await page.screenshot({ path: "test-results/admin-plan-requests.png", fullPage: true });
-  ok("the amount due is filled in", (await card.getByLabel("Amount received (FCFA)").inputValue()) === "25000");
+  ok("the amount due is filled in", (await card.getByLabel("Amount received (FCFA)").inputValue()) === "7500");
   await card.getByLabel("Reference (optional)").fill("MP261004.1530.A12345");
   await card.getByRole("button", { name: "Approve" }).click();
   await page.getByText(/Approved — the payment is recorded/).waitFor({ timeout: 10000 });
-  ok("approving records the payment", sql(`select amount::int || ' ' || method || ' ' || reference from public.subscription_payments where request_id = '${requestId}'`) === "25000 mobile_money MP261004.1530.A12345");
+  ok("approving records the payment", sql(`select amount::int || ' ' || method || ' ' || reference from public.subscription_payments where request_id = '${requestId}'`) === "7500 mobile_money MP261004.1530.A12345");
   ok("approved from admin: request recorded as approved", sql(`select status from public.plan_change_requests where id = '${requestId}'`) === "approved");
   const approvedEmail = await waitFor(() => emailTo(OWNER.email, /Your WazaBolt Business plan is active/));
   ok("the customer is emailed that the plan is active", !!approvedEmail && approvedEmail.from === "WazaBolt <noreply@wazabolt.com>" && approvedEmail.html.includes("/en/dashboard"));
   await page.goto(`${APP}/en/dashboard/billing`);
-  ok("operator approval switches the plan and clears the banner", (await main.locator("li").filter({ hasText: "Business" }).getByText("Current plan").count()) === 1 && (await page.getByText(/AI conversations are used up/).count()) === 0);
+  ok("operator approval switches the plan on (paid) and clears the trial banner", (await main.getByTestId("billing-plan-business").getByText("Your plan").count()) === 1 && (await main.getByTestId("current-plan").getByText("Active").count()) === 1 && (await page.getByTestId("trial-banner").count()) === 0);
 
   // Step 4: prepaid billing as the owner sees it.
-  ok("billing: yearly price offered (pay 10 months, get 12)", (await main.getByText("or 250,000 FCFA/year: 2 months free").count()) === 1);
+  ok("billing: yearly price offered (pay 10 months, get 12)", (await main.getByText("or 75,000 FCFA/year: 2 months free").count()) === 1);
   ok("billing: paid until the end of the period", /Paid until/.test(await main.getByTestId("billing-state").innerText()));
   sql(`update public.subscriptions set current_period_end = now() + interval '3 days' where business_id = '${biz.id}'`);
   await page.reload();
-  ok("renewal reminder in the last days of a paid period", /Your Business plan ends on .*Renew it/.test(await page.getByTestId("billing-banner").innerText()));
+  ok("renewal reminder in the last days of a paid period", /Your Business plan ends on .*Pay for the next period/.test(await page.getByTestId("billing-banner").innerText()));
   sql(`update public.subscriptions set current_period_end = now() - interval '1 day', status = 'past_due' where business_id = '${biz.id}'`);
   await page.reload();
-  ok("payment due: renew by the end of the grace days, or move to Free", /ended on .*Renew by .*Free plan/.test(await page.getByTestId("billing-banner").innerText()));
-  ok("billing page: renewal is the default request", (await main.getByLabel("New plan").inputValue()) === "business" && (await main.getByRole("option", { name: "Business: renew" }).count()) === 1);
+  ok("payment due: pay by the end of the grace days, or the business becomes read-only", /ended on .*Pay by .*not add new ones/.test(await page.getByTestId("billing-banner").innerText()));
+  ok("billing page: renewal is the default request", (await main.getByLabel("Plan", { exact: true }).inputValue()) === "business" && (await main.getByRole("option", { name: "Business: renew" }).count()) === 1);
   await page.screenshot({ path: "test-results/step4-payment-due.png", fullPage: true });
   sql(`update public.subscriptions set current_period_end = now() + interval '1 month', status = 'active' where business_id = '${biz.id}'`);
-  sql(`update public.subscriptions set rules_from = now() + interval '10 days' where business_id = '${biz.id}'`);
-  await page.reload();
-  ok("notice before the business moves to 24-hour AI conversations", /AI conversations are counted per customer per 24 hours/.test(await page.getByTestId("rules-notice").innerText()));
-  sql(`update public.subscriptions set rules_from = now() where business_id = '${biz.id}'`);
   sql(`insert into public.platform_business_controls (business_id, ai_paused) values ('${biz.id}', true)`);
   await page.reload();
   ok("kill switch: the business is told its assistant is paused", (await page.getByText(/has paused your assistant/).count()) === 1);
   sql(`delete from public.platform_business_controls where business_id = '${biz.id}'`);
 
   // Declining a request emails the customer too, and leaves the plan as it is.
-  await main.getByLabel("New plan").selectOption("starter");
+  await main.getByLabel("Plan", { exact: true }).selectOption("boutique");
   await main.getByRole("button", { name: "Send request" }).click();
-  await main.getByText("Plan change requested").waitFor({ timeout: 10000 });
+  await main.getByText("Plan requested").waitFor({ timeout: 10000 });
   const secondId = sql(`select id from public.plan_change_requests where business_id = '${biz.id}' and status = 'pending'`);
   await page.goto(`${APP}/en/admin/plan-requests`);
   await page.locator(`li[data-request-id="${secondId}"]`).getByRole("button", { name: "Decline" }).click();
   await page.getByText(/Declined — the customer has been emailed/).waitFor({ timeout: 10000 });
-  const declinedEmail = await waitFor(() => emailTo(OWNER.email, /About your WazaBolt Starter plan request/));
+  const declinedEmail = await waitFor(() => emailTo(OWNER.email, /About your WazaBolt Boutique plan request/));
   ok("declined from admin: plan unchanged, customer emailed, no requests waiting", !!declinedEmail && sql(`select plan_id from public.subscriptions where business_id = '${biz.id}'`) === "business" && (await page.getByRole("heading", { name: "Waiting for you (0)" }).count()) === 1);
   await page.goto(`${APP}/en/dashboard/billing`);
   ok("the owner sees the payment on Billing", /MP261004\.1530\.A12345/.test(await main.locator('section[aria-labelledby="payments-title"]').innerText()));
@@ -227,7 +225,7 @@ mkdirSync("test-results", { recursive: true });
   sql(`update public.subscriptions set current_period_end = now() + interval '3 days' where business_id = '${biz.id}'`);
   await cron();
   const reminder = await waitFor(() => emailTo(OWNER.email, /Your WazaBolt Business plan ends on/));
-  ok("renewal reminder emailed before the period ends (with the price)", !!reminder && reminder.html.includes("25,000 FCFA"), reminder?.subject);
+  ok("renewal reminder emailed before the period ends (with the price)", !!reminder && reminder.html.includes("7,500 FCFA"), reminder?.subject);
   await cron();
   ok("each reminder is sent once", resend.emails.filter((e) => e.to.includes(OWNER.email) && /plan ends on/.test(e.subject)).length === 1);
   sql(`update public.subscriptions set current_period_end = now() - interval '1 day' where business_id = '${biz.id}'`);
@@ -236,8 +234,11 @@ mkdirSync("test-results", { recursive: true });
   ok("period ended: payment due, the owner is emailed", !!due && sql(`select status from public.subscriptions where business_id = '${biz.id}'`) === "past_due");
   sql(`update public.subscriptions set current_period_end = now() - interval '4 days' where business_id = '${biz.id}'`);
   await cron();
-  const moved = await waitFor(() => emailTo(OWNER.email, /now on the WazaBolt Free plan/));
-  ok("not renewed after the grace days: moved to Free, the owner is emailed", !!moved && sql(`select plan_id || ' ' || status from public.subscriptions where business_id = '${biz.id}'`) === "free active");
+  const moved = await waitFor(() => emailTo(OWNER.email, /trial or plan has ended/));
+  ok("not renewed after the grace days: read-only (no plan), the owner is emailed", !!moved && sql(`select plan_id || ' ' || status from public.subscriptions where business_id = '${biz.id}'`) === "free active");
+
+  // The rest of this suite needs a running plan again.
+  sql(`update public.subscriptions set plan_id = 'business', status = 'active', current_period_start = now(), current_period_end = now() + interval '1 month' where business_id = '${biz.id}'`);
 
   // ---------------------------------------------------------------- invites
   await page.goto(`${APP}/en/dashboard/team`);
@@ -340,7 +341,7 @@ mkdirSync("test-results", { recursive: true });
   ok("team page in French", (await main.getByRole("heading", { name: "Inviter un membre" }).count()) === 1);
 
   ok("no browser errors", errors.length === 0, errors.join(" | "));
-  sql(`update public.subscriptions set plan_id = 'free' where plan_id = 'e2e_tiny_${stamp}'; update public.plan_change_requests set from_plan_id = null where from_plan_id = 'e2e_tiny_${stamp}'; delete from public.plans where id = 'e2e_tiny_${stamp}'`);
+  sql(`update public.addons set conversations = 300 where id = 'ai_basic'`);
   console.log(results.join("\n"));
   await browser.close();
   resend.close();

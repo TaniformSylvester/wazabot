@@ -72,16 +72,16 @@ mkdirSync("test-results", { recursive: true });
     await page.waitForURL(/\/en\/dashboard\/businesses\/new/, { timeout: 10000 });
     const box = page.getByTestId("needs-paid-plan");
     await box.waitFor({ timeout: 10000 }).catch(() => {});
-    ok("with a Free shop already, the new business needs a paid plan (and says which business is Free)", (await box.count()) === 1 && (await box.innerText()).includes("Awa Styles"));
+    ok("after the free trial on the first shop, the new business needs a plan (and says which business had the trial)", (await box.count()) === 1 && (await box.innerText()).includes("Awa Styles"));
     const planOptions = await page.locator('select[name="plan_id"] option').allInnerTexts();
-    ok("only paid plans are offered", planOptions.length >= 3 && !planOptions.some((o) => /^Free/.test(o)), planOptions.join(" / "));
+    ok("the three plans are offered", planOptions.length === 3 && /^Boutique/.test(planOptions[0]) && /Multi-shop/.test(planOptions[2]), planOptions.join(" / "));
 
     await page.getByRole("button", { name: "Create the business" }).click();
     await page.getByText("Enter your business name.").waitFor({ timeout: 10000 }).catch(() => {});
     ok("a name is required", (await page.getByText("Enter your business name").count()) >= 1 || (await page.locator('input[name="name"][aria-invalid="true"]').count()) === 1);
     await page.getByLabel("Business name").fill("Chez Awa");
     await page.getByLabel("Type of business").selectOption("restaurant");
-    await page.locator('select[name="plan_id"]').selectOption("starter");
+    await page.locator('select[name="plan_id"]').selectOption("boutique");
     await page.locator('select[name="billing_interval"]').selectOption("year");
     await page.getByLabel("Phone or WhatsApp number to reach you").fill("+237 677 00 00 00");
     await page.screenshot({ path: "test-results/businesses-new-paid.png", fullPage: true });
@@ -89,10 +89,10 @@ mkdirSync("test-results", { recursive: true });
     await page.waitForURL(/\/en\/dashboard\/billing\?new=1/, { timeout: 15000 });
     const second = sql(`select b.id from businesses b join business_members m on m.business_id = b.id where m.user_id = '${userId}' and b.name = 'Chez Awa'`);
     ok("the restaurant is created, owned by the same login", !!second && sql(`select role from business_members where business_id = '${second}' and user_id = '${userId}'`) === "owner");
-    ok("…as a restaurant, on Free until its plan is approved", sql(`select b.industry || ' ' || s.plan_id || ' ' || b.needs_paid_plan from businesses b join subscriptions s on s.business_id = b.id where b.id = '${second}'`) === "restaurant free true");
-    ok("…with its plan request: Starter, yearly, with the phone number", sql(`select to_plan_id || ' ' || billing_interval || ' ' || status || ' ' || contact_phone from plan_change_requests where business_id = '${second}'`) === "starter year pending +237 677 00 00 00");
+    ok("…as a restaurant, with no plan until its plan is paid", sql(`select b.industry || ' ' || s.plan_id || ' ' || b.needs_paid_plan from businesses b join subscriptions s on s.business_id = b.id where b.id = '${second}'`) === "restaurant free true");
+    ok("…with its plan request: Boutique, yearly, with the phone number", sql(`select to_plan_id || ' ' || billing_interval || ' ' || status || ' ' || contact_phone from plan_change_requests where business_id = '${second}'`) === "boutique year pending +237 677 00 00 00");
     await page.getByTestId("awaiting-plan").waitFor({ timeout: 15000 }).catch(() => {});
-    ok("Billing explains the business opens once its plan is approved", (await page.getByTestId("awaiting-plan").count()) === 1 && (await page.getByText("Plan change requested").count()) === 1);
+    ok("Billing explains the business opens once its plan is approved", (await page.getByTestId("awaiting-plan").count()) === 1 && (await page.getByText("Plan requested").count()) === 1);
     await page.screenshot({ path: "test-results/businesses-awaiting-plan.png", fullPage: true });
 
     const leadsToBilling = async (path) => {
@@ -111,12 +111,12 @@ mkdirSync("test-results", { recursive: true });
     await page.waitForURL(/\/en\/dashboard(\/onboarding.*)?$/, { timeout: 15000 });
     await page.goto(`${APP}/en/dashboard/products`);
     await page.getByRole("heading", { name: "Products" }).first().waitFor({ timeout: 15000 }).catch(() => {});
-    ok("switching to the Free shop: it works as usual", /\/en\/dashboard\/products/.test(page.url()) && (await switcher.inputValue()) === first, page.url());
+    ok("switching to the first shop (on its trial): it works as usual", /\/en\/dashboard\/products/.test(page.url()) && (await switcher.inputValue()) === first, page.url());
     sql(`insert into products (business_id, name, price) values ('${first}', 'Robe Ankara', 15000)`);
     ok("each business keeps its own data", sql(`select count(*) from products where business_id = '${second}'`) === "0");
 
     // ---------------------------------------------------------------- WazaBolt approves the plan (as the admin page does)
-    sql(`update subscriptions set plan_id = 'starter', billing_interval = 'year' where business_id = '${second}'; update plan_change_requests set status = 'approved', decided_at = now() where business_id = '${second}'`);
+    sql(`update subscriptions set plan_id = 'boutique', status = 'active', billing_interval = 'year' where business_id = '${second}'; update plan_change_requests set status = 'approved', decided_at = now() where business_id = '${second}'`);
     await switcher.selectOption(second);
     await page.waitForURL(/\/en\/dashboard\/onboarding/, { timeout: 15000 });
     await page.getByTestId("onboarding-steps").waitFor({ timeout: 15000 });
@@ -126,19 +126,13 @@ mkdirSync("test-results", { recursive: true });
     await page.getByRole("heading", { name: "Products" }).first().waitFor({ timeout: 15000 }).catch(() => {});
     ok("…and its pages open", !/\/billing/.test(page.url()), page.url());
 
-    // ---------------------------------------------------------------- No Free business left: the next one is Free (French)
-    sql(`update subscriptions set plan_id = 'starter' where business_id = '${first}'`);
+    // ---------------------------------------------------------------- One free trial per owner, ever (French)
+    sql(`update subscriptions set plan_id = 'business', status = 'active' where business_id = '${first}'`);
     await page.goto(`${APP}/fr/dashboard/businesses/new`);
     await page.getByLabel("Nom de l'entreprise").waitFor({ timeout: 15000 });
-    ok("in French: « Ajouter une entreprise », no paid plan needed when no business is on Free", (await page.getByRole("heading", { name: "Ajouter une entreprise" }).count()) >= 1 && (await page.getByTestId("needs-paid-plan").count()) === 0);
-    await page.getByLabel("Nom de l'entreprise").fill("Awa Couture");
-    await page.getByRole("button", { name: "Créer l'entreprise" }).click();
-    await page.waitForURL(/\/fr\/dashboard\/onboarding/, { timeout: 15000 });
-    await page.getByTestId("onboarding-steps").waitFor({ timeout: 15000 });
-    const third = sql(`select b.id from businesses b join business_members m on m.business_id = b.id where m.user_id = '${userId}' and b.name = 'Awa Couture'`);
-    ok("…it's created on Free and opens on its setup", !!third && sql(`select s.plan_id || ' ' || b.needs_paid_plan from businesses b join subscriptions s on s.business_id = b.id where b.id = '${third}'`) === "free false");
-    ok("…and it's the one now open", (await page.locator("header select").inputValue()) === third);
-    ok("no plan request for a Free business", sql(`select count(*) from plan_change_requests where business_id = '${third}'`) === "0");
+    ok("in French: « Ajouter une entreprise »; even with the first one paid, a third business needs a plan (one free trial per owner)", (await page.getByRole("heading", { name: "Ajouter une entreprise" }).count()) >= 1 && (await page.getByTestId("needs-paid-plan").count()) === 1 && /essai gratuit/.test(await page.getByTestId("needs-paid-plan").innerText()));
+    const frOptions = await page.locator('select[name="plan_id"] option').allInnerTexts();
+    ok("…with the plans and their prices in French (3 000 FCFA)", frOptions.length === 3 && /3\s000\sFCFA/.test(frOptions[0]) && /Multi-boutique/.test(frOptions[2]), frOptions.join(" / "));
 
     ok("no page errors", errors.length === 0, errors.join(" | "));
   } catch (e) {

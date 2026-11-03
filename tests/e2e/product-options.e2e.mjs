@@ -243,6 +243,8 @@ mkdirSync("test-results", { recursive: true });
     await main.getByText("Connected", { exact: true }).waitFor({ timeout: 15000 });
 
     const sentBefore = graph.sent().sent.length;
+    // The AI assistant is "coming soon" until launched: this suite needs it on, and the AI add-on.
+    sql("select public.admin_set_ai_launched(true); update public.subscriptions set addon_id = 'ai_plus' where addon_id is null and plan_id <> 'free'");
     await deliver("Montrez-moi la red, le polo");
     const image = await waitFor(() => graph.sent().sent.slice(sentBefore).find((m) => m.type === "image"), 30000);
     const texts = graph.sent().sent.slice(sentBefore).filter((m) => m.type === "text").map((m) => m.text.body);

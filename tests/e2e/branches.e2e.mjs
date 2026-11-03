@@ -1,10 +1,10 @@
 /*
- * End-to-end test of branches: an owner on the Business plan opens a second
+ * End-to-end test of branches: an owner on the Multi-shop plan opens a second
  * branch (2 locations included), asks for an extra branch (5,000 FCFA/month,
  * approved by WazaBolt), moves stock to the new branch, switches to it in the
  * header and sells there from the till (stock leaves that branch only); a
  * cashier tied to the new branch only sees its sales; reports split by
- * branch; a Free shop can't open a branch. Against the local stack.
+ * branch; a one-shop plan can't open a branch. Against the local stack.
  *
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=... npm run test:e2e:branches
  */
@@ -73,14 +73,14 @@ mkdirSync("test-results", { recursive: true });
     const bizId = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${OWNER.email}'`);
     const mainBranch = sql(`select id from branches where business_id = '${bizId}' and is_main`);
 
-    // ---------------------------------------------------------------- Free: one location
+    // ---------------------------------------------------------------- the trial (Business): one location
     await page.goto(`${APP}/en/dashboard/branches`);
     await main.getByTestId("branch-allowance").waitFor({ timeout: 15000 });
-    ok("a new business has its main branch; Free includes one location", /1 of 1 locations open on the Free plan/.test(await main.getByTestId("branch-allowance").innerText()) && (await main.getByTestId("branch-limit").count()) === 1);
+    ok("a new business has its main branch; Business includes one location", /1 of 1 locations open on the Business plan/.test(await main.getByTestId("branch-allowance").innerText()) && (await main.getByTestId("branch-limit").count()) === 1);
     ok("…and no header branch switcher with one branch", (await page.getByTestId("branch-switcher").count()) === 0);
 
-    // ---------------------------------------------------------------- Business: two locations
-    sql(`update subscriptions set plan_id = 'business' where business_id = '${bizId}'`);
+    // ---------------------------------------------------------------- Multi-shop: several locations (2 included in this test, 3 normally)
+    sql(`update plans set included_branches = 2 where id = 'multishop'; update subscriptions set plan_id = 'multishop', status = 'active' where business_id = '${bizId}'`);
     await page.goto(`${APP}/en/dashboard/branches`);
     await main.getByTestId("branch-allowance").getByText(/1 of 2 locations/).waitFor({ timeout: 15000 });
     const add = main.locator("#new-branch");
@@ -91,7 +91,7 @@ mkdirSync("test-results", { recursive: true });
     await add.getByRole("button", { name: "Open the branch" }).click();
     await main.getByTestId("branch-allowance").getByText(/2 of 2 locations/).waitFor({ timeout: 15000 });
     const b2 = sql(`select id from branches where business_id = '${bizId}' and name = 'Bonamoussadi'`);
-    ok("the owner opens a second branch on Business (2 locations included)", !!b2 && sql(`select address || ' ' || hours from branches where id = '${b2}'`) === "Carrefour Kotto Mon–Sat 8:00–20:00");
+    ok("the owner opens a second branch on Multi-shop", !!b2 && sql(`select address || ' ' || hours from branches where id = '${b2}'`) === "Carrefour Kotto Mon–Sat 8:00–20:00");
     ok("…the third location needs an extra branch", (await main.getByTestId("branch-limit").count()) === 1);
     ok("…and the header now shows the branch switcher", (await page.getByTestId("branch-switcher").count()) === 1);
 
@@ -178,8 +178,8 @@ mkdirSync("test-results", { recursive: true });
     ok("reports can show one branch: Bonamoussadi has the 45,000 FCFA sale, the main branch none", /45,000 FCFA/.test(b2Report) && !/45,000 FCFA/.test(mainReport), `${b2Report.slice(0, 80)} | ${mainReport.slice(0, 80)}`);
 
     // ---------------------------------------------------------------- Downgrade pauses the newest branch
-    sql(`update subscriptions set plan_id = 'starter' where business_id = '${bizId}'`);
-    ok("moving to Starter (1 location) pauses Bonamoussadi; its stock is kept", sql(`select active from branches where id = '${b2}'`) === "f" && qty(b2) === 1);
+    sql(`update subscriptions set plan_id = 'boutique' where business_id = '${bizId}'`);
+    ok("moving to Boutique (1 location) pauses Bonamoussadi; its stock is kept", sql(`select active from branches where id = '${b2}'`) === "f" && qty(b2) === 1);
     await page.goto(`${APP}/en/dashboard/branches`);
     await main.getByTestId("branch-allowance").waitFor({ timeout: 15000 });
     ok("…and the Branches page shows it paused", /paused/i.test(await main.getByTestId("branch-list").innerText()));
@@ -188,6 +188,7 @@ mkdirSync("test-results", { recursive: true });
   } catch (e) {
     ok("suite ran to the end", false, String(e?.stack ?? e));
   } finally {
+    sql(`update plans set included_branches = 3 where id = 'multishop'`);
     await browser.close();
     resend.close();
     console.log(results.join("\n"));

@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionError } from "@/components/app/form";
 import { useState, useTransition } from "react";
 import { Loader2, Send } from "lucide-react";
 
@@ -46,7 +47,7 @@ export function SendOnWhatsApp({
         {pending ? pendingLabel : label}
       </Button>
       {result?.status === "success" ? <FormAlert tone="success">{sentLabel}</FormAlert> : null}
-      {result?.status === "error" ? <FormAlert tone="error">{(errors[result.error ?? "unknown"] ?? errors.unknown).replace("{item}", result.detail ?? "")}</FormAlert> : null}
+      {result?.status === "error" ? <ActionError errorKey={result.error ?? "unknown"} errors={errors} detail={result.detail} /> : null}
     </div>
   );
 }

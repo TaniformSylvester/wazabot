@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionError } from "@/components/app/form";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -131,7 +132,7 @@ export function MarksGrid({
       </div>
       {bad.size ? <FormAlert tone="error">{t.invalid}</FormAlert> : null}
       {result?.status === "success" ? <FormAlert tone="success">{t.saved}</FormAlert> : null}
-      {result?.status === "error" ? <FormAlert tone="error">{(errors[result.error ?? "unknown"] ?? errors.unknown).replace("{item}", result.detail ?? "")}</FormAlert> : null}
+      {result?.status === "error" ? <ActionError errorKey={result.error ?? "unknown"} errors={errors} detail={result.detail} /> : null}
       {!readOnly ? (
         <div>
           <Button

@@ -217,6 +217,8 @@ mkdirSync("test-results", { recursive: true });
   // 1. A price question: catalog lookup, quoted from the catalog, in French.
   const testChatRequests = claude.requests.length;
   ok("test chat runs on Haiku 4.5 (no effort, turn context in the customer's turn)", testChatRequests > 0 && claude.requests.slice(0, testChatRequests).every((r) => r.body.model === "claude-haiku-4-5" && !r.body.output_config && !r.body.messages.some((m) => m.role === "system")));
+  // The AI assistant is "coming soon" until launched: this suite needs it on, and the AI add-on.
+  sql("select public.admin_set_ai_launched(true); update public.subscriptions set addon_id = 'ai_plus' where addon_id is null and plan_id <> 'free'");
   await deliver(text("Bonjour, la robe Ankara c'est combien ? C'est pour un mariage."));
   const priceReply = await waitFor(() => sentTexts().find((t) => t.includes("15000")));
   ok("assistant answers a price question from the catalog", priceReply === "La Robe Ankara coûte 15000 XAF.", JSON.stringify(sentTexts()));
@@ -434,13 +436,14 @@ mkdirSync("test-results", { recursive: true });
       sentTexts().length === beforeCap.sent + 1 && claude.requests.length === beforeCap.claude && sql(`select ai_enabled from conversations where id = ${convOf("237670001002")}`) === "f",
     );
 
-    // Free's hidden budget is 300 FCFA a month: bring the spend just under 80%, then past it.
-    const spent = Number(sql(`select coalesce(sum(cost_fcfa), 0) from claude_calls where business_id = '${biz.id}' and created_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'`));
-    sql(`insert into claude_calls (business_id, source, model, cost_usd, cost_fcfa) values ('${biz.id}', 'reply', 'e2e-budget', 0, ${Math.max(0, 239.99 - spent).toFixed(4)})`);
+    // AI Plus earns 12,000 FCFA a month, so its hidden Claude budget is 12,000 × 37% = 4,440 FCFA: bring the spend just under 80%, then past it.
+    const since = sql(`select current_period_start from public.subscriptions where business_id = '${biz.id}'`);
+    const spent = Number(sql(`select coalesce(sum(cost_fcfa), 0) from claude_calls where business_id = '${biz.id}' and created_at >= '${since}'`));
+    sql(`insert into claude_calls (business_id, source, model, cost_usd, cost_fcfa) values ('${biz.id}', 'reply', 'e2e-budget', 0, ${Math.max(0, 3551.99 - spent).toFixed(4)})`);
     await deliver(text("Vous pouvez coudre une robe pour ma fille de 6 ans ?"), "237670001003", "Budget");
     const alert = await waitFor(() => resend.emails.find((e) => e.subject.includes("of its Claude budget") && e.subject.includes(U.business)));
     ok("the WazaBolt team is emailed when a business passes 80% of its hidden budget", !!alert && alert.to.includes("contact@wazabolt.com"), alert?.subject ?? "");
-    sql(`insert into claude_calls (business_id, source, model, cost_usd, cost_fcfa) values ('${biz.id}', 'reply', 'e2e-budget', 0, 100)`);
+    sql(`insert into claude_calls (business_id, source, model, cost_usd, cost_fcfa) values ('${biz.id}', 'reply', 'e2e-budget', 0, 1000)`);
     const beforeBudget = { sent: sentTexts().length, claude: claude.requests.length };
     await deliver(text("Quels tissus me conseillez-vous pour une robe de soirée ?"), "237670001004", "Over");
     await sleep(4500);
@@ -475,8 +478,8 @@ mkdirSync("test-results", { recursive: true });
     await page.getByRole("heading", { name: "By business" }).waitFor({ timeout: 15000 });
     const bizRow = page.locator(`tr[data-business-id="${bizId}"]`);
     const rowText = (await bizRow.count()) ? await bizRow.innerText() : "";
-    ok("margin report: the business's plan, Claude cost and WhatsApp use", /free/i.test(rowText) && /FCFA/.test(rowText) && /test chat/.test(rowText), rowText);
-    ok("margin report: Free counted as acquisition cost; Meta rates flagged unverified", (await page.locator('tr[data-plan="free"]').innerText()).includes("Acquisition cost") && (await page.getByText(/unverified/).count()) === 1);
+    ok("margin report: the business's plan, Claude cost and WhatsApp use", /business/i.test(rowText) && /FCFA/.test(rowText) && /test chat/.test(rowText), rowText);
+    ok("margin report: one row per plan on sale (and no plan); Meta rates flagged unverified", (await page.locator('tr[data-plan]').count()) === 4 && (await page.locator('tr[data-plan="multishop"]').count()) === 1 && (await page.getByText(/unverified/).count()) === 1);
     await page.screenshot({ path: "test-results/margins.png", fullPage: true });
     // Every sign-up, with its owner — reached from the dashboard link only platform admins see.
     await page.goto(`${APP}/en/dashboard/ai`);
@@ -484,13 +487,13 @@ mkdirSync("test-results", { recursive: true });
     await page.getByRole("heading", { name: "All sign-ups" }).waitFor({ timeout: 15000 });
     const signup = page.locator(`tr[data-business-id="${bizId}"]`);
     const signupText = (await signup.count()) ? await signup.innerText() : "";
-    ok("platform admins reach the businesses list from the dashboard; each sign-up shows its owner, plan and WhatsApp", signupText.includes(U.email) && /free/i.test(signupText) && /Connected|Not connected/.test(signupText), signupText);
+    ok("platform admins reach the businesses list from the dashboard; each sign-up shows its owner, plan and WhatsApp", signupText.includes(U.email) && /Business/.test(signupText) && /AI Plus/.test(signupText) && /Connected|Not connected/.test(signupText), signupText);
     await page.screenshot({ path: "test-results/admin-businesses.png", fullPage: true });
     // Step 5: simulated plan margins and the pricing calculator.
     await page.getByRole("link", { name: "Pricing" }).click();
-    await page.getByRole("heading", { name: "Plans at full allowance" }).waitFor({ timeout: 90000 });
+    await page.getByRole("heading", { name: "AI offers at full allowance" }).waitFor({ timeout: 90000 });
     const planRows = await page.locator("tr[data-plan]").allInnerTexts();
-    ok("pricing: every plan simulated at full allowance, paid plans at or above the margin target", planRows.length === 5 && planRows.filter((r) => /^(boutique|starter|business|pro)/i.test(r)).every((r) => /Keep /.test(r)), planRows.join(" | "));
+    ok("pricing: every AI offer simulated at full allowance; the add-ons keep the margin target", planRows.length === 4 && planRows.filter((r) => /^ai_(basic|plus)/i.test(r)).every((r) => /Keep /.test(r)), planRows.join(" | "));
     await page.getByRole("heading", { name: /Simulation — 1,000 conversations/ }).waitFor({ timeout: 90000 });
     ok("pricing: the 1,000-conversation simulation report", (await page.getByText("Answered by rules").count()) >= 1 && (await page.getByText("Cache hit rate").count()) === 1);
     await page.getByLabel("Price (FCFA / month)").fill("5000");
@@ -503,7 +506,7 @@ mkdirSync("test-results", { recursive: true });
     // Fair use: schools on unlimited plans (Pro), largest first, counts only.
     await page.getByRole("link", { name: "Fair use" }).click();
     await page.getByRole("heading", { name: "Schools, largest first" }).waitFor({ timeout: 15000 });
-    ok("fair use: the unlimited plan and the Business yardstick are named", (await page.getByText(/pro have no student or report-card limit/).count()) === 1 && (await page.getByText(/business plan allows \(500\)/).count()) === 1, await page.locator("main p").first().innerText());
+    ok("fair use: the unlimited plan and the Business yardstick are named", (await page.getByText(/multishop.* have no student or report-card limit/).count()) === 1 && (await page.getByText(/business plan allows \(500\)/).count()) === 1, await page.locator("main p").first().innerText());
     sql(`delete from platform_admins where user_id in (select id from auth.users where email = '${U.email}')`);
   }
 

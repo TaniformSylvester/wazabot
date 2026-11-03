@@ -342,8 +342,13 @@ async function signUp(browser, user, locale) {
   await main.getByLabel("Phone Number ID").waitFor({ timeout: 15000 });
   ok("WhatsApp page: Not Connected, with the connect form (no fake connection)", (await main.getByText("Not Connected").count()) === 1 && (await main.getByLabel("Phone Number ID").count()) === 1);
   await page.goto(`${APP}/en/dashboard/billing`);
-  await main.getByText("Current plan").first().waitFor({ timeout: 10000 }).catch(() => {});
-  ok("billing shows plans from the database, Free is current", (await main.locator("li").getByText("Business", { exact: true }).count()) === 1 && (await main.locator("li").getByText("25,000 FCFA").count()) === 1 && (await main.getByText("Current plan").count()) >= 1);
+  await main.getByTestId("current-plan").waitFor({ timeout: 10000 }).catch(() => {});
+  ok("billing: the three plans, a new business on its free trial of Business, the AI assistant coming soon",
+    (await main.getByTestId("billing-plan-business").getByText("7,500 FCFA").count()) === 1 &&
+      (await main.getByTestId("billing-plan-business").getByText("Your plan").count()) === 1 &&
+      /Free trial until/.test(await main.getByTestId("billing-state").innerText()) &&
+      (await main.getByTestId("ai-coming-soon").count()) === 1 &&
+      (await main.getByLabel("AI assistant").count()) === 0);
   await page.goto(`${APP}/en/dashboard/team`);
   await main.getByText("You", { exact: true }).waitFor({ timeout: 10000 }).catch(() => {});
   ok("team lists the owner", (await main.getByText("You", { exact: true }).count()) === 1 && (await main.getByText("Owner").count()) >= 1);

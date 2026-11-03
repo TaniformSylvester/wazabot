@@ -19,7 +19,7 @@ export type ConnectInput = { phoneNumberId: string; wabaId: string; accessToken:
 export type ConnectError =
   | "not_configured" // platform env missing (service role, encryption key, app secret, verify token)
   | "number_in_use" // already connected to another WazaBolt business
-  | "free_number_used" // on Free, and the number was used by another business before (one Free account per number)
+  | "free_number_used" // on a free trial, and the number was used by another business before (one free trial per number)
   | "not_in_account" // the number doesn't belong to that WhatsApp Business Account
   | "token_invalid" // Meta rejected the token or its permissions
   | "verify_failed"; // any other Graph API failure
@@ -102,13 +102,13 @@ export async function connectWhatsApp(
 }
 
 /**
- * One Free account per WhatsApp number: a business on Free can't connect a
- * number another business has used before (it would get a second free
- * allowance). Paid plans can.
+ * One free trial per WhatsApp number: a business on its free trial (or with no
+ * plan) can't connect a number another business has used before (it would get
+ * a second free trial, AI trial included). Paid plans can.
  */
 async function freeNumberUsedElsewhere(admin: NonNullable<ReturnType<typeof createAdminClient>>, businessId: string, number: { phoneNumberId: string; digits?: string | null }) {
-  const { data: sub } = await admin.from("subscriptions").select("plans(monthly_price)").eq("business_id", businessId).maybeSingle();
-  if (Number(sub?.plans?.monthly_price ?? 0) > 0) return false;
+  const { data: sub } = await admin.from("subscriptions").select("status, plans(monthly_price)").eq("business_id", businessId).maybeSingle();
+  if (Number(sub?.plans?.monthly_price ?? 0) > 0 && sub?.status !== "trialing") return false;
   const match = number.digits ? `phone_number_id.eq.${number.phoneNumberId},phone_digits.eq.${number.digits}` : `phone_number_id.eq.${number.phoneNumberId}`;
   const { data } = await admin.from("whatsapp_number_history").select("business_id").neq("business_id", businessId).or(match).limit(1);
   return Boolean(data?.length);

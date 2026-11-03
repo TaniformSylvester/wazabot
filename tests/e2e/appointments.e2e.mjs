@@ -177,6 +177,8 @@ mkdirSync("test-results", { recursive: true });
   await main.getByLabel("Access token").fill("GOOD-token-abcdefghijklmn1234");
   await main.getByRole("button", { name: "Connect WhatsApp" }).click();
   await main.getByText("Connected", { exact: true }).waitFor({ timeout: 15000 });
+  // The AI assistant is "coming soon" until launched: this suite needs it on, and the AI add-on.
+  sql("select public.admin_set_ai_launched(true); update public.subscriptions set addon_id = 'ai_plus' where addon_id is null and plan_id <> 'free'");
   await deliver("Bonsoir, je peux avoir un rendez-vous ?");
   const reply = await waitFor(() => graph.sent().sent.map((m) => m.text?.body ?? "").find((t) => t.startsWith("Rendez-vous confirmé")), 30000);
   const viaWa = await waitFor(async () => (await get(tok, "appointments?select=id,conversation_id,service_name,status&conversation_id=not.is.null"))[0]);
