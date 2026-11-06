@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { authorize } from "@/lib/auth/dal";
 import { WEEKDAYS, dayHoursSchema, type OpeningHours } from "@/lib/business/hours";
 import { isLocale } from "@/lib/i18n/config";
+import { isCountryCode } from "@/lib/i18n/country-packs";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
@@ -141,4 +142,20 @@ export async function saveReceiptSettings(_prev: FormState, formData: FormData):
   }
   revalidatePath("/[lang]/dashboard", "layout");
   return ok(ctx.business.id);
+}
+
+/** The owner or an admin sets the business's country (currency, time zone, languages), before amounts are recorded (WB470). */
+export async function setBusinessCountry(_prev: FormState, formData: FormData): Promise<FormState> {
+  const ctx = await authorize("admin");
+  if (!ctx) return denied();
+  const country = formData.get("country");
+  if (!isCountryCode(country)) return fail("invalid");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_business_country", { p_business_id: ctx.business.id, p_country: country });
+  if (error) {
+    logServerError("business.country", error);
+    return fail(dbError(error));
+  }
+  revalidatePath("/[lang]/dashboard", "layout");
+  return ok(country);
 }

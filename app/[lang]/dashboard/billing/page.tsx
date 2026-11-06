@@ -69,6 +69,11 @@ export default async function BillingPage() {
         </FormAlert>
       ) : null}
 
+      {business.currency !== "XAF" ? (
+        <div data-testid="other-country">
+          <FormAlert tone="info">{format(b.otherCountry, { currency: business.currency })}</FormAlert>
+        </div>
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title={b.currentPlan}>
           <div className="flex flex-col gap-2" data-testid="current-plan">

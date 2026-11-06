@@ -13,16 +13,16 @@ import { signUp } from "@/lib/actions/auth";
 import { format } from "@/lib/i18n/format";
 import { rich } from "@/lib/i18n/rich";
 import { cn } from "@/lib/utils";
-import { SIGNUP_BUSINESS_TYPES, type RegisterInput, type SignupBusinessType, authRules, rulesResolver } from "@/lib/validation/auth-rules";
+import { SIGNUP_BUSINESS_TYPES, SIGNUP_COUNTRIES, type RegisterInput, type SignupBusinessType, type SignupCountry, authRules, rulesResolver } from "@/lib/validation/auth-rules";
 
 const TYPE_ICONS = { retail: Store, school: GraduationCap, restaurant: UtensilsCrossed, other: Shapes } as const;
 
 /** defaultType: pre-selected from the page the visitor came from (e.g. the schools page → School). */
-export function RegisterForm({ disabled = false, defaultType }: { disabled?: boolean; defaultType?: SignupBusinessType }) {
+export function RegisterForm({ disabled = false, defaultType, defaultCountry = "CM" }: { disabled?: boolean; defaultType?: SignupBusinessType; defaultCountry?: SignupCountry }) {
   const { a, locale, href, fieldError, errorText } = useAuthText();
   const form = useForm<RegisterInput>({
     resolver: rulesResolver<RegisterInput>(authRules.register),
-    defaultValues: { fullName: "", businessName: "", businessType: defaultType, email: "", password: "" },
+    defaultValues: { fullName: "", businessName: "", businessType: defaultType, country: defaultCountry, email: "", password: "" },
   });
   const { onSubmit, pending, result } = useServerForm(form, (values) => signUp(values, locale));
   const errors = form.formState.errors;
@@ -96,6 +96,17 @@ export function RegisterForm({ disabled = false, defaultType }: { disabled?: boo
           </p>
         )}
       </fieldset>
+      <label className="flex flex-col gap-1.5 text-sm font-semibold text-deep">
+        {a.fields.country}
+        <select {...form.register("country")} className="h-12 rounded-xl border border-input bg-card px-3 text-base font-normal text-deep" data-testid="signup-country">
+          {SIGNUP_COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {a.fields.countries[c]}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs font-normal text-slate">{a.fields.countryHint}</span>
+      </label>
       <FormField
         label={a.fields.email}
         type="email"

@@ -11,8 +11,11 @@ import type { FieldErrors, FieldValues, Resolver } from "react-hook-form";
 /** The kind of business chosen at sign-up; it decides the modules and the setup steps (businesses.industry). */
 export const SIGNUP_BUSINESS_TYPES = ["retail", "school", "restaurant", "other"] as const;
 export type SignupBusinessType = (typeof SIGNUP_BUSINESS_TYPES)[number];
+/** The countries a business can sign up in (lib/i18n/country-packs.ts ACTIVE_COUNTRIES). */
+export const SIGNUP_COUNTRIES = ["CM", "ZW"] as const;
+export type SignupCountry = (typeof SIGNUP_COUNTRIES)[number];
 
-export type RegisterInput = { fullName: string; businessName: string; businessType: SignupBusinessType; email: string; password: string };
+export type RegisterInput = { fullName: string; businessName: string; businessType: SignupBusinessType; country: SignupCountry; email: string; password: string };
 export type InviteSignUpInput = Pick<RegisterInput, "fullName" | "password">;
 export type LoginInput = { email: string; password: string };
 export type ForgotPasswordInput = { email: string };
@@ -41,6 +44,7 @@ export const authRules = {
     fullName: (v) => between("name_required", v),
     businessName: (v) => between("business_required", v),
     businessType: (v) => ((SIGNUP_BUSINESS_TYPES as readonly unknown[]).includes(v) ? null : "business_type_required"),
+    country: (v) => (v === undefined || (SIGNUP_COUNTRIES as readonly unknown[]).includes(v) ? null : "invalid"),
     email,
     password: newPassword,
   },

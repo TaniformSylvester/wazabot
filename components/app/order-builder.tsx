@@ -7,7 +7,7 @@ import { ActionForm, SelectField, SubmitButton, TextArea, TextField, useFieldErr
 import { OptionPicker } from "@/components/app/option-picker";
 import { Button } from "@/components/ui/button";
 import { createOrder } from "@/lib/actions/orders";
-import { currencyLabel, format, formatNumber } from "@/lib/i18n/format";
+import { format, formatAmount, formatNumber } from "@/lib/i18n/format";
 import type { Locale } from "@/lib/i18n/config";
 import { findVariant, usesOptions, variantAvailable, variantLabel, type Combination, type ProductOption } from "@/lib/products/options";
 import { DELIVERY_METHODS, PAYMENT_METHODS } from "@/types/database";
@@ -73,7 +73,7 @@ export function OrderBuilder({
       ? { product_id: i.product_id, variant_id: i.variant_id || null, quantity: Math.trunc(toNumber(i.quantity)) }
       : { name: i.name, unit_price: toNumber(i.unit_price), quantity: Math.trunc(toNumber(i.quantity)) },
   );
-  const money = (n: number) => `${formatNumber(n, locale)} ${currencyLabel(currency)}`;
+  const money = (n: number) => formatAmount(n, currency, locale);
 
   return (
     <ActionForm action={createOrder} text={text} hidden={{ locale, conversation_id: conversationId }}>

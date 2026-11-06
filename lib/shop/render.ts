@@ -1,6 +1,6 @@
 import { WEEKDAYS } from "@/lib/business/hours";
 import type { Locale } from "@/lib/i18n/config";
-import { currencyLabel, format, formatNumber } from "@/lib/i18n/format";
+import { format, formatAmount, formatNumber } from "@/lib/i18n/format";
 import type { Messages } from "@/messages/en";
 
 import { SHOP_PAGE_SIZE, type Shop } from "./types";
@@ -18,7 +18,7 @@ type Text = Messages["shop"];
 export const esc = (s: string | null | undefined) =>
   (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-const money = (amount: number, currency: string, locale: Locale) => `${formatNumber(amount, locale)} ${currencyLabel(currency)}`;
+const money = (amount: number, currency: string, locale: Locale) => formatAmount(amount, currency, locale);
 const wa = (number: string, text: string) => `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 
 const CSS = `*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#102a2a;background:#fffdf8}a{color:#0c8354}

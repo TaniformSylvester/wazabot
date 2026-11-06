@@ -15,6 +15,18 @@ export function formatXaf(amount: number, locale: Locale): string {
   return `${formatNumber(amount, locale).replace(/\u202f/g, "\u00a0")}\u00a0FCFA`;
 }
 
+/** Minor-unit digits: CFA francs and naira are written without decimals; US dollars, euros and pounds with 2. */
+export function currencyDigits(currency: string): number {
+  return currency === "XAF" || currency === "XOF" || currency === "NGN" ? 0 : 2;
+}
+
+/** An amount in a business's currency: "15,000 FCFA" / "15 000 FCFA", "12.50 USD". */
+export function formatAmount(amount: number | string, currency: string, locale: Locale): string {
+  const d = currencyDigits(currency);
+  const n = new Intl.NumberFormat(intlLocale[locale], { minimumFractionDigits: d, maximumFractionDigits: d }).format(Number(amount));
+  return `${n} ${currencyLabel(currency)}`;
+}
+
 /** How a currency is written for people: the CFA franc (XAF) is "FCFA" in Cameroon. */
 export function currencyLabel(code: string): string {
   return code === "XAF" || code === "XOF" ? "FCFA" : code;

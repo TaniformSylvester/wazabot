@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ACTIVE_COUNTRIES, getCountryPack } from "@/lib/i18n/country-packs";
+
 import { ADJUST_REASONS, AFTER_HOURS_MODES, DELIVERY_METHODS, DOCUMENT_TYPES, EXPENSE_CATEGORIES, INDUSTRIES, ORDER_STATUSES, PAYMENT_METHODS, PRODUCT_UNITS, RECEIVE_METHODS, CONVERSATION_STATUSES } from "@/types/database";
 import { REPLY_LENGTHS, TONES } from "@/lib/ai/style";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
@@ -62,13 +64,21 @@ const optionalPhone = z.preprocess(
 );
 
 /** WhatsApp number → digits only with country code (WhatsApp's wa_id format). */
-export function normalizeWhatsAppNumber(input: string, defaultCountryCode = "237"): string {
+/**
+ * A WhatsApp number as digits with the country code. "+…" or "00…" numbers
+ * are taken as they are; a local mobile number gets its country's code — the
+ * country given, or the one whose local format it matches (Cameroon 6XXXXXXXX,
+ * Zimbabwe 07XXXXXXXX: they can't be confused).
+ */
+export function normalizeWhatsAppNumber(input: string, country?: string): string {
   const digits = input.replace(/[^0-9]/g, "");
-  if (input.trim().startsWith("+") || digits.startsWith(defaultCountryCode) || digits.startsWith("00")) {
-    return digits.replace(/^00/, "");
+  if (input.trim().startsWith("+") || digits.startsWith("00")) return digits.replace(/^00/, "");
+  const packs = country ? [getCountryPack(country)] : ACTIVE_COUNTRIES.map((c) => getCountryPack(c));
+  for (const p of packs) {
+    if (digits.startsWith(p.dialCode) && digits.length > p.dialCode.length + 7) return digits;
+    if (p.localMobile.test(digits)) return p.dialCode + digits.replace(/^0/, "");
   }
-  // Local Cameroonian mobile numbers are 9 digits starting with 6.
-  return digits.length === 9 ? defaultCountryCode + digits : digits;
+  return digits;
 }
 
 const whatsappNumber = z.preprocess(

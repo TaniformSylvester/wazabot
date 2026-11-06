@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { SIGNUP_BUSINESS_TYPES } from "./auth-rules";
+import { SIGNUP_BUSINESS_TYPES, SIGNUP_COUNTRIES } from "./auth-rules";
 
 export { SIGNUP_BUSINESS_TYPES, type SignupBusinessType } from "./auth-rules";
 
@@ -24,6 +24,8 @@ export const registerSchema = z.object({
   fullName: z.string().trim().min(2, "name_required").max(120, "too_long"),
   businessName: z.string().trim().min(2, "business_required").max(120, "too_long"),
   businessType: z.enum(SIGNUP_BUSINESS_TYPES, "business_type_required"),
+  // Sets the business's currency, time zone and languages (country packs).
+  country: z.enum(SIGNUP_COUNTRIES).default("CM"),
   email,
   password: newPassword,
 });

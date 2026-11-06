@@ -35,7 +35,7 @@ export async function signUp(input: unknown, localeInput?: string): Promise<Acti
   if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  const { email, password, fullName, businessName, businessType } = parsed.data;
+  const { email, password, fullName, businessName, businessType, country } = parsed.data;
   const locale = await getRequestLocale(localeInput);
 
   const supabase = await createClient();
@@ -46,7 +46,7 @@ export async function signUp(input: unknown, localeInput?: string): Promise<Acti
       emailRedirectTo: confirmUrl(localizePath(locale, "/dashboard")),
       // Read by the sign-up trigger (dashboard language, country pack) and the email templates.
       // industry is applied to the new business when the email link is confirmed (app/auth/confirm).
-      data: { full_name: fullName, business_name: businessName, industry: businessType, locale, country_code: DEFAULT_COUNTRY },
+      data: { full_name: fullName, business_name: businessName, industry: businessType, locale, country_code: country },
     },
   });
   if (error) {

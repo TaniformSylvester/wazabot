@@ -69,7 +69,8 @@ export type ActionErrorKey =
   | "ai_not_launched"
   | "meta_notice_required"
   | "topup_needs_addon"
-  | "ai_trial_used";
+  | "ai_trial_used"
+  | "country_locked";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -162,6 +163,8 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "plan_required";
     case "WB464":
       return "ai_trial_used";
+    case "WB470":
+      return "country_locked";
     case "23505":
       return "duplicate";
     case "22023":

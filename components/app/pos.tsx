@@ -9,7 +9,7 @@ import { useI18n } from "@/components/i18n/i18n-provider";
 import { createSale, type SaleError, type SaleInput } from "@/lib/actions/sales";
 import type { PosProduct } from "@/lib/data/queries";
 import type { Locale } from "@/lib/i18n/config";
-import { currencyLabel, format, formatNumber } from "@/lib/i18n/format";
+import { format, formatAmount, formatNumber } from "@/lib/i18n/format";
 import { colourOf, findVariant, usesOptions, variantAvailable, variantLabel, type Combination } from "@/lib/products/options";
 import { cn } from "@/lib/utils";
 import type { Messages } from "@/messages/en";
@@ -71,7 +71,7 @@ export function Pos({
   const [clientKey, setClientKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const money = (n: number) => `${formatNumber(n, locale)} ${currencyLabel(currency)}`;
+  const money = (n: number) => formatAmount(n, currency, locale);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();

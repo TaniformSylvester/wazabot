@@ -7,10 +7,10 @@ import type { ComputedLine, DocumentData, DocumentTotals } from "./types";
  * agree. Order: line totals → subtotal → document discount → tax → total.
  */
 
-/** Minor-unit digits: CFA francs and naira are written without decimals. */
-export function currencyDigits(currency: string): number {
-  return currency === "XAF" || currency === "XOF" || currency === "NGN" ? 0 : 2;
-}
+import { currencyDigits } from "@/lib/i18n/format";
+
+/** Minor-unit digits (one definition: lib/i18n/format.ts). */
+export { currencyDigits };
 
 /** Half away from zero, at the currency's precision. Avoids 1.005 → 1.00 float errors. */
 export function roundMoney(value: number, currency: string): number {

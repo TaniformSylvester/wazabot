@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { ActionForm, SelectField, SubmitButton } from "@/components/app/form";
+import { setBusinessCountry } from "@/lib/actions/business";
+import { ACTIVE_COUNTRIES } from "@/lib/i18n/country-packs";
 import { ArrowRight } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
@@ -96,6 +99,20 @@ export default async function SettingsPage() {
               { label: s.business.defaultLanguage, value: languageName(business.defaultLanguage, locale) },
             ]}
           />
+          {canEdit ? (
+            <ActionForm action={setBusinessCountry} text={{ ...text, saved: s.changeCountry.saved }} successMessage={s.changeCountry.saved} className="mt-4 max-w-md">
+              <SelectField
+                name="country"
+                label={s.changeCountry.label}
+                hint={s.changeCountry.hint}
+                defaultValue={business.countryCode}
+                options={ACTIVE_COUNTRIES.map((c) => ({ value: c, label: countries[c] ?? c }))}
+              />
+              <div>
+                <SubmitButton variant="outline">{s.changeCountry.submit}</SubmitButton>
+              </div>
+            </ActionForm>
+          ) : null}
           <Link
             href={localizePath(locale, "/dashboard/ai/languages")}
             className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-waza-700 hover:underline"

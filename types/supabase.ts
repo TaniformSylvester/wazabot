@@ -5149,6 +5149,10 @@ export type Database = {
         Returns: number;
       };
       school_results_locked: { Args: { p_class_id: string; p_term_id: string }; Returns: boolean };
+      set_business_country: {
+        Args: { p_business_id: string; p_country: string };
+        Returns: undefined;
+      };
       set_business_module: {
         Args: { p_business_id: string; p_enabled: boolean; p_module: string };
         Returns: undefined;
