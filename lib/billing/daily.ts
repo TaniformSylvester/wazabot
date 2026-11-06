@@ -2,7 +2,8 @@ import "server-only";
 
 import { ALERTS, PAYMENT_GRACE_DAYS, RENEWAL_REMINDER_DAYS, claudeBudgetFcfa, periodPrice } from "@/config/economics";
 import { currentPlanId } from "./entitlements";
-import { quote } from "./price";
+import { catalogFor, quote } from "./price";
+import { formatAmount } from "@/lib/i18n/format";
 import { siteConfig } from "@/config/site";
 import { emailLayout, esc, sendEmail } from "@/lib/email/send";
 import { logServerError } from "@/lib/log";
@@ -32,16 +33,16 @@ const site = () => siteConfig.url.replace(/\/$/, "");
 
 const OWNER = {
   renewal: {
-    en: (plan: string, end: string, price: string) => ({
+    en: (plan: string, end: string, price: string, bank = false) => ({
       subject: `Your WazaBolt ${plan} plan ends on ${end}`,
       title: `Your ${plan} plan ends on ${end}`,
-      intro: `To keep using WazaBolt without a break, renew it before then: <b>${esc(price)}</b> by MTN Mobile Money or Orange Money. Request the renewal on your Billing page and our team will contact you.`,
+      intro: `To keep using WazaBolt without a break, renew it before then: <b>${esc(price)}</b> by ${bank ? "bank transfer" : "MTN Mobile Money or Orange Money"}. Request the renewal on your Billing page and our team will contact you.`,
       button: "Renew my plan",
     }),
-    fr: (plan: string, end: string, price: string) => ({
+    fr: (plan: string, end: string, price: string, bank = false) => ({
       subject: `Votre forfait WazaBolt ${plan} se termine le ${end}`,
       title: `Votre forfait ${plan} se termine le ${end}`,
-      intro: `Pour continuer sans interruption, renouvelez-le avant cette date : <b>${esc(price)}</b> par MTN Mobile Money ou Orange Money. Demandez le renouvellement depuis votre page Facturation et notre équipe vous contactera.`,
+      intro: `Pour continuer sans interruption, renouvelez-le avant cette date : <b>${esc(price)}</b> par ${bank ? "virement bancaire" : "MTN Mobile Money ou Orange Money"}. Demandez le renouvellement depuis votre page Facturation et notre équipe vous contactera.`,
       button: "Renouveler mon forfait",
     }),
   },
@@ -124,7 +125,7 @@ export async function runDailyBilling(admin: Admin, now = new Date()): Promise<D
   // 2. Renewal reminders.
   const { data: ending } = await admin
     .from("subscriptions")
-    .select("business_id, plan_id, addon_id, billing_interval, current_period_end")
+    .select("business_id, plan_id, addon_id, billing_interval, current_period_end, businesses(currency)")
     .eq("status", "active")
     .gt("current_period_end", now.toISOString())
     .lte("current_period_end", new Date(now.getTime() + RENEWAL_REMINDER_DAYS[0] * DAY).toISOString());
@@ -139,8 +140,13 @@ export async function runDailyBilling(admin: Admin, now = new Date()): Promise<D
     // The plan with its AI add-on (a bundle at its set price).
     const current = currentPlanId(s.plan_id);
     const addon = s.addon_id === "ai_basic" || s.addon_id === "ai_plus" ? s.addon_id : null;
-    const price = current === "free" ? periodPrice(Number(plan.monthly_price), interval) : quote(current, addon, interval).period;
-    await emailOwner(admin, s.business_id, (lang) => OWNER.renewal[lang](plan.name, date(s.current_period_end, lang), money(price, lang)));
+    // In the business's currency when its plans are priced in it (USD: the plan alone).
+    const currency = s.businesses?.currency ?? "XAF";
+    const local = currency === "XAF" ? null : catalogFor(currency);
+    const localPlan = local?.plans.find((p) => p.id === current);
+    const price = local && localPlan ? quote(localPlan.id, null, interval, local).period : current === "free" ? periodPrice(Number(plan.monthly_price), interval) : quote(current, addon, interval).period;
+    const shown = (lang: Lang) => (local && localPlan ? formatAmount(price, currency, lang) : money(price, lang));
+    await emailOwner(admin, s.business_id, (lang) => OWNER.renewal[lang](plan.name, date(s.current_period_end, lang), shown(lang), !!(local && localPlan)));
     tally.reminders++;
   }
 

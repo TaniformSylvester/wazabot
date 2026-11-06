@@ -126,6 +126,11 @@ export async function setSetupFee(formData: FormData) {
   const id = String(formData.get("business_id") ?? "");
   const amount = Number(String(formData.get("setup_fee") ?? "").replace(/[\s,]/g, ""));
   if (!isUuid(id) || !Number.isFinite(amount) || !(amount === 0 || (amount >= SETUP_FEE_RANGE.min && amount <= SETUP_FEE_RANGE.max))) backToBusinesses(formData, "error=setup_fee_invalid");
+  // The setup fee is in FCFA: a business in another currency has none.
+  if (amount !== 0) {
+    const { data: biz } = await admin.from("businesses").select("currency").eq("id", id).maybeSingle();
+    if (biz?.currency !== "XAF") backToBusinesses(formData, "error=setup_fee_invalid");
+  }
   const { error } = await admin.rpc("admin_set_setup_fee", { p_business_id: id, p_amount: amount, p_actor: actor ?? undefined });
   if (error) backToBusinesses(formData, "error=failed");
   revalidatePath("/[lang]/admin/businesses", "page");

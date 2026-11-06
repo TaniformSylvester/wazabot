@@ -10,11 +10,11 @@ import { cancelPlanChange, requestAiTopup, requestPlanChange, startAiTrial } fro
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { currentPlanId, getLimit, trialDaysLeft } from "@/lib/billing/entitlements";
 import { getPlanAccess } from "@/lib/billing/plan-access";
-import { quote } from "@/lib/billing/price";
+import { catalog, catalogFor, quote } from "@/lib/billing/price";
 import { getBilling, getEntitlements } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { format, formatNumber, formatXaf } from "@/lib/i18n/format";
+import { format, formatAmount, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { getBusinessModules } from "@/lib/modules";
 import { cn } from "@/lib/utils";
@@ -45,14 +45,25 @@ export default async function BillingPage() {
   const noPlan = planId === "free";
   const planName = pt.plans[planId].name;
   const addonName = access?.addonId ? pt.ai.addons[access.addonId].name : null;
-  const now = quote(noPlan ? "business" : planId, access?.addonId ?? null, access?.interval ?? "month");
+  // Prices in the business's currency when WazaBolt sells in it (USD: plans only); otherwise FCFA, and the team agrees the price.
+  const local = catalogFor(business.currency);
+  const cat = local ?? catalog;
+  const priceCurrency = local ? business.currency : "XAF";
+  const fcfaOnly = priceCurrency === "XAF";
+  const shownPlans = plans
+    .filter((p) => cat.plans.some((x) => x.id === p.id))
+    .map((p) => ({ ...p, monthlyPrice: cat.plans.find((x) => x.id === p.id)!.monthlyPrice, extraBranchPrice: fcfaOnly ? p.extraBranchPrice : null }));
+  const shownAddons = fcfaOnly ? addons : [];
+  const addonId = access?.addonId && cat.addons.some((a) => a.id === access.addonId) ? access.addonId : null;
+  const now = quote(noPlan || !cat.plans.some((p) => p.id === planId) ? "business" : planId, addonId, access?.interval ?? "month", cat);
   const trialLeft = access ? trialDaysLeft(access) : null;
   const state = usage?.billing.state;
   const aiLaunched = access?.aiLaunched ?? false;
   const users = access ? getLimit(access, "members") : null;
   const shops = access ? getLimit(access, "shops") : null;
   const statusKey = noPlan ? "none" : (access?.status ?? "active");
-  const money = (v: number) => formatXaf(v, locale);
+  const money = (v: number) => formatAmount(v, priceCurrency, locale);
+  const fcfa = (v: number) => formatAmount(v, "XAF", locale);
   const pendingPlan = pendingRequest ? plans.find((p) => p.id === pendingRequest.to_plan_id) : null;
   const aiTrialUsed = !!access?.aiTrial.startedAt;
 
@@ -71,7 +82,7 @@ export default async function BillingPage() {
 
       {business.currency !== "XAF" ? (
         <div data-testid="other-country">
-          <FormAlert tone="info">{format(b.otherCountry, { currency: business.currency })}</FormAlert>
+          <FormAlert tone="info">{local ? format(b.bankTransfer, { currency: business.currency }) : format(b.otherCountry, { currency: business.currency })}</FormAlert>
         </div>
       ) : null}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -107,7 +118,7 @@ export default async function BillingPage() {
             )}
             {access && access.setupFee.amount > 0 ? (
               <p className="text-sm text-slate" data-testid="setup-fee">
-                {access.setupFee.paidAt ? b.setupFeePaid : format(b.setupFee, { price: money(access.setupFee.amount) })}
+                {access.setupFee.paidAt ? b.setupFeePaid : format(b.setupFee, { price: fcfa(access.setupFee.amount) })}
               </p>
             ) : null}
           </div>
@@ -148,7 +159,7 @@ export default async function BillingPage() {
               <p className="text-xs text-slate">
                 {format(b.ai.usageNote, { start: formatDate(usage.periodStart, locale), end: formatDate(new Date(new Date(usage.periodEnd).getTime() - 1).toISOString(), locale) })}
               </p>
-              {canRequest && usage.addonId && !business.readOnly ? (
+              {canRequest && usage.addonId && fcfaOnly && !business.readOnly ? (
                 <div>
                   <ActionButton action={requestAiTopup} pendingLabel={b.change.sending} errors={d.errors}>
                     {format(b.ai.topup, { price: money(aiTopup.price), count: formatNumber(aiTopup.conversations, locale) })}
@@ -175,7 +186,7 @@ export default async function BillingPage() {
       </Panel>
 
       <ul className="grid gap-4 md:grid-cols-3">
-        {plans.map((p, i) => {
+        {shownPlans.map((p, i) => {
           const isCurrent = planId === p.id;
           return (
             <li key={p.id} className={cn("flex flex-col rounded-3xl border bg-card p-5 shadow-card", isCurrent ? "border-waza-500 ring-2 ring-waza-500/30" : "border-border")} data-testid={`billing-plan-${p.id}`}>
@@ -191,9 +202,9 @@ export default async function BillingPage() {
                 {money(p.monthlyPrice)}
                 <span className="text-sm font-normal text-slate">{b.perMonth}</span>
               </p>
-              <p className="text-xs text-slate">{format(b.annualOffer, { price: money(quote(p.id, null, "year").period) })}</p>
+              <p className="text-xs text-slate">{format(b.annualOffer, { price: money(quote(p.id, null, "year", cat).period) })}</p>
               <ul className="mt-3 flex flex-col gap-1.5 text-sm">
-                {planFeatures(p, i > 0 ? plans[i - 1] : undefined, pt, locale).map((f) => (
+                {planFeatures(p, i > 0 ? shownPlans[i - 1] : undefined, pt, locale).map((f) => (
                   <li key={f.label} className={cn("flex items-start gap-2", !f.included && "text-slate/70")}>
                     {f.included ? <Check className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden /> : <Minus className="mt-0.5 size-4 shrink-0" aria-hidden />}
                     {f.label}
@@ -230,14 +241,14 @@ export default async function BillingPage() {
         </Panel>
       ) : null}
 
-      <Panel id="change-plan" title={b.change.title} description={b.change.description}>
+      <Panel id="change-plan" title={b.change.title} description={fcfaOnly ? b.change.description : b.change.descriptionBank}>
         {canRequest ? (
           <ActionForm action={requestPlanChange} text={formText} successMessage={b.change.sent} className="max-w-xl">
             <SelectField
               name="plan_id"
               label={b.change.plan}
               defaultValue={pendingPlan?.id ?? (noPlan ? "business" : planId)}
-              options={plans.map((p) => ({
+              options={shownPlans.map((p) => ({
                 value: p.id,
                 label: p.id === planId && !noPlan && access?.status !== "trialing" ? format(b.change.renewOption, { plan: pt.plans[p.id].name }) : `${pt.plans[p.id].name} — ${money(p.monthlyPrice)}${b.perMonth}`,
               }))}
@@ -251,7 +262,7 @@ export default async function BillingPage() {
                 { value: "year", label: b.change.yearly },
               ]}
             />
-            {aiLaunched ? (
+            {aiLaunched && shownAddons.length ? (
               <>
                 <SelectField
                   name="addon_id"
@@ -259,7 +270,7 @@ export default async function BillingPage() {
                   defaultValue={pendingRequest?.addon_id ?? access?.addonId ?? ""}
                   options={[
                     { value: "", label: b.change.addonNone },
-                    ...addons.map((a) => ({
+                    ...shownAddons.map((a) => ({
                       value: a.id,
                       label: format(b.change.addonOption, { name: pt.ai.addons[a.id].name, price: money(a.monthlyPrice), count: formatNumber(a.conversationsPerMonth, locale) }),
                     })),
@@ -312,7 +323,7 @@ export default async function BillingPage() {
                       <td className={td}>
                         {kind === "plan" ? `${pt.plans[plan].name}${p.addon_id === "ai_basic" || p.addon_id === "ai_plus" ? ` + ${pt.ai.addons[p.addon_id].name}` : ""} (${b.interval[p.billing_interval === "year" ? "year" : "month"]})` : b.payments.kinds[kind]}
                       </td>
-                      <td className={td}>{money(Number(p.amount))}</td>
+                      <td className={td}>{formatAmount(Number(p.amount), p.currency ?? "XAF", locale)}</td>
                       <td className={td}>
                         {formatDate(p.period_start, locale)} – {formatDate(p.period_end, locale)}
                       </td>
@@ -328,7 +339,7 @@ export default async function BillingPage() {
         </Panel>
       ) : null}
 
-      <FormAlert tone="info">{b.noPayments}</FormAlert>
+      {business.currency === "XAF" ? <FormAlert tone="info">{b.noPayments}</FormAlert> : null}
     </div>
   );
 }

@@ -198,6 +198,19 @@ export const AI_TOPUP = { price: 2_000, conversations: 100 } as const;
 /** A plan and an add-on together at a set monthly price (instead of the sum). Must match the `bundle_prices` table. */
 export const BUNDLE_PRICES: { planId: PlanId; addonId: AddonId; monthlyPrice: number }[] = [{ planId: "business", addonId: "ai_basic", monthlyPrice: 11_500 }];
 
+/**
+ * Plan prices per month in the other currencies a business can have (its
+ * country's). Only the plans are sold in these currencies for now: the AI
+ * add-ons, top-ups, bundles, extra shops and the setup fee are FCFA only, so
+ * they aren't offered to these businesses. Paid by bank transfer: the
+ * WazaBolt team sends the bank details by hand.
+ */
+export const LOCAL_PLAN_PRICES: Record<string, Partial<Record<PlanId, number>>> = {
+  USD: { boutique: 5, business: 12, multishop: 25 },
+};
+/** FCFA per unit of a currency, for the team's margin report (revenue in FCFA). */
+export const FCFA_PER_UNIT: Record<string, number> = { XAF: 1, USD: FCFA_PER_USD };
+
 /** Free trial of the Business plan for a new business, once per owner. */
 export const TRIAL_DAYS = 14;
 /** The AI trial, once per business (only once AI launches): whichever comes first. */

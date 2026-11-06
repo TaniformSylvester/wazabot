@@ -56,3 +56,52 @@ describe("amounts", () => {
     expect(plain(formatAmount(12.5, "USD", "fr"))).toBe("12,50 USD");
   });
 });
+
+describe("plan prices in US dollars (Zimbabwe)", () => {
+  it("the plans are $5, $12 and $25 a month; yearly is 10 months for 12", async () => {
+    const { catalogFor, quote } = await import("@/lib/billing/price");
+    const usd = catalogFor("USD")!;
+    expect(usd.plans.map((p) => [p.id, p.monthlyPrice])).toEqual([
+      ["boutique", 5],
+      ["business", 12],
+      ["multishop", 25],
+    ]);
+    expect(quote("business", null, "year", usd).period).toBe(120);
+    expect(quote("multishop", null, "month", usd).period).toBe(25);
+    expect(plain(formatAmount(quote("boutique", null, "year", usd).period, "USD", "en"))).toBe("50.00 USD");
+  });
+
+  it("only the plans are sold in dollars: no AI add-on or bundle; FCFA is unchanged; an unpriced currency gets nothing", async () => {
+    const { catalog, catalogFor, quote } = await import("@/lib/billing/price");
+    const usd = catalogFor("USD")!;
+    expect(usd.addons).toEqual([]);
+    expect(usd.bundles).toEqual([]);
+    expect(() => quote("business", "ai_basic", "month", usd)).toThrow();
+    expect(catalogFor("XAF")).toBe(catalog);
+    expect(quote("business", null, "month", catalogFor("XAF")!).period).toBe(7500);
+    expect(catalogFor("EUR")).toBeNull();
+  });
+
+  it("the team's margin report counts a dollar plan in FCFA", async () => {
+    const { businessMargin } = await import("@/lib/billing/margins");
+    const { FCFA_PER_USD } = await import("@/config/economics");
+    const r = {
+      business_id: "b1",
+      business_name: "Moyo Hardware",
+      plan_id: "business",
+      subscription_status: "active",
+      claude_reply_fcfa: 0,
+      claude_test_fcfa: 0,
+      claude_usd: 0,
+      claude_requests: 0,
+      ai_conversations: 0,
+      service_sent: 0,
+      service_over_free: 0,
+      utility_sent: 0,
+      marketing_sent: 0,
+    };
+    expect(businessMargin(r, "month", null, "USD").revenue).toBe(12 * FCFA_PER_USD);
+    expect(businessMargin(r, "year", null, "USD").revenue).toBeCloseTo((120 / 12) * FCFA_PER_USD);
+    expect(businessMargin(r, "month", null, "XAF").revenue).toBe(7500);
+  });
+});

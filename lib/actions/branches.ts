@@ -91,6 +91,8 @@ const extraSchema = z.object({
 export async function requestExtraBranches(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("admin");
   if (!ctx) return denied();
+  // Extra shops are priced in FCFA only.
+  if (ctx.business.currency !== "XAF") return fail("not_in_currency");
   const parsed = extraSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();

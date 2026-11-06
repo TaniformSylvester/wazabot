@@ -37,7 +37,8 @@ export default async function BranchesPage() {
   const open = branches.filter((b) => b.active).length;
   const plan = sub.data?.plans;
   const extra = sub.data?.extra_branches ?? 0;
-  const extraPrice = plan?.extra_branch_price === null || plan?.extra_branch_price === undefined ? null : Number(plan.extra_branch_price);
+  // Extra shops are sold in FCFA only (a business in another currency asks the team).
+  const extraPrice = plan?.extra_branch_price === null || plan?.extra_branch_price === undefined || business.currency !== "XAF" ? null : Number(plan.extra_branch_price);
   const formText = { errors: d.errors, saved: br.saved, saving: d.common.saving };
 
   const fields = (b?: (typeof branches)[number]) => (

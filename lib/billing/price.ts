@@ -1,4 +1,4 @@
-import { ADDONS, AI_TOPUP, BUNDLE_PRICES, PLANS, PLANS_ON_SALE, periodPrice, type AddonId, type BillingInterval, type PlanId } from "@/config/economics";
+import { ADDONS, AI_TOPUP, BUNDLE_PRICES, LOCAL_PLAN_PRICES, PLANS, PLANS_ON_SALE, periodPrice, type AddonId, type BillingInterval, type PlanId } from "@/config/economics";
 
 /*
  * What a business pays: a plan, optionally with the AI add-on, monthly or
@@ -14,6 +14,22 @@ export type Catalog = {
 };
 
 export const catalog: Catalog = { plans: PLANS, addons: ADDONS, bundles: BUNDLE_PRICES };
+
+/**
+ * What a business can buy in its own currency: everything in FCFA; in another
+ * currency (LOCAL_PLAN_PRICES) the plans on sale only. null: nothing is priced
+ * in that currency yet (the team agrees the price with the business).
+ */
+export function catalogFor(currency: string): Catalog | null {
+  if (currency === "XAF") return catalog;
+  const local = LOCAL_PLAN_PRICES[currency];
+  if (!local) return null;
+  return {
+    plans: PLANS.filter((p) => (PLANS_ON_SALE as readonly string[]).includes(p.id) && local[p.id] !== undefined).map((p) => ({ id: p.id, monthlyPrice: local[p.id]! })),
+    addons: [],
+    bundles: [],
+  };
+}
 
 export type Quote = {
   planId: PlanId;

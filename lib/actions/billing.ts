@@ -10,6 +10,7 @@ import { notifyTeamOfPlanRequest } from "@/lib/admin/plan-requests";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getPlanAccess } from "@/lib/billing/plan-access";
+import { catalogFor } from "@/lib/billing/price";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
 import { denied } from "./denied";
@@ -36,6 +37,9 @@ export async function requestPlanChange(_prev: FormState, formData: FormData): P
   if (!ctx) return denied();
   const parsed = requestSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
+  // Only what is priced in the business's currency (USD: the plans, without the AI add-on).
+  const cat = catalogFor(ctx.business.currency);
+  if (cat && (!cat.plans.some((p) => p.id === parsed.data.plan_id) || (parsed.data.addon_id && !cat.addons.some((a) => a.id === parsed.data.addon_id)))) return fail("not_in_currency");
   if (parsed.data.addon_id) {
     // "Coming soon" until launched (the database refuses it too); the Meta fees notice must be accepted.
     const access = await getPlanAccess(ctx.business.id);
@@ -85,6 +89,8 @@ export async function cancelPlanChange(requestId: string): Promise<FormState> {
 export async function requestAiTopup(): Promise<FormState> {
   const ctx = await authorize("admin");
   if (!ctx) return denied();
+  // Top-ups are priced in FCFA only.
+  if (ctx.business.currency !== "XAF") return fail("not_in_currency");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("request_ai_topup", { p_business_id: ctx.business.id, p_contact_phone: ctx.business.phone ?? undefined });
   if (error || !data) {

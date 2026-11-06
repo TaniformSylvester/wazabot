@@ -70,7 +70,8 @@ export type ActionErrorKey =
   | "meta_notice_required"
   | "topup_needs_addon"
   | "ai_trial_used"
-  | "country_locked";
+  | "country_locked"
+  | "not_in_currency";
 
 export type FormState = {
   status: "idle" | "success" | "error";

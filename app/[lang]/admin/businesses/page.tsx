@@ -28,7 +28,7 @@ const NOTICES: Record<string, { ok: boolean; text: string }> = {
   ai_not_launched: { ok: false, text: "The AI assistant isn't launched yet: record the plan without the add-on." },
   paid_plan: { ok: false, text: "This business is on a paid plan: a trial can't be added." },
   payment_invalid: { ok: false, text: "Enter the amount received and how it was paid." },
-  setup_fee_invalid: { ok: false, text: "The setup fee is 0 (none) or between 10,000 and 25,000 FCFA." },
+  setup_fee_invalid: { ok: false, text: "The setup fee is 0 (none) or between 10,000 and 25,000 FCFA, and only for businesses paying in FCFA." },
 };
 const PLAN_NAMES: Record<string, string> = { free: "No plan", boutique: "Boutique", business: "Business", multishop: "Multi-shop", starter: "Starter (old)", pro: "Pro (old)" };
 const ADDON_NAMES: Record<string, string> = { ai_basic: "AI Basic", ai_plus: "AI Plus" };
@@ -170,8 +170,8 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
                           </select>
                         ) : null}
                         <div className="grid grid-cols-2 gap-1.5">
-                          <input name="amount" type="number" min={0} step={1} required placeholder="Amount (FCFA)" className={small} aria-label="Amount received (FCFA)" />
-                          <select name="method" defaultValue="mobile_money" className={small} aria-label="Paid by">
+                          <input name="amount" type="number" min={0} step={b.currency === "XAF" ? 1 : 0.01} required placeholder={`Amount (${b.currency === "XAF" ? "FCFA" : b.currency})`} className={small} aria-label={`Amount received (${b.currency === "XAF" ? "FCFA" : b.currency})`} />
+                          <select name="method" defaultValue={b.currency === "XAF" ? "mobile_money" : "bank"} className={small} aria-label="Paid by">
                             <option value="mobile_money">Mobile Money</option>
                             <option value="cash">Cash</option>
                             <option value="bank">Bank transfer</option>
@@ -188,6 +188,8 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
                           Record payment
                         </button>
                       </form>
+                      {/* The setup fee is in FCFA: only for FCFA businesses. */}
+                      {b.currency === "XAF" ? (
                       <form action={setSetupFee} className="mt-3 flex items-end gap-1.5" aria-label={`Setup fee for ${b.name}`}>
                         <input type="hidden" name="business_id" value={b.id} />
                         <input type="hidden" name="locale" value={locale} />
@@ -199,6 +201,7 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
                           Save
                         </button>
                       </form>
+                      ) : null}
                       {b.planStatus === "trialing" || b.planId === "free" ? (
                         <form action={extendTrial} className="mt-3 flex items-end gap-1.5" aria-label={`Extend the trial of ${b.name}`}>
                           <input type="hidden" name="business_id" value={b.id} />

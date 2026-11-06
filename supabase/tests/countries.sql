@@ -77,4 +77,22 @@ exception when sqlstate 'WB470' then
   raise notice 'PASS once a sale is recorded the country (currency) can''t change (WB470)';
 end $$;
 
+-- Plan payments take the business's currency (20261107120000); top-ups and setup fees stay FCFA.
+reset role;
+do $$
+declare
+  v_agent uuid := (select business_id from public.business_members where user_id = '00000000-0000-4000-a995-00000000000c' and role = 'owner');
+begin
+  insert into public.subscription_payments (business_id, plan_id, billing_interval, amount, method, period_start, period_end)
+  values ((select zw from t), 'business', 'year', 120, 'bank', now(), now() + interval '1 year'),
+         (v_agent, 'business', 'month', 7500, 'mobile_money', now(), now() + interval '1 month');
+  insert into public.subscription_payments (business_id, plan_id, billing_interval, amount, method, period_start, period_end, kind)
+  values ((select zw from t), 'business', 'month', 2000, 'mobile_money', now(), now(), 'topup');
+  if (select string_agg(kind || ' ' || currency || ' ' || amount, ', ' order by kind) from public.subscription_payments where business_id = (select zw from t)) <> 'plan USD 120.00, topup XAF 2000.00' then
+    raise exception 'FAIL: Zimbabwe payment currencies %', (select string_agg(kind || ' ' || currency || ' ' || amount, ', ' order by kind) from public.subscription_payments where business_id = (select zw from t));
+  end if;
+  if (select currency from public.subscription_payments where business_id = v_agent) <> 'XAF' then raise exception 'FAIL: Cameroon plan payment currency'; end if;
+  raise notice 'PASS a plan payment is recorded in the business''s currency (120.00 USD); a top-up and a Cameroon payment stay FCFA';
+end $$;
+
 rollback;

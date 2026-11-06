@@ -15,7 +15,12 @@ export function planFeatures(plan: Plan, previous: Plan | undefined, t: Messages
   const n = (v: number) => formatNumber(v, locale);
   const users = { label: format(plan.maxMembers === 1 ? f.members : f.membersPlural, { count: n(plan.maxMembers) }), included: true };
   const shops = {
-    label: plan.includedBranches > 1 ? format(f.shops, { count: n(plan.includedBranches), price: formatXaf(plan.extraBranchPrice ?? 0, locale) }) : f.shop,
+    label:
+      plan.includedBranches <= 1
+        ? f.shop
+        : plan.extraBranchPrice === null
+          ? format(f.shopsNoExtra, { count: n(plan.includedBranches) })
+          : format(f.shops, { count: n(plan.includedBranches), price: formatXaf(plan.extraBranchPrice, locale) }),
     included: true,
   };
   const own = [

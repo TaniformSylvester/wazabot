@@ -1,7 +1,8 @@
 import "server-only";
 
 import { AI_TOPUP, PAYMENT_GRACE_DAYS, periodPrice, type BillingInterval } from "@/config/economics";
-import { isAddonId, isPlanOnSale, quote } from "@/lib/billing/price";
+import { catalogFor, isAddonId, isPlanOnSale, quote } from "@/lib/billing/price";
+import { formatAmount } from "@/lib/i18n/format";
 import { siteConfig } from "@/config/site";
 import type { PaymentRecord } from "@/lib/billing/payments";
 import { emailLayout, esc, sendEmail } from "@/lib/email/send";
@@ -25,7 +26,8 @@ export type PlanRequestRow = {
   status: string;
   createdAt: string;
   decidedAt: string | null;
-  business: { id: string; name: string };
+  /** currency: the business's own. */
+  business: { id: string; name: string; currency: string };
   requester: { name: string; email: string | null; locale: Lang } | null;
   from: { id: string; name: string; price: number } | null;
   to: { id: string; name: string; price: number };
@@ -39,17 +41,26 @@ export type PlanRequestRow = {
   setupFeeDue: number;
   /** For a "branches" request: the number of extra branches asked for (in total). */
   extraBranches: number | null;
-  /** What the business pays for this request (FCFA; per month for extra branches), the setup fee included while owed. */
+  /** What the business pays for this request (in `currency`; per month for extra branches), the setup fee included while owed. */
   amountDue: number;
+  /** The currency of amountDue and of the payment to record: the business's when its plans are priced in it, else FCFA. */
+  currency: string;
 };
 
 /** The period price of a plan with its AI add-on (a bundle at its set price); an old plan at its stored price. */
-function requestPrice(planId: string, addonId: string | null, interval: BillingInterval, storedMonthly: number) {
+function requestPrice(planId: string, addonId: string | null, interval: BillingInterval, storedMonthly: number, currency: string) {
+  const local = currency === "XAF" ? null : catalogFor(currency);
+  const plan = local?.plans.find((p) => p.id === planId);
+  if (local && plan) return quote(plan.id, null, interval, local).period;
   if (!isPlanOnSale(planId)) return periodPrice(storedMonthly, interval);
   return quote(planId, addonId && isAddonId(addonId) ? addonId : null, interval).period;
 }
 
+/** A plan request is paid in the business's currency when its plans are priced in it; extra shops and top-ups (and anything else) in FCFA. */
+const requestCurrency = (businessCurrency: string, kind: string) => (kind !== "branches" && kind !== "topup" && businessCurrency !== "XAF" && catalogFor(businessCurrency) ? businessCurrency : "XAF");
+
 const fcfa = (n: number, lang: Lang = "en") => `${new Intl.NumberFormat(lang === "fr" ? "fr-FR" : "en-US").format(n).replace(/ | /g, " ")} FCFA`;
+const amount = (n: number, currency: string) => (currency === "XAF" ? fcfa(n) : formatAmount(n, currency, "en"));
 const site = () => siteConfig.url.replace(/\/$/, "");
 
 export async function pendingPlanRequestCount(admin: Admin) {
@@ -70,7 +81,7 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
   if (!rows.length) return [];
   const businessIds = [...new Set(rows.map((r) => r.business_id))];
   const [businesses, plans, users, subs] = await Promise.all([
-    admin.from("businesses").select("id, name").in("id", businessIds),
+    admin.from("businesses").select("id, name, currency").in("id", businessIds),
     admin.from("plans").select("id, name, monthly_price, extra_branch_price"),
     admin.from("users").select("id, full_name, email, ui_locale").in("id", [...new Set(rows.map((r) => r.requested_by).filter((x): x is string => !!x))]),
     admin.from("subscriptions").select("business_id, setup_fee, setup_fee_paid_at").in("business_id", businessIds),
@@ -87,12 +98,17 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
     const u = (users.data ?? []).find((x) => x.id === r.requested_by);
     const to = plan(r.to_plan_id) ?? { id: r.to_plan_id, name: r.to_plan_id, price: 0 };
     const interval: BillingInterval = r.billing_interval === "year" ? "year" : "month";
+    const biz = (businesses.data ?? []).find((b) => b.id === r.business_id);
+    const currency = requestCurrency(biz?.currency ?? "XAF", r.kind);
+    // The setup fee is in FCFA: only collected with an FCFA payment.
+    const setupFee = (r.kind === "change" || r.kind === "renewal") && currency === "XAF" ? setupFeeDue(r.business_id) : 0;
     return {
       id: r.id,
       status: r.status,
       createdAt: r.created_at,
       decidedAt: r.decided_at,
-      business: { id: r.business_id, name: (businesses.data ?? []).find((b) => b.id === r.business_id)?.name ?? "—" },
+      business: { id: r.business_id, name: biz?.name ?? "—", currency: biz?.currency ?? "XAF" },
+      currency,
       requester: u ? { name: u.full_name, email: u.email, locale: u.ui_locale === "fr" ? "fr" : "en" } : null,
       from: plan(r.from_plan_id),
       to,
@@ -102,13 +118,13 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
       kind: r.kind === "renewal" ? "renewal" : r.kind === "branches" ? "branches" : r.kind === "topup" ? "topup" : "change",
       addonId: r.addon_id,
       extraBranches: r.extra_branches,
-      setupFeeDue: r.kind === "change" || r.kind === "renewal" ? setupFeeDue(r.business_id) : 0,
+      setupFeeDue: setupFee,
       amountDue:
         r.kind === "branches"
           ? (r.extra_branches ?? 0) * Number((plans.data ?? []).find((x) => x.id === r.to_plan_id)?.extra_branch_price ?? 0)
           : r.kind === "topup"
             ? AI_TOPUP.price
-            : requestPrice(r.to_plan_id, r.addon_id, interval, to.price) + setupFeeDue(r.business_id),
+            : requestPrice(r.to_plan_id, r.addon_id, interval, to.price, currency) + setupFee,
     };
   });
 }
@@ -129,11 +145,11 @@ export async function listPlanRequests(admin: Admin) {
 /** One line for what was asked: "Starter → Business, monthly: 25,000 FCFA" or "2 extra branches on Business: 10,000 FCFA/month". */
 export function requestSummary(r: PlanRequestRow, html = false) {
   const b = (x: string) => (html ? `<b>${esc(x)}</b>` : x);
-  if (r.kind === "branches") return `${b(`${r.extraBranches ?? 0} extra branch${r.extraBranches === 1 ? "" : "es"}`)} on ${html ? esc(r.to.name) : r.to.name}: ${fcfa(r.amountDue)}/month`;
-  if (r.kind === "topup") return `${b(`AI top-up (+${AI_TOPUP.conversations} conversations)`)}: ${fcfa(r.amountDue)}`;
+  if (r.kind === "branches") return `${b(`${r.extraBranches ?? 0} extra branch${r.extraBranches === 1 ? "" : "es"}`)} on ${html ? esc(r.to.name) : r.to.name}: ${amount(r.amountDue, r.currency)}/month`;
+  if (r.kind === "topup") return `${b(`AI top-up (+${AI_TOPUP.conversations} conversations)`)}: ${amount(r.amountDue, r.currency)}`;
   const to = r.addonId ? `${r.to.name} + ${r.addonId === "ai_plus" ? "AI Plus" : "AI Basic"}` : r.to.name;
   const what = r.kind === "renewal" ? `Renewal of ${b(to)}` : `${html ? esc(r.from?.name ?? "—") : (r.from?.name ?? "—")} → ${b(to)}`;
-  return `${what}, ${r.interval === "year" ? "yearly" : "monthly"}: ${fcfa(r.amountDue)}${r.setupFeeDue ? ` (setup fee ${fcfa(r.setupFeeDue)} included)` : ""}`;
+  return `${what}, ${r.interval === "year" ? "yearly" : "monthly"}: ${amount(r.amountDue, r.currency)}${r.currency !== "XAF" ? " by bank transfer (send them the bank details)" : ""}${r.setupFeeDue ? ` (setup fee ${fcfa(r.setupFeeDue)} included)` : ""}`;
 }
 
 /** To the WazaBolt team, right after a business asks for a plan. */

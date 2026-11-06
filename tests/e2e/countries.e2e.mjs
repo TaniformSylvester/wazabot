@@ -1,13 +1,15 @@
 /*
  * End-to-end test of countries: signing up in Zimbabwe (US dollars, Harare
  * time), prices and sales with cents, Zimbabwe phone numbers, the shop page in
- * dollars, the country locked once a sale is recorded, the Billing notice, and
+ * dollars, the country locked once a sale is recorded, plans in US dollars
+ * (request, team email, approval by bank transfer), and
  * a Cameroon business moving to Zimbabwe before its first sale.
  *
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=... DATABASE_URL=... node tests/e2e/countries.e2e.mjs
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
+import { startFakeResend } from "./fake-resend.mjs";
 import { chromium } from "./playwright.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
@@ -54,6 +56,16 @@ mkdirSync("test-results", { recursive: true });
   const stamp = Date.now();
   const OWNER = { name: "Tendai Moyo", business: `Moyo Hardware ${stamp}`, email: `zw-owner+${stamp}@example.com`, password: "Wazabolt2026", country: "ZW" };
   const CM = { name: "Awa Fon", business: `Awa Styles ${stamp}`, email: `cm-owner+${stamp}@example.com`, password: "Wazabolt2026" };
+  // The app's own emails (Resend) go to a local stand-in; sign-up confirmations go to Mailpit.
+  const resend = await startFakeResend(4030);
+  const emailTo = async (to, subject) => {
+    for (let i = 0; i < 20; i++) {
+      const e = resend.emails.find((x) => x.to.includes(to) && x.subject.includes(subject));
+      if (e) return e;
+      await sleep(500);
+    }
+    return null;
+  };
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "en-US" });
   const page = await ctx.newPage();
@@ -107,7 +119,32 @@ mkdirSync("test-results", { recursive: true });
     await main.getByText(/can't change once sales, invoices or expenses are recorded/).waitFor({ timeout: 10000 });
     ok("after a sale the country (currency) can't change, with a clear message", sql(`select currency from businesses where id = '${biz}'`) === "USD");
     await page.goto(`${APP}/en/dashboard/billing`);
-    ok("billing explains prices are in FCFA for now, and that the team will contact them", /Prices in USD are coming soon/.test(await page.getByTestId("other-country").innerText()));
+    ok("billing says prices are in USD, paid by bank transfer, with the bank details sent by the team", /prices are in USD, paid by bank transfer.*send you the bank details/.test(await page.getByTestId("other-country").innerText()));
+    const card = async (id) => (await main.getByTestId(`billing-plan-${id}`).innerText()).replace(/\s+/g, " ");
+    ok("the plans are $5, $12 and $25 a month, yearly 10 months for 12", /5\.00 USD\/month.*50\.00 USD\/year/.test(await card("boutique")) && /12\.00 USD\/month.*120\.00 USD\/year/.test(await card("business")) && /25\.00 USD\/month.*250\.00 USD\/year/.test(await card("multishop")), await card("business"));
+    ok("no FCFA and no Mobile Money on a dollar business's Billing", !/FCFA|Mobile Money/.test(await main.innerText()));
+    ok("the multi-shop plan doesn't offer FCFA-priced extra shops", /Up to 3 shops/.test(await card("multishop")) && !/more:/.test(await card("multishop")));
+    await main.getByLabel("Plan", { exact: true }).selectOption("business");
+    await main.getByLabel("How often to pay").selectOption("year");
+    await main.getByLabel("Phone or WhatsApp number to reach you").fill("+263 77 123 4567");
+    await main.getByRole("button", { name: "Send request" }).click();
+    await main.getByText("Plan requested").waitFor({ timeout: 10000 });
+    const requestId = sql(`select id from plan_change_requests where business_id = '${biz}' and status = 'pending'`);
+    const team = await emailTo("contact@wazabolt.com", `New plan request – ${OWNER.business}`);
+    ok("the team's email asks for 120.00 USD by bank transfer", !!team && team.html.includes("120.00 USD") && team.html.includes("bank transfer") && !team.html.includes("FCFA"), team?.subject);
+    // The WazaBolt team approves it in admin (this owner stands in for the team).
+    sql(`insert into platform_admins (user_id) select id from auth.users where email = '${OWNER.email}'`);
+    await page.goto(`${APP}/en/admin/plan-requests`);
+    const req = page.locator(`li[data-request-id="${requestId}"]`);
+    await req.waitFor({ timeout: 10000 });
+    ok("admin: the request shows 120.00 USD by bank transfer, amount and method filled in", /yearly: 120\.00 USD by bank transfer/.test(await req.innerText()) && (await req.getByLabel("Amount received (USD)").inputValue()) === "120" && (await req.getByLabel("Paid by").inputValue()) === "bank");
+    await req.getByLabel("Reference (optional)").fill("ZW-TT-0001");
+    await req.getByRole("button", { name: "Approve" }).click();
+    await page.getByText(/Approved — the payment is recorded/).waitFor({ timeout: 10000 });
+    ok("approving records 120.00 USD by bank transfer", sql(`select amount || ' ' || currency || ' ' || method from subscription_payments where request_id = '${requestId}'`) === "120.00 USD bank");
+    sql(`delete from platform_admins where user_id = (select id from auth.users where email = '${OWNER.email}')`);
+    await page.goto(`${APP}/en/dashboard/billing`);
+    ok("Billing shows the plan at 120.00 USD a year and the payment in USD", /120\.00 USD\/year/.test(await main.getByTestId("current-plan").innerText()) && (await main.locator("#payments").getByText("120.00 USD").count()) === 1);
 
     // ---------------------------------------------------------------- the public shop page in dollars
     sql(`update businesses set shop_enabled = true, phone = '+263 77 123 4567' where id = '${biz}'`);
@@ -135,6 +172,7 @@ mkdirSync("test-results", { recursive: true });
     ok("suite ran to the end", false, String(e?.stack ?? e));
   } finally {
     await browser.close();
+    resend.close();
     console.log(results.join("\n"));
     console.log(`\n${results.filter((r) => r.startsWith("PASS")).length}/${results.length} passed`);
   }

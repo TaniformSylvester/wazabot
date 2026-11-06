@@ -39,6 +39,8 @@ export type BusinessRow = {
   interval: "month" | "year";
   periodEnd: string | null;
   addonId: string | null;
+  /** The business's currency (its country's); payments are recorded in it. */
+  currency: string;
   setupFee: number;
   setupFeePaid: boolean;
   /** The WazaBolt kill switch. */
@@ -49,7 +51,7 @@ export type BusinessRow = {
 export async function listAllBusinesses(admin: Admin, limit = 500): Promise<BusinessRow[]> {
   const { data: businesses, error } = await admin
     .from("businesses")
-    .select("id, name, city, industry, created_at, onboarding_completed_at")
+    .select("id, name, city, industry, currency, created_at, onboarding_completed_at")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -92,6 +94,7 @@ export async function listAllBusinesses(admin: Admin, limit = 500): Promise<Busi
       interval: sub?.billing_interval === "year" ? "year" : "month",
       periodEnd: sub?.current_period_end ?? null,
       addonId: sub?.addon_id ?? null,
+      currency: b.currency,
       setupFee: Number(sub?.setup_fee ?? 0),
       setupFeePaid: Boolean(sub?.setup_fee_paid_at),
       aiPaused: paused.has(b.id),

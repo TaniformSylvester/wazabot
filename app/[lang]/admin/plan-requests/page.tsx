@@ -8,11 +8,13 @@ import { listPlanRequests, pendingPlanRequestCount, requestSummary, type PlanReq
 import { approvePlanRequest, declinePlanRequest } from "@/lib/actions/admin";
 import { emailConfigured } from "@/lib/email/send";
 import { getLocale } from "@/lib/i18n/dictionaries";
+import { formatAmount } from "@/lib/i18n/format";
 
 export const metadata: Metadata = { title: "Plan requests", robots: { index: false, follow: false } };
 
 const when = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Douala" });
 const fcfa = (n: number) => `${new Intl.NumberFormat("en-US").format(n)} FCFA`;
+const money = (n: number, currency: string) => (currency === "XAF" ? fcfa(n) : formatAmount(n, currency, "en"));
 const field = "h-9 w-full min-w-0 rounded-xl border border-input bg-card px-2.5 text-sm text-deep outline-none focus-visible:border-waza-500 focus-visible:ring-4 focus-visible:ring-waza-500/15";
 const NOTICES: Record<string, { tone: "green" | "red"; text: string }> = {
   approved: { tone: "green", text: "Approved — the payment is recorded, the business is on its plan and the customer has been emailed." },
@@ -122,7 +124,8 @@ function PendingCard({ r, locale }: { r: PlanRequestRow; locale: string }) {
           {r.kind !== "branches" && r.kind !== "topup" ? (
             <>
               {" "}
-              · {r.interval === "year" ? "yearly" : "monthly"}: <b>{fcfa(r.amountDue)}</b>
+              · {r.interval === "year" ? "yearly" : "monthly"}: <b>{money(r.amountDue, r.currency)}</b>
+              {r.currency !== "XAF" ? <span className="text-slate"> by bank transfer: send them the bank details</span> : null}
               {r.setupFeeDue ? <span className="text-slate"> (setup fee {fcfa(r.setupFeeDue)} included)</span> : null}
             </>
           ) : null}
@@ -161,12 +164,12 @@ function PendingCard({ r, locale }: { r: PlanRequestRow; locale: string }) {
           <input type="hidden" name="locale" value={locale} />
           <div className="grid grid-cols-2 gap-2">
             <label className="grid gap-1 text-xs font-semibold text-slate">
-              Amount received (FCFA)
-              <input name="amount" type="number" min={0} step={1} required defaultValue={r.amountDue} className={field} />
+              Amount received ({r.currency === "XAF" ? "FCFA" : r.currency})
+              <input name="amount" type="number" min={0} step={r.currency === "XAF" ? 1 : 0.01} required defaultValue={r.amountDue} className={field} />
             </label>
             <label className="grid gap-1 text-xs font-semibold text-slate">
               Paid by
-              <select name="method" defaultValue="mobile_money" className={field}>
+              <select name="method" defaultValue={r.currency === "XAF" ? "mobile_money" : "bank"} className={field}>
                 <option value="mobile_money">Mobile Money</option>
                 <option value="cash">Cash</option>
                 <option value="bank">Bank transfer</option>
