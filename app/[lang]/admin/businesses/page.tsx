@@ -170,7 +170,7 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
                           </select>
                         ) : null}
                         <div className="grid grid-cols-2 gap-1.5">
-                          <input name="amount" type="number" min={0} step={b.currency === "XAF" ? 1 : 0.01} required placeholder={`Amount (${b.currency === "XAF" ? "FCFA" : b.currency})`} className={small} aria-label={`Amount received (${b.currency === "XAF" ? "FCFA" : b.currency})`} />
+                          <input name="amount" type="number" min={0} step={b.currency === "XAF" ? 1 : 0.01} required placeholder={`Amount (${b.currency === "XAF" ? "FCFA" : "USD"})`} className={small} aria-label={`Amount received (${b.currency === "XAF" ? "FCFA" : "USD"})`} />
                           <select name="method" defaultValue={b.currency === "XAF" ? "mobile_money" : "bank"} className={small} aria-label="Paid by">
                             <option value="mobile_money">Mobile Money</option>
                             <option value="cash">Cash</option>

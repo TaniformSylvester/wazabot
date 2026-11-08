@@ -2,7 +2,7 @@ import "server-only";
 
 import { ALERTS, PAYMENT_GRACE_DAYS, RENEWAL_REMINDER_DAYS, claudeBudgetFcfa, periodPrice } from "@/config/economics";
 import { currentPlanId } from "./entitlements";
-import { catalogFor, quote } from "./price";
+import { catalogFor, planCurrencyFor, quote } from "./price";
 import { formatAmount } from "@/lib/i18n/format";
 import { siteConfig } from "@/config/site";
 import { emailLayout, esc, sendEmail } from "@/lib/email/send";
@@ -145,7 +145,7 @@ export async function runDailyBilling(admin: Admin, now = new Date()): Promise<D
     const local = currency === "XAF" ? null : catalogFor(currency);
     const localPlan = local?.plans.find((p) => p.id === current);
     const price = local && localPlan ? quote(localPlan.id, null, interval, local).period : current === "free" ? periodPrice(Number(plan.monthly_price), interval) : quote(current, addon, interval).period;
-    const shown = (lang: Lang) => (local && localPlan ? formatAmount(price, currency, lang) : money(price, lang));
+    const shown = (lang: Lang) => (local && localPlan ? formatAmount(price, planCurrencyFor(currency), lang) : money(price, lang));
     await emailOwner(admin, s.business_id, (lang) => OWNER.renewal[lang](plan.name, date(s.current_period_end, lang), shown(lang), !!(local && localPlan)));
     tally.reminders++;
   }

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { AI_TOPUP, PAYMENT_GRACE_DAYS, periodPrice, type BillingInterval } from "@/config/economics";
-import { catalogFor, isAddonId, isPlanOnSale, quote } from "@/lib/billing/price";
+import { catalogFor, isAddonId, isPlanOnSale, planCurrencyFor, quote } from "@/lib/billing/price";
 import { formatAmount } from "@/lib/i18n/format";
 import { siteConfig } from "@/config/site";
 import type { PaymentRecord } from "@/lib/billing/payments";
@@ -57,7 +57,7 @@ function requestPrice(planId: string, addonId: string | null, interval: BillingI
 }
 
 /** A plan request is paid in the business's currency when its plans are priced in it; extra shops and top-ups (and anything else) in FCFA. */
-const requestCurrency = (businessCurrency: string, kind: string) => (kind !== "branches" && kind !== "topup" && businessCurrency !== "XAF" && catalogFor(businessCurrency) ? businessCurrency : "XAF");
+const requestCurrency = (businessCurrency: string, kind: string) => (kind !== "branches" && kind !== "topup" && businessCurrency !== "XAF" && catalogFor(businessCurrency) ? planCurrencyFor(businessCurrency) : "XAF");
 
 const fcfa = (n: number, lang: Lang = "en") => `${new Intl.NumberFormat(lang === "fr" ? "fr-FR" : "en-US").format(n).replace(/ | /g, " ")} FCFA`;
 const amount = (n: number, currency: string) => (currency === "XAF" ? fcfa(n) : formatAmount(n, currency, "en"));

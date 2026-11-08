@@ -39,7 +39,7 @@ export type BusinessRow = {
   interval: "month" | "year";
   periodEnd: string | null;
   addonId: string | null;
-  /** The business's currency (its country's); payments are recorded in it. */
+  /** The business's currency (its country's). Plans are paid in FCFA in Cameroon, in US dollars elsewhere (planCurrencyFor). */
   currency: string;
   setupFee: number;
   setupFeePaid: boolean;

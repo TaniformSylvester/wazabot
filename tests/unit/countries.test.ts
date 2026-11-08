@@ -110,7 +110,8 @@ describe("plan prices in US dollars (Zimbabwe)", () => {
     expect(() => quote("business", "ai_basic", "month", usd)).toThrow();
     expect(catalogFor("XAF")).toBe(catalog);
     expect(quote("business", null, "month", catalogFor("XAF")!).period).toBe(7500);
-    expect(catalogFor("EUR")).toBeNull();
+    // Outside Cameroon, every business pays its plan in US dollars, whatever its shop's currency.
+    for (const c of ["NGN", "ZAR", "GHS", "KES", "EUR"]) expect(catalogFor(c)?.plans.map((p) => p.monthlyPrice)).toEqual([5, 12, 25]);
   });
 
   it("the team's margin report counts a dollar plan in FCFA", async () => {

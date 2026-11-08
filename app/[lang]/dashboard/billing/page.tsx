@@ -10,7 +10,7 @@ import { cancelPlanChange, requestAiTopup, requestPlanChange, startAiTrial } fro
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { currentPlanId, getLimit, trialDaysLeft } from "@/lib/billing/entitlements";
 import { getPlanAccess } from "@/lib/billing/plan-access";
-import { catalog, catalogFor, quote } from "@/lib/billing/price";
+import { catalog, catalogFor, planCurrencyFor, quote } from "@/lib/billing/price";
 import { getBilling, getEntitlements } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -48,7 +48,7 @@ export default async function BillingPage() {
   // Prices in the business's currency when WazaBolt sells in it (USD: plans only); otherwise FCFA, and the team agrees the price.
   const local = catalogFor(business.currency);
   const cat = local ?? catalog;
-  const priceCurrency = local ? business.currency : "XAF";
+  const priceCurrency = local ? planCurrencyFor(business.currency) : "XAF";
   const fcfaOnly = priceCurrency === "XAF";
   const shownPlans = plans
     .filter((p) => cat.plans.some((x) => x.id === p.id))
@@ -82,7 +82,7 @@ export default async function BillingPage() {
 
       {business.currency !== "XAF" ? (
         <div data-testid="other-country">
-          <FormAlert tone="info">{local ? format(b.bankTransfer, { currency: business.currency }) : format(b.otherCountry, { currency: business.currency })}</FormAlert>
+          <FormAlert tone="info">{local ? format(b.bankTransfer, { currency: priceCurrency }) : format(b.otherCountry, { currency: business.currency })}</FormAlert>
         </div>
       ) : null}
       <div className="grid gap-6 lg:grid-cols-2">

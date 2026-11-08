@@ -24,17 +24,14 @@ The packs live in two places, kept in step: `lib/i18n/country-packs.ts`, and the
 - **Phone numbers:** a local mobile number gets **the business's** country code (customers, a new customer at the till, a student's guardian, the shop page's WhatsApp link). Numbers typed with + or 00 are kept as typed. Local formats overlap (07… is a mobile in Zimbabwe, Kenya and South Africa), so the business's country decides: 0712 345 678 is +254 in Kenya and +263 in Zimbabwe.
 - **Amounts:** shown with the currency's decimals (`formatAmount`), for example "15,000 FCFA" / "15 000 FCFA" or "12.50 USD". Prices and payments are stored with two decimals, as they always were.
 
-## Plans in US dollars (7 November 2026)
+## Plans: FCFA in Cameroon, US dollars everywhere else (9 November 2026)
 
-- **Prices** (`LOCAL_PLAN_PRICES` in `config/economics.ts`): Boutique **$5**, Business **$12**, Multi-shop **$25** a month. Yearly is 10 months for 12: $50, $120, $250.
+- **Who pays in dollars:** every business outside Cameroon (Zimbabwe, Nigeria, South Africa, Ghana, Kenya) pays its WazaBolt plan in US dollars (`planCurrencyFor` in `config/economics.ts`), whatever its shop's own currency. Its products, sales and receipts stay in naira, rand, cedi, shillings or dollars. No local payment gateway is needed.
+- **Prices** (`LOCAL_PLAN_PRICES`): Boutique **$5**, Business **$12**, Multi-shop **$25** a month. Yearly is 10 months for 12: $50, $120, $250.
 - **Payment:** by bank transfer. Billing tells the business that the WazaBolt team will send the bank details; the site shows no account number. The team's email and the plan requests page give the amount in USD, "by bank transfer", and the amount and method are filled in for the approval.
-- **Payments** are recorded in the business's currency (trigger `subscription_payments_currency`). Top-ups and setup fees stay in FCFA.
-- **Only the plans are sold in dollars.** The AI add-ons, top-ups, bundles, extra shops and the setup fee are FCFA only, so they aren't offered to a dollar business; the server refuses them (`not_in_currency`), and the team can't set a setup fee on it.
+- **Payments** are recorded in FCFA for a business in FCFA and in US dollars for every other business (trigger `subscription_payments_currency`, function `subscription_payment_currency`). Top-ups and setup fees stay in FCFA.
+- **Only the plans are sold in dollars.** The AI add-ons, top-ups, bundles, extra shops and the setup fee are FCFA only, so they aren't offered to a business paying in dollars; the server refuses them (`not_in_currency`), and the team can't set a setup fee on it.
 - **The team's margin report** counts dollar revenue in FCFA at `FCFA_PER_USD`.
-
-## Nigeria, South Africa, Ghana and Kenya: prices
-
-No plan prices in naira, rand, cedi or shillings yet. Billing for these businesses shows the FCFA prices and says prices in their currency are coming, and that the WazaBolt team will contact them about price and payment after a request. To sell in a currency, add it to `LOCAL_PLAN_PRICES` and `FCFA_PER_UNIT` (`config/economics.ts`); nothing else changes.
 
 ## What is still in FCFA
 
@@ -48,7 +45,7 @@ No plan prices in naira, rand, cedi or shillings yet. Billing for these business
 2. Add it to `SIGNUP_COUNTRIES` (`lib/validation/auth-rules.ts`) and to the names in the dictionaries (`auth.fields.countries`, `settings.countries`).
 3. Write a migration adding its row to `country_packs` and `country_pack_languages`.
 4. If its currency has decimals other than 0 or 2, update `currencyDigits` (`lib/i18n/format.ts`).
-5. To sell plans in its currency, add its prices to `LOCAL_PLAN_PRICES` and its rate to `FCFA_PER_UNIT` (`config/economics.ts`). Without them, Billing shows FCFA and says the team will contact the business.
+5. Its businesses pay their plans in US dollars automatically. To charge in another currency instead, change `planCurrencyFor` and `subscription_payment_currency()` together, and add the prices to `LOCAL_PLAN_PRICES` and the rate to `FCFA_PER_UNIT`.
 
 ## Tests
 

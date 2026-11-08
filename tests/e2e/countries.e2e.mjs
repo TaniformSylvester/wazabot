@@ -189,7 +189,8 @@ mkdirSync("test-results", { recursive: true });
     await page3.goto(`${APP}/en/dashboard/products`);
     ok("prices in shillings show in whole units (250 KES)", (await page3.locator("main").getByText("250 KES").count()) >= 1);
     await page3.goto(`${APP}/en/dashboard/billing`);
-    ok("billing: no shilling prices yet, so the team will contact them about price and payment", /Prices in KES are coming soon/.test(await page3.getByTestId("other-country").innerText()));
+    ok("billing: a Kenyan business pays its plan in US dollars by bank transfer", /prices are in USD, paid by bank transfer/.test(await page3.getByTestId("other-country").innerText()));
+    ok("…$5, $12 and $25 a month, like Zimbabwe", /5\.00 USD\/month/.test(await page3.getByTestId("billing-plan-boutique").innerText()) && /12\.00 USD\/month/.test(await page3.getByTestId("billing-plan-business").innerText()) && /25\.00 USD\/month/.test(await page3.getByTestId("billing-plan-multishop").innerText()));
 
     ok("no browser errors", errors.length === 0, errors.join(" | "));
   } catch (e) {

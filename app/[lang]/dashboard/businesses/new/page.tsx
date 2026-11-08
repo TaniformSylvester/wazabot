@@ -6,7 +6,7 @@ import { listMyBusinesses, requireUser } from "@/lib/auth/dal";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatAmount } from "@/lib/i18n/format";
-import { catalogFor } from "@/lib/billing/price";
+import { catalogFor, planCurrencyFor } from "@/lib/billing/price";
 import { localizePath } from "@/lib/i18n/paths";
 import { createClient } from "@/lib/supabase/server";
 import { SIGNUP_BUSINESS_TYPES } from "@/lib/validation/auth";
@@ -32,7 +32,7 @@ export default async function NewBusinessPage() {
   // The new business takes the country (and currency) of the owner's latest business: its prices are in that currency when WazaBolt sells in it.
   const latest = (owned.data ?? []).map((m) => m.businesses).filter((x) => !!x).sort((x, y) => y.created_at.localeCompare(x.created_at))[0];
   const local = latest ? catalogFor(latest.currency) : null;
-  const priceCurrency = local ? latest!.currency : "XAF";
+  const priceCurrency = local ? planCurrencyFor(latest!.currency) : "XAF";
   const priced = plans.filter((p) => !local || local.plans.some((x) => x.id === p.id)).map((p) => ({ id: p.id, price: local?.plans.find((x) => x.id === p.id)?.monthlyPrice ?? p.monthlyPrice }));
   const nb = t.dashboard.newBusiness;
   const b = t.dashboard.billing;

@@ -208,6 +208,13 @@ export const BUNDLE_PRICES: { planId: PlanId; addonId: AddonId; monthlyPrice: nu
 export const LOCAL_PLAN_PRICES: Record<string, Partial<Record<PlanId, number>>> = {
   USD: { boutique: 5, business: 12, multishop: 25 },
 };
+/**
+ * The currency a business pays its plan in: FCFA in Cameroon; US dollars
+ * everywhere else (Zimbabwe, Nigeria, South Africa, Ghana, Kenya), whatever
+ * its shop's own currency. Collected by bank transfer, without a local
+ * payment gateway. Must match subscription_payment_currency() in the database.
+ */
+export const planCurrencyFor = (businessCurrency: string) => (businessCurrency === "XAF" ? "XAF" : "USD");
 /** FCFA per unit of a currency, for the team's margin report (revenue in FCFA). */
 export const FCFA_PER_UNIT: Record<string, number> = { XAF: 1, USD: FCFA_PER_USD };
 

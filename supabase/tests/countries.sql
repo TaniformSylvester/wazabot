@@ -7,7 +7,8 @@ begin;
 insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
   ('00000000-0000-4000-a995-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'zw-owner@test.local', '{"business_name":"Moyo Hardware","country_code":"ZW"}', now(), now()),
   ('00000000-0000-4000-a995-00000000000b', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cm-owner@test.local', '{"business_name":"Awa Styles","country_code":"CM"}', now(), now()),
-  ('00000000-0000-4000-a995-00000000000c', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cm-agent@test.local', '{"business_name":"Agent Own"}', now(), now());
+  ('00000000-0000-4000-a995-00000000000c', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cm-agent@test.local', '{"business_name":"Agent Own"}', now(), now()),
+  ('00000000-0000-4000-a995-00000000000d', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ke-owner@test.local', '{"business_name":"Kamau Stores","country_code":"KE"}', now(), now());
 create temp table t on commit drop as
 select (select business_id from public.business_members where user_id = '00000000-0000-4000-a995-00000000000a') as zw,
        (select business_id from public.business_members where user_id = '00000000-0000-4000-a995-00000000000b') as cm;
@@ -77,7 +78,7 @@ exception when sqlstate 'WB470' then
   raise notice 'PASS once a sale is recorded the country (currency) can''t change (WB470)';
 end $$;
 
--- Plan payments take the business's currency (20261107120000); top-ups and setup fees stay FCFA.
+-- Plan payments: FCFA in Cameroon, US dollars everywhere else (20261109120000); top-ups and setup fees stay FCFA.
 reset role;
 do $$
 declare
@@ -93,6 +94,19 @@ begin
   end if;
   if (select currency from public.subscription_payments where business_id = v_agent) <> 'XAF' then raise exception 'FAIL: Cameroon plan payment currency'; end if;
   raise notice 'PASS a plan payment is recorded in the business''s currency (120.00 USD); a top-up and a Cameroon payment stay FCFA';
+end $$;
+
+do $$
+declare
+  v_ke uuid := (select business_id from public.business_members where user_id = '00000000-0000-4000-a995-00000000000d');
+begin
+  if (select country_code || ' ' || currency || ' ' || timezone from public.businesses where id = v_ke) <> 'KE KES Africa/Nairobi' then raise exception 'FAIL: Kenya sign-up'; end if;
+  insert into public.subscription_payments (business_id, plan_id, billing_interval, amount, method, period_start, period_end)
+  values (v_ke, 'business', 'month', 12, 'bank', now(), now() + interval '1 month');
+  if (select currency || ' ' || amount from public.subscription_payments where business_id = v_ke) <> 'USD 12.00' then
+    raise exception 'FAIL: Kenya plan payment %', (select currency || ' ' || amount from public.subscription_payments where business_id = v_ke);
+  end if;
+  raise notice 'PASS a Kenya business (shillings) pays its plan in US dollars (12.00 USD)';
 end $$;
 
 rollback;

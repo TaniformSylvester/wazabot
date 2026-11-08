@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ANNUAL_MONTHS_PAID, FCFA_PER_UNIT, FCFA_PER_USD, MARGIN_TARGET, META_PRICING, MOBILE_MONEY_FEE_RATE, PLANS, claudeBudgetFcfa, type AddonId, type BillingInterval } from "@/config/economics";
+import { ANNUAL_MONTHS_PAID, FCFA_PER_UNIT, FCFA_PER_USD, planCurrencyFor, MARGIN_TARGET, META_PRICING, MOBILE_MONEY_FEE_RATE, PLANS, claudeBudgetFcfa, type AddonId, type BillingInterval } from "@/config/economics";
 import { currentPlanId } from "@/lib/billing/entitlements";
 import { catalogFor, quote } from "@/lib/billing/price";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -88,7 +88,7 @@ export function businessMargin(row: CostRow, interval: BillingInterval = "month"
   const local = currency === "XAF" ? null : catalogFor(currency);
   const localPlan = current === "free" ? undefined : local?.plans.find((p) => p.id === current);
   const q = current === "free" ? null : local && localPlan ? quote(localPlan.id, null, "month", local) : quote(current, addonId);
-  const rate = local && localPlan ? (FCFA_PER_UNIT[currency] ?? 0) : 1;
+  const rate = local && localPlan ? (FCFA_PER_UNIT[planCurrencyFor(currency)] ?? 0) : 1;
   const price = (q?.monthly ?? 0) * rate;
   const perMonth = interval === "year" ? (price * ANNUAL_MONTHS_PAID) / 12 : price;
   const revenue = price > 0 && PAID_STATUSES.has(row.subscription_status ?? "") ? perMonth : 0;
