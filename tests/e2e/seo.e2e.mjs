@@ -22,7 +22,7 @@ const meta = (html, key) => attr(html, new RegExp(`<meta (?:name|property)="${ke
 const jsonLd = (html) => [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].flatMap((m) => JSON.parse(m[1])["@graph"] ?? []);
 const types = (html) => jsonLd(html).map((g) => g["@type"]);
 
-const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/retail", "/solutions/schools", "/solutions/restaurants", "/pricing", "/tools/documents", "/faq", "/about", "/contact"];
+const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/retail", "/solutions/schools", "/solutions/restaurants", "/pricing", "/countries", "/countries/nigeria", "/countries/south-africa", "/countries/ghana", "/countries/kenya", "/countries/zimbabwe", "/tools/documents", "/faq", "/about", "/contact"];
 
 (async () => {
   try {
@@ -67,6 +67,23 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
     ok("school landing: FAQ and breadcrumb Home › Solutions › For schools", types(school).includes("FAQPage") && jsonLd(school).find((g) => g["@type"] === "BreadcrumbList")?.itemListElement?.length === 3);
     ok("school landing: says what the school module does", /report cards in PDF/i.test(school) && /out of 20 or out of 100/.test(school));
     ok("a business type without its own page is a 404", (await get("/en/solutions/hotels")).status === 404);
+
+    // Countries outside Cameroon: a page each, with their currency, numbers and US dollar prices.
+    const nigeria = (await get("/en/countries/nigeria")).body;
+    const ngApp = jsonLd(nigeria).find((g) => g["@type"] === "SoftwareApplication");
+    ok("Nigeria page: title and h1 say Nigeria and naira", /<title>[^<]*Nigeria[^<]*naira/.test(nigeria) && /<h1[^>]*>[^<]*in Nigeria/.test(nigeria));
+    ok("Nigeria page: plans at $5, $12 and $25 (SoftwareApplication offers in USD, area served Nigeria)", ngApp?.areaServed?.name === "Nigeria" && ngApp.offers.every((o) => o.priceCurrency === "USD") && JSON.stringify(ngApp.offers.map((o) => o.price)) === "[5,12,25]", JSON.stringify(ngApp?.offers));
+    ok("Nigeria page: +234 numbers, naira amounts, FAQ and breadcrumb Home › Countries › Nigeria", /\+234/.test(nigeria) && /15,000 NGN/.test(nigeria) && types(nigeria).includes("FAQPage") && jsonLd(nigeria).find((g) => g["@type"] === "BreadcrumbList")?.itemListElement?.length === 3);
+    ok("Nigeria page: its sign-up button chooses Nigeria", nigeria.includes('href="/en/register?country=NG"'));
+    const za = (await get("/fr/countries/south-africa")).body;
+    ok("French: « en Afrique du Sud » (not « au »)", /en Afrique du Sud/.test(za) && !/au Afrique du Sud/.test(za));
+    ok("a country WazaBolt doesn't sell in is a 404", (await get("/en/countries/france")).status === 404);
+    const reg = (await get("/en/register?country=KE")).body;
+    ok("sign-up from a country page has the country chosen", /<option value="KE" selected/.test(reg) || /value="KE"[^>]*selected/.test(reg), (reg.match(/<select[^>]*signup-country[\s\S]{0,600}/) || [""])[0].slice(0, 300));
+    ok("organization serves the six countries", JSON.stringify(jsonLd(home).find((g) => g["@type"] === "Organization")?.areaServed?.map((c) => c.name)) === JSON.stringify(["Cameroon", "Zimbabwe", "Nigeria", "South Africa", "Ghana", "Kenya"]));
+    ok("footer links to every country page", ["nigeria", "south-africa", "ghana", "kenya", "zimbabwe"].every((s) => home.includes(`href="/en/countries/${s}"`)));
+    const pricing = (await get("/en/pricing")).body;
+    ok("pricing: the US dollar prices outside Cameroon, linked to the country pages", /data-testid="pricing-outside"/.test(pricing) && /5\.00 USD, 12\.00 USD and 25\.00 USD a month/.test(pricing) && pricing.includes('href="/en/countries"'));
     const solutions = (await get("/en/solutions")).body;
     ok("solutions links to the three landing pages", ["retail", "schools", "restaurants"].every((s) => solutions.includes(`href="/en/solutions/${s}"`)));
 

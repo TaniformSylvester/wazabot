@@ -7,6 +7,7 @@ import { pageMetadata } from "@/lib/i18n/metadata";
 import { localizePath } from "@/lib/i18n/paths";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { SIGNUP_BUSINESS_TYPES, type SignupBusinessType } from "@/lib/validation/auth";
+import { SIGNUP_COUNTRIES, type SignupCountry } from "@/lib/validation/auth-rules";
 
 /** ?type= from the marketing pages: the business type itself, or a solutions page slug (schools, restaurants). */
 const TYPE_ALIASES: Record<string, SignupBusinessType> = { schools: "school", restaurants: "restaurant", shops: "retail", shop: "retail" };
@@ -17,6 +18,9 @@ export default async function RegisterPage({ searchParams }: PageProps<"/[lang]/
   const [locale, t, sp] = await Promise.all([getLocale(), getMessages(), searchParams]);
   const requested = typeof sp.type === "string" ? sp.type : "";
   const defaultType = (SIGNUP_BUSINESS_TYPES as readonly string[]).includes(requested) ? (requested as SignupBusinessType) : TYPE_ALIASES[requested];
+  // ?country= from a country page (/countries/nigeria → NG): that country is chosen.
+  const country = typeof sp.country === "string" ? sp.country.toUpperCase() : "";
+  const defaultCountry = (SIGNUP_COUNTRIES as readonly string[]).includes(country) ? (country as SignupCountry) : undefined;
   const a = t.auth;
   const configured = isSupabaseConfigured();
   return (
@@ -33,7 +37,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/[lang]/
       }
     >
       {!configured ? <NotConfiguredNotice text={a.notConfigured} /> : null}
-      <RegisterForm disabled={!configured} defaultType={defaultType} />
+      <RegisterForm disabled={!configured} defaultType={defaultType} defaultCountry={defaultCountry} />
     </AuthCard>
   );
 }

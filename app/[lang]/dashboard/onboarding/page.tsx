@@ -101,7 +101,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
 
       <Panel id="step" title={o.steps[key].title} description={o.steps[key].text}>
         {key === "profile" ? (
-          <BusinessProfileForm t={d.business} text={text} business={business} canEdit submitLabel={o.next} onboarding={onboarding} extraActions={skip} />
+          <BusinessProfileForm t={d.business} text={text} business={business} canEdit submitLabel={o.next} onboarding={onboarding} extraActions={skip} countryName={(d.settings.countries as Record<string, string>)[business.countryCode]} />
         ) : null}
 
         {key === "hours" ? (

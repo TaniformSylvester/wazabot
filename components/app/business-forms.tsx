@@ -20,10 +20,13 @@ export function BusinessProfileForm({
   submitLabel,
   onboarding,
   extraActions,
+  countryName,
 }: {
   t: B;
   text: FormText;
-  business: Pick<CurrentBusiness, "name" | "industry" | "city" | "address" | "phone" | "email" | "website" | "description">;
+  business: Pick<CurrentBusiness, "name" | "industry" | "city" | "address" | "phone" | "email" | "website" | "description" | "countryCode" | "currency" | "timezone">;
+  /** The business's country, translated (dashboard.settings.countries). */
+  countryName?: string;
   canEdit: boolean;
   submitLabel: string;
   onboarding?: OnboardingFields;
@@ -49,7 +52,7 @@ export function BusinessProfileForm({
         <TextArea name="description" label={f.description} hint={f.descriptionHint} defaultValue={business.description ?? ""} maxLength={2000} className="sm:col-span-2" />
       </div>
       <p className="text-xs text-slate">
-        {f.country}: {t.countryNote}
+        {f.country}: {format(t.countryNote, { country: countryName ?? business.countryCode, currency: business.currency, timezone: business.timezone })}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton>{submitLabel}</SubmitButton>

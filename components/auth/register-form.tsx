@@ -98,7 +98,7 @@ export function RegisterForm({ disabled = false, defaultType, defaultCountry = "
       </fieldset>
       <label className="flex flex-col gap-1.5 text-sm font-semibold text-deep">
         {a.fields.country}
-        <select {...form.register("country")} className="h-12 rounded-xl border border-input bg-card px-3 text-base font-normal text-deep" data-testid="signup-country">
+        <select {...form.register("country")} defaultValue={defaultCountry} className="h-12 rounded-xl border border-input bg-card px-3 text-base font-normal text-deep" data-testid="signup-country">
           {SIGNUP_COUNTRIES.map((c) => (
             <option key={c} value={c}>
               {a.fields.countries[c]}

@@ -52,3 +52,10 @@ The packs live in two places, kept in step: `lib/i18n/country-packs.ts`, and the
 - **Unit:** `tests/unit/countries.test.ts` covers packs, sign-up, phone numbers, amounts, the dollar prices and the margin report.
 - **SQL:** `supabase/tests/countries.sql` covers a Zimbabwe sign-up, cents, who can change the country, the lock after a sale, and payments in the business's currency.
 - **E2E:** `tests/e2e/countries.e2e.mjs` covers sign-up in Zimbabwe, a product at 12.50 USD, a sale of 25.00 USD with its receipt, a +263 customer, the shop page, the lock, plans in dollars (request, the team's email, approval by bank transfer, the payment in USD), and a Cameroon business moving before its first sale.
+
+## Search (9 November 2026)
+
+- **A page per country** outside Cameroon, in English and French: `/countries/nigeria`, `/countries/south-africa`, `/countries/ghana`, `/countries/kenya`, `/countries/zimbabwe` (`config/countries.ts`, text in `countryPages`), and `/countries` listing all six. Each says the country's currency, cities, time zone, phone code and example number, the US dollar prices, and its own questions (FAQPage data), with a sign-up button that chooses the country (`/register?country=NG`).
+- **Sitemap** lists them (priority 0.9); the **footer** links to each; the **pricing** section says the prices outside Cameroon and links to `/countries`.
+- **Structured data:** the Organization serves the six countries (`areaServed`); each country page has a SoftwareApplication with its USD offers, and a breadcrumb Home › Countries › country.
+- **Tests:** `tests/e2e/seo.e2e.mjs` checks every country page (title, description, canonical, hreflang, h1), the Nigeria page's data and sign-up link, the French wording, and the 404 for other countries.

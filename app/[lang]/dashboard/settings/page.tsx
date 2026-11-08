@@ -87,7 +87,7 @@ export default async function SettingsPage() {
 
       <Panel id="business" title={d.business.title} description={d.business.description}>
         {!canEdit ? <FormAlert tone="info" className="mb-4">{d.common.readOnly}</FormAlert> : null}
-        <BusinessProfileForm t={d.business} text={text} business={business} canEdit={canEdit} submitLabel={d.common.save} />
+        <BusinessProfileForm t={d.business} text={text} business={business} canEdit={canEdit} submitLabel={d.common.save} countryName={countries[business.countryCode]} />
         <div className="mt-6 border-t border-border pt-4">
           <DefinitionList
             rows={[

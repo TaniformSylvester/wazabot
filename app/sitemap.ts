@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { siteConfig } from "@/config/site";
+import { COUNTRY_SLUGS } from "@/config/countries";
 import { LANDING_SLUGS } from "@/config/solutions";
 import { LOCALES } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
@@ -12,6 +13,8 @@ const routes = [
   "/solutions",
   ...LANDING_SLUGS.map((s) => `/solutions/${s}`),
   "/pricing",
+  "/countries",
+  ...COUNTRY_SLUGS.map((s) => `/countries/${s}`),
   "/tools/documents",
   "/resources",
   "/faq",
@@ -21,7 +24,7 @@ const routes = [
   "/terms",
 ];
 /** Pages people search for, ranked above the rest. */
-const PRIORITY: Record<string, number> = { "/": 1, "/pricing": 0.9, "/tools/documents": 0.9, "/features": 0.8, ...Object.fromEntries(LANDING_SLUGS.map((s) => [`/solutions/${s}`, 0.9])) };
+const PRIORITY: Record<string, number> = { "/": 1, "/pricing": 0.9, "/tools/documents": 0.9, "/features": 0.8, ...Object.fromEntries(LANDING_SLUGS.map((s) => [`/solutions/${s}`, 0.9])), ...Object.fromEntries(COUNTRY_SLUGS.map((s) => [`/countries/${s}`, 0.9])) };
 
 /** Every page in every UI locale, with hreflang alternates. */
 export default function sitemap(): MetadataRoute.Sitemap {

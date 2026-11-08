@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { WazaBoltLogo } from "@/components/brand/logo";
+import { COUNTRY_PAGES } from "@/config/countries";
 import { footerNav, siteConfig } from "@/config/site";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
@@ -29,7 +30,7 @@ export async function SiteFooter() {
             </ul>
           </nav>
         </div>
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           {footerNav.map((group) => (
             <nav key={group.key} aria-label={t.common.footer[group.key]}>
               <p className="type-label text-waza-400">{t.common.footer[group.key]}</p>
@@ -44,6 +45,18 @@ export async function SiteFooter() {
               </ul>
             </nav>
           ))}
+          <nav aria-label={t.common.footer.countries} data-testid="footer-countries">
+            <p className="type-label text-waza-400">{t.common.footer.countries}</p>
+            <ul className="mt-3 space-y-0.5">
+              {COUNTRY_PAGES.map((c) => (
+                <li key={c.slug}>
+                  <Link href={localizePath(locale, `/countries/${c.slug}`)} className="inline-block py-1.5 text-sm text-cream/70 transition-colors hover:text-waza-400">
+                    {t.countryPages.names[c.code].name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </div>
       <div className="border-t border-cream/10">

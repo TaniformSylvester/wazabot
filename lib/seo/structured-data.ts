@@ -1,6 +1,7 @@
 import { plans } from "@/config/plans";
 import { siteConfig } from "@/config/site";
 import type { Locale } from "@/lib/i18n/config";
+import { ACTIVE_COUNTRIES, getCountryPack } from "@/lib/i18n/country-packs";
 import { localizePath } from "@/lib/i18n/paths";
 import type { Messages } from "@/messages/en";
 
@@ -34,7 +35,8 @@ export function organizationGraph(locale: Locale, t: Messages) {
         addressRegion: "North-West",
         addressCountry: "CM",
       },
-      areaServed: { "@type": "Country", name: "Cameroon" },
+      // The countries a business can sign up in (lib/i18n/country-packs.ts).
+      areaServed: ACTIVE_COUNTRIES.map((c) => ({ "@type": "Country", name: getCountryPack(c).englishName })),
       contactPoint: [{ "@type": "ContactPoint", contactType: "customer support", telephone: c.phone, email: c.email, availableLanguage: ["English", "French"] }],
       sameAs: [...siteConfig.social.map((s) => s.url), `https://wa.me/${c.whatsappNumber}`],
     },
@@ -68,6 +70,27 @@ export function softwareGraph(locale: Locale, t: Messages) {
       price: p.monthlyPrice,
       priceCurrency: p.currency,
       url: `${siteConfig.url}${localizePath(locale, "/pricing")}`,
+    })),
+  };
+}
+
+/** The product as sold in one country outside Cameroon: plans in US dollars (country pages). */
+export function countrySoftwareGraph(locale: Locale, t: Messages, { country, path, prices }: { country: string; path: string; prices: { id: keyof Messages["pricing"]["plans"]; monthly: number }[] }) {
+  return {
+    "@type": "SoftwareApplication",
+    name: siteConfig.name,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${siteConfig.url}${localizePath(locale, path)}`,
+    inLanguage: locale,
+    publisher: { "@id": ORG_ID },
+    areaServed: { "@type": "Country", name: country },
+    offers: prices.map((p) => ({
+      "@type": "Offer",
+      name: t.pricing.plans[p.id].name,
+      price: p.monthly,
+      priceCurrency: "USD",
+      url: `${siteConfig.url}${localizePath(locale, path)}`,
     })),
   };
 }

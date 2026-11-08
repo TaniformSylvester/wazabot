@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bot, Check, CreditCard, Info } from "lucide-react";
 
 import { BillingToggle } from "@/components/marketing/billing-toggle";
@@ -6,7 +7,9 @@ import { SectionHeading } from "@/components/marketing/section-heading";
 import { addons, aiTopup, aiTrial, bundles, plans } from "@/config/plans";
 import { aiLaunchedForPublicPages } from "@/lib/billing/ai-flag";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { format, formatNumber, formatXaf } from "@/lib/i18n/format";
+import { format, formatAmount, formatNumber, formatXaf } from "@/lib/i18n/format";
+import { localizePath } from "@/lib/i18n/paths";
+import { usdPlans } from "@/lib/marketing/country-copy";
 
 export async function Pricing() {
   const [locale, messages, aiLaunched] = await Promise.all([getLocale(), getMessages(), aiLaunchedForPublicPages()]);
@@ -104,6 +107,15 @@ export async function Pricing() {
             <div className="text-sm leading-relaxed text-deep">
               <p className="font-semibold">{t.paymentTitle}</p>
               <p className="mt-1 text-deep/80">{t.paymentText}</p>
+              <p className="mt-3 font-semibold" data-testid="pricing-outside">
+                {t.outsideTitle}
+              </p>
+              <p className="mt-1 text-deep/80">
+                {format(t.outsideText, Object.fromEntries(usdPlans().map((p, i) => [`p${i + 1}`, formatAmount(p.monthlyPrice, "USD", locale)])))}{" "}
+                <Link href={localizePath(locale, "/countries")} className="font-semibold text-waza-700 hover:underline">
+                  {t.outsideLink}
+                </Link>
+              </p>
             </div>
           </div>
         </div>
