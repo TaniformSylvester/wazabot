@@ -725,7 +725,7 @@ const fr: Messages = {
       businessType: "Type d'entreprise",
       businessTypes: { retail: "Boutique", school: "École", restaurant: "Restaurant", other: "Autre" },
       country: "Pays",
-      countries: { CM: "Cameroun (FCFA)", ZW: "Zimbabwe (dollars US)" },
+      countries: { CM: "Cameroun (FCFA)", ZW: "Zimbabwe (dollars US)", NG: "Nigéria (naira)", ZA: "Afrique du Sud (rand)", GH: "Ghana (cedi)", KE: "Kenya (shillings)" },
       countryHint: "Définit votre monnaie et votre fuseau horaire.",
       businessTypeHint: "Cela prépare les bons outils pour vous. Vous pourrez le changer plus tard dans les paramètres.",
       newPassword: "Nouveau mot de passe",
@@ -1600,7 +1600,7 @@ const fr: Messages = {
       fields: {
         name: "Nom",
         phone: "Numéro WhatsApp",
-        phoneHint: "Avec l'indicatif du pays, ex. +237 6 70 00 00 00 ou +263 77 123 4567.",
+        phoneHint: "Un numéro mobile local reçoit l'indicatif de votre pays ; pour un autre pays, tapez-le avec + (ex. +234 803 123 4567).",
         phoneLocked: "Le numéro WhatsApp identifie le client et ne peut pas être modifié.",
         email: "E-mail",
         city: "Ville",
@@ -3160,7 +3160,7 @@ const fr: Messages = {
         description: "Choisissez un mot de passe solide que vous n'utilisez nulle part ailleurs.",
         submit: "Mettre à jour le mot de passe",
       },
-      countries: { CM: "Cameroun", ZW: "Zimbabwe" },
+      countries: { CM: "Cameroun", ZW: "Zimbabwe", NG: "Nigéria", ZA: "Afrique du Sud", GH: "Ghana", KE: "Kenya" },
       changeCountry: {
         label: "Changer de pays",
         hint: "Définit la monnaie, le fuseau horaire et les numéros de téléphone. Possible seulement avant votre première vente, facture ou dépense, pour que vos données restent dans une seule monnaie.",

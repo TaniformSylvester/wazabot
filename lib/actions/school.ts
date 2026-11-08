@@ -292,20 +292,22 @@ export async function removeClassSubject(classSubjectId: string): Promise<FormSt
 }
 
 // ---------------------------------------------------------------- students
-const studentSchema = z.object({
-  first_name: requiredText(80),
-  last_name: requiredText(80),
-  gender: z.preprocess((v) => (v === "" ? null : v), z.enum(["female", "male"], { error: "invalid_option" }).nullable()),
-  date_of_birth: optionalDate,
-  guardian_name: optionalText(120),
-  guardian_phone: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() ? normalizeWhatsAppNumber(v) : null),
-    z.string().regex(/^[0-9]{8,15}$/, "invalid_phone").nullable(),
-  ),
-  class_id: optionalUuid,
-  status: z.enum(["active", "withdrawn", "graduated"], { error: "invalid_option" }).default("active"),
-  notes: optionalText(1000),
-});
+/** A student; the guardian's local number is read in the business's country. */
+const studentSchemaFor = (country: string) =>
+  z.object({
+    first_name: requiredText(80),
+    last_name: requiredText(80),
+    gender: z.preprocess((v) => (v === "" ? null : v), z.enum(["female", "male"], { error: "invalid_option" }).nullable()),
+    date_of_birth: optionalDate,
+    guardian_name: optionalText(120),
+    guardian_phone: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() ? normalizeWhatsAppNumber(v, country) : null),
+      z.string().regex(/^[0-9]{8,15}$/, "invalid_phone").nullable(),
+    ),
+    class_id: optionalUuid,
+    status: z.enum(["active", "withdrawn", "graduated"], { error: "invalid_option" }).default("active"),
+    notes: optionalText(1000),
+  });
 
 /** The guardian as a customer (found by WhatsApp number, or created), so fees and report cards can reach them. */
 async function guardianCustomer(supabase: Awaited<ReturnType<typeof createClient>>, businessId: string, phone: string | null, name: string | null) {
@@ -339,7 +341,7 @@ export async function saveStudent(locale: string, studentId: string | null, _pre
   if (studentId !== null && !isUuid(studentId)) return fail("invalid");
   const ctx = await authorize("agent");
   if (!ctx) return denied();
-  const parsed = studentSchema.safeParse(formObject(formData));
+  const parsed = studentSchemaFor(ctx.business.countryCode).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const { guardian_phone, class_id, ...d } = parsed.data;
   const b = ctx.business.id;

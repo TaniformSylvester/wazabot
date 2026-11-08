@@ -67,8 +67,9 @@ const optionalPhone = z.preprocess(
 /**
  * A WhatsApp number as digits with the country code. "+…" or "00…" numbers
  * are taken as they are; a local mobile number gets its country's code — the
- * country given, or the one whose local format it matches (Cameroon 6XXXXXXXX,
- * Zimbabwe 07XXXXXXXX: they can't be confused).
+ * business's country. Local formats overlap between countries (Zimbabwe,
+ * Kenya and South Africa mobiles all start with 07), so callers pass the
+ * country; without one, the first active country whose format matches is used.
  */
 export function normalizeWhatsAppNumber(input: string, country?: string): string {
   const digits = input.replace(/[^0-9]/g, "");
@@ -81,10 +82,9 @@ export function normalizeWhatsAppNumber(input: string, country?: string): string
   return digits;
 }
 
-const whatsappNumber = z.preprocess(
-  (v) => (typeof v === "string" ? normalizeWhatsAppNumber(v) : v),
-  z.string().regex(/^[0-9]{8,15}$/, "invalid_phone"),
-);
+/** A WhatsApp number field, read in the business's country (see normalizeWhatsAppNumber). */
+const whatsappNumberIn = (country?: string) =>
+  z.preprocess((v) => (typeof v === "string" ? normalizeWhatsAppNumber(v, country) : v), z.string().regex(/^[0-9]{8,15}$/, "invalid_phone"));
 
 const enumOrNull = <T extends readonly [string, ...string[]]>(values: T) =>
   z.preprocess((v) => (v === "" || v === undefined ? null : v), z.enum(values, { error: "invalid_option" }).nullable());
@@ -244,23 +244,26 @@ export const documentSchema = z.object({
   active: checkbox,
 });
 
-export const customerSchema = z.object({
-  name: optionalText(120),
-  whatsapp_phone: whatsappNumber,
-  email: optionalEmail,
-  city: optionalText(120),
-  notes: optionalText(4000),
-  tags: z.preprocess(
-    (v) =>
-      typeof v === "string"
-        ? [...new Set(v.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))]
-        : v,
-    z.array(z.string().max(30, "too_long")).max(20, "too_long"),
-  ),
-  preferred_language: enumOrNull(LANGUAGE_CODES),
-  /** The customer agreed to receive promotions (Stage 8). */
-  marketing_opt_in: checkbox,
-});
+/** A customer, with local numbers read in the business's country. */
+export const customerSchemaFor = (country?: string) =>
+  z.object({
+    name: optionalText(120),
+    whatsapp_phone: whatsappNumberIn(country),
+    email: optionalEmail,
+    city: optionalText(120),
+    notes: optionalText(4000),
+    tags: z.preprocess(
+      (v) =>
+        typeof v === "string"
+          ? [...new Set(v.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))]
+          : v,
+      z.array(z.string().max(30, "too_long")).max(20, "too_long"),
+    ),
+    preferred_language: enumOrNull(LANGUAGE_CODES),
+    /** The customer agreed to receive promotions (Stage 8). */
+    marketing_opt_in: checkbox,
+  });
+export const customerSchema = customerSchemaFor();
 export type CustomerInput = z.infer<typeof customerSchema>;
 
 export const orderItemSchema = z.union([

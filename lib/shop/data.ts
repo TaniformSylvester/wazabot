@@ -4,6 +4,7 @@ import { catalogPhotoUrl } from "@/lib/ai/tools/registry";
 import { isOpenAt, parseOpeningHours } from "@/lib/business/hours";
 import { parseOptions } from "@/lib/products/options";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeWhatsAppNumber } from "@/lib/validation/app";
 
 import { SHOP_PAGE_SIZE, type Shop } from "./types";
 
@@ -20,7 +21,7 @@ export async function loadShop(slug: string, opts: { q?: string; category?: stri
   if (!db) return null;
   const { data: b } = await db
     .from("businesses")
-    .select("id, slug, name, description, city, address, phone, currency, default_language, opening_hours, timezone, logo_url, updated_at, shop_enabled")
+    .select("id, slug, name, description, city, address, phone, country_code, currency, default_language, opening_hours, timezone, logo_url, updated_at, shop_enabled")
     .eq("slug", slug)
     .maybeSingle();
   if (!b || !b.shop_enabled) return null;
@@ -45,7 +46,7 @@ export async function loadShop(slug: string, opts: { q?: string; category?: stri
   ]);
 
   const hours = parseOpeningHours(b.opening_hours);
-  const number = digits(wa?.status === "connected" ? wa.display_phone_number : null) ?? digits(b.phone);
+  const number = digits(wa?.status === "connected" ? wa.display_phone_number : null) ?? digits(b.phone ? normalizeWhatsAppNumber(b.phone, b.country_code) : null);
   const version = (iso: string | null) => (iso ? String(Math.floor(new Date(iso).getTime() / 1000)) : "0");
   return {
     slug: b.slug,

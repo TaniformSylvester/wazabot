@@ -77,7 +77,7 @@ mkdirSync("test-results", { recursive: true });
     // ---------------------------------------------------------------- sign-up in Zimbabwe
     await page.goto(`${APP}/en/register`);
     const options = await page.getByTestId("signup-country").locator("option").allInnerTexts();
-    ok("sign-up offers the country (Cameroon by default, Zimbabwe)", options.join(" / ") === "Cameroon (FCFA) / Zimbabwe (US dollars)" && (await page.getByTestId("signup-country").inputValue()) === "CM", options.join(" / "));
+    ok("sign-up offers the country (Cameroon by default; Zimbabwe, Nigeria, South Africa, Ghana, Kenya)", options.join(" / ") === "Cameroon (FCFA) / Zimbabwe (US dollars) / Nigeria (naira) / South Africa (rand) / Ghana (cedi) / Kenya (shillings)" && (await page.getByTestId("signup-country").inputValue()) === "CM", options.join(" / "));
     await register(page, OWNER);
     const biz = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${OWNER.email}'`);
     sql(`update businesses set onboarding_step = 6, onboarding_completed_at = now() where id = '${biz}'`);
@@ -166,6 +166,30 @@ mkdirSync("test-results", { recursive: true });
     await page2.locator("main").getByRole("button", { name: "Change country" }).click();
     await page2.locator("main").getByText("Country changed.").waitFor({ timeout: 10000 });
     ok("before any sale, the owner moves the business to Zimbabwe (USD, Harare)", sql(`select country_code || ' ' || currency || ' ' || timezone from businesses where id = '${cm}'`) === "ZW USD Africa/Harare");
+
+    // ---------------------------------------------------------------- Kenya: shillings, +254, and 07… numbers that are Kenyan here
+    const KE = { name: "Wanjiru Kamau", business: `Kamau Stores ${stamp}`, email: `ke-owner+${stamp}@example.com`, password: "Wazabolt2026", country: "KE" };
+    const page3 = await (await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "en-US" })).newPage();
+    page3.on("pageerror", (e) => errors.push(String(e)));
+    await register(page3, KE);
+    const ke = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${KE.email}'`);
+    sql(`update businesses set onboarding_step = 6, onboarding_completed_at = now() where id = '${ke}'`);
+    ok("a Kenya sign-up is in shillings, Nairobi time, English", sql(`select country_code || ' ' || currency || ' ' || timezone from businesses where id = '${ke}'`) === "KE KES Africa/Nairobi");
+    await page3.goto(`${APP}/en/dashboard/customers/new`);
+    await page3.locator("main").getByLabel("Name").fill("Otieno Mwangi");
+    await page3.locator("main").getByLabel("WhatsApp number").fill("0712 345 678");
+    await page3.locator("main").getByRole("button", { name: "Save" }).click();
+    await page3.waitForURL(/\/dashboard\/customers\/[0-9a-f-]{36}/, { timeout: 15000 });
+    ok("in Kenya, 0712 345 678 is saved as +254 712 345 678 (not Zimbabwe's +263)", sql(`select whatsapp_phone from customers where business_id = '${ke}' and name = 'Otieno Mwangi'`) === "254712345678");
+    await page3.goto(`${APP}/en/dashboard/products/new`);
+    await page3.locator("main").getByLabel("Name").fill("Unga 2kg");
+    await page3.locator("main").getByLabel("Selling price (KES)").fill("250");
+    await page3.locator("main").getByRole("button", { name: "Save" }).click();
+    await page3.waitForURL((u) => /\/dashboard\/products/.test(u.pathname) && !u.pathname.endsWith("/new"), { timeout: 15000 });
+    await page3.goto(`${APP}/en/dashboard/products`);
+    ok("prices in shillings show in whole units (250 KES)", (await page3.locator("main").getByText("250 KES").count()) >= 1);
+    await page3.goto(`${APP}/en/dashboard/billing`);
+    ok("billing: no shilling prices yet, so the team will contact them about price and payment", /Prices in KES are coming soon/.test(await page3.getByTestId("other-country").innerText()));
 
     ok("no browser errors", errors.length === 0, errors.join(" | "));
   } catch (e) {

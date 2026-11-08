@@ -12,7 +12,7 @@ import type { FieldErrors, FieldValues, Resolver } from "react-hook-form";
 export const SIGNUP_BUSINESS_TYPES = ["retail", "school", "restaurant", "other"] as const;
 export type SignupBusinessType = (typeof SIGNUP_BUSINESS_TYPES)[number];
 /** The countries a business can sign up in (lib/i18n/country-packs.ts ACTIVE_COUNTRIES). */
-export const SIGNUP_COUNTRIES = ["CM", "ZW"] as const;
+export const SIGNUP_COUNTRIES = ["CM", "ZW", "NG", "ZA", "GH", "KE"] as const;
 export type SignupCountry = (typeof SIGNUP_COUNTRIES)[number];
 
 export type RegisterInput = { fullName: string; businessName: string; businessType: SignupBusinessType; country: SignupCountry; email: string; password: string };

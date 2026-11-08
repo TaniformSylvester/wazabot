@@ -58,7 +58,7 @@ export async function createSale(input: SaleInput): Promise<SaleResult> {
   // A new customer typed at the till: reuse the record if that number is already known.
   let customerId: string | null = s.customer && "id" in s.customer ? s.customer.id : null;
   if (s.customer && "phone" in s.customer) {
-    const phone = normalizeWhatsAppNumber(s.customer.phone);
+    const phone = normalizeWhatsAppNumber(s.customer.phone, ctx.business.countryCode);
     const { data: found } = await supabase.from("customers").select("id").eq("business_id", ctx.business.id).eq("whatsapp_phone", phone).maybeSingle();
     if (found) customerId = found.id;
     else {

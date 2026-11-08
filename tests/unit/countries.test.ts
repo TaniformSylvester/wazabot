@@ -8,8 +8,12 @@ import { registerSchema } from "@/lib/validation/auth";
 const plain = (s: string) => s.replace(/[  ]/g, " ");
 
 describe("country packs", () => {
-  it("Cameroon and Zimbabwe: currency, time zone, languages, dialling code", () => {
-    expect(ACTIVE_COUNTRIES).toEqual(["CM", "ZW"]);
+  it("Cameroon, Zimbabwe, Nigeria, South Africa, Ghana and Kenya: currency, time zone, languages, dialling code", () => {
+    expect(ACTIVE_COUNTRIES).toEqual(["CM", "ZW", "NG", "ZA", "GH", "KE"]);
+    expect(getCountryPack("NG")).toMatchObject({ currency: "NGN", timezone: "Africa/Lagos", dialCode: "234", languages: ["en"] });
+    expect(getCountryPack("ZA")).toMatchObject({ currency: "ZAR", timezone: "Africa/Johannesburg", dialCode: "27", languages: ["en"] });
+    expect(getCountryPack("GH")).toMatchObject({ currency: "GHS", timezone: "Africa/Accra", dialCode: "233", languages: ["en"] });
+    expect(getCountryPack("KE")).toMatchObject({ currency: "KES", timezone: "Africa/Nairobi", dialCode: "254", languages: ["en"] });
     expect(getCountryPack("CM")).toMatchObject({ currency: "XAF", timezone: "Africa/Douala", dialCode: "237", languages: ["en", "fr", "wes"] });
     expect(getCountryPack("ZW")).toMatchObject({ currency: "USD", timezone: "Africa/Harare", dialCode: "263", languages: ["en"] });
     expect(getCountryPack("zz").countryCode).toBe("CM");
@@ -19,6 +23,7 @@ describe("country packs", () => {
     const base = { fullName: "Tendai Moyo", businessName: "Moyo Hardware", businessType: "retail", email: "t@example.com", password: "Wazabolt2026" };
     expect(registerSchema.parse(base).country).toBe("CM");
     expect(registerSchema.parse({ ...base, country: "ZW" }).country).toBe("ZW");
+    for (const c of ["NG", "ZA", "GH", "KE"]) expect(registerSchema.parse({ ...base, country: c }).country).toBe(c);
     expect(registerSchema.safeParse({ ...base, country: "FR" }).success).toBe(false);
   });
 });
@@ -37,7 +42,26 @@ describe("phone numbers", () => {
     expect(normalizeWhatsAppNumber("263771234567")).toBe("263771234567");
   });
 
+  it("Nigeria, South Africa, Ghana and Kenya: local mobile numbers get their country's code", () => {
+    expect(normalizeWhatsAppNumber("0803 123 4567", "NG")).toBe("2348031234567");
+    expect(normalizeWhatsAppNumber("8031234567", "NG")).toBe("2348031234567");
+    expect(normalizeWhatsAppNumber("082 123 4567", "ZA")).toBe("27821234567");
+    expect(normalizeWhatsAppNumber("27821234567", "ZA")).toBe("27821234567");
+    expect(normalizeWhatsAppNumber("024 123 4567", "GH")).toBe("233241234567");
+    expect(normalizeWhatsAppNumber("0712 345 678", "KE")).toBe("254712345678");
+    expect(normalizeWhatsAppNumber("0110 123 456", "KE")).toBe("254110123456");
+  });
+
+  it("the same local number belongs to the business's country (07… is a mobile in Zimbabwe, Kenya and South Africa)", () => {
+    expect(normalizeWhatsAppNumber("0712345678", "ZW")).toBe("263712345678");
+    expect(normalizeWhatsAppNumber("0712345678", "KE")).toBe("254712345678");
+    expect(normalizeWhatsAppNumber("0712345678", "ZA")).toBe("27712345678");
+    // A number in another country's format, without +, isn't given the wrong code.
+    expect(normalizeWhatsAppNumber("670000001", "KE")).toBe("670000001");
+  });
+
   it("numbers with + or 00 are kept as typed, whatever the country", () => {
+    expect(normalizeWhatsAppNumber("+254 712 345 678", "ZW")).toBe("254712345678");
     expect(normalizeWhatsAppNumber("+263 77 123 4567")).toBe("263771234567");
     expect(normalizeWhatsAppNumber("00237 670 000 001")).toBe("237670000001");
     expect(normalizeWhatsAppNumber("+44 7700 900123")).toBe("447700900123");
@@ -54,6 +78,13 @@ describe("amounts", () => {
     expect(formatAmount("1234.5", "USD", "en")).toBe("1,234.50 USD");
     expect(formatAmount(3, "USD", "en")).toBe("3.00 USD");
     expect(plain(formatAmount(12.5, "USD", "fr"))).toBe("12,50 USD");
+  });
+
+  it("naira and Kenyan shillings in whole units; rand and cedi with cents", () => {
+    expect(plain(formatAmount(15000, "NGN", "en"))).toBe("15,000 NGN");
+    expect(plain(formatAmount(1500, "KES", "en"))).toBe("1,500 KES");
+    expect(formatAmount(49.99, "ZAR", "en")).toBe("49.99 ZAR");
+    expect(formatAmount(25, "GHS", "en")).toBe("25.00 GHS");
   });
 });
 

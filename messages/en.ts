@@ -726,7 +726,7 @@ const en = {
       businessType: "Type of business",
       businessTypes: { retail: "Shop", school: "School", restaurant: "Restaurant", other: "Other" },
       country: "Country",
-      countries: { CM: "Cameroon (FCFA)", ZW: "Zimbabwe (US dollars)" },
+      countries: { CM: "Cameroon (FCFA)", ZW: "Zimbabwe (US dollars)", NG: "Nigeria (naira)", ZA: "South Africa (rand)", GH: "Ghana (cedi)", KE: "Kenya (shillings)" },
       countryHint: "Sets your currency and time zone.",
       businessTypeHint: "This sets up the right tools for you. You can change it later in Settings.",
       newPassword: "New password",
@@ -1601,7 +1601,7 @@ const en = {
       fields: {
         name: "Name",
         phone: "WhatsApp number",
-        phoneHint: "With country code, e.g. +237 6 70 00 00 00 or +263 77 123 4567.",
+        phoneHint: "A local mobile number gets your country's code; for another country, type it with + (e.g. +234 803 123 4567).",
         phoneLocked: "The WhatsApp number identifies the customer and can't be changed.",
         email: "Email",
         city: "City",
@@ -3161,7 +3161,7 @@ const en = {
         description: "Choose a strong password you don't use anywhere else.",
         submit: "Update password",
       },
-      countries: { CM: "Cameroon", ZW: "Zimbabwe" },
+      countries: { CM: "Cameroon", ZW: "Zimbabwe", NG: "Nigeria", ZA: "South Africa", GH: "Ghana", KE: "Kenya" },
       changeCountry: {
         label: "Change the country",
         hint: "Sets the currency, time zone and phone numbers. Only possible before your first sale, invoice or expense, so your records keep one currency.",

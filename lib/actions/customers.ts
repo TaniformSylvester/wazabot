@@ -8,7 +8,7 @@ import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
-import { customerSchema } from "@/lib/validation/app";
+import { customerSchemaFor } from "@/lib/validation/app";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
 import { denied } from "./denied";
@@ -17,7 +17,8 @@ import { denied } from "./denied";
 export async function saveCustomer(_prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await authorize("agent");
   if (!ctx) return denied();
-  const parsed = customerSchema.safeParse(formObject(formData));
+  // Local numbers are read in the business's country (+237, +263, +254…).
+  const parsed = customerSchemaFor(ctx.business.countryCode).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const id = String(formData.get("id") ?? "");
   if (id && !isUuid(id)) return fail("invalid");

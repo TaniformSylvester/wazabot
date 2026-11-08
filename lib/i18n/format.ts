@@ -17,7 +17,8 @@ export function formatXaf(amount: number, locale: Locale): string {
 
 /** Minor-unit digits: CFA francs and naira are written without decimals; US dollars, euros and pounds with 2. */
 export function currencyDigits(currency: string): number {
-  return currency === "XAF" || currency === "XOF" || currency === "NGN" ? 0 : 2;
+  // Prices are in whole units in these currencies (FCFA, naira, Kenyan shillings); others show cents.
+  return currency === "XAF" || currency === "XOF" || currency === "NGN" || currency === "KES" ? 0 : 2;
 }
 
 /** An amount in a business's currency: "15,000 FCFA" / "15 000 FCFA", "12.50 USD". */

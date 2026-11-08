@@ -1,4 +1,4 @@
-# Countries: Zimbabwe, the second country (6 November 2026)
+# Countries: Cameroon, Zimbabwe, Nigeria, South Africa, Ghana and Kenya (8 November 2026)
 
 ## What a country sets
 
@@ -14,10 +14,14 @@ The packs live in two places, kept in step: `lib/i18n/country-packs.ts`, and the
 |---|---|---|---|---|
 | Cameroon (default) | FCFA (XAF), no decimals | Africa/Douala | English, French, Pidgin | +237, local 6XX XX XX XX |
 | Zimbabwe | US dollars, with cents | Africa/Harare | English | +263, local 07X XXX XXXX |
+| Nigeria | naira (NGN), whole naira | Africa/Lagos | English | +234, local 080X XXX XXXX (070, 080, 081, 090, 091) |
+| South Africa | rand (ZAR), with cents | Africa/Johannesburg | English | +27, local 06X/07X/08X XXX XXXX |
+| Ghana | cedi (GHS), with pesewas | Africa/Accra | English | +233, local 02X/05X XXX XXXX |
+| Kenya | shillings (KES), whole shillings | Africa/Nairobi | English | +254, local 07XX/01XX XXX XXX |
 
 - **Sign-up** asks for the country, with Cameroon as the default.
 - **Settings → Business → Change the country** lets the owner or an admin change it, but **only before the first sale, invoice or expense** (WB470). Changing the currency afterwards would mislabel those records. Languages the business already uses are kept.
-- **Phone numbers:** a local mobile number gets its country's code. Numbers typed with + or 00 are kept as typed. The two formats can't be confused, because Cameroon mobiles start with 6 and Zimbabwe mobiles with 07 or 7.
+- **Phone numbers:** a local mobile number gets **the business's** country code (customers, a new customer at the till, a student's guardian, the shop page's WhatsApp link). Numbers typed with + or 00 are kept as typed. Local formats overlap (07… is a mobile in Zimbabwe, Kenya and South Africa), so the business's country decides: 0712 345 678 is +254 in Kenya and +263 in Zimbabwe.
 - **Amounts:** shown with the currency's decimals (`formatAmount`), for example "15,000 FCFA" / "15 000 FCFA" or "12.50 USD". Prices and payments are stored with two decimals, as they always were.
 
 ## Plans in US dollars (7 November 2026)
@@ -27,6 +31,10 @@ The packs live in two places, kept in step: `lib/i18n/country-packs.ts`, and the
 - **Payments** are recorded in the business's currency (trigger `subscription_payments_currency`). Top-ups and setup fees stay in FCFA.
 - **Only the plans are sold in dollars.** The AI add-ons, top-ups, bundles, extra shops and the setup fee are FCFA only, so they aren't offered to a dollar business; the server refuses them (`not_in_currency`), and the team can't set a setup fee on it.
 - **The team's margin report** counts dollar revenue in FCFA at `FCFA_PER_USD`.
+
+## Nigeria, South Africa, Ghana and Kenya: prices
+
+No plan prices in naira, rand, cedi or shillings yet. Billing for these businesses shows the FCFA prices and says prices in their currency are coming, and that the WazaBolt team will contact them about price and payment after a request. To sell in a currency, add it to `LOCAL_PLAN_PRICES` and `FCFA_PER_UNIT` (`config/economics.ts`); nothing else changes.
 
 ## What is still in FCFA
 
