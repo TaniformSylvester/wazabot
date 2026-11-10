@@ -4,6 +4,7 @@ import { ArrowRight, Check } from "lucide-react";
 
 import { CTASection } from "@/components/marketing/cta-section";
 import { PageIntro } from "@/components/marketing/page-intro";
+import { SchoolPlans } from "@/components/marketing/school-plans";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Button } from "@/components/ui/button";
 import { LANDING_SLUGS, landingKey } from "@/config/solutions";
@@ -71,7 +72,9 @@ export default async function SolutionPage({ params }: PageProps<"/[lang]/soluti
         </ul>
       </section>
 
-      <section aria-labelledby="landing-faq" className="container-page max-w-3xl pb-8">
+      {key === "schools" ? <SchoolPlans /> : null}
+
+      <section aria-labelledby="landing-faq" className="container-page max-w-3xl pb-8 pt-16">
         <h2 id="landing-faq" className="type-h2 text-center">
           {l.faqTitle}
         </h2>

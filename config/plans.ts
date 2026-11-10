@@ -31,6 +31,8 @@ export type Plan = {
   hasPaymentNotes: boolean;
   maxDocuments: number | null;
   maxStudents: number | null;
+  /** Free teacher accounts per school (not users). */
+  maxTeachers: number;
   hasBulkReportCards: boolean;
   hasSchoolReports: boolean;
   /** Shops included; extra shops at extraBranchPrice per month each (null: one shop only). */
@@ -49,6 +51,7 @@ const toPlan = (p: (typeof PLANS)[number]): Plan => ({
   hasPaymentNotes: p.hasPaymentNotes,
   maxDocuments: p.maxDocuments,
   maxStudents: p.maxStudents,
+  maxTeachers: p.maxTeachers,
   hasBulkReportCards: p.hasBulkReportCards,
   hasSchoolReports: p.hasSchoolReports,
   includedBranches: p.includedBranches,

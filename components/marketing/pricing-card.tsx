@@ -38,10 +38,56 @@ export function planFeatures(plan: Plan, previous: Plan | undefined, t: Messages
   return [users, shops, { label: format(f.everythingIn, { plan: t.plans[previous.id].name }), included: true }, ...added];
 }
 
-export function PricingCard({ plan, previous, locale, t, recommended }: { plan: Plan; previous?: Plan; locale: Locale; t: Messages["pricing"]; recommended: string }) {
+/**
+ * The same plans as a school sees them: students, office users, free teacher
+ * accounts, report cards and school reports (the limits the School module
+ * enforces), with "Everything in …" for the bigger plans.
+ */
+export function schoolPlanFeatures(plan: Plan, previous: Plan | undefined, t: Messages["pricing"], locale: Locale) {
+  const f = t.school.features;
+  const n = (v: number) => formatNumber(v, locale);
+  const students = { label: plan.maxStudents === null ? f.studentsUnlimited : format(f.students, { count: n(plan.maxStudents) }), included: true };
+  const staff = { label: format(plan.maxMembers === 1 ? f.staff : f.staffPlural, { count: n(plan.maxMembers) }), included: true };
+  const own = [
+    { label: f.schoolReports, included: plan.hasSchoolReports },
+    { label: f.expenses, included: plan.hasProfit },
+  ];
+  if (!previous) {
+    return [
+      students,
+      staff,
+      { label: format(f.teachers, { count: n(plan.maxTeachers) }), included: true },
+      { label: f.marks, included: true },
+      { label: f.reportCards, included: true },
+      { label: f.fees, included: true },
+      ...own,
+    ];
+  }
+  const before = [previous.hasSchoolReports, previous.hasProfit];
+  return [students, staff, { label: format(t.features.everythingIn, { plan: t.plans[previous.id].name }), included: true }, ...own.filter((x, i) => x.included && !before[i])];
+}
+
+export function PricingCard({
+  plan,
+  previous,
+  locale,
+  t,
+  recommended,
+  audience = "shop",
+}: {
+  plan: Plan;
+  previous?: Plan;
+  locale: Locale;
+  t: Messages["pricing"];
+  recommended: string;
+  /** "school": the plan in school terms (students, teachers, report cards) and a sign-up as a school. */
+  audience?: "shop" | "school";
+}) {
   const featured = plan.highlighted;
-  const { name, description } = t.plans[plan.id];
-  const features = planFeatures(plan, previous, t, locale);
+  const school = audience === "school" && plan.id !== "free";
+  const name = t.plans[plan.id].name;
+  const description = school ? format(t.school.plans[plan.id as "boutique" | "business" | "multishop"], { count: formatNumber(plan.maxStudents ?? 0, locale) }) : t.plans[plan.id].description;
+  const features = (school ? schoolPlanFeatures : planFeatures)(plan, previous, t, locale);
   return (
     <div
       className={cn(
@@ -86,7 +132,7 @@ export function PricingCard({ plan, previous, locale, t, recommended }: { plan: 
         ))}
       </ul>
       <Button asChild variant={featured ? "default" : "outline"} className="mt-6 h-auto min-h-11 w-full px-4 py-2.5 text-center leading-snug whitespace-normal">
-        <Link href={localizePath(locale, `/register?plan=${plan.id}`)}>{format(t.choose, { plan: name })}</Link>
+        <Link href={localizePath(locale, `/register?plan=${plan.id}${school ? "&type=school" : ""}`)}>{format(school ? t.school.choose : t.choose, { plan: name })}</Link>
       </Button>
       <p className={cn("mt-2 text-center text-xs", featured ? "text-white/70" : "text-slate")}>{t.trialNote}</p>
     </div>

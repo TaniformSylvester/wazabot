@@ -30,6 +30,11 @@ export async function Pricing() {
               ))}
             </ul>
           </BillingToggle>
+          <p className="mt-6 text-center text-sm">
+            <Link href={`${localizePath(locale, "/solutions/schools")}#plans`} className="font-semibold text-waza-700 hover:underline" data-testid="pricing-schools-link">
+              {t.school.link} →
+            </Link>
+          </p>
         </div>
 
         <section aria-labelledby="ai-addon-title" className="mt-12 rounded-2xl border border-line bg-white p-6 shadow-card" data-testid="ai-addon">

@@ -199,6 +199,9 @@ mkdirSync("test-results", { recursive: true });
     await open(`/en/dashboard/billing`);
     const usage = (await main.getByTestId("plan-usage").innerText()).replace(/\s+/g, " ");
     ok("billing shows the school's active students against the plan (50 of 50)", usage.includes("Active students") && usage.includes("50 of 50"), usage);
+    const card = async (id) => (await main.getByTestId(`billing-plan-${id}`).innerText()).replace(/\s+/g, " ");
+    ok("billing shows the plans in school terms: students, free teachers, report cards", /For a small school: up to 200 students/.test(await card("boutique")) && /Up to 30 free teacher accounts/.test(await card("boutique")) && /Report cards in PDF/.test(await card("boutique")) && !/Sales at the till/.test(await card("boutique")), await card("boutique"));
+    ok("…Business adds 500 students and school reports; Multi-shop has no student limit", /Up to 500 students/.test(await card("business")) && /Class and subject statistics/.test(await card("business")) && /Unlimited students/.test(await card("multishop")), await card("multishop"));
 
 
     // ---------------------------------------------------------------- Fair use (WazaBolt team): the school on Multi-shop (no student limit)
