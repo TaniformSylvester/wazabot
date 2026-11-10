@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ClipboardCheck, PenLine } from "lucide-react";
 
 import { ActionButton, ActionForm, SelectField, SubmitButton, TextField } from "@/components/app/form";
+import { FormAlert } from "@/components/auth/form-alert";
 import { FilterSelect } from "@/components/school/filter-select";
 import { PageHeader, Panel, TableWrap, param, secondaryLink, td, th } from "@/components/app/ui";
 import { addClassSubject, enrolStudent, removeClassSubject, unenrolStudent, updateClass, updateClassSubject } from "@/lib/actions/school";
@@ -73,6 +74,17 @@ export default async function ClassPage({ params, searchParams }: PageProps<"/[l
             {d.school.results.show}
           </button>
         </form>
+      ) : null}
+
+      {!term ? (
+        <FormAlert tone="info">
+          <span data-testid="class-no-term">{d.school.marksHub.needTerm}</span>{" "}
+          {isAdmin ? (
+            <Link href={href("/dashboard/school/settings#years")} className="font-semibold underline">
+              {d.school.marksHub.goSettings}
+            </Link>
+          ) : null}
+        </FormAlert>
       ) : null}
 
       <Panel title={c.subjects}>

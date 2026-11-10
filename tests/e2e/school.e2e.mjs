@@ -85,6 +85,10 @@ mkdirSync("test-results", { recursive: true });
     ok("a school starts on its school overview (no sales module by default)", (await main.getByRole("heading", { name: "School", exact: true }).count()) === 1);
     ok("the menu shows school pages, not the till or products", (await nav.getByRole("link", { name: "Students" }).count()) === 1 && (await nav.getByRole("link", { name: "Sales" }).count()) === 0 && (await nav.getByRole("link", { name: "Products" }).count()) === 0);
     ok("a setup checklist guides the school", (await main.getByTestId("school-setup").locator("li").count()) === 5);
+    ok("the menu has Enter marks, and the overview a button to it", (await nav.getByRole("link", { name: "Enter marks" }).count()) === 1 && (await main.getByTestId("overview-enter-marks").count()) === 1);
+    await page.goto(`${APP}/en/dashboard/school/marks`);
+    await settle();
+    ok("before the year exists, Enter marks says what to do first, with a link", /create the school year and its terms/.test(await main.getByTestId("marks-blocker").innerText()) && (await main.getByRole("link", { name: "Open School settings" }).count()) === 1);
 
     // ---------------------------------------------------------------- Settings, preset, year
     await page.goto(`${APP}/en/dashboard/school/settings`);
@@ -226,8 +230,19 @@ mkdirSync("test-results", { recursive: true });
     await settle(tp);
     ok("another teacher's subject is read-only for them", (await tmain.getByText("only the subject's teacher or an admin can change them", { exact: false }).count()) === 1 && (await tmain.getByTestId("save-marks").count()) === 0);
 
-    // Owner enters French.
-    await page.goto(`${APP}/en/dashboard/school/classes/${classId}/marks?subject=${frenchId}&term=${termId}`);
+    // The teacher's Enter marks page lists only their subject.
+    await tp.goto(`${APP}/en/dashboard/school/marks`);
+    await settle(tp);
+    const tHub = (await tmain.getByTestId("marks-classes").innerText()).replace(/\s+/g, " ");
+    ok("a teacher's Enter marks page lists only the subjects they teach", /Mathématiques/.test(tHub) && !/Français/.test(tHub), tHub);
+
+    // Owner enters French, from Enter marks in the menu.
+    await page.goto(`${APP}/en/dashboard/school/marks`);
+    await settle();
+    const hub = main.getByTestId("marks-classes");
+    ok("Enter marks lists the class with its two subjects for the first term", /Mathématiques/.test(await hub.innerText()) && /Français/.test(await hub.innerText()) && (await hub.getByTestId("marks-enter").count()) === 2);
+    await hub.locator("li li", { hasText: "Français" }).getByTestId("marks-enter").click();
+    await page.waitForURL(new RegExp(`/marks\\?subject=${frenchId}&term=${termId}`));
     await settle();
     const ogrid = main.getByTestId("marks-grid");
     for (const [n, a, b] of [["BELLO Amina", "14", "14"], ["KAMGA Brice", "9", "10"], ["NDI Carl", "14", "14"]]) {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Backpack, Banknote, CheckCircle2, Circle, ClipboardCheck, School, Settings } from "lucide-react";
+import { Backpack, Banknote, CheckCircle2, Circle, ClipboardCheck, PenLine, School, Settings } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton } from "@/components/app/form";
@@ -132,11 +132,16 @@ export default async function SchoolPage() {
         title={o.title}
         description={o.description}
         actions={
-          isAdmin ? (
-            <Link href={href("/dashboard/school/settings")} className={secondaryLink}>
-              <Settings aria-hidden /> {o.settings}
+          <>
+            <Link href={href("/dashboard/school/marks")} className={secondaryLink} data-testid="overview-enter-marks">
+              <PenLine aria-hidden /> {o.enterMarks}
             </Link>
-          ) : null
+            {isAdmin ? (
+              <Link href={href("/dashboard/school/settings")} className={secondaryLink}>
+                <Settings aria-hidden /> {o.settings}
+              </Link>
+            ) : null}
+          </>
         }
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="school-stats">
