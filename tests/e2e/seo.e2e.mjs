@@ -67,7 +67,10 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
     ok("school landing: FAQ and breadcrumb Home › Solutions › For schools", types(school).includes("FAQPage") && jsonLd(school).find((g) => g["@type"] === "BreadcrumbList")?.itemListElement?.length === 3);
     ok("school landing: says what the school module does", /report cards in PDF/i.test(school) && /out of 20 or out of 100/.test(school));
     ok("school landing: the plans in school terms (200 / 500 / unlimited students, free teachers), signing up as a school", /data-testid="school-plans"/.test(school) && /Up to 200 students/.test(school) && /Up to 500 students/.test(school) && /Unlimited students/.test(school) && /free teacher accounts/.test(school) && school.includes("type=school"));
-    ok("pricing links schools to their plans", /data-testid="pricing-schools-link"/.test((await get("/en/pricing")).body));
+    ok("pricing links schools and restaurants to their plans", /data-testid="pricing-schools-link"/.test((await get("/en/pricing")).body) && /data-testid="pricing-restaurants-link"/.test((await get("/en/pricing")).body));
+    const resto = (await get("/en/solutions/restaurants")).body;
+    ok("restaurant landing: the plans in restaurant terms (free kitchen accounts, tables, up to 3 restaurants), signing up as a restaurant", /data-testid="restaurant-plans"/.test(resto) && /free kitchen accounts/.test(resto) && /Tables with open bills/.test(resto) && /Up to 3 restaurants/.test(resto) && resto.includes("type=restaurant"));
+    ok("restaurant landing: no claim that the AI assistant takes orders today", !/The assistant shares the menu/.test(resto) && /coming soon/.test(resto));
     ok("a business type without its own page is a 404", (await get("/en/solutions/hotels")).status === 404);
 
     // Countries outside Cameroon: a page each, with their currency, numbers and US dollar prices.

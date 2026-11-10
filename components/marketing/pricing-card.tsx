@@ -67,6 +67,39 @@ export function schoolPlanFeatures(plan: Plan, previous: Plan | undefined, t: Me
   return [students, staff, { label: format(t.features.everythingIn, { plan: t.plans[previous.id].name }), included: true }, ...own.filter((x, i) => x.included && !before[i])];
 }
 
+/**
+ * The same plans as a restaurant sees them: users (waiters, cashiers), free
+ * kitchen accounts, the restaurant tools (on every plan), and what the bigger
+ * plans add: expenses, profit and reports, then more restaurants.
+ */
+export function restaurantPlanFeatures(plan: Plan, previous: Plan | undefined, t: Messages["pricing"], locale: Locale) {
+  const f = t.restaurant.features;
+  const n = (v: number) => formatNumber(v, locale);
+  const staff = { label: format(plan.maxMembers === 1 ? f.staff : f.staffPlural, { count: n(plan.maxMembers) }), included: true };
+  const own = [
+    { label: f.reports, included: plan.hasProfit && plan.hasReports },
+    {
+      label: plan.includedBranches > 1 ? format(f.locations, { count: n(plan.includedBranches), price: formatXaf(plan.extraBranchPrice ?? 0, locale) }) : "",
+      included: plan.includedBranches > 1,
+    },
+  ];
+  if (!previous) {
+    return [
+      staff,
+      { label: format(f.kitchen, { count: n(plan.maxKitchen) }), included: true },
+      { label: f.tables, included: true },
+      { label: f.kitchenScreen, included: true },
+      { label: f.extras, included: true },
+      { label: f.takeaway, included: true },
+      { label: f.bills, included: true },
+      { label: f.menu, included: true },
+      { label: f.reports, included: own[0].included },
+    ];
+  }
+  const before = [previous.hasProfit && previous.hasReports, previous.includedBranches > 1];
+  return [staff, { label: format(t.features.everythingIn, { plan: t.plans[previous.id].name }), included: true }, ...own.filter((x, i) => x.included && !before[i])];
+}
+
 export function PricingCard({
   plan,
   previous,
@@ -80,14 +113,22 @@ export function PricingCard({
   locale: Locale;
   t: Messages["pricing"];
   recommended: string;
-  /** "school": the plan in school terms (students, teachers, report cards) and a sign-up as a school. */
-  audience?: "shop" | "school";
+  /** "school" / "restaurant": the plan in their terms, and a sign-up as that business type. */
+  audience?: "shop" | "school" | "restaurant";
 }) {
   const featured = plan.highlighted;
-  const school = audience === "school" && plan.id !== "free";
+  const kind = plan.id === "free" ? "shop" : audience;
+  const onSale = plan.id as "boutique" | "business" | "multishop";
   const name = t.plans[plan.id].name;
-  const description = school ? format(t.school.plans[plan.id as "boutique" | "business" | "multishop"], { count: formatNumber(plan.maxStudents ?? 0, locale) }) : t.plans[plan.id].description;
-  const features = (school ? schoolPlanFeatures : planFeatures)(plan, previous, t, locale);
+  const description =
+    kind === "school"
+      ? format(t.school.plans[onSale], { count: formatNumber(plan.maxStudents ?? 0, locale) })
+      : kind === "restaurant"
+        ? format(t.restaurant.plans[onSale], { count: formatNumber(plan.includedBranches, locale) })
+        : t.plans[plan.id].description;
+  const features = (kind === "school" ? schoolPlanFeatures : kind === "restaurant" ? restaurantPlanFeatures : planFeatures)(plan, previous, t, locale);
+  const signUpType = kind === "school" ? "&type=school" : kind === "restaurant" ? "&type=restaurant" : "";
+  const choose = kind === "school" ? t.school.choose : kind === "restaurant" ? t.restaurant.choose : t.choose;
   return (
     <div
       className={cn(
@@ -132,7 +173,7 @@ export function PricingCard({
         ))}
       </ul>
       <Button asChild variant={featured ? "default" : "outline"} className="mt-6 h-auto min-h-11 w-full px-4 py-2.5 text-center leading-snug whitespace-normal">
-        <Link href={localizePath(locale, `/register?plan=${plan.id}${school ? "&type=school" : ""}`)}>{format(school ? t.school.choose : t.choose, { plan: name })}</Link>
+        <Link href={localizePath(locale, `/register?plan=${plan.id}${signUpType}`)}>{format(choose, { plan: name })}</Link>
       </Button>
       <p className={cn("mt-2 text-center text-xs", featured ? "text-white/70" : "text-slate")}>{t.trialNote}</p>
     </div>

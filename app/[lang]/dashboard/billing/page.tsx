@@ -4,7 +4,7 @@ import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, ActionForm, CheckboxField, SelectField, SubmitButton, TextField } from "@/components/app/form";
 import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, td, th } from "@/components/app/ui";
 import { UsageMeter } from "@/components/app/usage-meter";
-import { planFeatures, schoolPlanFeatures } from "@/components/marketing/pricing-card";
+import { planFeatures, restaurantPlanFeatures, schoolPlanFeatures } from "@/components/marketing/pricing-card";
 import { addons, aiTopup, bundles, plans } from "@/config/plans";
 import { cancelPlanChange, requestAiTopup, requestPlanChange, startAiTrial } from "@/lib/actions/billing";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
@@ -66,9 +66,10 @@ export default async function BillingPage() {
   const fcfa = (v: number) => formatAmount(v, "XAF", locale);
   const pendingPlan = pendingRequest ? plans.find((p) => p.id === pendingRequest.to_plan_id) : null;
   const aiTrialUsed = !!access?.aiTrial.startedAt;
-  // A school sees the plans in school terms: students, teachers, report cards.
+  // A school or a restaurant sees the plans in its own terms (students and teachers; kitchen accounts and tables).
   const isSchool = modules.includes("school");
-  const features = isSchool ? schoolPlanFeatures : planFeatures;
+  const isRestaurant = !isSchool && modules.includes("restaurant");
+  const features = isSchool ? schoolPlanFeatures : isRestaurant ? restaurantPlanFeatures : planFeatures;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -209,6 +210,10 @@ export default async function BillingPage() {
               {isSchool && p.id !== "free" ? (
                 <p className="mt-2 text-sm font-semibold text-deep" data-testid="school-plan-for">
                   {format(pt.school.plans[p.id], { count: formatNumber(p.maxStudents ?? 0, locale) })}
+                </p>
+              ) : isRestaurant && p.id !== "free" ? (
+                <p className="mt-2 text-sm font-semibold text-deep" data-testid="restaurant-plan-for">
+                  {format(pt.restaurant.plans[p.id], { count: formatNumber(p.includedBranches, locale) })}
                 </p>
               ) : null}
               <ul className="mt-3 flex flex-col gap-1.5 text-sm">

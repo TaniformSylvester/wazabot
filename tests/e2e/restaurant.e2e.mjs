@@ -83,6 +83,12 @@ mkdirSync("test-results", { recursive: true });
     await open(`/en/dashboard`);
     ok("a restaurant's menu has the floor, the kitchen and tables (module on by default)", (await nav.getByRole("link", { name: "Floor and bills" }).count()) === 1 && (await nav.getByRole("link", { name: "Kitchen" }).count()) === 1 && (await nav.getByRole("link", { name: "Tables" }).count()) === 1);
 
+    // ---------------------------------------------------------------- Billing in restaurant terms
+    await open(`/en/dashboard/billing`);
+    const planCard = async (id) => (await main.getByTestId(`billing-plan-${id}`).innerText()).replace(/\s+/g, " ");
+    ok("billing shows the plans in restaurant terms: free kitchen accounts, tables, kitchen screen", /For a small restaurant or snack bar/.test(await planCard("boutique")) && /Up to 10 free kitchen accounts/.test(await planCard("boutique")) && /Tables with open bills/.test(await planCard("boutique")) && !/Sales at the till/.test(await planCard("boutique")), await planCard("boutique"));
+    ok("…Business adds expenses, profit and reports; Multi-shop up to 3 restaurants", /Expenses, estimated profit and reports/.test(await planCard("business")) && /Up to 3 restaurants/.test(await planCard("multishop")), await planCard("multishop"));
+
     // ---------------------------------------------------------------- Tables
     await open(`/en/dashboard/restaurant`);
     ok("no tables yet: the floor says so and links to Tables", (await main.getByText("No tables yet.").count()) === 1);
