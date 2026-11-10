@@ -14,7 +14,7 @@ import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
 import { MODULES } from "@/lib/modules";
-import { gradingPreset, parseBoundaries, GRADING_PRESETS } from "@/lib/school/presets";
+import { boundariesProblem, gradingPreset, parseBoundaries, GRADING_PRESETS } from "@/lib/school/presets";
 import { REPORT_LABELS } from "@/lib/school/report-card";
 import { createClient } from "@/lib/supabase/server";
 import { checkbox, money, normalizeWhatsAppNumber, optionalText, requiredText } from "@/lib/validation/app";
@@ -82,6 +82,9 @@ export async function saveSchoolSettings(_prev: FormState, formData: FormData): 
   const boundaries = parseBoundaries(d.grade_boundaries);
   if (!boundaries) return fail("invalid", { grade_boundaries: ["invalid_boundaries"] });
   if (d.pass_mark > d.scale_max) return fail("invalid", { pass_mark: ["invalid_number"] });
+  // Grades must fit the scale: "80 A" with marks out of 20 would give everyone the lowest grade.
+  const problem = boundariesProblem(boundaries, d.scale_max);
+  if (problem) return fail("invalid", { grade_boundaries: [problem === "above_scale" ? "boundaries_above_scale" : "boundaries_no_floor"] });
   const supabase = await createClient();
   const { error } = await supabase
     .from("school_settings")

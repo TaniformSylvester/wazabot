@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { reportCardFileName, renderReportCardsPdf, shortAssessment } from "@/lib/documents/pdf/render";
 import { computeClassResults, gradeFor, rankValues, roundTo, subjectAverage, type GradingSettings, type MarkInput } from "@/lib/school/grading";
-import { boundariesText, gradingPreset, parseBoundaries } from "@/lib/school/presets";
+import { boundariesProblem, boundariesText, gradingPreset, parseBoundaries } from "@/lib/school/presets";
 import { buildReportCards } from "@/lib/school/report-card";
 
 const fr20 = gradingPreset("francophone_20", "fr").settings;
@@ -174,5 +174,28 @@ describe("presets", () => {
     expect(gradingPreset("francophone_20", "fr").terms[2].assessments[1].name).toBe("Séquence 6");
     expect(gradingPreset("anglophone_100", "en").settings.gradeBoundaries[0]).toEqual({ min: 80, grade: "A", remark: "Excellent" });
     expect(gradingPreset("primary", "en").settings.rankStudents).toBe(false);
+  });
+});
+
+describe("grade boundaries that fit the scale", () => {
+  const anglo = gradingPreset("anglophone_100", "en").settings.gradeBoundaries;
+  const franco = gradingPreset("francophone_20", "en").settings.gradeBoundaries;
+
+  it("refuses minimums above the scale: the A–F grades (out of 100) with marks out of 20", () => {
+    expect(boundariesProblem(anglo, 20)).toBe("above_scale");
+    // …which is how full marks become an F: 20/20 misses every minimum but 0.
+    expect(gradeFor(20, anglo).grade).toBe("F");
+  });
+
+  it("accepts each preset with its own scale, and no grades at all", () => {
+    expect(boundariesProblem(anglo, 100)).toBeNull();
+    expect(boundariesProblem(franco, 20)).toBeNull();
+    expect(boundariesProblem(gradingPreset("primary", "en").settings.gradeBoundaries, 20)).toBeNull();
+    expect(boundariesProblem([], 20)).toBeNull();
+  });
+
+  it("asks for a line at 0, so that every average gets a grade", () => {
+    expect(boundariesProblem(parseBoundaries("16 A\n10 D")!, 20)).toBe("no_floor");
+    expect(gradeFor(5, parseBoundaries("16 A\n10 D")!).grade).toBeNull();
   });
 });

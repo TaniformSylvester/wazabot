@@ -100,6 +100,19 @@ export function gradingPreset(preset: GradingPreset, lang: Lang): PresetDefiniti
   };
 }
 
+/**
+ * Grade boundaries that can't work with the scale: a minimum above the
+ * maximum average (e.g. "80 A" with marks out of 20: every average misses
+ * it and falls to the lowest grade), or no line at 0 (low averages get no
+ * grade). Empty boundaries are allowed: no grades.
+ */
+export function boundariesProblem(boundaries: GradeBoundary[], scaleMax: number): "above_scale" | "no_floor" | null {
+  if (!boundaries.length) return null;
+  if (boundaries.some((b) => b.min > scaleMax)) return "above_scale";
+  if (Math.min(...boundaries.map((b) => b.min)) > 0) return "no_floor";
+  return null;
+}
+
 /** Grade boundaries from text, one per line: "16 A Très bien" (minimum, grade, remark). */
 export function parseBoundaries(text: string): GradeBoundary[] | null {
   const out: GradeBoundary[] = [];

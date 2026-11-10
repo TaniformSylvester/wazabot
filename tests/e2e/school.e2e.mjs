@@ -105,10 +105,23 @@ mkdirSync("test-results", { recursive: true });
     await main.getByRole("button", { name: "Save", exact: true }).click();
     await main.getByText("One grade per line").first().waitFor({ timeout: 10000 });
     ok("grade boundaries are checked (a wrong line is refused)", true);
+    await main.getByLabel("Grades").fill("80 A Excellent\n40 E Weak\n0 F Fail");
+    await main.getByRole("button", { name: "Save", exact: true }).click();
+    await main.getByText("A grade's minimum is above", { exact: false }).first().waitFor({ timeout: 10000 });
+    ok("grades out of 100 with marks out of 20 are refused (they'd give everyone an F)", sql(`select grade_boundaries->0->>'min' from school_settings where business_id = '${biz}'`) === "16");
     await main.getByLabel("Grades").fill("16 A Très bien\n14 B Bien\n12 C Assez bien\n10 D Passable\n0 E Insuffisant");
     await main.getByRole("button", { name: "Save", exact: true }).click();
     await main.getByText("School settings saved.").waitFor({ timeout: 10000 });
     ok("school profile and report settings saved", sql(`select motto || '|' || report_language from school_settings where business_id = '${biz}'`) === "Travail · Discipline · Succès|fr");
+    // A school already saved like that (before this check) is warned.
+    const saved = sql(`select grade_boundaries::text from school_settings where business_id = '${biz}'`);
+    sql(`update school_settings set grade_boundaries = '[{"min":80,"grade":"A"},{"min":0,"grade":"F"}]' where business_id = '${biz}'`);
+    await page.reload();
+    await settle();
+    ok("settings already mismatched are flagged: grades up to 80 with marks out of 20", /grades go up to 80, but marks are out of 20/.test(await main.getByTestId("scale-mismatch").innerText()));
+    sql(`update school_settings set grade_boundaries = '${saved}' where business_id = '${biz}'`);
+    await page.reload();
+    await settle();
 
     const years = main.getByTestId("school-years");
     await years.getByLabel("Year", { exact: true }).fill("2026-2027");

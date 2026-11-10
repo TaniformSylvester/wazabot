@@ -8,7 +8,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
-import { boundariesText, GRADING_PRESETS } from "@/lib/school/presets";
+import { boundariesProblem, boundariesText, GRADING_PRESETS } from "@/lib/school/presets";
 
 export const generateMetadata = dashboardMetadata((d) => d.school.settings.title);
 
@@ -56,6 +56,13 @@ export default async function SchoolSettingsPage() {
           <TextField name="principal_name" label={s.principal} defaultValue={settings.principal_name ?? ""} maxLength={120} />
         </Panel>
         <Panel title={s.grading} className="grid gap-5 sm:grid-cols-2">
+          {boundariesProblem(settings.grade_boundaries, settings.scale_max) === "above_scale" ? (
+            <FormAlert tone="error" className="sm:col-span-2">
+              <span data-testid="scale-mismatch">
+                {format(s.scaleMismatch, { top: String(Math.max(...settings.grade_boundaries.map((b) => b.min))), max: String(settings.scale_max) })}
+              </span>
+            </FormAlert>
+          ) : null}
           <SelectField
             name="grading_preset"
             label={s.preset}

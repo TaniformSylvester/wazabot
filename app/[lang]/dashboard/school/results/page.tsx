@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Download, Printer } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
@@ -15,6 +16,7 @@ import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { boundariesProblem } from "@/lib/school/presets";
 import { formatScore } from "@/lib/school/report-card";
 import { createClient } from "@/lib/supabase/server";
 
@@ -64,6 +66,18 @@ export default async function ResultsPage({ searchParams }: PageProps<"/[lang]/d
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <PageHeader title={r.title} description={r.description} />
+      {data && boundariesProblem(data.settings.gradeBoundaries, data.settings.scaleMax) === "above_scale" ? (
+        <FormAlert tone="error">
+          <span data-testid="scale-mismatch">
+            {format(d.school.settings.scaleMismatch, { top: String(Math.max(...data.settings.gradeBoundaries.map((b) => b.min))), max: String(data.settings.scaleMax) })}
+          </span>{" "}
+          {isAdmin ? (
+            <Link href={localizePath(locale, "/dashboard/school/settings")} className="font-semibold underline">
+              {d.school.overview.settings}
+            </Link>
+          ) : null}
+        </FormAlert>
+      ) : null}
       <form method="get" className="flex flex-wrap items-end gap-2" data-testid="results-filters">
         <FilterSelect name="class" label={r.class} defaultValue={klass?.id ?? ""} placeholder="—" options={classes.map((c) => ({ value: c.id, label: c.name }))} />
         <FilterSelect name="term" label={r.term} defaultValue={term?.id ?? ""} options={terms.map((x) => ({ value: x.id, label: x.name }))} />
