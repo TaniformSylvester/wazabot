@@ -103,6 +103,7 @@ const fr: Messages = {
       mobile: "Mobile",
       skipToContent: "Aller au contenu",
     },
+    schoolNav: { badge: "Schools", home: "Accueil WazaBolt Schools", how: "Fonctionnement", features: "Fonctionnalités", plans: "Forfaits", faq: "Questions", start: "Essai gratuit", startShort: "Essai gratuit" },
     footer: { product: "Produit", company: "Entreprise", legal: "Mentions légales", follow: "Suivre WazaBolt", countries: "Pays" },
     status: {
       aiOnline: "IA en ligne",

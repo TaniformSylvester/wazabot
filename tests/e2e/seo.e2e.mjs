@@ -65,6 +65,9 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
     ok("FAQ: questions and answers as FAQPage (French on /fr)", faq?.mainEntity?.length >= 5 && faq.mainEntity.every((q) => q.name && q.acceptedAnswer?.text) && /WhatsApp/.test(faq.mainEntity[0].name));
     const school = (await get("/en/schools")).body;
     ok("WazaBolt Schools page: FAQ and breadcrumb Home › WazaBolt Schools", types(school).includes("FAQPage") && jsonLd(school).find((g) => g["@type"] === "BreadcrumbList")?.itemListElement?.length === 2);
+    const header = (school.match(/<header[\s\S]*?<\/header>/) || [""])[0];
+    ok("WazaBolt Schools: a school-only top menu (How it works, Features, Plans, Questions), the Schools badge and a school sign-up; no shop menu", /data-testid="school-nav"/.test(header) && ["#how", "#features", "#plans", "#faq"].every((h) => header.includes(`href="${h}"`)) && /data-testid="school-badge"/.test(header) && header.includes("/en/register?type=schools") && !header.includes('href="/en/pricing"') && !header.includes('href="/en/solutions"'));
+    ok("…and the other pages keep the main menu", !/data-testid="school-nav"/.test(home) && home.includes('href="/en/pricing"'));
     const old = await fetch(`${APP}/en/solutions/schools`, { redirect: "manual" });
     ok("the old schools address redirects to /schools", [301, 308].includes(old.status) && (old.headers.get("location") ?? "").endsWith("/en/schools"), `${old.status} ${old.headers.get("location")}`);
     ok("WazaBolt Schools: school plan names (School Starter, School Standard, School Plus), no shop plan names or shop wording in the page body", /School Starter/.test(school) && /School Standard/.test(school) && /School Plus/.test(school) && !/Try Boutique|Try Multi-shop|Sales at the till/.test(school));

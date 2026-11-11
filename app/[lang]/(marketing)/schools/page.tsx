@@ -54,7 +54,7 @@ export default async function SchoolsPage() {
         <p className="text-sm text-slate">{s.startNote}</p>
       </div>
 
-      <section aria-labelledby="schools-how" className="container-page py-16">
+      <section id="how" aria-labelledby="schools-how" className="container-page scroll-mt-20 py-16">
         <h2 id="schools-how" className="type-h2 text-center">
           {s.howTitle}
         </h2>
@@ -71,7 +71,7 @@ export default async function SchoolsPage() {
         </ol>
       </section>
 
-      <section aria-labelledby="schools-features" className="container-page pb-16">
+      <section id="features" aria-labelledby="schools-features" className="container-page scroll-mt-20 pb-16">
         <h2 id="schools-features" className="type-h2 text-center">
           {s.featuresTitle}
         </h2>
@@ -90,7 +90,7 @@ export default async function SchoolsPage() {
 
       <AudiencePlans audience="school" />
 
-      <section aria-labelledby="schools-faq" className="container-page max-w-3xl pb-8 pt-16">
+      <section id="faq" aria-labelledby="schools-faq" className="container-page max-w-3xl scroll-mt-20 pb-8 pt-16">
         <h2 id="schools-faq" className="type-h2 text-center">
           {t.landing.faqTitle}
         </h2>
