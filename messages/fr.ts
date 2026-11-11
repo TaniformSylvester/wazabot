@@ -1479,8 +1479,17 @@ const fr: Messages = {
       whatsappText: "Il vous faut l'ID du numéro, l'ID du compte WhatsApp Business et un jeton d'accès de la plateforme WhatsApp Business de Meta. Rien n'est envoyé ni reçu tant que le numéro n'est pas connecté.",
       whatsappOpen: "Ouvrir la page WhatsApp",
       done: "Tout est prêt pour le moment",
+      schoolMode: {
+        title: "Configurez votre école",
+        profile: { title: "Informations sur l'école", text: "Présentez votre école aux parents — et à votre assistant." },
+      },
     },
     business: {
+      school: {
+        title: "Profil de l'école",
+        description: "Visible par votre personnel et utilisé par l'assistant pour répondre aux questions des parents sur votre école.",
+        fields: { name: "Nom de l'école", email: "E-mail de l'école", descriptionHint: "Quelques phrases sur votre école : les niveaux enseignés, la langue d'enseignement et où vous êtes." },
+      },
       title: "Profil de l'entreprise",
       description: "Visible par votre équipe et utilisé par l'assistant pour répondre aux questions sur votre entreprise.",
       fields: {

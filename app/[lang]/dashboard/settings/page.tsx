@@ -16,6 +16,7 @@ import { format } from "@/lib/i18n/format";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
 import { DEFAULT_OPENING_HOURS, hasOpeningHours } from "@/lib/business/hours";
+import { businessProfileText } from "@/lib/business/profile-text";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { languageName } from "@/lib/i18n/languages";
@@ -43,6 +44,7 @@ export default async function SettingsPage() {
   const shopOn = !!receipt?.shop_enabled;
   const sh = s.shop;
   const modules = await getBusinessModules(business);
+  const bt = businessProfileText(d.business, modules.includes("school") && !modules.includes("commerce"));
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -85,9 +87,9 @@ export default async function SettingsPage() {
         <p className="mt-3 text-xs text-slate">{s.modules.note}</p>
       </Panel>
 
-      <Panel id="business" title={d.business.title} description={d.business.description}>
+      <Panel id="business" title={bt.title} description={bt.description}>
         {!canEdit ? <FormAlert tone="info" className="mb-4">{d.common.readOnly}</FormAlert> : null}
-        <BusinessProfileForm t={d.business} text={text} business={business} canEdit={canEdit} submitLabel={d.common.save} countryName={countries[business.countryCode]} />
+        <BusinessProfileForm t={bt} text={text} business={business} canEdit={canEdit} submitLabel={d.common.save} countryName={countries[business.countryCode]} />
         <div className="mt-6 border-t border-border pt-4">
           <DefinitionList
             rows={[

@@ -21,6 +21,7 @@ import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { currencyLabel, format } from "@/lib/i18n/format";
 import { languageName } from "@/lib/i18n/languages";
 import { localizePath } from "@/lib/i18n/paths";
+import { businessProfileText } from "@/lib/business/profile-text";
 import { getBusinessModules } from "@/lib/modules";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,10 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
   const d = t.dashboard;
   const o = d.onboarding;
   const modules = await getBusinessModules(business);
-  const STEPS: readonly StepKey[] = modules.includes("school") && !modules.includes("commerce") ? FLOWS.school : modules.includes("restaurant") ? FLOWS.restaurant : FLOWS.commerce;
+  const school = modules.includes("school") && !modules.includes("commerce");
+  const title = school ? o.schoolMode.title : o.title;
+  const stepText = (s: StepKey) => (school && s === "profile" ? o.schoolMode.profile : o.steps[s]);
+  const STEPS: readonly StepKey[] = school ? FLOWS.school : modules.includes("restaurant") ? FLOWS.restaurant : FLOWS.commerce;
   const requested = Number(Array.isArray(params.step) ? params.step[0] : params.step);
   const step = Number.isInteger(requested) && requested >= 1 && requested <= STEPS.length ? requested : Math.min(business.onboardingStep + 1, STEPS.length);
   const key = STEPS[step - 1];
@@ -78,30 +82,30 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
       {params.welcome ? <FormAlert tone="success">{d.home.welcomeConfirmed}</FormAlert> : null}
       <div>
         <p className="type-label text-waza-700">{format(o.stepOf, { step, total: STEPS.length })}</p>
-        <h1 className="type-h2 mt-1">{o.title}</h1>
+        <h1 className="type-h2 mt-1">{title}</h1>
       </div>
 
-      <ol className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }} aria-label={o.title} data-testid="onboarding-steps" data-flow={STEPS.join(",")}>
+      <ol className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }} aria-label={title} data-testid="onboarding-steps" data-flow={STEPS.join(",")}>
         {STEPS.map((s, i) => (
           <li key={s}>
             <Link
               href={localizePath(locale, `/dashboard/onboarding?step=${i + 1}`)}
               aria-current={i + 1 === step ? "step" : undefined}
-              title={o.steps[s].title}
+              title={stepText(s).title}
               className={cn(
                 "block h-1.5 rounded-full",
                 i + 1 === step ? "bg-waza-500" : i < business.onboardingStep ? "bg-waza-200" : "bg-line",
               )}
             >
-              <span className="sr-only">{o.steps[s].title}</span>
+              <span className="sr-only">{stepText(s).title}</span>
             </Link>
           </li>
         ))}
       </ol>
 
-      <Panel id="step" title={o.steps[key].title} description={o.steps[key].text}>
+      <Panel id="step" title={stepText(key).title} description={stepText(key).text}>
         {key === "profile" ? (
-          <BusinessProfileForm t={d.business} text={text} business={business} canEdit submitLabel={o.next} onboarding={onboarding} extraActions={skip} countryName={(d.settings.countries as Record<string, string>)[business.countryCode]} />
+          <BusinessProfileForm t={businessProfileText(d.business, school)} text={text} business={business} canEdit submitLabel={o.next} onboarding={onboarding} extraActions={skip} countryName={(d.settings.countries as Record<string, string>)[business.countryCode]} />
         ) : null}
 
         {key === "hours" ? (

@@ -1480,8 +1480,17 @@ const en = {
       whatsappText: "You'll need your Phone Number ID, WhatsApp Business Account ID and an access token from Meta's WhatsApp Business Platform. Nothing is sent or received until the number is connected.",
       whatsappOpen: "Open the WhatsApp page",
       done: "You're all set for now",
+      schoolMode: {
+        title: "Set up your school",
+        profile: { title: "School information", text: "Tell parents — and your assistant — about your school." },
+      },
     },
     business: {
+      school: {
+        title: "School profile",
+        description: "Shown to your staff and used by the assistant to answer parents' questions about your school.",
+        fields: { name: "School name", email: "School email", descriptionHint: "A few sentences about your school: the levels you teach, the language of instruction and where you are." },
+      },
       title: "Business profile",
       description: "Shown to your team and used by the assistant to answer questions about your business.",
       fields: {

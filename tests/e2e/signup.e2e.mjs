@@ -72,6 +72,7 @@ mkdirSync("test-results", { recursive: true });
     const flow = await page.getByTestId("onboarding-steps").getAttribute("data-flow");
     ok("the setup is the school one: profile, school, FAQs, AI, WhatsApp (no products)", flow === "profile,school,faqs,ai,whatsapp", flow);
     ok("…step 1 of 5, with School already chosen", (await page.getByText("Step 1 of 5").count()) === 1 && (await page.locator('main select[name="industry"]').inputValue()) === "school");
+    ok("the setup speaks of the school: \"Set up your school\", \"School information\", School name and School email (not business)", (await page.getByRole("heading", { level: 1, name: "Set up your school" }).count()) === 1 && (await page.getByText("School information").count()) >= 1 && (await page.getByText("Tell parents — and your assistant — about your school.").count()) === 1 && (await page.locator("main").getByLabel("School name").inputValue()) === S.business && (await page.locator("main").getByLabel("School email").count()) === 1 && (await page.getByText("Business information").count()) === 0 && (await page.locator("main").getByLabel("Business name").count()) === 0);
     ok("the menu is the school one (no till or products)", (await page.locator("aside nav").first().getByRole("link", { name: "Students" }).count()) === 1 && (await page.locator("aside nav").first().getByRole("link", { name: "Products" }).count()) === 0);
     await page.goto(`${APP}/en/dashboard/onboarding?step=2`);
     const school = page.getByTestId("onboarding-school");
@@ -82,6 +83,8 @@ mkdirSync("test-results", { recursive: true });
     await page.getByRole("button", { name: "Finish setup" }).click();
     await page.waitForURL(/\/en\/dashboard\/school/, { timeout: 15000 });
     ok("finishing the setup lands on the School overview", /\/en\/dashboard\/school/.test(page.url()), page.url());
+    await page.goto(`${APP}/en/dashboard/settings`);
+    ok("Settings: the School profile, with School name (not Business profile)", (await page.locator("#business").getByText("School profile").count()) >= 1 && (await page.locator("#business").getByLabel("School name").count()) === 1 && (await page.getByText("Business profile").count()) === 0);
 
     // ---------------------------------------------------------------- A restaurant, chosen on the form (in French)
     const fr = await newPage("fr-FR");
