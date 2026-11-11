@@ -213,6 +213,12 @@ mkdirSync("test-results", { recursive: true });
     ok("students get numbers STU-000001… and join the class", sql(`select string_agg(student_number, ',' order by student_number) from school_students where business_id = '${biz}'`) === "STU-000001,STU-000002,STU-000003" && sql(`select count(*) from school_enrollments where class_id = '${classId}'`) === "3");
     ok("the parent's WhatsApp number becomes a customer linked to the student", sql(`select c.whatsapp_phone || ' ' || c.name from school_students s join customers c on c.id = s.guardian_customer_id where s.id = '${amina}'`) === "237670500001 Mme Bello");
 
+    // A school keeps parents, not customers.
+    await page.goto(`${APP}/en/dashboard/customers`);
+    await settle();
+    const parents = (await main.innerText()).replace(/\s+/g, " ");
+    ok("a school's menu says Parents, and the page lists parents with their children (no purchases or total spent)", (await nav.getByRole("link", { name: "Parents", exact: true }).count()) === 1 && (await nav.getByRole("link", { name: "Customers", exact: true }).count()) === 0 && /Parents and guardians/.test(parents) && /Mme Bello/.test(parents) && /BELLO Amina/.test(await main.locator("tr", { hasText: "Mme Bello" }).getByTestId("parent-children").innerText()) && !/Purchases|Total spent/.test(parents), `nav Parents ${await nav.getByRole("link", { name: "Parents", exact: true }).count()} Customers ${await nav.getByRole("link", { name: "Customers", exact: true }).count()} | ${parents.slice(200, 520)}`);
+
     // ---------------------------------------------------------------- Teacher enters marks
     await tp.goto(`${APP}/en/dashboard/school`);
     await settle(tp);

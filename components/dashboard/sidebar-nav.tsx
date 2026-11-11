@@ -38,7 +38,8 @@ export function SidebarNav({ labels, role, modules, onNavigate }: { labels: Mess
           </p>
           <ul className="space-y-0.5">
             {group.items.map(({ key, href: path, icon: Icon, soon }) => {
-              const label = labels.items[key];
+              // A school (no sales module) keeps parents here, not customers.
+              const label = key === "customers" && modules.includes("school") && !modules.includes("commerce") ? labels.items.parents : labels.items[key];
               if (soon) {
                 return (
                   <li key={path}>
