@@ -1483,6 +1483,12 @@ const en = {
       schoolMode: {
         title: "Set up your school",
         profile: { title: "School information", text: "Tell parents — and your assistant — about your school." },
+        faqs: { title: "Parents' questions", text: "Answers to the questions parents ask most: fees, enrolment, the school calendar, uniforms. The assistant only answers from what you write." },
+        whatsapp: { title: "WhatsApp connection", text: "Connect your school's number so parents can message the school." },
+        whatsappNote: "Connect your school's number on the WhatsApp page — you can do it now or later.",
+        whatsappText: "You'll need your Phone Number ID, WhatsApp Business Account ID and an access token from Meta's WhatsApp Business Platform (Meta uses this name for every organisation, schools included). No message is sent to or received from parents until the number is connected.",
+        questionHint: "For example: When does the school year start? Which documents do I need to enrol my child?",
+        answerHint: "Write the answer as you would give it to a parent. Only add facts your school has decided.",
       },
     },
     business: {

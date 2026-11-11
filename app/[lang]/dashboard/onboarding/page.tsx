@@ -47,7 +47,8 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
   const modules = await getBusinessModules(business);
   const school = modules.includes("school") && !modules.includes("commerce");
   const title = school ? o.schoolMode.title : o.title;
-  const stepText = (s: StepKey) => (school && s === "profile" ? o.schoolMode.profile : o.steps[s]);
+  const sm = o.schoolMode;
+  const stepText = (s: StepKey) => (school && (s === "profile" || s === "faqs" || s === "whatsapp") ? sm[s] : o.steps[s]);
   const STEPS: readonly StepKey[] = school ? FLOWS.school : modules.includes("restaurant") ? FLOWS.restaurant : FLOWS.commerce;
   const requested = Number(Array.isArray(params.step) ? params.step[0] : params.step);
   const step = Number.isInteger(requested) && requested >= 1 && requested <= STEPS.length ? requested : Math.min(business.onboardingStep + 1, STEPS.length);
@@ -137,8 +138,8 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
             <div className="flex items-start gap-3 rounded-2xl bg-surface p-4">
               <Smartphone className="mt-0.5 size-5 shrink-0 text-deep" aria-hidden />
               <div>
-                <p className="text-sm font-semibold text-deep">{o.whatsappNote}</p>
-                <p className="mt-1 text-sm text-slate">{o.whatsappText}</p>
+                <p className="text-sm font-semibold text-deep">{school ? sm.whatsappNote : o.whatsappNote}</p>
+                <p className="mt-1 text-sm text-slate">{school ? sm.whatsappText : o.whatsappText}</p>
               </div>
             </div>
             <WhatsAppStep businessId={business.id} />
@@ -271,8 +272,8 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
         ) : null}
         <ActionForm action={saveFaq} text={text} resetOnSuccess successMessage={d.knowledge.saved} hidden={{ active: "on", priority: 0, redirect: "stay" }}>
           <p className="text-sm font-semibold text-deep">{o.addFaq}</p>
-          <TextField name="question" label={f.question} required maxLength={500} />
-          <TextArea name="answer" label={f.answer} required maxLength={4000} rows={3} />
+          <TextField name="question" label={f.question} hint={school ? sm.questionHint : undefined} required maxLength={500} />
+          <TextArea name="answer" label={f.answer} hint={school ? sm.answerHint : undefined} required maxLength={4000} rows={3} />
           <div>
             <SubmitButton variant="outline">{o.addFaq}</SubmitButton>
           </div>

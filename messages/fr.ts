@@ -1482,6 +1482,12 @@ const fr: Messages = {
       schoolMode: {
         title: "Configurez votre école",
         profile: { title: "Informations sur l'école", text: "Présentez votre école aux parents — et à votre assistant." },
+        faqs: { title: "Questions des parents", text: "Les réponses aux questions que les parents posent le plus : frais de scolarité, inscriptions, calendrier scolaire, uniformes. L'assistant répond uniquement à partir de ce que vous écrivez." },
+        whatsapp: { title: "Connexion WhatsApp", text: "Connectez le numéro de l'école pour que les parents puissent lui écrire." },
+        whatsappNote: "Connectez le numéro de l'école sur la page WhatsApp — maintenant ou plus tard.",
+        whatsappText: "Il vous faut l'ID du numéro, l'ID du compte WhatsApp Business et un jeton d'accès de la plateforme WhatsApp Business de Meta (Meta emploie ce nom pour toutes les organisations, écoles comprises). Aucun message n'est envoyé aux parents ni reçu d'eux tant que le numéro n'est pas connecté.",
+        questionHint: "Par exemple : Quand commence l'année scolaire ? Quels documents faut-il pour inscrire mon enfant ?",
+        answerHint: "Écrivez la réponse comme vous la donneriez à un parent. N'ajoutez que des informations décidées par votre école.",
       },
     },
     business: {
