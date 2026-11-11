@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { businessCanUse } from "@/lib/billing/plan-access";
 import { notFound } from "next/navigation";
-import { CalendarClock, CalendarPlus, CircleDollarSign, FileText, HandCoins, MessagesSquare, Plus, ShoppingBag, ShoppingCart, Wallet } from "lucide-react";
+import { CalendarClock, CalendarPlus, CircleDollarSign, FileText, GraduationCap, HandCoins, MessagesSquare, Plus, ShoppingBag, ShoppingCart, Users, Wallet } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, DeleteButton } from "@/components/app/form";
@@ -33,6 +33,10 @@ import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { isLanguageCode, languageName } from "@/lib/i18n/languages";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { getBusinessModules } from "@/lib/modules";
+import { studentFees } from "@/lib/data/school";
+import { parentText } from "@/lib/school/parent-text";
+import { createClient } from "@/lib/supabase/server";
 
 export const generateMetadata = dashboardMetadata((d) => d.customers.title);
 
@@ -48,7 +52,13 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
   if (!data) notFound();
   const { customer, conversations, orders, stats, payments, duplicates } = data;
   const d = t.dashboard;
-  const c = d.customers;
+  // A school without the sales module: a parent, with their children and the children's fees (no sales or orders).
+  const modules = await getBusinessModules(business);
+  const school = modules.includes("school") && !modules.includes("commerce");
+  const c = parentText(d.customers, school);
+  const sp_ = c.school.page;
+  const children = school ? await parentChildren(business.id, customer.id) : [];
+  const fees = { billed: children.reduce((s, x) => s + x.fees.billed, 0), paid: children.reduce((s, x) => s + x.fees.paid, 0), owed: children.reduce((s, x) => s + x.fees.balance, 0) };
   const canEdit = hasRole(business.role, "agent");
   const canDelete = hasRole(business.role, "admin");
   const href = (p: string) => localizePath(locale, p);
@@ -62,19 +72,23 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
       <PageHeader
         title={customer.name || c.unnamed}
         description={`${customer.reference} · +${customer.whatsapp_phone}`}
-        back={{ href: href("/dashboard/customers"), label: c.title }}
+        back={{ href: href("/dashboard/customers"), label: school ? c.school.title : c.title }}
         actions={
           canEdit ? (
             <>
-              <Link href={href(`/dashboard/sales/new?customer=${customer.id}`)} className={secondaryLink}>
-                <ShoppingCart aria-hidden /> {c.profile.newSale}
-              </Link>
+              {school ? null : (
+                <Link href={href(`/dashboard/sales/new?customer=${customer.id}`)} className={secondaryLink}>
+                  <ShoppingCart aria-hidden /> {c.profile.newSale}
+                </Link>
+              )}
               <ActionButton action={startConversation.bind(null, customer.id, locale)} errors={d.errors} variant="dark" size="default">
                 <MessagesSquare aria-hidden /> {c.profile.startConversation}
               </ActionButton>
-              <Link href={href(`/dashboard/orders/new?customer=${customer.id}`)} className={secondaryLink}>
-                <Plus aria-hidden /> {c.profile.newOrder}
-              </Link>
+              {school ? null : (
+                <Link href={href(`/dashboard/orders/new?customer=${customer.id}`)} className={secondaryLink}>
+                  <Plus aria-hidden /> {c.profile.newOrder}
+                </Link>
+              )}
               {bookingOpen ? (
                 <Link href={href(`/dashboard/appointments/new?customer=${customer.id}`)} className={secondaryLink}>
                   <CalendarPlus aria-hidden /> {d.appointments.new}
@@ -106,25 +120,57 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
         </FormAlert>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={c.summary.spent} value={money(stats.total_spent)} icon={CircleDollarSign} hint={`${c.summary.orders}: ${formatNumber(stats.orders_count, locale)}`} noData={c.summary.none} />
-        <StatCard label={c.summary.paid} value={money(stats.amount_paid)} icon={Wallet} hint={c.summary.paidHint} noData={c.summary.none} />
-        <div data-testid="customer-outstanding">
-          <StatCard label={c.summary.outstanding} value={money(stats.outstanding)} icon={HandCoins} noData={c.summary.none} />
+      {school ? (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="parent-summary">
+          <StatCard label={sp_.children} value={formatNumber(children.length, locale)} icon={Users} hint={`${c.summary.since} ${formatDate(customer.created_at, locale)}`} noData={c.summary.none} />
+          <StatCard label={sp_.billed} value={fees.billed ? money(fees.billed) : null} icon={CircleDollarSign} hint={sp_.billedHint} noData={c.summary.none} />
+          <StatCard label={sp_.paid} value={fees.paid ? money(fees.paid) : null} icon={Wallet} noData={c.summary.none} />
+          <StatCard label={sp_.owed} value={money(fees.owed)} icon={HandCoins} hint={sp_.owedHint} noData={c.summary.none} />
         </div>
-        <StatCard
-          label={c.summary.lastPurchase}
-          value={stats.last_purchase_at ? formatDate(stats.last_purchase_at, locale) : null}
-          icon={CalendarClock}
-          hint={`${c.summary.since} ${formatDate(customer.created_at, locale)}`}
-          noData={c.summary.none}
-        />
-      </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard label={c.summary.spent} value={money(stats.total_spent)} icon={CircleDollarSign} hint={`${c.summary.orders}: ${formatNumber(stats.orders_count, locale)}`} noData={c.summary.none} />
+          <StatCard label={c.summary.paid} value={money(stats.amount_paid)} icon={Wallet} hint={c.summary.paidHint} noData={c.summary.none} />
+          <div data-testid="customer-outstanding">
+            <StatCard label={c.summary.outstanding} value={money(stats.outstanding)} icon={HandCoins} noData={c.summary.none} />
+          </div>
+          <StatCard
+            label={c.summary.lastPurchase}
+            value={stats.last_purchase_at ? formatDate(stats.last_purchase_at, locale) : null}
+            icon={CalendarClock}
+            hint={`${c.summary.since} ${formatDate(customer.created_at, locale)}`}
+            noData={c.summary.none}
+          />
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex min-w-0 flex-col gap-6">
           {!canEdit ? <FormAlert tone="info">{d.common.readOnly}</FormAlert> : null}
-          {canEdit ? (
+          {school ? (
+            <Panel title={sp_.children}>
+              {children.length ? (
+                <ul className="divide-y divide-border" data-testid="parent-children-fees">
+                  {children.map((st) => (
+                    <li key={st.id}>
+                      <Link href={href(`/dashboard/school/students/${st.id}`)} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm hover:underline">
+                        <GraduationCap className="size-4 shrink-0 text-slate" aria-hidden />
+                        <span className="font-semibold">{st.name}</span>
+                        <span className="text-slate">{st.number}</span>
+                        {st.fees.invoices.length ? <span className="ml-auto whitespace-nowrap text-slate">{format(sp_.childFees, { billed: money(st.fees.billed), paid: money(st.fees.paid) })}</span> : <span className="ml-auto text-slate">{sp_.childNoFees}</span>}
+                        {st.fees.invoices.length ? (
+                          st.fees.balance > 0 ? <StatusBadge tone="amber">{format(sp_.childOwes, { amount: money(st.fees.balance) })}</StatusBadge> : <StatusBadge tone="green">{sp_.childPaidUp}</StatusBadge>
+                        ) : null}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate">{sp_.noChildren}</p>
+              )}
+            </Panel>
+          ) : null}
+          {canEdit && !school ? (
             <Panel title={c.credit.title} description={stats.outstanding > 0 ? c.credit.text : undefined}>
               {stats.outstanding > 0 ? (
                 <PaymentForm withNotes={await businessCanUse(business.id, "payment_notes")} target={{ customerId: customer.id }} balance={stats.outstanding} currency={business.currency} t={d.payments} errors={d.errors} today={localToday(business.timezone)} />
@@ -133,47 +179,49 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               )}
             </Panel>
           ) : null}
-          <Panel
-            title={c.history.purchases}
-            actions={
-              orders.length ? (
-                <Link href={href(`/dashboard/orders?customer=${customer.id}`)} className="text-sm font-semibold text-waza-700 hover:underline">
-                  {c.history.allOrders}
-                </Link>
-              ) : null
-            }
-          >
-            {orders.length ? (
-              <ul className="divide-y divide-border" data-testid="customer-purchases">
-                {orders.map((o) => {
-                  const owes = o.status === "cancelled" ? 0 : Number(o.total) - Number(o.amount_paid);
-                  const sale = o.status === "delivered";
-                  return (
-                    <li key={o.id}>
-                      <Link href={href(sale ? `/dashboard/sales/${o.id}` : `/dashboard/orders/${o.id}`)} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm hover:underline">
-                        <ShoppingBag className="size-4 shrink-0 text-slate" aria-hidden />
-                        <span className="font-semibold">{o.order_number}</span>
-                        <span className="text-slate">{formatDate(o.created_at, locale)}</span>
-                        <span className="ml-auto whitespace-nowrap font-semibold">{money(o.total)}</span>
-                        {owes > 0 ? (
-                          <span className="whitespace-nowrap text-gold-800">
-                            {c.history.balance} {money(owes)}
-                          </span>
-                        ) : null}
-                        {sale ? (
-                          <StatusBadge tone={paymentStatusTone[o.payment_status]}>{d.orders.payment[o.payment_status as keyof typeof d.orders.payment] ?? o.payment_status}</StatusBadge>
-                        ) : (
-                          <StatusBadge tone={orderStatusTone[o.status]}>{d.orders.statuses[o.status as keyof typeof d.orders.statuses] ?? o.status}</StatusBadge>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate">{c.history.noPurchases}</p>
-            )}
-          </Panel>
+          {school ? null : (
+            <Panel
+              title={c.history.purchases}
+              actions={
+                orders.length ? (
+                  <Link href={href(`/dashboard/orders?customer=${customer.id}`)} className="text-sm font-semibold text-waza-700 hover:underline">
+                    {c.history.allOrders}
+                  </Link>
+                ) : null
+              }
+            >
+              {orders.length ? (
+                <ul className="divide-y divide-border" data-testid="customer-purchases">
+                  {orders.map((o) => {
+                    const owes = o.status === "cancelled" ? 0 : Number(o.total) - Number(o.amount_paid);
+                    const sale = o.status === "delivered";
+                    return (
+                      <li key={o.id}>
+                        <Link href={href(sale ? `/dashboard/sales/${o.id}` : `/dashboard/orders/${o.id}`)} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm hover:underline">
+                          <ShoppingBag className="size-4 shrink-0 text-slate" aria-hidden />
+                          <span className="font-semibold">{o.order_number}</span>
+                          <span className="text-slate">{formatDate(o.created_at, locale)}</span>
+                          <span className="ml-auto whitespace-nowrap font-semibold">{money(o.total)}</span>
+                          {owes > 0 ? (
+                            <span className="whitespace-nowrap text-gold-800">
+                              {c.history.balance} {money(owes)}
+                            </span>
+                          ) : null}
+                          {sale ? (
+                            <StatusBadge tone={paymentStatusTone[o.payment_status]}>{d.orders.payment[o.payment_status as keyof typeof d.orders.payment] ?? o.payment_status}</StatusBadge>
+                          ) : (
+                            <StatusBadge tone={orderStatusTone[o.status]}>{d.orders.statuses[o.status as keyof typeof d.orders.statuses] ?? o.status}</StatusBadge>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate">{c.history.noPurchases}</p>
+              )}
+            </Panel>
+          )}
           <Panel
             title={d.documents.title}
             actions={
@@ -281,5 +329,19 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
         </div>
       </div>
     </div>
+  );
+}
+
+/** A parent's children (the students they are the guardian of), with each child's fee invoices. */
+async function parentChildren(businessId: string, customerId: string) {
+  const db = await createClient();
+  const { data } = await db
+    .from("school_students")
+    .select("id, student_number, first_name, last_name")
+    .eq("business_id", businessId)
+    .eq("guardian_customer_id", customerId)
+    .order("last_name");
+  return Promise.all(
+    (data ?? []).map(async (st) => ({ id: st.id, number: st.student_number, name: `${st.last_name.toUpperCase()} ${st.first_name}`, fees: await studentFees(businessId, st.id) })),
   );
 }

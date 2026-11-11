@@ -352,6 +352,14 @@ mkdirSync("test-results", { recursive: true });
     await page.goto(`${APP}/en/dashboard/school/students/${amina}`);
     await settle();
     ok("the student's profile shows the fee, what was paid and the balance", (await main.getByTestId("student-fees-summary").innerText()).includes("15,000") && (await main.getByTestId("student-fees").locator("li").count()) === 1);
+    // The parent's page: their children and the children's fees, in parent terms (no sales, orders or purchases).
+    const parentId = sql(`select guardian_customer_id from school_students where id = '${amina}'`);
+    await page.goto(`${APP}/en/dashboard/customers/${parentId}`);
+    await settle();
+    const parentPage = await main.innerText();
+    const childRow = await main.getByTestId("parent-children-fees").locator("li", { hasText: "BELLO Amina" }).innerText();
+    const summary = await main.getByTestId("parent-summary").innerText();
+    ok("the parent's page: Parent ID, children with their fees (billed 25,000, paid 10,000, owes 15,000), and no sale, order, purchases or customer wording", /Parent ID/.test(parentPage) && /Fees billed[\s\S]*25,000/.test(summary) && /Fees owed[\s\S]*15,000/.test(summary) && /Billed 25,000 FCFA · paid 10,000 FCFA/.test(childRow) && /Owes 15,000/.test(childRow) && (await main.getByRole("link", { name: "New sale" }).count()) === 0 && (await main.getByRole("link", { name: "New order" }).count()) === 0 && !/Purchases|Total spent|Customer ID|Customers/.test(parentPage), `${summary} | ${childRow} | ${parentPage.slice(0, 400)}`);
 
     // Teachers don't see fees.
     await tp.goto(`${APP}/en/dashboard/school/fees`);
