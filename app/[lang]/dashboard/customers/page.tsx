@@ -29,6 +29,8 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
   const school = modules.includes("school") && !modules.includes("commerce");
   const sc = c.school;
   const children = new Map<string, { id: string; name: string }[]>();
+  /** Parent → fees still owed by their children's invoices (only parents with at least one fee invoice). */
+  const feesOwed = new Map<string, number>();
   if (school && rows.length) {
     const db = await createClient();
     const { data: students } = await db
@@ -40,6 +42,23 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
     for (const st of students ?? []) {
       if (!st.guardian_customer_id) continue;
       children.set(st.guardian_customer_id, [...(children.get(st.guardian_customer_id) ?? []), { id: st.id, name: `${st.last_name.toUpperCase()} ${st.first_name}` }]);
+    }
+    // Fees owed: per child, live fee invoices billed minus paid (as on the student's page), added up per parent.
+    const ids = (students ?? []).map((st) => st.id);
+    if (ids.length) {
+      const { data: invoices } = await db
+        .from("documents")
+        .select("student_id, total, amount_paid")
+        .eq("business_id", business.id)
+        .eq("doc_type", "invoice")
+        .in("student_id", ids)
+        .not("status", "in", "(draft,voided)");
+      const perStudent = new Map<string, number>();
+      for (const inv of invoices ?? []) perStudent.set(inv.student_id!, (perStudent.get(inv.student_id!) ?? 0) + Number(inv.total) - Number(inv.amount_paid ?? 0));
+      for (const st of students ?? []) {
+        if (!st.guardian_customer_id || !perStudent.has(st.id)) continue;
+        feesOwed.set(st.guardian_customer_id, (feesOwed.get(st.guardian_customer_id) ?? 0) + Math.max(0, perStudent.get(st.id)!));
+      }
     }
   }
   const canEdit = hasRole(business.role, "agent");
@@ -101,7 +120,10 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
                   <th className={th}>{school ? sc.reference : c.columns.reference}</th>
                   <th className={th}>{c.columns.phone}</th>
                   {school ? (
-                    <th className={th}>{sc.children}</th>
+                    <>
+                      <th className={th}>{sc.children}</th>
+                      <th className={th}>{sc.feesOwed}</th>
+                    </>
                   ) : (
                     <>
                       <th className={th}>{c.columns.orders}</th>
@@ -120,29 +142,34 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
                   <tr key={r.id} className="hover:bg-mint/30" data-customer={r.name ?? r.whatsapp_phone} data-reference={r.reference}>
                     <td className={td}>
                       <Link href={localizePath(locale, `/dashboard/customers/${r.id}`)} className="font-semibold hover:underline">
-                        {r.name || c.unnamed}
+                        {r.name || (school ? sc.page.unnamed : c.unnamed)}
                       </Link>
                     </td>
                     <td className={`${td} text-slate`}>
-                      <CopyText value={r.reference} label={format(c.copyReference, { reference: r.reference })} copiedLabel={c.copied} />
+                      <CopyText value={r.reference} label={format(school ? sc.page.copyReference : c.copyReference, { reference: r.reference })} copiedLabel={c.copied} />
                     </td>
                     <td className={`${td} whitespace-nowrap text-slate`}>+{r.whatsapp_phone}</td>
                     {school ? (
-                      <td className={td} data-testid="parent-children">
-                        {children.get(r.id)?.length ? (
-                          <ul className="flex flex-col gap-0.5">
-                            {children.get(r.id)!.map((st) => (
-                              <li key={st.id}>
-                                <Link href={localizePath(locale, `/dashboard/school/students/${st.id}`)} className="text-waza-700 hover:underline">
-                                  {st.name}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <span className="text-slate">{sc.noChildren}</span>
-                        )}
-                      </td>
+                      <>
+                        <td className={td} data-testid="parent-children">
+                          {children.get(r.id)?.length ? (
+                            <ul className="flex flex-col gap-0.5">
+                              {children.get(r.id)!.map((st) => (
+                                <li key={st.id}>
+                                  <Link href={localizePath(locale, `/dashboard/school/students/${st.id}`)} className="text-waza-700 hover:underline">
+                                    {st.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span className="text-slate">{sc.noChildren}</span>
+                          )}
+                        </td>
+                        <td className={`${td} whitespace-nowrap`} data-testid="parent-fees-owed">
+                          {!feesOwed.has(r.id) ? <span className="text-slate">—</span> : feesOwed.get(r.id)! > 0 ? <span className="font-semibold text-gold-800">{money(feesOwed.get(r.id)!)}</span> : <span className="text-slate">{sc.feesPaidUp}</span>}
+                        </td>
+                      </>
                     ) : (
                       <>
                         <td className={`${td} text-slate`}>{formatNumber(r.stats.orders_count, locale)}</td>
@@ -163,7 +190,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
               </tbody>
             </TableWrap>
           )}
-          {rows.length && !school ? <p className="mt-3 text-xs text-slate">{c.metricsNote}</p> : null}
+          {rows.length ? <p className="mt-3 text-xs text-slate">{school ? sc.feesNote : c.metricsNote}</p> : null}
           <Pagination page={page} total={total} pageSize={PAGE_SIZE} labels={d.common} hrefFor={(n) => withQuery(base, { ...filters, page: n })} />
         </Panel>
       )}

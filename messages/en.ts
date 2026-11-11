@@ -1712,6 +1712,9 @@ const en = {
         searchPlaceholder: "Search by name, phone, city or email",
         children: "Children",
         noChildren: "No student linked",
+        feesOwed: "Fees owed",
+        feesPaidUp: "Paid up",
+        feesNote: "Fees owed: what the fee invoices of the parent's children still owe (voided invoices and drafts don't count). Record fee payments on the invoice or the child's page.",
         reference: "Parent ID",
         page: {
           unnamed: "Unnamed parent",

@@ -1711,6 +1711,9 @@ const fr: Messages = {
         searchPlaceholder: "Rechercher par nom, téléphone, ville ou e-mail",
         children: "Enfants",
         noChildren: "Aucun élève lié",
+        feesOwed: "Frais dus",
+        feesPaidUp: "À jour",
+        feesNote: "Frais dus : ce que les factures de frais des enfants du parent doivent encore (les factures annulées et les brouillons ne comptent pas). Enregistrez les paiements sur la facture ou la fiche de l'enfant.",
         reference: "N° parent",
         page: {
           unnamed: "Parent sans nom",

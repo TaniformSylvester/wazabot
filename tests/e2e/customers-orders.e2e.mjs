@@ -172,7 +172,7 @@ mkdirSync("test-results", { recursive: true });
     ok("…and the other Paul has none", (await main.locator("tbody tr").count()) === 0);
     await page.goto(`${APP}/en/dashboard/orders?balance=1`);
     ok("filter: orders with a balance due", (await main.locator("tbody tr").count()) === 1);
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const tomorrow = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
     await page.goto(`${APP}/en/dashboard/orders?from=${tomorrow}`);
     ok("filter: date range", (await main.locator("tbody tr").count()) === 0);
 

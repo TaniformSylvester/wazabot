@@ -352,6 +352,10 @@ mkdirSync("test-results", { recursive: true });
     await page.goto(`${APP}/en/dashboard/school/students/${amina}`);
     await settle();
     ok("the student's profile shows the fee, what was paid and the balance", (await main.getByTestId("student-fees-summary").innerText()).includes("15,000") && (await main.getByTestId("student-fees").locator("li").count()) === 1);
+    await page.goto(`${APP}/en/dashboard/customers`);
+    await settle();
+    const owedCell = await main.locator("tr", { hasText: "BELLO Amina" }).getByTestId("parent-fees-owed").innerText();
+    ok("the parents list shows the fees each parent still owes (15,000 for Amina's parent), with a note", /15,000/.test(owedCell) && (await main.locator("th", { hasText: "Fees owed" }).count()) === 1 && (await main.getByText(/Fees owed: what the fee invoices/).count()) === 1, `${owedCell} | th ${await main.locator("th", { hasText: "Fees owed" }).count()} note ${await main.getByText(/Fees owed: what the fee invoices/).count()}`);
     // The parent's page: their children and the children's fees, in parent terms (no sales, orders or purchases).
     const parentId = sql(`select guardian_customer_id from school_students where id = '${amina}'`);
     await page.goto(`${APP}/en/dashboard/customers/${parentId}`);
