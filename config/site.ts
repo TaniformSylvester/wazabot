@@ -19,10 +19,10 @@ export const siteConfig = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   /** How to reach the WazaBolt team (Contact page). Shown as written — not translated. */
   contact: {
-    phone: "+237 675 12 98 68",
-    phoneHref: "tel:+237675129868",
+    phone: "+237 651 57 59 33",
+    phoneHref: "tel:+237651575933",
     /** The same number on WhatsApp (wa.me takes digits only, with the country code). */
-    whatsappNumber: "237675129868",
+    whatsappNumber: "237651575933",
     email: "contact@wazabolt.com",
     /** As on the RCCM registration form: Mile 6 Nkwen, Bamenda III, Mawa Hotel Junction, opposite Mawa Hotel. */
     address: "Mawa Hotel Junction, opposite Mawa Hotel, Mile 6 Nkwen, Bamenda III, Cameroon",

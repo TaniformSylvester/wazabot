@@ -57,7 +57,7 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
     const app = jsonLd(home).find((g) => g["@type"] === "SoftwareApplication");
     ok("home: the product with every plan's FCFA price", app?.offers?.length === 3 && app.offers.every((o) => o.priceCurrency === "XAF") && JSON.stringify(app.offers.map((o) => o.price)) === "[3000,7500,15000]", JSON.stringify(app?.offers?.map((o) => o.price)));
     const org = jsonLd(home).find((g) => g["@type"] === "Organization");
-    ok("organization: Bamenda address, phone and email", org?.address?.addressLocality === "Bamenda III" && org.address.addressCountry === "CM" && org.telephone === "+237 675 12 98 68" && org.email === "contact@wazabolt.com");
+    ok("organization: Bamenda address, phone and email", org?.address?.addressLocality === "Bamenda III" && org.address.addressCountry === "CM" && org.telephone === "+237 651 57 59 33" && org.email === "contact@wazabolt.com");
     ok("organization: its Facebook and Instagram pages (sameAs)", org?.sameAs?.some((u) => u.startsWith("https://www.facebook.com/")) && org.sameAs.includes("https://www.instagram.com/wazabolt/"), JSON.stringify(org?.sameAs));
     ok("footer links to Facebook and Instagram", /data-testid="footer-social"/.test(home) && home.includes('href="https://www.instagram.com/wazabolt/"') && home.includes("facebook.com/profile.php?id=61594928852496"));
 
