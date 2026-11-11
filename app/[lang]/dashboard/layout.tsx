@@ -17,6 +17,8 @@ import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/li
 import { formatDate } from "@/components/app/ui";
 import { siteConfig } from "@/config/site";
 import { aiPausedByWazaBolt } from "@/lib/billing/controls";
+import { currentPlanId } from "@/lib/billing/entitlements";
+import { planNameFor } from "@/lib/billing/plan-names";
 import { getUsageStatus } from "@/lib/billing/usage";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { createClient } from "@/lib/supabase/server";
@@ -49,6 +51,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ]);
   const billingHref = localizePath(locale, "/dashboard/billing");
   const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6 print:hidden";
+  // A school sees its plan under the school name (School Standard…).
+  const bannerPlan = usage ? planNameFor(currentPlanId(usage.planId), usage.planName, modules.includes("school"), locale) : "";
   const billingState = usage?.billing.state;
   const trialLeft = usage && usage.billing.state === "trial" ? usage.billing.daysLeft : null;
   const connected = whatsapp?.status === "connected";
@@ -142,7 +146,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <TriangleAlert className="size-4 shrink-0" aria-hidden />
             <p className="min-w-0 flex-1">
               {format(billingState === "payment_due" ? d.billingBanner.paymentDue : d.billingBanner.renewSoon, {
-                plan: usage.planName,
+                plan: bannerPlan,
                 date: formatDate(usage.currentPeriodEnd, locale),
                 grace: formatDate(usage.billing.graceUntil, locale),
               })}
@@ -166,7 +170,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               {format(usage.level === "reached" ? d.usageBanner.reached : d.usageBanner.warning, {
                 used: formatNumber(usage.used, locale),
                 limit: formatNumber(usage.limit, locale),
-                plan: usage.planName,
+                plan: bannerPlan,
               })}
             </p>
             <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
@@ -192,7 +196,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div role="status" data-testid="trial-banner" className={`${bar} ${trialLeft <= 3 ? "border-gold-200 bg-gold-50 text-gold-800" : "border-waza-100 bg-mint/60 text-deep"}`}>
             <Clock className="size-4 shrink-0" aria-hidden />
             <p className="min-w-0 flex-1">
-              {format(trialLeft <= 1 ? d.billingBanner.trialLastDay : d.billingBanner.trial, { plan: usage.planName, days: formatNumber(trialLeft, locale), date: formatDate(usage.currentPeriodEnd, locale) })}
+              {format(trialLeft <= 1 ? d.billingBanner.trialLastDay : d.billingBanner.trial, { plan: bannerPlan, days: formatNumber(trialLeft, locale), date: formatDate(usage.currentPeriodEnd, locale) })}
             </p>
             <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
               {d.billingBanner.choosePlan}

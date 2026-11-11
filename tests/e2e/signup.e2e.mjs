@@ -51,7 +51,7 @@ mkdirSync("test-results", { recursive: true });
   try {
     // ---------------------------------------------------------------- The marketing pages pass the type along
     const page = await newPage();
-    await page.goto(`${APP}/en/solutions/schools`);
+    await page.goto(`${APP}/en/schools`);
     ok("the schools page's Start free goes to sign-up with the school type", (await page.locator('main a[href="/en/register?type=schools"]').count()) >= 1);
 
     // ---------------------------------------------------------------- A school, from the schools page
@@ -60,7 +60,7 @@ mkdirSync("test-results", { recursive: true });
     const picker = page.getByTestId("business-type");
     ok("sign-up: School is pre-selected when coming from the schools page", await picker.getByLabel("School").isChecked());
     await page.getByLabel("Your name").fill(S.name);
-    await page.getByLabel("Business name").fill(S.business);
+    await page.getByLabel("School name").fill(S.business);
     await page.getByLabel("Email", { exact: true }).fill(S.email);
     await page.getByLabel("Password", { exact: true }).fill(S.password);
     await page.getByRole("button", { name: "Create account" }).click();

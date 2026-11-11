@@ -32,4 +32,6 @@ export const solutions: Solution[] = [
 /** Business types with their own landing page (/solutions/<slug>); copy in the dictionaries (landing.pages). */
 export const LANDING_SLUGS = ["retail", "schools", "restaurants"] as const;
 export type LandingKey = (typeof LANDING_SLUGS)[number];
+/** Where a business type's landing page lives: schools have their own front door (/schools, "WazaBolt Schools"). */
+export const landingPath = (slug: string) => (slug === "schools" ? "/schools" : `/solutions/${slug}`);
 export const landingKey = (slug: string): LandingKey | null => ((LANDING_SLUGS as readonly string[]).includes(slug) ? (slug as LandingKey) : null);

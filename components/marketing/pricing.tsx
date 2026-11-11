@@ -31,7 +31,7 @@ export async function Pricing() {
             </ul>
           </BillingToggle>
           <p className="mt-6 flex flex-col items-center gap-2 text-center text-sm">
-            <Link href={`${localizePath(locale, "/solutions/schools")}#plans`} className="font-semibold text-waza-700 hover:underline" data-testid="pricing-schools-link">
+            <Link href={`${localizePath(locale, "/schools")}#plans`} className="font-semibold text-waza-700 hover:underline" data-testid="pricing-schools-link">
               {t.school.link} →
             </Link>
             <Link href={`${localizePath(locale, "/solutions/restaurants")}#plans`} className="font-semibold text-waza-700 hover:underline" data-testid="pricing-restaurants-link">

@@ -1,3 +1,4 @@
+import { planNameFor } from "@/lib/billing/plan-names";
 import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
 
@@ -34,7 +35,7 @@ export default async function SchoolReportsPage({ searchParams }: PageProps<"/[l
         <PlanUpsell
           title={d.school.limits.reportsLocked.title}
           text={format(d.school.limits.reportsLocked.text, {
-            plan: plan ? t.pricing.plans[plan.id].name : "",
+            plan: plan ? planNameFor(plan.id, t.pricing.plans[plan.id].name, true, locale) : "",
           })}
           cta={d.plan.upgrade}
           locale={locale}

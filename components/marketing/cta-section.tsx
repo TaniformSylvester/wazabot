@@ -7,7 +7,7 @@ import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
 
 /** Closing call-to-action used at the bottom of marketing pages. */
-export async function CTASection({ title, text }: { title?: string; text?: string }) {
+export async function CTASection({ title, text, registerHref, secondary }: { title?: string; text?: string; /** Sign-up link (default /register). */ registerHref?: string; /** The second button (default: How it works). */ secondary?: { href: string; label: string } }) {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   return (
     <section aria-labelledby="cta-title" className="py-20 sm:py-28">
@@ -25,13 +25,13 @@ export async function CTASection({ title, text }: { title?: string; text?: strin
           <p className="type-lead relative mx-auto mt-4 max-w-xl text-white/75">{text ?? t.cta.text}</p>
           <div className="relative mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="group">
-              <Link href={localizePath(locale, "/register")}>
+              <Link href={registerHref ?? localizePath(locale, "/register")}>
                 {t.common.nav.startFree}
                 <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline-light">
-              <Link href={localizePath(locale, "/how-it-works")}>{t.common.nav.seeHowItWorks}</Link>
+              <Link href={secondary?.href ?? localizePath(locale, "/how-it-works")}>{secondary?.label ?? t.common.nav.seeHowItWorks}</Link>
             </Button>
           </div>
         </div>

@@ -27,6 +27,9 @@ const nextConfig: NextConfig = {
       { source: "/product", destination: "/how-it-works", permanent: true },
       { source: "/:lang(en|fr)/industries", destination: "/:lang/solutions", permanent: true },
       { source: "/:lang(en|fr)/product", destination: "/:lang/how-it-works", permanent: true },
+      // Schools have their own front door: WazaBolt Schools.
+      { source: "/solutions/schools", destination: "/schools", permanent: true },
+      { source: "/:lang(en|fr)/solutions/schools", destination: "/:lang/schools", permanent: true },
       // The brand kit is an internal design reference, not a public page.
       { source: "/brand", destination: "/", permanent: true },
       { source: "/:lang(en|fr)/brand", destination: "/:lang", permanent: true },

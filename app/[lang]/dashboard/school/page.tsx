@@ -1,3 +1,4 @@
+import { planNameFor } from "@/lib/billing/plan-names";
 import Link from "next/link";
 import { Backpack, Banknote, CheckCircle2, Circle, ClipboardCheck, PenLine, School, Settings } from "lucide-react";
 
@@ -114,7 +115,7 @@ export default async function SchoolPage() {
   const lim = s.limits;
   const planName = (has: (p: Plan) => boolean) => {
     const p = cheapestPlanWith(has);
-    return p ? t.pricing.plans[p.id].name : "";
+    return p ? planNameFor(p.id, t.pricing.plans[p.id].name, true, locale) : "";
   };
   const summary = await feeSummary(business.id, fees.map((f) => f.id));
   const due = [...summary.byFee.values()].reduce((sum, f) => sum + f.billed - f.paid, 0);

@@ -4,7 +4,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { CTASection } from "@/components/marketing/cta-section";
 import { PageIntro } from "@/components/marketing/page-intro";
 import { Reveal } from "@/components/motion/reveal";
-import { landingKey, solutions } from "@/config/solutions";
+import { landingKey, landingPath, solutions } from "@/config/solutions";
 import { iconTones } from "@/lib/brand/tones";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
@@ -48,7 +48,7 @@ export default async function SolutionsPage() {
                   ))}
                 </ul>
                 {landingKey(slug) ? (
-                  <Link href={localizePath(locale, `/solutions/${slug}`)} className="mt-5 inline-flex items-center gap-1.5 font-semibold text-waza-700 hover:underline">
+                  <Link href={localizePath(locale, landingPath(slug))} className="mt-5 inline-flex items-center gap-1.5 font-semibold text-waza-700 hover:underline">
                     {t.landing.learnMore} <span className="sr-only">— {name}</span>
                     <ArrowRight className="size-4" aria-hidden />
                   </Link>

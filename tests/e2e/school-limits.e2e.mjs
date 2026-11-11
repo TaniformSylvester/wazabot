@@ -145,7 +145,7 @@ mkdirSync("test-results", { recursive: true });
     // ---------------------------------------------------------------- Report cards: one at a time on Boutique (tight)
     const results = `/en/dashboard/school/results?class=${klass}&term=${term}`;
     await open(results);
-    ok("Boutique (tight): no whole-class PDF or print button, an upgrade notice instead", (await main.getByTestId("report-cards-pdf").count()) === 0 && (await main.getByTestId("plan-upsell").innerText()).includes("Boutique"));
+    ok("Boutique (tight): no whole-class PDF or print button, an upgrade notice instead", (await main.getByTestId("report-cards-pdf").count()) === 0 && (await main.getByTestId("plan-upsell").innerText()).includes("School Starter"));
     ok("Boutique (tight): report card usage for the term is shown", (await main.getByTestId("report-card-usage").innerText()).includes("0 of 50"));
     const one = await page.request.get(`${APP}/en/dashboard/school/results/pdf?class=${klass}&term=${term}&student=${n01}`);
     ok("Boutique (tight): one student's report card still downloads", one.status() === 200 && one.headers()["content-type"] === "application/pdf");
@@ -163,7 +163,7 @@ mkdirSync("test-results", { recursive: true });
     // ---------------------------------------------------------------- Advanced school reports: Business and Pro
     ok("the School reports menu item is there for owners", (await nav.getByRole("link", { name: "School reports" }).count()) === 1);
     await open(`/en/dashboard/school/reports`);
-    ok("Free: school reports show what's included and from which plan", (await main.getByTestId("plan-upsell").innerText()).includes("Business") && (await main.getByTestId("school-report-classes").count()) === 0);
+    ok("Free: school reports show what's included and from which plan", (await main.getByTestId("plan-upsell").innerText()).includes("School Standard") && (await main.getByTestId("school-report-classes").count()) === 0);
     const csvFree = await page.request.get(`${APP}/en/dashboard/school/reports/export?term=${term}&kind=classes`);
     ok("Free: the CSV export is refused on the server", csvFree.status() === 403);
 
@@ -200,6 +200,7 @@ mkdirSync("test-results", { recursive: true });
     const usage = (await main.getByTestId("plan-usage").innerText()).replace(/\s+/g, " ");
     ok("billing shows the school's active students against the plan (50 of 50)", usage.includes("Active students") && usage.includes("50 of 50"), usage);
     const card = async (id) => (await main.getByTestId(`billing-plan-${id}`).innerText()).replace(/\s+/g, " ");
+    ok("billing names the plans for schools: School Starter, School Standard, School Plus (no Boutique or Multi-shop)", /School Starter/.test(await card("boutique")) && /School Standard/.test(await card("business")) && /School Plus/.test(await card("multishop")) && !/Boutique|Multi-shop/.test((await main.innerText())), (await card("multishop")).slice(0, 80));
     ok("billing shows the plans in school terms: students, free teachers, report cards", /For a small school: up to 200 students/.test(await card("boutique")) && /Up to 30 free teacher accounts/.test(await card("boutique")) && /Report cards in PDF/.test(await card("boutique")) && !/Sales at the till/.test(await card("boutique")), await card("boutique"));
     ok("…Business adds 500 students and school reports; Multi-shop has no student limit", /Up to 500 students/.test(await card("business")) && /Class and subject statistics/.test(await card("business")) && /Unlimited students/.test(await card("multishop")), await card("multishop"));
 

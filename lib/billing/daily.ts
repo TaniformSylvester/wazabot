@@ -2,6 +2,7 @@ import "server-only";
 
 import { ALERTS, PAYMENT_GRACE_DAYS, RENEWAL_REMINDER_DAYS, claudeBudgetFcfa, periodPrice } from "@/config/economics";
 import { currentPlanId } from "./entitlements";
+import { planNameFor } from "./plan-names";
 import { catalogFor, planCurrencyFor, quote } from "./price";
 import { formatAmount } from "@/lib/i18n/format";
 import { siteConfig } from "@/config/site";
@@ -85,15 +86,16 @@ async function ownerOf(admin: Admin, businessId: string) {
   if (!m) return null;
   const [{ data: u }, { data: b }] = await Promise.all([
     admin.from("users").select("email, ui_locale").eq("id", m.user_id).maybeSingle(),
-    admin.from("businesses").select("name").eq("id", businessId).maybeSingle(),
+    admin.from("businesses").select("name, industry").eq("id", businessId).maybeSingle(),
   ]);
-  return u?.email ? { email: u.email, lang: (u.ui_locale === "fr" ? "fr" : "en") as Lang, business: b?.name ?? "" } : null;
+  return u?.email ? { email: u.email, lang: (u.ui_locale === "fr" ? "fr" : "en") as Lang, business: b?.name ?? "", school: b?.industry === "school" } : null;
 }
 
-async function emailOwner(admin: Admin, businessId: string, make: (lang: Lang) => { subject: string; title: string; intro: string; button: string }) {
+/** make(lang, name): `name` gives a plan's name as this owner sees it (a school: School Standard…). */
+async function emailOwner(admin: Admin, businessId: string, make: (lang: Lang, name: (planId: string, usual: string) => string) => { subject: string; title: string; intro: string; button: string }) {
   const owner = await ownerOf(admin, businessId);
   if (!owner) return;
-  const t = make(owner.lang);
+  const t = make(owner.lang, (planId, usual) => planNameFor(currentPlanId(planId), usual, owner.school, owner.lang));
   const href = `${site()}/${owner.lang}/dashboard/billing`;
   await sendEmail({
     to: owner.email,
@@ -117,7 +119,7 @@ export async function runDailyBilling(admin: Admin, now = new Date()): Promise<D
     const kind = c.action === "downgraded" ? "downgraded" : "payment_due";
     if (!(await claimAlert(admin, kind, c.business_id, c.period_end.slice(0, 10)))) continue;
     const grace = new Date(new Date(c.period_end).getTime() + PAYMENT_GRACE_DAYS * DAY).toISOString();
-    await emailOwner(admin, c.business_id, (lang) => (kind === "downgraded" ? OWNER.downgraded[lang](planName(c.plan_id)) : OWNER.payment_due[lang](planName(c.plan_id), date(c.period_end, lang), date(grace, lang))));
+    await emailOwner(admin, c.business_id, (lang, name) => (kind === "downgraded" ? OWNER.downgraded[lang](name(c.plan_id, planName(c.plan_id))) : OWNER.payment_due[lang](name(c.plan_id, planName(c.plan_id)), date(c.period_end, lang), date(grace, lang))));
     if (kind === "downgraded") tally.downgraded++;
     else tally.paymentDue++;
   }
@@ -146,7 +148,7 @@ export async function runDailyBilling(admin: Admin, now = new Date()): Promise<D
     const localPlan = local?.plans.find((p) => p.id === current);
     const price = local && localPlan ? quote(localPlan.id, null, interval, local).period : current === "free" ? periodPrice(Number(plan.monthly_price), interval) : quote(current, addon, interval).period;
     const shown = (lang: Lang) => (local && localPlan ? formatAmount(price, planCurrencyFor(currency), lang) : money(price, lang));
-    await emailOwner(admin, s.business_id, (lang) => OWNER.renewal[lang](plan.name, date(s.current_period_end, lang), shown(lang), !!(local && localPlan)));
+    await emailOwner(admin, s.business_id, (lang, name) => OWNER.renewal[lang](name(s.plan_id, plan.name), date(s.current_period_end, lang), shown(lang), !!(local && localPlan)));
     tally.reminders++;
   }
 

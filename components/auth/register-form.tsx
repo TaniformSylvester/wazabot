@@ -60,7 +60,7 @@ export function RegisterForm({ disabled = false, defaultType, defaultCountry = "
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField label={a.fields.fullName} autoComplete="name" error={fieldError(errors.fullName?.message)} registration={form.register("fullName")} />
         <FormField
-          label={a.fields.businessName}
+          label={chosenType === "school" ? a.fields.schoolName : a.fields.businessName}
           autoComplete="organization"
           error={fieldError(errors.businessName?.message)}
           registration={form.register("businessName")}

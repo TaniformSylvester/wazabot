@@ -6,6 +6,7 @@ import { annualMonthsPaid, type Plan } from "@/config/plans";
 import type { Locale } from "@/lib/i18n/config";
 import { format, formatNumber, formatXaf } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import { planNameFor } from "@/lib/billing/plan-names";
 import { cn } from "@/lib/utils";
 import type { Messages } from "@/messages/en";
 
@@ -64,7 +65,7 @@ export function schoolPlanFeatures(plan: Plan, previous: Plan | undefined, t: Me
     ];
   }
   const before = [previous.hasSchoolReports, previous.hasProfit];
-  return [students, staff, { label: format(t.features.everythingIn, { plan: t.plans[previous.id].name }), included: true }, ...own.filter((x, i) => x.included && !before[i])];
+  return [students, staff, { label: format(t.features.everythingIn, { plan: planNameFor(previous.id, t.plans[previous.id].name, true, locale) }), included: true }, ...own.filter((x, i) => x.included && !before[i])];
 }
 
 /**
@@ -119,7 +120,7 @@ export function PricingCard({
   const featured = plan.highlighted;
   const kind = plan.id === "free" ? "shop" : audience;
   const onSale = plan.id as "boutique" | "business" | "multishop";
-  const name = t.plans[plan.id].name;
+  const name = planNameFor(plan.id, t.plans[plan.id].name, kind === "school", locale);
   const description =
     kind === "school"
       ? format(t.school.plans[onSale], { count: formatNumber(plan.maxStudents ?? 0, locale) })

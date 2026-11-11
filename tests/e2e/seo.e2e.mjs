@@ -22,7 +22,7 @@ const meta = (html, key) => attr(html, new RegExp(`<meta (?:name|property)="${ke
 const jsonLd = (html) => [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].flatMap((m) => JSON.parse(m[1])["@graph"] ?? []);
 const types = (html) => jsonLd(html).map((g) => g["@type"]);
 
-const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/retail", "/solutions/schools", "/solutions/restaurants", "/pricing", "/countries", "/countries/nigeria", "/countries/south-africa", "/countries/ghana", "/countries/kenya", "/countries/zimbabwe", "/tools/documents", "/faq", "/about", "/contact"];
+const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/retail", "/schools", "/solutions/restaurants", "/pricing", "/countries", "/countries/nigeria", "/countries/south-africa", "/countries/ghana", "/countries/kenya", "/countries/zimbabwe", "/tools/documents", "/faq", "/about", "/contact"];
 
 (async () => {
   try {
@@ -63,8 +63,11 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
 
     const faq = jsonLd((await get("/fr/faq")).body).find((g) => g["@type"] === "FAQPage");
     ok("FAQ: questions and answers as FAQPage (French on /fr)", faq?.mainEntity?.length >= 5 && faq.mainEntity.every((q) => q.name && q.acceptedAnswer?.text) && /WhatsApp/.test(faq.mainEntity[0].name));
-    const school = (await get("/en/solutions/schools")).body;
-    ok("school landing: FAQ and breadcrumb Home › Solutions › For schools", types(school).includes("FAQPage") && jsonLd(school).find((g) => g["@type"] === "BreadcrumbList")?.itemListElement?.length === 3);
+    const school = (await get("/en/schools")).body;
+    ok("WazaBolt Schools page: FAQ and breadcrumb Home › WazaBolt Schools", types(school).includes("FAQPage") && jsonLd(school).find((g) => g["@type"] === "BreadcrumbList")?.itemListElement?.length === 2);
+    const old = await fetch(`${APP}/en/solutions/schools`, { redirect: "manual" });
+    ok("the old schools address redirects to /schools", [301, 308].includes(old.status) && (old.headers.get("location") ?? "").endsWith("/en/schools"), `${old.status} ${old.headers.get("location")}`);
+    ok("WazaBolt Schools: school plan names (School Starter, School Standard, School Plus), no shop plan names or shop wording in the page body", /School Starter/.test(school) && /School Standard/.test(school) && /School Plus/.test(school) && !/Try Boutique|Try Multi-shop|Sales at the till/.test(school));
     ok("school landing: says what the school module does", /report cards in PDF/i.test(school) && /out of 20 or out of 100/.test(school));
     ok("school landing: the plans in school terms (200 / 500 / unlimited students, free teachers), signing up as a school", /data-testid="school-plans"/.test(school) && /Up to 200 students/.test(school) && /Up to 500 students/.test(school) && /Unlimited students/.test(school) && /free teacher accounts/.test(school) && school.includes("type=school"));
     ok("pricing links schools and restaurants to their plans", /data-testid="pricing-schools-link"/.test((await get("/en/pricing")).body) && /data-testid="pricing-restaurants-link"/.test((await get("/en/pricing")).body));
@@ -90,7 +93,7 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
     const pricing = (await get("/en/pricing")).body;
     ok("pricing: the US dollar prices outside Cameroon, linked to the country pages", /data-testid="pricing-outside"/.test(pricing) && /5\.00 USD, 12\.00 USD and 25\.00 USD a month/.test(pricing) && pricing.includes('href="/en/countries"'));
     const solutions = (await get("/en/solutions")).body;
-    ok("solutions links to the three landing pages", ["retail", "schools", "restaurants"].every((s) => solutions.includes(`href="/en/solutions/${s}"`)));
+    ok("solutions links to the three landing pages", ["retail", "restaurants"].every((s) => solutions.includes(`href="/en/solutions/${s}"`)) && solutions.includes('href="/en/schools"'));
 
     for (const locale of ["en", "fr"]) {
       const src = meta((await get(`/${locale}/pricing`)).body, "og:image");

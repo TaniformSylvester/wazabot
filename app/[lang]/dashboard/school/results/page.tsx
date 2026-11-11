@@ -1,3 +1,4 @@
+import { planNameFor } from "@/lib/billing/plan-names";
 import Link from "next/link";
 import { Download, Printer } from "lucide-react";
 
@@ -93,9 +94,9 @@ export default async function ResultsPage({ searchParams }: PageProps<"/[lang]/d
           <FormAlert tone={pub ? "success" : "info"}>{pub ? format(r.published, { date: formatDate(pub.publishedAt, locale, true) }) : r.provisional}</FormAlert>
           {!bulk ? (
             isAdmin ? (
-              <PlanUpsell compact text={format(lim.bulkLocked, { plan: bulkPlan ? t.pricing.plans[bulkPlan.id].name : "" })} cta={d.plan.upgrade} locale={locale} />
+              <PlanUpsell compact text={format(lim.bulkLocked, { plan: bulkPlan ? planNameFor(bulkPlan.id, t.pricing.plans[bulkPlan.id].name, true, locale) : "" })} cta={d.plan.upgrade} locale={locale} />
             ) : (
-              <p className="text-sm text-slate" data-testid="bulk-locked">{format(lim.bulkLocked, { plan: bulkPlan ? t.pricing.plans[bulkPlan.id].name : "" })}</p>
+              <p className="text-sm text-slate" data-testid="bulk-locked">{format(lim.bulkLocked, { plan: bulkPlan ? planNameFor(bulkPlan.id, t.pricing.plans[bulkPlan.id].name, true, locale) : "" })}</p>
             )
           ) : null}
           {isAdmin && maxReportCards !== null ? (

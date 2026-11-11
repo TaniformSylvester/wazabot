@@ -14,7 +14,8 @@ import { localizePath } from "@/lib/i18n/paths";
 import { breadcrumbGraph, faqGraph } from "@/lib/seo/structured-data";
 
 export function generateStaticParams() {
-  return LANDING_SLUGS.map((slug) => ({ slug }));
+  // Schools live at /schools (next.config.ts redirects the old address).
+  return LANDING_SLUGS.filter((slug) => slug !== "schools").map((slug) => ({ slug }));
 }
 
 // Only the business types with their own page exist; the rest stay on /solutions.
@@ -72,7 +73,7 @@ export default async function SolutionPage({ params }: PageProps<"/[lang]/soluti
         </ul>
       </section>
 
-      {key === "schools" ? <AudiencePlans audience="school" /> : key === "restaurants" ? <AudiencePlans audience="restaurant" /> : null}
+      {key === "restaurants" ? <AudiencePlans audience="restaurant" /> : null}
 
       <section aria-labelledby="landing-faq" className="container-page max-w-3xl pb-8 pt-16">
         <h2 id="landing-faq" className="type-h2 text-center">

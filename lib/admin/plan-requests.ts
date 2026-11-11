@@ -2,6 +2,7 @@ import "server-only";
 
 import { AI_TOPUP, PAYMENT_GRACE_DAYS, periodPrice, type BillingInterval } from "@/config/economics";
 import { catalogFor, isAddonId, isPlanOnSale, planCurrencyFor, quote } from "@/lib/billing/price";
+import { planNameFor } from "@/lib/billing/plan-names";
 import { formatAmount } from "@/lib/i18n/format";
 import { siteConfig } from "@/config/site";
 import type { PaymentRecord } from "@/lib/billing/payments";
@@ -27,7 +28,7 @@ export type PlanRequestRow = {
   createdAt: string;
   decidedAt: string | null;
   /** currency: the business's own. */
-  business: { id: string; name: string; currency: string };
+  business: { id: string; name: string; currency: string; school: boolean };
   requester: { name: string; email: string | null; locale: Lang } | null;
   from: { id: string; name: string; price: number } | null;
   to: { id: string; name: string; price: number };
@@ -81,7 +82,7 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
   if (!rows.length) return [];
   const businessIds = [...new Set(rows.map((r) => r.business_id))];
   const [businesses, plans, users, subs] = await Promise.all([
-    admin.from("businesses").select("id, name, currency").in("id", businessIds),
+    admin.from("businesses").select("id, name, currency, industry").in("id", businessIds),
     admin.from("plans").select("id, name, monthly_price, extra_branch_price"),
     admin.from("users").select("id, full_name, email, ui_locale").in("id", [...new Set(rows.map((r) => r.requested_by).filter((x): x is string => !!x))]),
     admin.from("subscriptions").select("business_id, setup_fee, setup_fee_paid_at").in("business_id", businessIds),
@@ -107,7 +108,7 @@ async function loadRequests(admin: Admin, filter: { id?: string; limit?: number 
       status: r.status,
       createdAt: r.created_at,
       decidedAt: r.decided_at,
-      business: { id: r.business_id, name: biz?.name ?? "—", currency: biz?.currency ?? "XAF" },
+      business: { id: r.business_id, name: biz?.name ?? "—", currency: biz?.currency ?? "XAF", school: biz?.industry === "school" },
       currency,
       requester: u ? { name: u.full_name, email: u.email, locale: u.ui_locale === "fr" ? "fr" : "en" } : null,
       from: plan(r.from_plan_id),
@@ -147,7 +148,9 @@ export function requestSummary(r: PlanRequestRow, html = false) {
   const b = (x: string) => (html ? `<b>${esc(x)}</b>` : x);
   if (r.kind === "branches") return `${b(`${r.extraBranches ?? 0} extra branch${r.extraBranches === 1 ? "" : "es"}`)} on ${html ? esc(r.to.name) : r.to.name}: ${amount(r.amountDue, r.currency)}/month`;
   if (r.kind === "topup") return `${b(`AI top-up (+${AI_TOPUP.conversations} conversations)`)}: ${amount(r.amountDue, r.currency)}`;
-  const to = r.addonId ? `${r.to.name} + ${r.addonId === "ai_plus" ? "AI Plus" : "AI Basic"}` : r.to.name;
+  // For the team: the plan, with the name the school sees.
+  const toName = r.business.school && planNameFor(r.to.id, r.to.name, true, "en") !== r.to.name ? `${r.to.name} (${planNameFor(r.to.id, r.to.name, true, "en")})` : r.to.name;
+  const to = r.addonId ? `${toName} + ${r.addonId === "ai_plus" ? "AI Plus" : "AI Basic"}` : toName;
   const what = r.kind === "renewal" ? `Renewal of ${b(to)}` : `${html ? esc(r.from?.name ?? "—") : (r.from?.name ?? "—")} → ${b(to)}`;
   return `${what}, ${r.interval === "year" ? "yearly" : "monthly"}: ${amount(r.amountDue, r.currency)}${r.currency !== "XAF" ? " by bank transfer (they see the bank details on Billing once they are saved in admin; otherwise send them)" : ""}${r.setupFeeDue ? ` (setup fee ${fcfa(r.setupFeeDue)} included)` : ""}`;
 }
@@ -198,16 +201,16 @@ const BRANCHES_APPROVED = {
 
 const CUSTOMER = {
   approved: {
-    en: (plan: string, until: string) => ({
+    en: (plan: string, until: string, school = false) => ({
       subject: `Your WazaBolt ${plan} plan is active`,
       title: `Your ${plan} plan is active`,
-      intro: `Thank you! Your business is now on the <b>${esc(plan)}</b> plan, until ${esc(until)}. Your new AI conversation allowance applies straight away.`,
+      intro: `Thank you! Your ${school ? "school" : "business"} is now on the <b>${esc(plan)}</b> plan, until ${esc(until)}. Your new AI conversation allowance applies straight away.`,
       button: "Open my dashboard",
     }),
-    fr: (plan: string, until: string) => ({
+    fr: (plan: string, until: string, school = false) => ({
       subject: `Votre forfait WazaBolt ${plan} est activé`,
       title: `Votre forfait ${plan} est activé`,
-      intro: `Merci ! Votre entreprise est maintenant au forfait <b>${esc(plan)}</b>, jusqu'au ${esc(until)}. Votre nouveau quota de conversations IA s'applique dès maintenant.`,
+      intro: `Merci ! Votre ${school ? "école" : "entreprise"} est maintenant au forfait <b>${esc(plan)}</b>, jusqu'au ${esc(until)}. Votre nouveau quota de conversations IA s'applique dès maintenant.`,
       button: "Ouvrir mon tableau de bord",
     }),
   },
@@ -236,7 +239,9 @@ async function emailCustomer(r: PlanRequestRow, decision: "approved" | "rejected
   const lang = r.requester.locale;
   const until = periodEnd ? new Intl.DateTimeFormat(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Douala" }).format(new Date(periodEnd)) : "";
   const branches = r.kind === "branches" && decision === "approved";
-  const t = branches ? BRANCHES_APPROVED[lang](r.extraBranches ?? 0) : decision === "approved" ? CUSTOMER.approved[lang](r.to.name, until) : CUSTOMER.rejected[lang](r.to.name);
+  // A school reads its plan under the school name (School Standard…).
+  const plan = planNameFor(r.to.id, r.to.name, r.business.school, lang);
+  const t = branches ? BRANCHES_APPROVED[lang](r.extraBranches ?? 0) : decision === "approved" ? CUSTOMER.approved[lang](plan, until, r.business.school) : CUSTOMER.rejected[lang](plan);
   const href = `${site()}/${lang}/dashboard${branches ? "/branches" : decision === "approved" ? "" : "/billing"}`;
   await sendEmail({
     to: r.requester.email,
