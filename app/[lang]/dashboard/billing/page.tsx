@@ -9,6 +9,7 @@ import { addons, aiTopup, bundles, plans } from "@/config/plans";
 import { cancelPlanChange, requestAiTopup, requestPlanChange, startAiTrial } from "@/lib/actions/billing";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { currentPlanId, getLimit, trialDaysLeft } from "@/lib/billing/entitlements";
+import { getUsdBankDetails } from "@/lib/billing/bank-details";
 import { getPlanAccess } from "@/lib/billing/plan-access";
 import { catalog, catalogFor, planCurrencyFor, quote } from "@/lib/billing/price";
 import { getBilling, getEntitlements } from "@/lib/data/queries";
@@ -54,6 +55,8 @@ export default async function BillingPage() {
     .filter((p) => cat.plans.some((x) => x.id === p.id))
     .map((p) => ({ ...p, monthlyPrice: cat.plans.find((x) => x.id === p.id)!.monthlyPrice, extraBranchPrice: fcfaOnly ? p.extraBranchPrice : null }));
   const shownAddons = fcfaOnly ? addons : [];
+  // Where to send dollars (set by the WazaBolt team): owners and admins of businesses paying in dollars only.
+  const bank = !fcfaOnly && priceCurrency === "USD" && canRequest ? await getUsdBankDetails() : null;
   const addonId = access?.addonId && cat.addons.some((a) => a.id === access.addonId) ? access.addonId : null;
   const now = quote(noPlan || !cat.plans.some((p) => p.id === planId) ? "business" : planId, addonId, access?.interval ?? "month", cat);
   const trialLeft = access ? trialDaysLeft(access) : null;
@@ -86,7 +89,7 @@ export default async function BillingPage() {
 
       {business.currency !== "XAF" ? (
         <div data-testid="other-country">
-          <FormAlert tone="info">{local ? format(b.bankTransfer, { currency: priceCurrency }) : format(b.otherCountry, { currency: business.currency })}</FormAlert>
+          <FormAlert tone="info">{local ? format(bank ? b.bankTransferShown : b.bankTransfer, { currency: priceCurrency }) : format(b.otherCountry, { currency: business.currency })}</FormAlert>
         </div>
       ) : null}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -251,6 +254,32 @@ export default async function BillingPage() {
               </ActionButton>
             </div>
           ) : null}
+        </Panel>
+      ) : null}
+
+      {bank ? (
+        <Panel id="bank-details" title={b.bankDetails.title} description={b.bankDetails.intro}>
+          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2" data-testid="bank-details">
+            {[
+              [b.bankDetails.beneficiary, bank.beneficiary],
+              [b.bankDetails.bank, bank.bank],
+              [b.bankDetails.bankAddress, bank.bankAddress],
+              [b.bankDetails.swift, bank.swift],
+              [b.bankDetails.account, bank.accountNumber],
+              [b.bankDetails.accountType, bank.accountType],
+              [b.bankDetails.reference, business.name],
+              [b.bankDetails.routing, bank.routing ?? ""],
+            ]
+              .filter(([, v]) => v)
+              .map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-xs font-semibold text-slate">{label}</dt>
+                  <dd className="font-semibold break-words text-deep select-all">{value}</dd>
+                </div>
+              ))}
+          </dl>
+          <p className="mt-4 text-sm text-slate">{b.bankDetails.usdOnly}</p>
+          <p className="mt-1 text-sm text-slate">{b.bankDetails.afterPaying}</p>
         </Panel>
       ) : null}
 

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { currentUserIsPlatformAdmin } from "@/lib/admin/access";
 import { decidePlanRequest } from "@/lib/admin/plan-requests";
 import { SETUP_FEE_RANGE } from "@/config/economics";
+import { USD_BANK_KEY, validateUsdBankDetails } from "@/lib/billing/bank-details";
 import { PAYMENT_METHODS, type PaymentMethod } from "@/lib/billing/payments";
 import { isAddonId, isPlanOnSale } from "@/lib/billing/price";
 import { isLocale } from "@/lib/i18n/config";
@@ -148,6 +149,39 @@ export async function extendTrial(formData: FormData) {
   revalidatePath("/[lang]/admin/businesses", "page");
   revalidatePath("/[lang]/dashboard", "layout");
   backToBusinesses(formData, "done=trial");
+}
+
+/**
+ * WazaBolt team: the bank account businesses outside Cameroon pay into (US
+ * dollars). Shown on their Billing page; "clear" removes it (Billing then says
+ * the team will send the details).
+ */
+export async function saveUsdBankDetails(formData: FormData) {
+  const { admin, actor } = await adminContext(formData);
+  if (formData.get("clear") === "1") {
+    const { error } = await admin.from("platform_settings").delete().eq("key", USD_BANK_KEY);
+    if (error) backToBusinesses(formData, "error=failed");
+    revalidatePath("/[lang]/dashboard/billing", "page");
+    backToBusinesses(formData, "done=bank_cleared#bank");
+  }
+  const field = (k: string) => String(formData.get(k) ?? "");
+  const result = validateUsdBankDetails({
+    beneficiary: field("beneficiary"),
+    bank: field("bank"),
+    bankAddress: field("bank_address"),
+    swift: field("swift"),
+    accountNumber: field("account_number"),
+    accountType: field("account_type"),
+    routing: field("routing"),
+  });
+  if ("error" in result) return backToBusinesses(formData, `error=bank_invalid&why=${encodeURIComponent(result.error)}#bank`);
+  const { error } = await admin
+    .from("platform_settings")
+    .upsert({ key: USD_BANK_KEY, value: { ...result.details }, updated_by: actor, updated_at: new Date().toISOString() });
+  if (error) backToBusinesses(formData, "error=failed");
+  console.info("[admin.usdBank] saved");
+  revalidatePath("/[lang]/dashboard/billing", "page");
+  backToBusinesses(formData, "done=bank_saved#bank");
 }
 
 /** WazaBolt team: launch (or pause) the WhatsApp AI assistant for every business. Until then it's "coming soon". */

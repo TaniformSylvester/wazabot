@@ -5,7 +5,8 @@ import { PageHeader, Panel, StatusBadge, TableWrap, td, th } from "@/components/
 import { requirePlatformAdmin } from "@/lib/admin/access";
 import { listAllBusinesses, signupCounts } from "@/lib/admin/businesses";
 import { pendingPlanRequestCount } from "@/lib/admin/plan-requests";
-import { extendTrial, recordManualPayment, setAiLaunched, setAiPaused, setSetupFee } from "@/lib/actions/admin";
+import { extendTrial, recordManualPayment, saveUsdBankDetails, setAiLaunched, setAiPaused, setSetupFee } from "@/lib/actions/admin";
+import { getUsdBankDetails } from "@/lib/billing/bank-details";
 import { ADDONS, PLANS_ON_SALE, SETUP_FEE_RANGE } from "@/config/economics";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/lib/i18n/dictionaries";
@@ -29,6 +30,9 @@ const NOTICES: Record<string, { ok: boolean; text: string }> = {
   paid_plan: { ok: false, text: "This business is on a paid plan: a trial can't be added." },
   payment_invalid: { ok: false, text: "Enter the amount received and how it was paid." },
   setup_fee_invalid: { ok: false, text: "The setup fee is 0 (none) or between 10,000 and 25,000 FCFA, and only for businesses paying in FCFA." },
+  bank_saved: { ok: true, text: "Bank details saved: businesses paying in US dollars now see them on their Billing page." },
+  bank_cleared: { ok: true, text: "Bank details removed: Billing now says the WazaBolt team will send them." },
+  bank_invalid: { ok: false, text: "Those bank details weren't saved." },
 };
 const PLAN_NAMES: Record<string, string> = { free: "No plan", boutique: "Boutique", business: "Business", multishop: "Multi-shop", starter: "Starter (old)", pro: "Pro (old)" };
 const ADDON_NAMES: Record<string, string> = { ai_basic: "AI Basic", ai_plus: "AI Plus" };
@@ -43,12 +47,14 @@ const smallButton = "inline-flex min-h-8 items-center justify-center rounded-ful
 export default async function BusinessesAdminPage({ searchParams }: PageProps<"/[lang]/admin/businesses">) {
   const [locale, params] = await Promise.all([getLocale(), searchParams]);
   const key = typeof params.done === "string" ? params.done : typeof params.error === "string" ? params.error : null;
-  const notice = key ? NOTICES[key] : null;
+  const why = key === "bank_invalid" && typeof params.why === "string" ? params.why.slice(0, 200) : "";
+  const notice = key && NOTICES[key] ? { ...NOTICES[key], text: why ? `${NOTICES[key].text} ${why}` : NOTICES[key].text } : null;
   const admin = await requirePlatformAdmin(locale, "/admin/businesses");
-  const [rows, waiting, launched] = await Promise.all([
+  const [rows, waiting, launched, bank] = await Promise.all([
     listAllBusinesses(admin),
     pendingPlanRequestCount(admin),
     (createAdminClient()?.rpc("ai_assistant_launched") ?? Promise.resolve({ data: false })).then((r) => r.data === true),
+    getUsdBankDetails(),
   ]);
   const counts = signupCounts(rows, new Date());
   const stats = [
@@ -81,6 +87,40 @@ export default async function BusinessesAdminPage({ searchParams }: PageProps<"/
           <button type="submit" className={launched ? "inline-flex min-h-9 items-center rounded-full border border-border px-4 text-xs font-semibold text-slate hover:border-coral-500 hover:text-coral-700" : smallButton}>
             {launched ? "Back to coming soon" : "Launch the AI assistant"}
           </button>
+        </form>
+      </Panel>
+
+      <Panel id="bank" title="Bank details for US dollar payments" description="Businesses outside Cameroon pay their plan in US dollars by bank transfer. What you save here is shown on their Billing page (owners and admins only, never on public pages). Copy it from Payoneer → Get paid → Receiving accounts.">
+        <form action={saveUsdBankDetails} className="grid gap-3 sm:grid-cols-2" aria-label="Bank details for US dollar payments">
+          <input type="hidden" name="locale" value={locale} />
+          {(
+            [
+              ["beneficiary", "Beneficiary name", bank?.beneficiary, "WazaBolt ENTERPRISE"],
+              ["bank", "Bank name", bank?.bank, "Citibank"],
+              ["bank_address", "Bank address", bank?.bankAddress, "111 Wall Street, New York, NY 10043, USA"],
+              ["swift", "SWIFT / BIC", bank?.swift, "CITIUS33"],
+              ["account_number", "Account number", bank?.accountNumber, ""],
+              ["account_type", "Account type", bank?.accountType, "Checking"],
+              ["routing", "Routing number (ABA), for US payers (optional)", bank?.routing ?? "", ""],
+            ] as const
+          ).map(([name, label, value, placeholder]) => (
+            <label key={name} className="grid gap-1 text-xs font-semibold text-slate">
+              {label}
+              <input name={name} defaultValue={value ?? ""} placeholder={placeholder} className="h-10 rounded-xl border border-input bg-card px-3 text-sm text-deep" />
+            </label>
+          ))}
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+            <button type="submit" className={smallButton}>
+              Save bank details
+            </button>
+            {bank ? (
+              <button type="submit" name="clear" value="1" className="text-xs font-semibold text-coral-700 hover:underline">
+                Remove them from Billing
+              </button>
+            ) : (
+              <span className="text-xs text-slate">Not set: Billing says the WazaBolt team will send the details.</span>
+            )}
+          </div>
         </form>
       </Panel>
 

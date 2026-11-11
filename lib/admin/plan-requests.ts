@@ -149,7 +149,7 @@ export function requestSummary(r: PlanRequestRow, html = false) {
   if (r.kind === "topup") return `${b(`AI top-up (+${AI_TOPUP.conversations} conversations)`)}: ${amount(r.amountDue, r.currency)}`;
   const to = r.addonId ? `${r.to.name} + ${r.addonId === "ai_plus" ? "AI Plus" : "AI Basic"}` : r.to.name;
   const what = r.kind === "renewal" ? `Renewal of ${b(to)}` : `${html ? esc(r.from?.name ?? "—") : (r.from?.name ?? "—")} → ${b(to)}`;
-  return `${what}, ${r.interval === "year" ? "yearly" : "monthly"}: ${amount(r.amountDue, r.currency)}${r.currency !== "XAF" ? " by bank transfer (send them the bank details)" : ""}${r.setupFeeDue ? ` (setup fee ${fcfa(r.setupFeeDue)} included)` : ""}`;
+  return `${what}, ${r.interval === "year" ? "yearly" : "monthly"}: ${amount(r.amountDue, r.currency)}${r.currency !== "XAF" ? " by bank transfer (they see the bank details on Billing once they are saved in admin; otherwise send them)" : ""}${r.setupFeeDue ? ` (setup fee ${fcfa(r.setupFeeDue)} included)` : ""}`;
 }
 
 /** To the WazaBolt team, right after a business asks for a plan. */

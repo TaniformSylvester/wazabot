@@ -142,9 +142,24 @@ mkdirSync("test-results", { recursive: true });
     await req.getByRole("button", { name: "Approve" }).click();
     await page.getByText(/Approved — the payment is recorded/).waitFor({ timeout: 10000 });
     ok("approving records 120.00 USD by bank transfer", sql(`select amount || ' ' || currency || ' ' || method from subscription_payments where request_id = '${requestId}'`) === "120.00 USD bank");
+    // The team saves the bank account for US dollar payments (admin → Businesses).
+    sql(`delete from platform_settings where key = 'usd_bank_details'`);
+    await page.goto(`${APP}/en/admin/businesses#bank`);
+    const bankForm = page.getByRole("form", { name: "Bank details for US dollar payments" });
+    await bankForm.getByLabel("SWIFT / BIC").fill("bad");
+    await bankForm.getByRole("button", { name: "Save bank details" }).click();
+    await page.getByText(/weren't saved/).waitFor({ timeout: 10000 });
+    ok("admin: incomplete bank details are refused", sql(`select count(*) from platform_settings where key = 'usd_bank_details'`) === "0");
+    for (const [label, v] of [["Beneficiary name", "WazaBolt ENTERPRISE"], ["Bank name", "Test Bank"], ["Bank address", "1 Test Street, New York, USA"], ["SWIFT / BIC", "testus33"], ["Account number", "000123456789"], ["Account type", "Checking"]]) await bankForm.getByLabel(label, { exact: true }).fill(v);
+    await bankForm.getByRole("button", { name: "Save bank details" }).click();
+    await page.getByText(/Bank details saved/).waitFor({ timeout: 10000 });
+    ok("admin: the bank details are saved (SWIFT in capitals)", sql(`select value->>'swift' || ' ' || (value->>'accountNumber') from platform_settings where key = 'usd_bank_details'`) === "TESTUS33 000123456789");
     sql(`delete from platform_admins where user_id = (select id from auth.users where email = '${OWNER.email}')`);
     await page.goto(`${APP}/en/dashboard/billing`);
     ok("Billing shows the plan at 120.00 USD a year and the payment in USD", /120\.00 USD\/year/.test(await main.getByTestId("current-plan").innerText()) && (await main.locator("#payments").getByText("120.00 USD").count()) === 1);
+    const bankBox = (await main.getByTestId("bank-details").innerText()).replace(/\s+/g, " ");
+    ok("Billing shows where to send the dollars: beneficiary, bank, SWIFT, account and the business name as reference", /WazaBolt ENTERPRISE/.test(bankBox) && /TESTUS33/.test(bankBox) && /000123456789/.test(bankBox) && bankBox.includes(OWNER.business), bankBox);
+    ok("…and says to pay to the account below", /paid by bank transfer to the account below/.test(await page.getByTestId("other-country").innerText()));
 
     // ---------------------------------------------------------------- the public shop page in dollars
     sql(`update businesses set shop_enabled = true, phone = '+263 77 123 4567' where id = '${biz}'`);
@@ -161,6 +176,8 @@ mkdirSync("test-results", { recursive: true });
     const cm = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${CM.email}'`);
     ok("without a choice, a sign-up is in Cameroon (FCFA)", sql(`select country_code || ' ' || currency from businesses where id = '${cm}'`) === "CM XAF");
     sql(`update businesses set onboarding_step = 6, onboarding_completed_at = now() where id = '${cm}'`);
+    await page2.goto(`${APP}/en/dashboard/billing`);
+    ok("a Cameroon business (FCFA, Mobile Money) never sees the dollar bank details", (await page2.locator("main").getByTestId("bank-details").count()) === 0);
     await page2.goto(`${APP}/en/dashboard/settings`);
     await page2.locator("main").getByLabel("Change the country").selectOption("ZW");
     await page2.locator("main").getByRole("button", { name: "Change country" }).click();

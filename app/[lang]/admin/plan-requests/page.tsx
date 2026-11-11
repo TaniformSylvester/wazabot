@@ -125,7 +125,7 @@ function PendingCard({ r, locale }: { r: PlanRequestRow; locale: string }) {
             <>
               {" "}
               · {r.interval === "year" ? "yearly" : "monthly"}: <b>{money(r.amountDue, r.currency)}</b>
-              {r.currency !== "XAF" ? <span className="text-slate"> by bank transfer: send them the bank details</span> : null}
+              {r.currency !== "XAF" ? <span className="text-slate"> by bank transfer (bank details on their Billing page, from Businesses → Bank details)</span> : null}
               {r.setupFeeDue ? <span className="text-slate"> (setup fee {fcfa(r.setupFeeDue)} included)</span> : null}
             </>
           ) : null}
