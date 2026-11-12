@@ -412,3 +412,92 @@ export async function getReport(businessId: string, timezone: string, from: stri
     },
   };
 }
+
+// ---------------------------------------------------------------- the main dashboard (shops)
+
+/** Order statuses still to hand over to the customer (delivered or picked up). */
+const TO_HAND_OVER = ["pending", "confirmed", "processing", "ready", "out_for_delivery"];
+/** Credit counts as overdue once the sale is this many days old. */
+export const OVERDUE_CREDIT_DAYS = 30;
+
+/**
+ * What the shop dashboard adds to the overview: today's money by payment
+ * method (and what was sold on credit today), orders still to deliver or be
+ * picked up (not restaurant orders), credit older than 30 days, and — for
+ * plans with profit — sales and expenses per day (last 30 days) and per week
+ * (last 12 weeks). All figures are as recorded by the team (payments are
+ * never checked with banks or operators).
+ */
+export async function getShopDashboard(businessId: string, timezone: string, withProfit: boolean) {
+  const db = await createClient();
+  const today = localToday(timezone);
+  const overdueBefore = new Date(Date.now() - OVERDUE_CREDIT_DAYS * 86_400_000).toISOString();
+  const weeksFrom = addDays(today, -83);
+  const [payments, soldToday, open, overdue, sales, expenses] = await Promise.all([
+    db.from("order_payments").select("amount, method, kind").eq("business_id", businessId).is("voided_at", null).gte("received_at", localDayStart(today, timezone)).limit(20000),
+    db.from("orders").select("balance_due").eq("business_id", businessId).eq("status", "delivered").gt("balance_due", 0).gte("created_at", localDayStart(today, timezone)).limit(20000),
+    db.from("orders").select("delivery_method").eq("business_id", businessId).is("service_type", null).neq("channel", "pos").in("status", TO_HAND_OVER).limit(5000),
+    db
+      .from("orders")
+      .select("customer_id, balance_due, created_at, customers(name, whatsapp_phone)")
+      .eq("business_id", businessId)
+      .neq("status", "cancelled")
+      .gt("balance_due", 0)
+      .lt("created_at", overdueBefore)
+      .not("customer_id", "is", null)
+      .limit(20000),
+    withProfit
+      ? db.from("orders").select("total, created_at").eq("business_id", businessId).eq("status", "delivered").gte("created_at", localDayStart(weeksFrom, timezone)).limit(50000)
+      : Promise.resolve({ data: [] as { total: number; created_at: string }[] }),
+    withProfit ? expensesBetween(businessId, weeksFrom, today) : Promise.resolve([]),
+  ]);
+
+  // Today by payment method (refunds take money back); "credit" is what today's sales still owe.
+  const byMethod = new Map<string, number>();
+  for (const p of payments.data ?? []) byMethod.set(p.method, (byMethod.get(p.method) ?? 0) + (p.kind === "refund" ? -1 : 1) * Number(p.amount));
+  const onCredit = (soldToday.data ?? []).reduce((a, o) => a + Number(o.balance_due ?? 0), 0);
+
+  const openRows = open.data ?? [];
+  const toHandOver = { total: openRows.length, delivery: openRows.filter((o) => o.delivery_method === "delivery").length, pickup: openRows.filter((o) => o.delivery_method === "pickup").length };
+
+  // Overdue credit, per customer (the oldest unpaid sale first).
+  const perCustomer = new Map<string, { id: string; name: string; amount: number; since: string }>();
+  for (const o of overdue.data ?? []) {
+    const id = o.customer_id!;
+    const c = perCustomer.get(id) ?? { id, name: o.customers?.name || `+${o.customers?.whatsapp_phone ?? ""}`, amount: 0, since: o.created_at };
+    c.amount += Number(o.balance_due ?? 0);
+    if (o.created_at < c.since) c.since = o.created_at;
+    perCustomer.set(id, c);
+  }
+  const overdueList = [...perCustomer.values()].sort((a, b) => b.amount - a.amount);
+
+  // Sales vs expenses: per day for 30 days, per week (Monday start) for 12 weeks.
+  let trend: { daily: { day: string; sales: number; expenses: number }[]; weekly: { week: string; sales: number; expenses: number }[] } | null = null;
+  if (withProfit) {
+    const salesByDay = new Map<string, number>();
+    for (const o of sales.data ?? []) {
+      const day = localToday(timezone, new Date(o.created_at));
+      salesByDay.set(day, (salesByDay.get(day) ?? 0) + Number(o.total));
+    }
+    const expensesByDay = new Map<string, number>();
+    for (const e of expenses) expensesByDay.set(e.spent_on, (expensesByDay.get(e.spent_on) ?? 0) + e.amount);
+    const daily = dateRange(addDays(today, -29), today).map((day) => ({ day, sales: salesByDay.get(day) ?? 0, expenses: expensesByDay.get(day) ?? 0 }));
+    const weekStart = (day: string) => addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
+    const weeks = new Map<string, { week: string; sales: number; expenses: number }>();
+    for (const day of dateRange(weekStart(weeksFrom), today)) {
+      const w = weekStart(day);
+      const row = weeks.get(w) ?? { week: w, sales: 0, expenses: 0 };
+      row.sales += salesByDay.get(day) ?? 0;
+      row.expenses += expensesByDay.get(day) ?? 0;
+      weeks.set(w, row);
+    }
+    trend = { daily, weekly: [...weeks.values()].slice(-12) };
+  }
+
+  return {
+    today: { byMethod: [...byMethod.entries()].filter(([, v]) => v !== 0).sort((a, b) => b[1] - a[1]).map(([method, amount]) => ({ method, amount })), onCredit },
+    toHandOver,
+    overdueCredit: { customers: overdueList.length, amount: overdueList.reduce((a, c) => a + c.amount, 0), top: overdueList.slice(0, 5) },
+    trend,
+  };
+}

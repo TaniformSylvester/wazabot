@@ -138,6 +138,19 @@ mkdirSync("test-results", { recursive: true });
     await main.getByRole("textbox", { name: /Invitation link for/ }).waitFor({ timeout: 10000 });
     ok("Business: a second user can be invited (up to 3)", sql(`select count(*) from business_invitations where business_id = '${bizId}'`) === "1");
 
+    // ---------------------------------------------------------------- the trial ending, the grace period: how to pay
+    sql(`update subscriptions set plan_id = 'business', status = 'trialing', current_period_end = now() + interval '2 days' where business_id = '${bizId}'`);
+    await page.goto(`${APP}/en/dashboard`);
+    ok("trial ending (2 days left): the banner says how to pay in Cameroon (MTN Mobile Money or Orange Money, switched on by the team)", /Pay by MTN Mobile Money or Orange Money/.test(await page.getByTestId("trial-banner").innerText()) && /usually the same day/.test(await page.getByTestId("trial-banner").innerText()));
+    sql(`update subscriptions set plan_id = 'business', status = 'active', current_period_end = now() - interval '1 day' where business_id = '${bizId}'`);
+    await page.goto(`${APP}/en/dashboard`);
+    const due = await page.getByTestId("billing-banner").innerText();
+    ok("grace period (plan ended yesterday): pay by a date to keep it, and how to pay", /Pay by .* to keep it/.test(due) && /Pay by MTN Mobile Money or Orange Money/.test(due), due);
+    sql(`update businesses set currency = 'USD' where id = '${bizId}'`);
+    await page.goto(`${APP}/fr/dashboard`);
+    ok("grace period, a business outside Cameroon (fr): pay by US dollar bank transfer", /virement bancaire en dollars US/.test(await page.getByTestId("billing-banner").innerText()));
+    sql(`update businesses set currency = 'XAF' where id = '${bizId}'`);
+
     // ---------------------------------------------------------------- the trial or plan ended: read-only, data kept
     sql(`update subscriptions set plan_id = 'free', status = 'active' where business_id = '${bizId}'`);
     await page.goto(`${APP}/en/dashboard`);

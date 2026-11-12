@@ -274,6 +274,25 @@ mkdirSync("test-results", { recursive: true });
     const best = await card("best-sellers");
     ok("dashboard: best sellers, stock and customer figures, trend chart", /^1\s*T-Shirt\s*6 sold/.test(best) && /Low stock\s*1/.test(await card("stock-stats")) && /Owe you money\s*2/.test(await card("customer-stats")) && (await main.getByTestId("sales-trend").isVisible()), best.replace(/\n/g, " "));
     ok("dashboard: recent sales and alerts", /ORD-00004/.test(await card("recent-sales")) && /2 customer\(s\) owe you 17,000 FCFA/.test(await card("business-alerts")));
+    // Today by payment method, sold on credit, the till, sales vs expenses, and the banners at the top.
+    const byMethod = await card("shop-today");
+    ok("dashboard: today by payment method (as recorded), 17,000 FCFA sold on credit, a till button", /Cash/.test(byMethod) && /Sold on credit\s*17,000 FCFA/.test(byMethod) && /doesn't check payments with MTN, Orange or the bank/.test(byMethod) && (await main.getByTestId("quick-sale").count()) === 1, byMethod.replace(/\n/g, " | "));
+    ok("dashboard: sales vs expenses (Business plan) — 66,000 sales, 50,000 expenses, 16,000 between them", /66,000 FCFA/.test(await card("sales-expenses")) && /50,000 FCFA/.test(await card("sales-expenses")) && /16,000 FCFA/.test(await card("sales-expenses-net")));
+    await main.getByTestId("trend-switch").getByRole("link", { name: /Weekly/ }).click();
+    await page.waitForURL(/trend=week/);
+    ok("dashboard: the weekly view of sales vs expenses", /66,000 FCFA/.test(await card("sales-expenses")));
+    ok("dashboard: a banner for low stock at the top, no overdue-credit banner yet", (await main.getByTestId("attention-stock").count()) === 1 && (await main.getByTestId("attention-credit").count()) === 0);
+    // Credit older than 30 days: one of today's credit sales, moved back 40 days.
+    const creditOrder = sql(`select id from orders where business_id = '${bizId}' and balance_due > 0 order by created_at limit 1`);
+    const createdAt = sql(`select created_at from orders where id = '${creditOrder}'`);
+    sql(`update orders set created_at = now() - interval '40 days' where id = '${creditOrder}'`);
+    await page.goto(`${APP}/en/dashboard`);
+    const overdueBanner = await main.getByTestId("attention-credit").innerText();
+    ok("dashboard: credit older than 30 days — a banner and the customer in the overdue list", /1 customer\(s\) owe you .*FCFA for more than 30 days/.test(overdueBanner) && /unpaid since/.test(await card("overdue-credit")), overdueBanner);
+    sql(`update orders set created_at = '${createdAt}' where id = '${creditOrder}'`);
+    await page.goto(`${APP}/fr/dashboard`);
+    ok("dashboard (fr): par moyen de paiement, ventes et dépenses", /Aujourd'hui par moyen de paiement/.test(await card("shop-today")) && /Vendu à crédit/.test(await card("shop-today")) && (await main.getByTestId("sales-expenses").count()) === 1);
+    await page.goto(`${APP}/en/dashboard`);
     await page.screenshot({ path: "test-results/v2-dashboard.png", fullPage: true });
 
     await page.goto(`${APP}/en/dashboard/reports?range=today`);

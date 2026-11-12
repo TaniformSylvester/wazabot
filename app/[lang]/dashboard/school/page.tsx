@@ -5,7 +5,7 @@ import { Backpack, Banknote, CheckCircle2, Circle, ClipboardCheck, PenLine, Scho
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton } from "@/components/app/form";
 import { PlanUpsell } from "@/components/app/plan-upsell";
-import { PageHeader, Panel, StatCard, formatMoney, secondaryLink } from "@/components/app/ui";
+import { PageHeader, Panel, StatCard, formatMoney, formatPercent, secondaryLink } from "@/components/app/ui";
 import { UsageMeter } from "@/components/app/usage-meter";
 import { cheapestPlanWith, type Plan } from "@/config/plans";
 import { setModule } from "@/lib/actions/school";
@@ -102,13 +102,19 @@ export default async function SchoolPage() {
     );
   }
 
-  const [{ count: students }, { count: published }, fees, ent, termUsage] = await Promise.all([
+  const [{ count: students }, { count: published }, fees, ent, termUsage, { data: pubs }] = await Promise.all([
     db.from("school_students").select("id", { count: "exact", head: true }).eq("business_id", business.id).eq("status", "active"),
     db.from("school_result_publications").select("id", { count: "exact", head: true }).eq("business_id", business.id).is("withdrawn_at", null),
     year ? listFeeItems(business.id, year.id) : Promise.resolve([]),
     getEntitlements(business.id),
     Promise.all(terms.map((x) => termReportCardUsage(x.id))),
+    terms.length
+      ? db.from("school_result_publications").select("term_id, class_id").eq("business_id", business.id).is("withdrawn_at", null).in("term_id", terms.map((x) => x.id))
+      : Promise.resolve({ data: [] as { term_id: string; class_id: string }[] }),
   ]);
+  // Each term: how many of this year's classes have published results.
+  const yearClasses = new Set(classes.map((c) => c.id));
+  const publishedByTerm = terms.map((x) => ({ term: x, published: new Set((pubs ?? []).filter((p) => p.term_id === x.id && yearClasses.has(p.class_id)).map((p) => p.class_id)).size }));
   const maxStudents = limitInForce(ent, ent?.maxStudents);
   const maxReportCards = limitInForce(ent, ent?.maxReportCardStudents);
   const studentsFull = maxStudents !== null && (ent?.studentsUsed ?? 0) >= maxStudents;
@@ -119,6 +125,10 @@ export default async function SchoolPage() {
   };
   const summary = await feeSummary(business.id, fees.map((f) => f.id));
   const due = [...summary.byFee.values()].reduce((sum, f) => sum + f.billed - f.paid, 0);
+  const billed = [...summary.byFee.values()].reduce((sum, f) => sum + f.billed, 0);
+  const paid = [...summary.byFee.values()].reduce((sum, f) => sum + f.paid, 0);
+  const collectedShare = billed > 0 ? Math.min(1, paid / billed) : 0;
+  const money = (v: number) => formatMoney(v, business.currency, locale);
   const steps: [string, boolean, string][] = [
     [o.setup.profile, settings.saved, "/dashboard/school/settings"],
     [o.setup.year, !!year && terms.length > 0 && terms.every((x) => x.assessments.length > 0), "/dashboard/school/settings#years"],
@@ -150,6 +160,55 @@ export default async function SchoolPage() {
         <StatCard label={o.stats.classes} value={String(classes.length)} icon={School} noData="—" />
         <StatCard label={o.stats.published} value={String(published ?? 0)} icon={ClipboardCheck} noData="—" />
         <StatCard label={o.stats.feesDue} value={formatMoney(Math.max(0, due), business.currency, locale)} icon={Banknote} noData="—" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel
+          title={format(o.collection.title, { year: year?.name ?? "" })}
+          actions={
+            <Link href={href("/dashboard/school/fees")} className="text-sm font-semibold text-waza-700 hover:underline">
+              {o.collection.open}
+            </Link>
+          }
+        >
+          {billed > 0 ? (
+            <div data-testid="fee-collection">
+              <p className="font-display text-2xl font-bold text-deep">{format(o.collection.percent, { percent: formatPercent(collectedShare, locale) })}</p>
+              <div className="mt-3 h-3 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(collectedShare * 100)} aria-label={format(o.collection.percent, { percent: formatPercent(collectedShare, locale) })}>
+                <div className="h-full rounded-full bg-waza-500" style={{ width: `${Math.round(collectedShare * 100)}%` }} />
+              </div>
+              <p className="mt-2 text-sm text-slate">{format(o.collection.collected, { paid: money(paid), billed: money(billed) })}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-slate">{o.collection.none}</p>
+          )}
+        </Panel>
+        <Panel
+          title={o.publication.title}
+          description={o.publication.text}
+          actions={
+            <Link href={href("/dashboard/school/results")} className="text-sm font-semibold text-waza-700 hover:underline" data-testid="overview-report-cards">
+              {o.publication.reportCards}
+            </Link>
+          }
+        >
+          {publishedByTerm.length ? (
+            <ul className="flex flex-col gap-3" data-testid="publication-status">
+              {publishedByTerm.map(({ term, published: done }) => (
+                <li key={term.id}>
+                  <p className="flex justify-between gap-2 text-sm">
+                    <span className="font-semibold text-deep">{term.name}</span>
+                    <span className="text-slate">{format(o.publication.term, { published: formatNumber(done, locale), total: formatNumber(classes.length, locale) })}</span>
+                  </p>
+                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface" aria-hidden>
+                    <div className="h-full rounded-full bg-waza-500" style={{ width: `${classes.length ? Math.round((done / classes.length) * 100) : 0}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-slate">{o.publication.none}</p>
+          )}
+        </Panel>
       </div>
       {ent ? (
         <Panel title={lim.title} description={lim.description}>

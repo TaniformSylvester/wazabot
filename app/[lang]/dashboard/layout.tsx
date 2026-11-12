@@ -1,3 +1,4 @@
+import { planCurrencyFor } from "@/config/economics";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -57,6 +58,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const trialLeft = usage && usage.billing.state === "trial" ? usage.billing.daysLeft : null;
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
+  // How plans are paid: Mobile Money in Cameroon, a US dollar bank transfer everywhere else.
+  const payHint = business && planCurrencyFor(business.currency) === "USD" ? d.billingBanner.payUsd : d.billingBanner.payXaf;
   // Only the WazaBolt team (platform_admins) sees the way to the admin pages.
   const userCard = (
     <>
@@ -149,7 +152,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 plan: bannerPlan,
                 date: formatDate(usage.currentPeriodEnd, locale),
                 grace: formatDate(usage.billing.graceUntil, locale),
-              })}
+              })}{" "}
+              <span data-testid="pay-hint">{payHint}</span>
             </p>
             <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
               {d.billingBanner.renew}
@@ -181,7 +185,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {business?.readOnly && hasRole(business.role, "admin") ? (
           <div role="status" data-testid="read-only-banner" className={`${bar} border-coral-200 bg-coral-50 text-coral-800`}>
             <Lock className="size-4 shrink-0" aria-hidden />
-            <p className="min-w-0 flex-1">{d.billingBanner.readOnly}</p>
+            <p className="min-w-0 flex-1">
+              {d.billingBanner.readOnly} <span data-testid="pay-hint">{payHint}</span>
+            </p>
             <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
               {d.billingBanner.choosePlan}
             </Link>
@@ -197,6 +203,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Clock className="size-4 shrink-0" aria-hidden />
             <p className="min-w-0 flex-1">
               {format(trialLeft <= 1 ? d.billingBanner.trialLastDay : d.billingBanner.trial, { plan: bannerPlan, days: formatNumber(trialLeft, locale), date: formatDate(usage.currentPeriodEnd, locale) })}
+              {/* Near the end of the trial: how to pay in this business's country. */}
+              {trialLeft <= 3 ? (
+                <>
+                  {" "}
+                  <span data-testid="pay-hint">{payHint}</span>
+                </>
+              ) : null}
             </p>
             <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
               {d.billingBanner.choosePlan}

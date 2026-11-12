@@ -158,6 +158,14 @@ mkdirSync("test-results", { recursive: true });
         (await main.getByTestId("bill-round").count()) === 1,
     );
 
+    // ---------------------------------------------------------------- The restaurant dashboard
+    await open(`/en/dashboard`);
+    const today = await main.getByTestId("restaurant-today").innerText();
+    const t1Tile = main.getByTestId("table-grid").locator("a", { hasText: "T1" });
+    ok("dashboard: restaurant today — 1 open bill (12,000), the kitchen queue (1 new), T1 shown with its open bill, links to the floor and the kitchen screen, 10 free kitchen accounts", /Open bills\s*1/.test(today) && /12,000 FCFA on open bills/.test(today) && /1 new · 0 preparing · 0 ready/.test(today) && (await t1Tile.getAttribute("data-state")) === "occupied" && (await main.getByTestId("open-kitchen").getAttribute("href")) === "/en/dashboard/restaurant/kitchen" && /Up to 10 free kitchen accounts/.test(today), today.replace(/\n/g, " | "));
+    await open(`/fr/dashboard`);
+    ok("dashboard (fr): le restaurant aujourd'hui", /Le restaurant aujourd'hui/.test(await main.getByTestId("restaurant-today").innerText()) && /Ouvrir l'écran cuisine/.test(await main.getByTestId("restaurant-today").innerText()));
+
     // ---------------------------------------------------------------- The cook (a free kitchen seat, even with Free limits in force)
     sql(`update businesses set free_limits_from = current_date where id = '${biz}'`);
     await open(`/en/dashboard/team`);

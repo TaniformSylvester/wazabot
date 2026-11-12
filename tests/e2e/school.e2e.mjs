@@ -356,6 +356,17 @@ mkdirSync("test-results", { recursive: true });
     await settle();
     const owedCell = await main.locator("tr", { hasText: "BELLO Amina" }).getByTestId("parent-fees-owed").innerText();
     ok("the parents list shows the fees each parent still owes (15,000 for Amina's parent), with a note", /15,000/.test(owedCell) && (await main.locator("th", { hasText: "Fees owed" }).count()) === 1 && (await main.getByText(/Fees owed: what the fee invoices/).count()) === 1, `${owedCell} | th ${await main.locator("th", { hasText: "Fees owed" }).count()} note ${await main.getByText(/Fees owed: what the fee invoices/).count()}`);
+    // The school overview: fee collection for the year and which classes are published, per term.
+    await page.goto(`${APP}/en/dashboard/school`);
+    await settle();
+    const collection = await main.getByTestId("fee-collection").innerText();
+    const publication = await main.getByTestId("publication-status").innerText();
+    // Term 1's results were withdrawn above, so no class is published right now.
+    const publishedNow = sql(`select count(distinct class_id) from school_result_publications where business_id = '${biz}' and withdrawn_at is null`);
+    ok("school overview: fee collection (10,000 of 75,000 FCFA, 13%), publication per term (as in the database), a link to report cards", /13%/.test(collection) && /10,000 FCFA collected of 75,000 FCFA billed/.test(collection) && new RegExp(`${publishedNow} of 1 classes published`).test(publication) && /Trimestre 1/.test(publication) && (await main.getByTestId("overview-report-cards").getAttribute("href")) === "/en/dashboard/school/results", `${collection} | ${publication}`);
+    await tp.goto(`${APP}/en/dashboard/school`);
+    ok("the teacher's overview: their subjects to enter marks, never the fee collection", (await tp.getByTestId("teacher-subjects").count()) === 1 && (await tp.getByTestId("fee-collection").count()) === 0 && !/collected of/.test(await tp.locator("main").innerText()));
+
     // The parent's page: their children and the children's fees, in parent terms (no sales, orders or purchases).
     const parentId = sql(`select guardian_customer_id from school_students where id = '${amina}'`);
     await page.goto(`${APP}/en/dashboard/customers/${parentId}`);

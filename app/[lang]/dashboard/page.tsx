@@ -29,7 +29,11 @@ import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { getBusinessModules } from "@/lib/modules";
 import { hasOpeningHours } from "@/lib/business/hours";
 import { getDashboardMetrics, getFreeWhatsAppMessages, getSetupProgress, getStockAlerts, listConversations, listNextAppointments, listOrders, listSales } from "@/lib/data/queries";
-import { getOverview } from "@/lib/data/reports";
+import { OVERDUE_CREDIT_DAYS, getOverview, getShopDashboard } from "@/lib/data/reports";
+import { floorState, kitchenQueue } from "@/lib/data/restaurant";
+import { getBranchContext } from "@/lib/branches";
+import { plans } from "@/config/plans";
+import { AttentionBanners, RestaurantToday, SalesVsExpenses, ShopToday, attentionIcons, type Attention } from "@/components/app/dashboard-sections";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -62,7 +66,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
   const isAdmin = hasRole(business.role, "admin");
   const planAllowsProfit = (await businessCanUse(business.id, "profit"));
   const showProfit = isAdmin && planAllowsProfit;
-  const [metrics, progress, conversations, orders, stock, appointments, freeMessages, overview, recentSales] = await Promise.all([
+  const restaurant = modules.includes("restaurant");
+  const branchId = restaurant ? (await getBranchContext(business)).current.id : undefined;
+  const [metrics, progress, conversations, orders, stock, appointments, freeMessages, overview, recentSales, shop, floor, kitchen] = await Promise.all([
     getDashboardMetrics(business.id),
     getSetupProgress(business.id, !!(business.description || business.industry || business.city), hasOpeningHours(business.openingHours)),
     listConversations(business.id),
@@ -72,12 +78,32 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     getFreeWhatsAppMessages(business.id),
     getOverview(business.id, business.timezone, showProfit),
     listSales(business.id, business.timezone, {}, showProfit),
+    getShopDashboard(business.id, business.timezone, showProfit),
+    restaurant ? floorState(business.id, branchId) : null,
+    restaurant ? kitchenQueue(business.id, branchId) : null,
   ]);
   const apptTime = new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { timeZone: business.timezone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const done = setupSteps.filter((s) => progress[s.key === "ai" ? "aiConfigured" : s.key]).length;
   const firstName = user.fullName.split(" ")[0] || h.there;
   const n = (v: number) => formatNumber(v, locale);
   const href = (p: string) => localizePath(locale, p);
+
+  // What needs doing now, most urgent first: each banner opens the page that deals with it.
+  const at = h.attention;
+  const kitchenCounts = kitchen?.tickets
+    ? { new: kitchen.tickets.filter((x) => x.status === "new").length, preparing: kitchen.tickets.filter((x) => x.status === "preparing").length, ready: kitchen.tickets.filter((x) => x.status === "ready").length }
+    : null;
+  const openBills = floor ? floor.tables.filter((x) => x.bill).map((x) => x.bill!) : [];
+  const readyRounds = floor ? [...openBills, ...floor.others].reduce((a, o) => a + o.readyRounds, 0) : 0;
+  const attention: Attention[] = [
+    readyRounds ? { key: "ready", text: format(at.dishesReady, { count: n(readyRounds) }), cta: at.dishesReadyCta, href: "/dashboard/restaurant", icon: attentionIcons.ready, tone: "blue" as const } : null,
+    metrics.unreadConversations ? { key: "chats", text: format(at.chatsWaiting, { count: n(metrics.unreadConversations) }), cta: at.chatsWaitingCta, href: "/dashboard/conversations", icon: attentionIcons.chats, tone: "blue" as const } : null,
+    shop.toHandOver.total ? { key: "orders", text: format(at.toHandOver, { count: n(shop.toHandOver.total) }), cta: at.toHandOverCta, href: "/dashboard/orders", icon: attentionIcons.orders, tone: "blue" as const } : null,
+    stock.total ? { key: "stock", text: format(at.lowStock, { count: n(stock.total) }), cta: at.lowStockCta, href: "/dashboard/products", icon: attentionIcons.stock, tone: "gold" as const } : null,
+    shop.overdueCredit.customers
+      ? { key: "credit", text: format(at.overdueCredit, { count: n(shop.overdueCredit.customers), amount: formatMoney(shop.overdueCredit.amount, business.currency, locale), days: n(OVERDUE_CREDIT_DAYS) }), cta: at.overdueCreditCta, href: "/dashboard/customers?balance=1", icon: attentionIcons.credit, tone: "coral" as const }
+      : null,
+  ].filter((a) => a !== null);
 
   const stats = [
     { label: h.metrics.conversations, value: n(metrics.conversations), icon: MessagesSquare },
@@ -98,6 +124,22 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
         <h1 className="type-h2">{format(h.welcome, { name: firstName })}</h1>
         <p className="type-body mt-1 text-slate">{format(h.subtitle, { business: business.name })}</p>
       </div>
+
+      <AttentionBanners items={attention} label={at.label} locale={locale} />
+
+      {floor ? (
+        <RestaurantToday
+          tables={floor.tables}
+          openCount={openBills.length + floor.others.length}
+          openTotal={[...openBills, ...floor.others].reduce((a, o) => a + o.total, 0)}
+          turnover={overview.today.revenue}
+          kitchen={kitchenCounts}
+          maxKitchen={plans[0].maxKitchen}
+          currency={business.currency}
+          locale={locale}
+          t={d}
+        />
+      ) : null}
 
       {done < setupSteps.length ? (
         <Panel
@@ -144,6 +186,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
         showProfit={showProfit}
         canSell={hasRole(business.role, "agent")}
       />
+
+      <ShopToday shop={shop} currency={business.currency} locale={locale} t={d} days={OVERDUE_CREDIT_DAYS} canSell={hasRole(business.role, "agent")} />
+
+      {shop.trend ? (
+        <SalesVsExpenses trend={shop.trend} view={params.trend === "week" ? "week" : "day"} currency={business.currency} locale={locale} t={d} />
+      ) : null}
 
       <section aria-labelledby="whatsapp-title">
         <h2 id="whatsapp-title" className="type-h3 mb-4">
