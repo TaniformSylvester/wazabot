@@ -67,6 +67,16 @@ const text = async (path) => {
       ok(`terms (${locale}): the platform, trial once per owner, read-only, encrypted tokens, non-affiliation, AI coming soon`, missing.length === 0 && !/One Free account per WhatsApp number|moves to the Free plan|passe au forfait Free/.test(terms), missing.join(", "));
     }
 
+    // ------------------------------------------------------------ privacy
+    for (const [locale, checks] of [
+      ["en", [/shops, restaurants and schools/, /students, many of whom are minors/, /no conversation is sent to an AI provider today/, /not saved on our servers/, /hashed/, /stored encrypted/, /read-only/, /teachers see only their own classes and never fees/]],
+      ["fr", [/boutiques, les restaurants et les écoles/, /dont beaucoup sont mineurs/, /aucune conversation n'est envoyée aujourd'hui à un fournisseur d'IA/, /n'est pas enregistré sur nos serveurs/, /stocké chiffré/, /lecture seule/, /jamais les frais/]],
+    ]) {
+      const { text: privacy } = await text(`/${locale}/privacy`);
+      const missing = checks.filter((re) => !re.test(privacy)).map(String);
+      ok(`privacy (${locale}): shops, restaurants and schools, students' data, the AI not in use yet, the free generator, read-only`, missing.length === 0 && !/WazaBolt is an AI business assistant|WazaBolt est un assistant IA pour WhatsApp/.test(privacy), missing.join(", "));
+    }
+
     // ------------------------------------------------------------ the free generator
     const { text: tool, html: toolHtml } = await text("/en/tools/documents");
     ok("generator: a trial invitation under the tool (balances, credit, stock, receipts in one tap)", /data-testid="doc-trial-banner"/.test(toolHtml) && /Customer balances saved automatically/.test(tool) && /Credit and part payments tracked/.test(tool) && /Receipts sent on WhatsApp in one tap/.test(tool) && /Start your 14-day free trial/.test(tool));
