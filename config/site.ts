@@ -6,15 +6,15 @@
 export const siteConfig = {
   name: "WazaBolt",
   /** Brand descriptor — used under the logo and in social profiles. */
-  tagline: "Your AI Business Assistant on WhatsApp.",
+  tagline: "Business management, made for Africa.",
   /** Primary marketing message (hero, CTAs, social). */
   headline: "Power your business on WhatsApp.",
   /** Supporting message. */
   supporting: "Never miss a customer.",
-  positioning: "WhatsApp Business Automation for Africa",
-  title: "WazaBolt — WhatsApp Business Automation for Africa",
+  positioning: "Sales, stock and school software for shops, restaurants and schools",
+  title: "WazaBolt — Business management software for shops, restaurants and schools",
   description:
-    "WazaBolt is your AI business assistant on WhatsApp. It answers customer questions, shares products and prices, captures orders and hands conversations to your team when needed.",
+    "WazaBolt is business management software for shops, restaurants and schools: sales, stock, customer credit, invoices and receipts shared on WhatsApp, an online shop page, and marks, report cards and fees for schools. A WhatsApp AI assistant is coming soon.",
   /** Set NEXT_PUBLIC_SITE_URL per environment — never hard-code the deployment URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   /** How to reach the WazaBolt team (Contact page). Shown as written — not translated. */
@@ -46,7 +46,7 @@ export const siteConfig = {
     /** Taxpayer number (NIU). */
     niu: "P068719049180K" as string | null,
     /** Where the policies were last changed (ISO date). */
-    updated: "2026-10-24",
+    updated: "2026-11-12",
   },
   /** Emails WazaBolt itself sends (via Resend; RESEND_API_KEY in the server environment). */
   email: {
@@ -61,22 +61,26 @@ export const siteConfig = {
 } as const;
 
 /** Nav labels are keys of `common.nav` in the dictionaries; hrefs are locale-free (localized at render). */
-export type NavKey = "home" | "features" | "howItWorks" | "pricing" | "solutions" | "faq" | "about" | "contact" | "resources" | "privacy" | "terms" | "documentTool";
+export type NavKey = "home" | "features" | "howItWorks" | "pricing" | "solutions" | "shops" | "restaurants" | "schools" | "faq" | "about" | "contact" | "resources" | "privacy" | "terms" | "documentTool";
 export type NavItem = { key: NavKey; href: string };
 
 export const mainNav: NavItem[] = [
   { key: "home", href: "/" },
+  { key: "shops", href: "/solutions/retail" },
+  { key: "restaurants", href: "/solutions/restaurants" },
+  { key: "schools", href: "/schools" },
   { key: "features", href: "/features" },
   { key: "howItWorks", href: "/how-it-works" },
   { key: "pricing", href: "/pricing" },
-  { key: "solutions", href: "/solutions" },
-  { key: "faq", href: "/faq" },
 ];
 
 export const footerNav: { key: "product" | "company" | "legal"; links: NavItem[] }[] = [
   {
     key: "product",
     links: [
+      { key: "shops", href: "/solutions/retail" },
+      { key: "restaurants", href: "/solutions/restaurants" },
+      { key: "schools", href: "/schools" },
       { key: "features", href: "/features" },
       { key: "howItWorks", href: "/how-it-works" },
       { key: "pricing", href: "/pricing" },

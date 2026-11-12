@@ -4,7 +4,7 @@ import {
   BookOpen,
   ChartColumn,
   CreditCard,
-  Hand,
+  PackageX,
   LayoutDashboard,
   MessagesSquare,
   Package,
@@ -18,7 +18,6 @@ import {
   Workflow,
 } from "lucide-react";
 
-import { AIStatus } from "@/components/brand/ai-status";
 import { WazaBoltLogo } from "@/components/brand/logo";
 import { CountUp } from "@/components/motion/count-up";
 import { iconTones } from "@/lib/brand/tones";
@@ -140,7 +139,6 @@ export async function DashboardMock({ className }: { className?: string }) {
               <p className="text-xs text-slate sm:text-sm">{t.subtitle}</p>
             </div>
             <div className="flex items-center gap-2">
-              <AIStatus />
               <span className="grid size-8 place-items-center rounded-full bg-gold text-[0.6875rem] font-bold text-deep">MJ</span>
             </div>
           </div>
@@ -162,7 +160,7 @@ export async function DashboardMock({ className }: { className?: string }) {
 
           <div className="mt-4 flex items-start gap-3 rounded-xl border border-coral-200 bg-coral-50 p-3">
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-coral-500 text-white">
-              <Hand className="size-4" aria-hidden />
+              <PackageX className="size-4" aria-hidden />
             </span>
             <div className="min-w-0 text-xs sm:text-sm">
               <p className="font-semibold text-deep">{t.humanTitle}</p>
@@ -187,7 +185,6 @@ export async function DashboardMock({ className }: { className?: string }) {
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <span className="text-[0.6875rem] text-slate">{c.time}</span>
-                      <AIStatus mode={c.mode} size="sm" />
                     </div>
                   </li>
                 ))}
@@ -263,7 +260,6 @@ export async function DashboardMockCompact({ className }: { className?: string }
             <p className="text-[0.625rem] text-slate">{t.subtitleShort}</p>
           </div>
         </div>
-        <AIStatus size="sm" />
       </div>
       <div className="grid grid-cols-4 gap-2 bg-cream p-3">
         {metrics.map((m) => (
@@ -280,7 +276,7 @@ export async function DashboardMockCompact({ className }: { className?: string }
       </div>
       <div className="flex items-center gap-2.5 border-t border-line px-4 py-2.5">
         <span className="grid size-6 place-items-center rounded-full bg-coral-500 text-white">
-          <Hand className="size-3" aria-hidden />
+          <PackageX className="size-3" aria-hidden />
         </span>
         <p className="text-[0.6875rem] text-deep">
           <span className="font-semibold">{t.humanCompact}</span>

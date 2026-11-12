@@ -12,7 +12,7 @@ const en: LegalDoc = {
   updatedLabel: "Last updated",
   tocLabel: "Contents",
   intro: [
-    "WazaBolt is an AI business assistant for WhatsApp: it helps businesses answer their customers, share products and prices, take orders and appointments, and hand conversations to their team. {operator}",
+    "WazaBolt is business management software for shops, restaurants and schools: sales, stock, customer credit, documents, marks, report cards and school fees, with documents shared on WhatsApp and a shared WhatsApp inbox once a business connects its number. A WhatsApp AI assistant is coming soon. {operator}",
     "This policy explains what personal data WazaBolt handles, why, who it is shared with and the rights you have. It applies to our website, the WazaBolt dashboard and the WhatsApp assistant we run for businesses. It is written to meet Cameroon's Law No. 2024/017 of 23 December 2024 on personal data protection.",
   ],
   sections: [
@@ -71,8 +71,9 @@ const en: LegalDoc = {
     },
     {
       id: "ai",
-      heading: "4. The AI assistant",
+      heading: "4. The AI assistant (coming soon)",
       body: [
+        "The AI assistant is not available yet. This section describes how it will handle data once a business turns it on.",
         "When a customer writes to a business, the assistant answers automatically from the information that business has added (products, prices, hours, policies, FAQs). To do this, the latest messages of the conversation, a short summary and the relevant business information are sent to our AI provider, Anthropic, which generates the reply. Simple questions (opening hours, location, a price) may be answered by WazaBolt's own rules without the AI.",
         "Under its commercial terms, Anthropic processes this content only to provide the service to us and does not use it to train its models.",
         "AI replies can contain mistakes. Each business stays responsible for the information it gives its customers and can take over any conversation; customers can always ask to speak to a person. Businesses can switch the assistant off at any time.",
@@ -166,7 +167,7 @@ const fr: LegalDoc = {
   updatedLabel: "Dernière mise à jour",
   tocLabel: "Sommaire",
   intro: [
-    "WazaBolt est un assistant IA pour WhatsApp destiné aux entreprises : il les aide à répondre à leurs clients, à présenter leurs produits et leurs prix, à prendre des commandes et des rendez-vous, et à transmettre les conversations à leur équipe. {operator}",
+    "WazaBolt est un logiciel de gestion pour les boutiques, les restaurants et les écoles : ventes, stock, crédit client, documents, notes, bulletins et frais de scolarité, avec des documents partagés sur WhatsApp et une messagerie WhatsApp partagée dès qu'une entreprise connecte son numéro. Un assistant IA WhatsApp sera bientôt disponible. {operator}",
     "Cette politique explique quelles données personnelles WazaBolt traite, pourquoi, avec qui elles sont partagées et quels sont vos droits. Elle s'applique à notre site, au tableau de bord WazaBolt et à l'assistant WhatsApp que nous faisons fonctionner pour les entreprises. Elle est rédigée conformément à la loi camerounaise n° 2024/017 du 23 décembre 2024 relative à la protection des données à caractère personnel.",
   ],
   sections: [
@@ -225,8 +226,9 @@ const fr: LegalDoc = {
     },
     {
       id: "ai",
-      heading: "4. L'assistant IA",
+      heading: "4. L'assistant IA (bientôt disponible)",
       body: [
+        "L'assistant IA n'est pas encore disponible. Cette section décrit comment il traitera les données dès qu'une entreprise l'activera.",
         "Lorsqu'un client écrit à une entreprise, l'assistant répond automatiquement à partir des informations ajoutées par cette entreprise (produits, prix, horaires, politiques, FAQ). Pour cela, les derniers messages de la conversation, un court résumé et les informations utiles de l'entreprise sont transmis à notre fournisseur d'IA, Anthropic, qui génère la réponse. Les questions simples (horaires, adresse, un prix) peuvent recevoir une réponse des règles propres à WazaBolt, sans l'IA.",
         "Selon ses conditions commerciales, Anthropic traite ce contenu uniquement pour nous fournir le service et ne l'utilise pas pour entraîner ses modèles.",
         "Les réponses de l'IA peuvent comporter des erreurs. Chaque entreprise reste responsable des informations qu'elle donne à ses clients et peut reprendre toute conversation ; les clients peuvent toujours demander à parler à une personne. Les entreprises peuvent désactiver l'assistant à tout moment.",

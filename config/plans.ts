@@ -4,6 +4,7 @@ import {
   AI_TRIAL,
   ANNUAL_MONTHS_PAID,
   BUNDLE_PRICES,
+  LOCAL_PLAN_PRICES,
   PLANS,
   PLANS_ON_SALE,
   TRIAL_DAYS,
@@ -72,6 +73,10 @@ export const aiTopup = { ...AI_TOPUP };
 export const aiTrial = { ...AI_TRIAL };
 export const trialDays = TRIAL_DAYS;
 export const annualMonthsPaid = ANNUAL_MONTHS_PAID;
+/** The currencies plans are sold in: FCFA in Cameroon, US dollars everywhere else. */
+export type PlanCurrency = "XAF" | "USD";
+/** A plan's monthly price in a plan currency (US dollars: LOCAL_PLAN_PRICES). */
+export const monthlyPriceIn = (plan: Plan, currency: PlanCurrency) => (currency === "XAF" ? plan.monthlyPrice : (LOCAL_PLAN_PRICES.USD[plan.id] ?? 0));
 
 /** The cheapest plan that includes something (for "included from the … plan"). */
 export function cheapestPlanWith(has: (p: Plan) => boolean): Plan | undefined {

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Hand, Languages, MessageCircle, PlayCircle, ShoppingBag, Zap } from "lucide-react";
+import { ArrowRight, Languages, MonitorSmartphone, PlayCircle, Share2, ShoppingBag, Store } from "lucide-react";
 
 import { WazaBoltBadge } from "@/components/brand/wazabolt-badge";
 import { WhatsAppChatMockup } from "@/components/conversations/whatsapp-chat-mockup";
@@ -13,9 +13,9 @@ import { localizePath } from "@/lib/i18n/paths";
 import { plain, rich } from "@/lib/i18n/rich";
 
 const trust = [
-  { key: "setup", icon: Zap, tone: "text-gold-600" },
-  { key: "whatsapp", icon: MessageCircle, tone: "text-waza-600" },
-  { key: "takeover", icon: Hand, tone: "text-waza-600" },
+  { key: "browser", icon: MonitorSmartphone, tone: "text-gold-600" },
+  { key: "verticals", icon: Store, tone: "text-waza-600" },
+  { key: "whatsapp", icon: Share2, tone: "text-waza-600" },
   { key: "languages", icon: Languages, tone: "text-waza-600" },
 ] as const;
 
@@ -78,8 +78,8 @@ export async function Hero() {
 }
 
 /**
- * UI MOCKUP — business owner, a demo WhatsApp conversation answered by
- * WazaBolt AI, and a compact WazaBolt dashboard. Stacks on mobile, overlaps
+ * UI MOCKUP — business owner, a preview of the coming-soon WhatsApp AI
+ * assistant (labelled as such under the chat), and a compact WazaBolt dashboard. Stacks on mobile, overlaps
  * from sm. Illustrative data only.
  */
 function HeroVisual({ photoAlt, orderCaptured, orderItem }: { photoAlt: string; orderCaptured: string; orderItem: string }) {

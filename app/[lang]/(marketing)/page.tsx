@@ -19,12 +19,12 @@ export default async function HomePage() {
     <>
       <JsonLd graph={[softwareGraph(locale, t)]} />
       <Hero />
+      <SolutionsStrip />
       <Problem />
       <HowItWorks />
       <Features />
-      <LiveDemo />
-      <SolutionsStrip />
       <DashboardPreview />
+      <LiveDemo />
       <LanguagesSection />
       <Pricing />
       <Faq />

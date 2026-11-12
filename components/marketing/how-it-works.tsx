@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, BookOpen, Hand, Link2, MessageCircle, Store, UserRound } from "lucide-react";
+import { ArrowDown, ArrowRight, MessageCircle, Package, Receipt, Store, UserPlus, UserRound } from "lucide-react";
 
 import { WazaBoltIcon } from "@/components/brand/logo";
 import { Reveal } from "@/components/motion/reveal";
@@ -6,10 +6,10 @@ import { SectionHeading } from "@/components/marketing/section-heading";
 import { getMessages } from "@/lib/i18n/dictionaries";
 
 const steps = [
-  { key: "connect", icon: Link2 },
-  { key: "add", icon: BookOpen },
-  { key: "respond", icon: MessageCircle },
-  { key: "takeover", icon: Hand },
+  { key: "connect", icon: UserPlus },
+  { key: "add", icon: Package },
+  { key: "respond", icon: Receipt },
+  { key: "takeover", icon: MessageCircle },
 ] as const;
 
 const flow = [

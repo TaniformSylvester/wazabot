@@ -4,6 +4,7 @@ import { HowItWorks } from "@/components/marketing/how-it-works";
 import { LiveDemo } from "@/components/marketing/live-demo";
 import { PageIntro } from "@/components/marketing/page-intro";
 import { Platform } from "@/components/marketing/platform";
+import { WhatsAppSetup } from "@/components/marketing/whatsapp-setup";
 import { getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
 
@@ -15,6 +16,7 @@ export default async function HowItWorksPage() {
     <>
       <PageIntro eyebrow={t.eyebrow} title={t.title} description={t.description} />
       <HowItWorks />
+      <WhatsAppSetup />
       <LiveDemo />
       <Platform />
       <DashboardPreview />

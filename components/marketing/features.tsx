@@ -1,12 +1,12 @@
 import {
-  BookOpen,
+  Bot,
   ChartColumn,
+  FileText,
+  Store,
   CreditCard,
   Globe,
-  Hand,
   MessageCircle,
   Mic,
-  Package,
   Receipt,
   ShoppingCart,
   Boxes,
@@ -22,18 +22,18 @@ import type { IconTone } from "@/lib/brand/tones";
 import { getMessages } from "@/lib/i18n/dictionaries";
 import type { Messages } from "@/messages/en";
 
-/** Core features — sales, stock and money first, then the WhatsApp assistant. */
+/** Core features — sales, stock and money first; the AI assistant last, labelled coming soon. */
 const features: { key: keyof Messages["features"]["items"]; icon: typeof MessageCircle; tone: IconTone }[] = [
   { key: "sell", icon: Receipt, tone: "green" },
   { key: "stock", icon: Boxes, tone: "gold" },
   { key: "money", icon: Wallet, tone: "coral" },
-  { key: "answer", icon: MessageCircle, tone: "teal" },
-  { key: "share", icon: Package, tone: "gold" },
-  { key: "capture", icon: ShoppingCart, tone: "coral" },
   { key: "customers", icon: Users, tone: "teal" },
-  { key: "takeover", icon: Hand, tone: "deep" },
-  { key: "knowledge", icon: BookOpen, tone: "green" },
-  { key: "analytics", icon: ChartColumn, tone: "gold" },
+  { key: "knowledge", icon: FileText, tone: "green" },
+  { key: "share", icon: Store, tone: "gold" },
+  { key: "capture", icon: ShoppingCart, tone: "coral" },
+  { key: "takeover", icon: MessageCircle, tone: "teal" },
+  { key: "analytics", icon: ChartColumn, tone: "deep" },
+  { key: "answer", icon: Bot, tone: "gold" },
 ];
 
 /** Not in the first release — always labelled as planned. */

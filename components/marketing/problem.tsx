@@ -1,16 +1,16 @@
-import { BellRing, Clock, Inbox, MessageCircle, MoonStar, Repeat, ShoppingBag, UserX } from "lucide-react";
+import { BellRing, Calculator, HandCoins, Inbox, MessageCircle, NotebookPen, PackageX, Receipt } from "lucide-react";
 
 import { Reveal } from "@/components/motion/reveal";
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { getMessages } from "@/lib/i18n/dictionaries";
 
 const problems = [
-  { key: "busy", icon: Clock },
+  { key: "busy", icon: NotebookPen },
+  { key: "repeat", icon: HandCoins },
+  { key: "night", icon: PackageX },
+  { key: "cold", icon: Receipt },
   { key: "buried", icon: Inbox },
-  { key: "repeat", icon: Repeat },
-  { key: "night", icon: MoonStar },
-  { key: "cold", icon: UserX },
-  { key: "orders", icon: ShoppingBag },
+  { key: "orders", icon: Calculator },
 ] as const;
 
 export async function Problem() {

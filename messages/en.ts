@@ -10,9 +10,9 @@
  */
 const en = {
   meta: {
-    siteTitle: "WazaBolt — Sales, stock, invoices and WhatsApp AI for businesses in Cameroon",
+    siteTitle: "WazaBolt — Business management software for shops, restaurants and schools in Cameroon",
     siteDescription:
-      "Record sales, track stock and customer credit, make invoices and receipts in FCFA, and let an AI assistant answer your customers on WhatsApp in English, French and Pidgin. Free plan, made in Bamenda.",
+      "Record sales, track stock and customer credit, make invoices and receipts in FCFA and share them on WhatsApp. Tables and a kitchen screen for restaurants; marks, report cards and fees for schools. 14-day free trial, made in Bamenda.",
     keywords: [
       "WazaBolt",
       "business management software Cameroon",
@@ -29,25 +29,25 @@ const en = {
       "Yaoundé",
       "English French Pidgin",
     ],
-    ogAlt: "WazaBolt — Power your business on WhatsApp. Never miss a customer.",
+    ogAlt: "WazaBolt — Business management software for shops, restaurants and schools.",
     pages: {
       documentTool: {
         title: "Free invoice, receipt and quotation generator",
         description: "Make a professional invoice, receipt or quotation in FCFA, in English or French, and download it as a PDF. Free, no account needed.",
       },
       features: {
-        title: "Features: sales, stock, invoices and a WhatsApp AI assistant",
+        title: "Features: sales, stock, invoices, shop page and WhatsApp",
         description:
-          "Everything in WazaBolt: a till for sales, stock and customer credit, expenses and profit, invoices and receipts in FCFA, and an AI assistant that answers and takes orders on WhatsApp.",
+          "Everything in WazaBolt: a till for sales, stock and customer credit, expenses and profit, invoices and receipts in FCFA, an online shop page and a WhatsApp team inbox. AI assistant coming soon.",
       },
       howItWorks: {
         title: "How WazaBolt works",
         description:
-          "Create a free account, add your products and start selling. Connect your business WhatsApp number and WazaBolt answers customers for you, and you can take over at any time.",
+          "Create a free account, add your products, menu or classes and start selling, with no Meta approval needed. Connect your WhatsApp Business number later for a shared team inbox.",
       },
       pricing: {
-        title: "Pricing in FCFA, with a 14-day free trial",
-        description: "WazaBolt plans in FCFA, from 3,000 FCFA a month: sales, stock, customer credit and receipts. Try any plan free for 14 days, with no payment.",
+        title: "Pricing in FCFA and US dollars, with a 14-day free trial",
+        description: "WazaBolt plans for shops, restaurants and schools, from 3,000 FCFA a month in Cameroon or $5 a month elsewhere. Start with 14 days of the Business plan free, with no payment.",
       },
       solutions: {
         title: "Solutions for shops, schools, restaurants and more",
@@ -57,7 +57,7 @@ const en = {
       countries: { title: "WazaBolt by country: Cameroon, Nigeria, South Africa, Ghana, Kenya, Zimbabwe", description: "WazaBolt for shops and small businesses in Cameroon, Nigeria, South Africa, Ghana, Kenya and Zimbabwe: sales, stock, credit and receipts in your own currency." },
       faq: { title: "Frequently asked questions", description: "Answers about WazaBolt: the free trial, payments in FCFA, WhatsApp, languages, the AI assistant and your data." },
       resources: { title: "Resources", description: "Guides, answers and help for getting your business running on WazaBolt." },
-      about: { title: "About WazaBolt", description: "WazaBolt is a business registered in Bamenda, Cameroon, building business software and WhatsApp automation for African businesses." },
+      about: { title: "About WazaBolt", description: "WazaBolt is a business registered in Bamenda, Cameroon, building business management software for shops, restaurants and schools across Africa." },
       contact: { title: "Contact", description: "Contact the WazaBolt team in Bamenda, Cameroon: phone and WhatsApp +237 651 57 59 33, email contact@wazabolt.com." },
       privacy: { title: "Privacy Policy", description: "How WazaBolt handles your data." },
       terms: { title: "Terms of Service", description: "The terms for using WazaBolt." },
@@ -73,10 +73,10 @@ const en = {
 
   common: {
     brand: {
-      tagline: "Your AI Business Assistant on WhatsApp.",
+      tagline: "Business management, made for Africa.",
       headline: "Power your business on WhatsApp.",
       supporting: "Never miss a customer.",
-      positioning: "WhatsApp Business Automation for Africa",
+      positioning: "Sales, stock and school software for shops, restaurants and schools",
       trademarkNotice:
         "WazaBolt is an independent product. It is not affiliated with, endorsed by or sponsored by WhatsApp or Meta. WhatsApp is a trademark of its respective owner.",
       home: "WazaBolt home",
@@ -87,6 +87,9 @@ const en = {
       howItWorks: "How It Works",
       pricing: "Pricing",
       solutions: "Solutions",
+      shops: "Shops",
+      restaurants: "Restaurants",
+      schools: "Schools",
       faq: "FAQ",
       about: "About",
       contact: "Contact",
@@ -134,18 +137,18 @@ const en = {
   },
 
   hero: {
-    badge: "Built for African Businesses",
-    title: "Manage your business, sales, stock and customers <hl>in one place.</hl>",
-    subtitle: "And soon, an AI assistant on <u>WhatsApp.</u>",
-    lead: "<b>WazaBolt</b> helps you record sales at the till, track stock and customer credit, log expenses and see your estimated profit. On WhatsApp, its AI assistant answers customer questions, shares products and prices, captures orders and hands conversations to your team when needed.",
+    badge: "Built for African businesses",
+    title: "Run your shop, restaurant or school <hl>in one place.</hl>",
+    subtitle: "Sales, stock, credit and receipts, <u>on any phone.</u>",
+    lead: "<b>WazaBolt</b> is business management software that works in your browser: record sales at the till, track stock and customer credit, make invoices and receipts, share them as PDF on WhatsApp, and give customers your own online shop page. Restaurants get tables and a kitchen screen; schools get marks, report cards and fees. A WhatsApp AI assistant is coming soon.",
     trust: {
-      setup: { title: "Quick Setup", text: "In minutes, not days" },
-      whatsapp: { title: "Works on WhatsApp", text: "No app for customers" },
-      takeover: { title: "Human Takeover", text: "Step in any time" },
-      languages: { title: "English, French & Pidgin", text: "Replies in their language" },
+      browser: { title: "Nothing to install", text: "Any phone, tablet or computer" },
+      verticals: { title: "Shops, restaurants, schools", text: "Set up for your type of business" },
+      whatsapp: { title: "Share on WhatsApp", text: "PDF receipts, invoices, report cards" },
+      languages: { title: "English & French", text: "Dashboard and documents" },
     },
-    photoAlt: "A smiling shop owner in a colourful head wrap checks customer messages on her phone",
-    orderCaptured: "New order captured",
+    photoAlt: "A smiling shop owner in a colourful head wrap checks her business on her phone",
+    orderCaptured: "New sale recorded",
     orderItem: "Robe en wax · {price}",
   },
 
@@ -159,28 +162,33 @@ const en = {
     orderNow: "Order Now",
     customer2: "Yes please! 🙏",
     bot2: "Great! I'll help you with your order.",
-    caption: "Demo conversation",
+    caption: "AI assistant preview · coming soon",
   },
 
   solutionsStrip: {
-    title: "Perfect for all types of businesses",
-    text: "If your customers message you on WhatsApp, WazaBolt can help.",
+    title: "Built for shops, restaurants and schools",
+    text: "And for hotels, fashion, beauty, real estate and service businesses too.",
+    core: {
+      shops: { title: "Shops & boutiques", text: "Till, stock by size and colour, customer credit, receipts and your online shop page.", cta: "WazaBolt for shops" },
+      restaurants: { title: "Restaurants", text: "Menu with priced extras, tables and open bills, takeaway and delivery, and a kitchen screen with up to {kitchen} free kitchen accounts.", cta: "WazaBolt for restaurants" },
+      schools: { title: "Schools", text: "Terms, classes and coefficients, marks out of 20 or 100, PDF report cards for parents, school fees and up to {teachers} free teacher accounts.", cta: "WazaBolt Schools" },
+    },
   },
 
   problem: {
     eyebrow: "The problem",
-    title: "Your customers are messaging. Are you answering?",
+    title: "Still running your business from a notebook?",
     description:
-      "For most African businesses, WhatsApp is the shop front. But one person can't reply to every message, all day, every day.",
+      "Sales written by hand, credit you can't follow, stock that runs out without warning, and customer messages lost between family groups. It costs you money every day.",
     unanswered: "Unanswered",
     chats: "23 chats",
     items: {
-      busy: { title: "You're busy serving", text: "Customers message while you're with someone else — and they don't wait long." },
+      busy: { title: "Sales in a notebook", text: "Hard to add up at the end of the day, and easy to lose." },
       buried: { title: "Messages get buried", text: "Customer chats sit between family groups and suppliers until they're forgotten." },
-      repeat: { title: "Same questions, every day", text: "“How much?” “Where are you?” “Are you open?” — typed by hand, again and again." },
-      night: { title: "Nobody replies at night", text: "Customers who message at 22:00 buy elsewhere by morning." },
-      cold: { title: "Leads go cold", text: "A slow reply is a lost customer. They simply message the next shop." },
-      orders: { title: "Orders slip through", text: "Order details spread across chats and voice notes are easy to miss." },
+      repeat: { title: "Credit you can't follow", text: "Who still owes you, and how much? Without a record, part payments get lost." },
+      night: { title: "Stock runs out without warning", text: "You notice the empty shelf when the customer is already in front of you." },
+      cold: { title: "Receipts by hand", text: "Customers want a proper receipt or invoice, and writing one takes time." },
+      orders: { title: "No idea of your profit", text: "Money comes in and goes out, but what did the business actually earn this month?" },
     },
     notifications: [
       { name: "Nadège", text: "How much is delivery to Bonapriso?", time: "22:14" },
@@ -192,37 +200,62 @@ const en = {
 
   howItWorks: {
     eyebrow: "How it works",
-    title: "Live in four steps",
-    description: "No new app for your customers, and no technical team needed.",
+    title: "Start in minutes, no technical team",
+    description: "No app to install and no Meta approval needed to start. Connect WhatsApp later if you want a team inbox.",
     steps: {
       connect: {
-        title: "Connect your WhatsApp",
-        text: "Connect your business WhatsApp account to WazaBolt through Meta's official WhatsApp Business Platform.",
+        title: "Create your free account",
+        text: "Sign up and choose your type of business: shop, restaurant or school. You get 14 days of the Business plan free, with no payment.",
       },
       add: {
-        title: "Add your business",
-        text: "Add products, services, FAQs, prices and policies. This is the only information the AI answers from.",
+        title: "Add what you sell or teach",
+        text: "Add your products and stock, your menu and tables, or your classes and students. Invite your team.",
       },
       respond: {
-        title: "Let WazaBolt respond",
-        text: "Customers message your business as usual. WazaBolt replies in English, French or Pidgin — whichever they write in — and captures orders.",
+        title: "Sell and share",
+        text: "Record sales at the till, follow credit and stock, and share receipts and invoices as PDF on WhatsApp. Customers can order from your online shop page.",
       },
       takeover: {
-        title: "Take over anytime",
-        text: "Jump into any conversation from your dashboard. Automation pauses until you hand it back.",
+        title: "Connect WhatsApp (optional)",
+        text: "Connect your WhatsApp Business number to answer every customer from one team inbox. The AI assistant is coming soon.",
       },
     },
-    flowTitle: "How a message travels",
-    flow: { customer: "Customer", whatsapp: "WhatsApp", wazabolt: "WazaBolt", business: "Your business" },
+    flowTitle: "Once your WhatsApp number is connected: how a message reaches your team",
+    flow: { customer: "Customer", whatsapp: "WhatsApp", wazabolt: "WazaBolt", business: "Your team" },
+    setup: {
+      title: "Two ways to use WhatsApp",
+      description: "You don't need anything from Meta to start. Connecting your number adds the team inbox.",
+      now: {
+        badge: "From day one",
+        title: "Without connecting a number",
+        points: [
+          "Share receipts, invoices and quotations as PDF on WhatsApp from your phone",
+          "Customers order from your online shop page with Order on WhatsApp",
+          "Schools send report cards and fee receipts to parents",
+          "No Meta approval, no extra setup",
+        ],
+      },
+      connected: {
+        badge: "When you're ready",
+        title: "With your WhatsApp Business number connected",
+        points: [
+          "Every customer message arrives in one shared team inbox",
+          "Send PDFs to customers and parents straight from WazaBolt",
+          "Connected through Meta's WhatsApp Business Platform with your Phone Number ID, WhatsApp Business Account ID and access token",
+          "Your access token is stored encrypted on our servers",
+        ],
+      },
+      ai: "The AI assistant, which will answer common questions and take orders in English, French and Pidgin, is coming soon. It will need a connected number.",
+    },
   },
 
   liveDemo: {
-    eyebrow: "See it in action",
+    eyebrow: "Coming soon: the AI assistant",
     title: "Real answers from <hl>your real data.</hl>",
     description:
-      "Before WazaBolt replies, it checks your catalogue, stock and prices. Every answer comes from information you've given it — never guesswork.",
-    takeoverNote: "Your team can take over this conversation at any moment.",
-    illustration: "Example conversation for illustration.",
+      "A preview of the WhatsApp AI assistant we're preparing. Before replying, it will check your catalogue, stock and prices, and answer only from information you've given it — never guesswork.",
+    takeoverNote: "Your team will be able to take over any conversation at any moment.",
+    illustration: "Preview for illustration: the AI assistant is not available yet.",
     customerName: "Sarah M.",
     logLabel: "Example customer conversation",
     automationReplying: "Automation is replying",
@@ -247,19 +280,19 @@ const en = {
 
   features: {
     eyebrow: "Features",
-    title: "A business assistant, not just a chatbot",
-    description: "WazaBolt handles the routine work so you and your team can focus on the customers who need a person.",
+    title: "Everything your business needs, in one place",
+    description: "Sales, stock, credit, documents and your customers — in your browser, on any phone or computer.",
     items: {
-      answer: { title: "Answer Customers", text: "AI handles repetitive customer questions, any time of day." },
-      share: { title: "Share Products", text: "Customers discover your products and verified prices in the chat." },
-      capture: { title: "Capture Orders", text: "Turn conversations into structured orders your team can fulfil." },
-      customers: { title: "Manage Customers", text: "Keep every customer's details, history and preferred language organised." },
-      takeover: { title: "Human Takeover", text: "A staff member can take over any conversation at any time." },
-      knowledge: { title: "Business Knowledge", text: "Teach WazaBolt your FAQs, services and policies." },
-      analytics: { title: "Analytics", text: "Understand conversations, customers and orders." },
-      sell: { title: "Sell & Print Receipts", text: "Record sales at the till in cash, MTN MoMo, Orange Money, transfer or on credit." },
-      stock: { title: "Track Stock", text: "Stock goes down with every sale, with low-stock alerts and a full history." },
-      money: { title: "Credit & Profit", text: "See who owes you, record expenses and follow your estimated profit." },
+      sell: { title: "Sell & print receipts", text: "Record sales at the till in cash, MTN MoMo, Orange Money, transfer, card or on credit." },
+      stock: { title: "Track stock", text: "Stock goes down with every sale, with low-stock alerts and a full history." },
+      money: { title: "Credit & profit", text: "See who owes you, record part payments and expenses, and follow your estimated profit." },
+      customers: { title: "Manage customers", text: "Every customer's details, purchases, balance and statement in one place." },
+      knowledge: { title: "Invoices, receipts & quotations", text: "Professional documents in English or French, as PDF or sent on WhatsApp." },
+      share: { title: "Online shop page", text: "Your own page with your products and prices. Customers tap Order on WhatsApp." },
+      capture: { title: "Orders", text: "Orders from your team or your shop page, with delivery details and payments." },
+      takeover: { title: "WhatsApp team inbox", text: "Connect your business number and answer every customer from one shared inbox." },
+      analytics: { title: "Reports", text: "Sales, stock and customers over any period, with CSV export." },
+      answer: { title: "AI assistant · coming soon", text: "Will answer common questions, share prices and take orders on WhatsApp in English, French and Pidgin." },
     },
     planned: {
       appointments: "Appointment booking",
@@ -271,9 +304,9 @@ const en = {
   },
 
   platform: {
-    eyebrow: "Always on",
-    title: "Your business never stops. <hl>Neither should your customer service.</hl>",
-    description: "WazaBolt works inside your business WhatsApp as an AI business assistant — not just a chatbot.",
+    eyebrow: "Coming soon: the AI assistant",
+    title: "Your business never stops. <hl>Soon, neither will your replies.</hl>",
+    description: "We're preparing an AI assistant that will work inside your business WhatsApp. Here is what it will do, and what it will never do. It isn't available yet.",
     pillars: {
       answer: {
         name: "Answer",
@@ -306,10 +339,10 @@ const en = {
   },
 
   languagesSection: {
-    eyebrow: "Multilingual from day one",
-    title: "Your customers write the way they speak. <hl>WazaBolt understands.</hl>",
+    eyebrow: "Coming soon with the AI assistant",
+    title: "Your customers write the way they speak. <hl>Soon, WazaBolt will answer the same way.</hl>",
     description:
-      "Customers switch between English, French and Pidgin — sometimes in one message. WazaBolt detects the language of every message, remembers each customer's preference and replies in your chosen style.",
+      "Customers switch between English, French and Pidgin — sometimes in one message. The AI assistant, coming soon, will detect the language of every message, remember each customer's preference and reply in your chosen style. Your dashboard and documents are already in English and French.",
     points: {
       detect: { title: "Automatic detection", text: "Every message is checked for English, French and Cameroonian Pidgin — no menus for customers." },
       mixed: { title: "Mixed messages understood", text: "“Bonjour, how much for dis robe?” is understood as one question, not three." },
@@ -322,14 +355,14 @@ const en = {
       { lang: "FR", text: "C'est combien la livraison à Bonamoussadi ?" },
       { lang: "Pidgin", text: "How much una di take for deliver for Bonamoussadi?" },
     ],
-    note: "Pidgin replies can be switched off per business — WazaBolt then answers Pidgin messages in English.",
+    note: "Once the assistant launches, Pidgin replies can be switched off per business — it will then answer Pidgin messages in English.",
   },
 
   dashboardPreview: {
     eyebrow: "Your dashboard",
-    title: "Not just a chatbot. <hl>Your whole WhatsApp business.</hl>",
+    title: "Your whole business. <hl>On one screen.</hl>",
     description:
-      "Conversations, customers, orders and performance in one place — from your laptop or your phone. When automation hands a chat to you, you'll know straight away.",
+      "Sales, stock, customers, orders and WhatsApp conversations in one place — from your laptop or your phone.",
     caption: "Dashboard preview with example data.",
   },
 
@@ -339,12 +372,12 @@ const en = {
     subtitle: "Here's what's happening with MJ Fashion today.",
     subtitleShort: "Here's what's happening today.",
     fromYesterday: "from yesterday",
-    metrics: { conversations: "Conversations", customers: "Customers", orders: "Orders", resolution: "AI Resolution" },
-    humanTitle: "Aïcha B. is now in Human Mode",
-    humanText: "Refund request — WazaBolt paused and handed the chat to your team.",
-    openChat: "Open chat",
-    humanCompact: "1 chat in Human Mode",
-    humanCompactReason: " · refund request",
+    metrics: { conversations: "Conversations", customers: "Customers", orders: "Orders", resolution: "Sales paid in full" },
+    humanTitle: "Low stock: Robe en wax, size L",
+    humanText: "2 left — below the minimum you set. Reorder before the weekend.",
+    openChat: "Open",
+    humanCompact: "2 products low on stock",
+    humanCompactReason: " · Robe en wax",
     recentConversations: "Recent conversations",
     latestOrders: "Latest orders",
     mostAsked: "Most-asked products",
@@ -379,8 +412,22 @@ const en = {
 
   pricing: {
     eyebrow: "Pricing",
-    title: "Simple plans in FCFA",
-    description: "Try WazaBolt free for 14 days, with no payment. Then choose the plan that fits your shop.",
+    title: "Simple plans, in FCFA or US dollars",
+    description: "Start with 14 days of the Business plan free, with no payment. Then choose the plan that fits your shop, restaurant or school.",
+    switch: {
+      currency: "Where is your business?",
+      xaf: "Cameroon (FCFA)",
+      usd: "Other countries (US$)",
+      usdHint: "Nigeria, South Africa, Ghana, Kenya and Zimbabwe: your shop sells in its own currency (naira, rand, cedi, shillings or US dollars); the plan is paid in US dollars by bank transfer.",
+      audience: "Type of business",
+      shop: "Shops & restaurants",
+      school: "Schools",
+    },
+    notes: {
+      trial: "Every new business starts with {days} days of the Business plan free (School Standard for schools), once per owner. No payment needed.",
+      annual: "Annual billing: pay {paid} months, get 12.",
+      readOnly: "When a trial or plan ends unpaid, your business becomes read-only: nothing is deleted, and you can still view and export your data.",
+    },
     perMonth: "/month",
     perYear: "/year",
     monthly: "Monthly",
@@ -407,7 +454,9 @@ const en = {
       paymentNotes: "Notes on how each sale was paid",
     },
     choose: "Try {plan} free",
+    chooseOther: "Choose {plan}",
     trialNote: "14 days free. No payment needed.",
+    trialNoteOther: "Starts with the 14-day free trial of Business.",
     includesTitle: "Every plan includes",
     inclusions: [
       "Invoices, receipts and quotations in FCFA",
@@ -436,7 +485,9 @@ const en = {
         menu: "Your menu page with Order on WhatsApp",
         reports: "Expenses, estimated profit and reports",
         locations: "Up to {count} restaurants (more: {price}/month each)",
+        locationsNoExtra: "Up to {count} restaurants",
       },
+      note: "Restaurants: the same plans, with the menu (options and priced extras), tables and open bills, takeaway and delivery, and a kitchen screen with up to {count} free kitchen accounts on top of the plan's users.",
       choose: "Try {plan} free",
       link: "Running a restaurant? See what each plan includes for restaurants",
     },
@@ -462,10 +513,12 @@ const en = {
       },
       choose: "Try {plan} free",
       outside: "Outside Cameroon, the plans are {p1}, {p2} and {p3} a month, paid in US dollars.",
+      note: "Every school plan includes up to {count} free teacher accounts: teachers enter marks for their own classes and never see fees.",
       link: "Running a school? See what each plan includes for schools",
     },
     paymentTitle: "Paying is simple",
-    paymentText: "Pay by MTN Mobile Money or Orange Money. Tell us your plan on the Billing page, pay, and we switch it on — usually the same day.",
+    paymentText: "In Cameroon, pay by MTN Mobile Money or Orange Money; in other countries, by bank transfer in US dollars. Choose your plan on the Billing page and pay: the WazaBolt team checks the payment and switches your plan on by hand, usually the same day.",
+    tillNote: "Payments at your till (cash, MTN MoMo, Orange Money, bank transfer, card or credit) are recorded by your team: WazaBolt doesn't check them with MTN, Orange or the bank.",
     outsideTitle: "Outside Cameroon",
     outsideText: "In Nigeria, South Africa, Ghana, Kenya and Zimbabwe, plans are {p1}, {p2} and {p3} a month, paid in US dollars by bank transfer.",
     outsideLink: "WazaBolt by country",
@@ -479,7 +532,7 @@ const en = {
     },
     ai: {
       title: "Add the AI assistant",
-      text: "The WhatsApp assistant answers your customers for you: prices, stock, opening hours and orders, day and night. Add it to any plan.",
+      text: "The WhatsApp assistant will answer your customers for you: prices, stock, opening hours and orders, day and night. You'll be able to add it to any plan.",
       comingSoon: "Coming soon",
       comingSoonText: "The AI assistant isn't available yet. When it is, you'll be able to add it to any plan.",
       conversations: "{count} customer conversations / month",
@@ -504,9 +557,9 @@ const en = {
     points: {
       auth: { title: "Secure authentication", text: "Dashboard sign-in with secure sessions. Only your team can get in." },
       tenant: { title: "Tenant-isolated data", text: "Every record is tied to your business. Other businesses can't see your data." },
-      keys: { title: "Protected API credentials", text: "WhatsApp and AI keys stay on our servers — never in the browser or in logs." },
-      control: { title: "Human control", text: "You decide when automation answers. Take over, pause or hand back in one tap." },
-      knowledge: { title: "Business-specific knowledge", text: "The AI answers from your information only, and says so when it doesn't know." },
+      keys: { title: "Encrypted WhatsApp tokens", text: "Your WhatsApp access token is stored encrypted on our servers — never in the browser or in logs." },
+      control: { title: "Roles and permissions", text: "Each team member sees only what their role allows; teachers only their classes, never fees." },
+      knowledge: { title: "Your data, exportable", text: "If a plan ends, your business becomes read-only: nothing is deleted and you can export everything." },
     },
   },
 
@@ -516,84 +569,84 @@ const en = {
     items: [
       {
         q: "Is WazaBolt part of WhatsApp?",
-        a: "No. WazaBolt is an independent business platform. You connect your business WhatsApp account to WazaBolt through Meta's official WhatsApp Business Platform, and WazaBolt helps you automate and manage those conversations. WazaBolt is not affiliated with WhatsApp or Meta.",
+        a: "No. WazaBolt is independent business management software. You can share receipts and invoices on WhatsApp from your own phone, and connect your business WhatsApp number through Meta's official WhatsApp Business Platform for a shared team inbox. WazaBolt is not affiliated with WhatsApp or Meta.",
+      },
+      {
+        q: "Do I need Meta or WhatsApp approval to start?",
+        a: "No. Sign up and start straight away: record sales, share PDF receipts and invoices on WhatsApp, and let customers order from your online shop page. Connecting an official WhatsApp Business number (with the Phone Number ID, WhatsApp Business Account ID and access token from Meta) is optional and adds the shared team inbox.",
       },
       {
         q: "Do my customers need to download an app?",
-        a: "No. Customers keep messaging your business on WhatsApp exactly as they do today. WazaBolt replies in the same conversation.",
+        a: "No. They receive receipts and invoices on WhatsApp and order from your shop page in their browser.",
       },
       {
-        q: "What do I need to connect?",
-        a: "A WhatsApp Business account connected through Meta's official WhatsApp Business Platform. WazaBolt never uses WhatsApp Web scraping or unofficial tools, which can get numbers banned.",
+        q: "Does WazaBolt check Mobile Money payments?",
+        a: "No. Payments at your till — cash, MTN MoMo, Orange Money, bank transfer, card or credit — are recorded by your team. WazaBolt doesn't check them with MTN, Orange or the bank, and a reference typed in is not a verification.",
       },
       {
-        q: "Will the AI make up prices or promise things I can't deliver?",
-        a: "No. WazaBolt only answers from the products, prices, FAQs and policies you add. If it can't confirm something — a price, stock, a delivery fee, a payment — it tells the customer and hands the conversation to your team.",
+        q: "How do I pay for my plan?",
+        a: "In Cameroon, by MTN Mobile Money or Orange Money; in other countries, by bank transfer in US dollars. Choose your plan on the Billing page and pay: the WazaBolt team checks the payment and switches your plan on by hand, usually the same day.",
       },
       {
-        q: "Can I reply to customers myself?",
-        a: "Yes. Open any conversation in your dashboard and tap Take Over. Automation pauses for that customer until you tap Return to AI.",
+        q: "What happens when my free trial ends?",
+        a: "Every new business gets 14 days of the Business plan free, once per owner. If you don't choose a plan, your business becomes read-only: nothing is deleted, and you can still view and export your data.",
       },
       {
-        q: "Which languages does it speak?",
-        a: "English, French and Cameroonian Pidgin English. WazaBolt detects the language of each message — even when a customer mixes them — and replies in that language. If a customer asks for a language, it remembers. You choose which languages your business replies in, and the dashboard itself is available in English and French.",
-      },
-      {
-        q: "Can I control how it sounds?",
-        a: "Yes. Choose the tone, formality (for example “vous” or “tu” in French), emoji use and reply length. You can also set one default language or let it follow each customer.",
+        q: "Which languages does WazaBolt speak?",
+        a: "The dashboard and documents are in English and French. The AI assistant, coming soon, will also understand and reply in Cameroonian Pidgin English, even when a customer mixes languages.",
       },
       {
         q: "Is the WhatsApp AI assistant available now?",
-        a: "Not yet: it's coming soon. When it launches, you'll be able to add it to any plan, with a set number of customer conversations each month. When they're used up, automatic replies stop and new messages wait for your team, so nothing is lost.",
+        a: "Not yet: it's coming soon. When it launches, you'll be able to add it to any plan, with a set number of customer conversations each month. It will answer only from the products, prices, FAQs and policies you add, and hand the conversation to your team when it can't confirm something.",
       },
       {
         q: "Is WazaBolt only for Cameroon?",
-        a: "No. Cameroon is our first market, with prices in FCFA and English, French and Pidgin. WazaBolt also works in Nigeria, South Africa, Ghana, Kenya and Zimbabwe, with prices in each country's currency and local phone numbers; there, plans are paid in US dollars.",
+        a: "No. Cameroon is our first market, with prices in FCFA. WazaBolt also works in Nigeria, South Africa, Ghana, Kenya and Zimbabwe, with sales in each country's currency and local phone numbers; there, plans are paid in US dollars.",
       },
     ],
   },
 
   cta: {
-    title: "Ready to stop missing customers?",
-    text: "Power your business on WhatsApp. Give every customer a fast, reliable answer — day and night, in their language.",
+    title: "Ready to put the notebook away?",
+    text: "Sales, stock, credit and receipts in one place, for shops, restaurants and schools. Start with 14 days free — no payment needed.",
   },
 
   pages: {
     features: {
       eyebrow: "Features",
-      title: "More than a chatbot. A business assistant.",
+      title: "Everything to run your business, in one place",
       description:
-        "WazaBolt answers the routine questions, turns conversations into orders and keeps every customer organised — in their language, with your team always in control.",
+        "Sales, stock, credit, documents, an online shop page and a WhatsApp team inbox — for shops, restaurants and schools. The AI assistant is coming soon.",
     },
     howItWorks: {
       eyebrow: "How it works",
-      title: "From first message to finished order",
+      title: "From sign-up to your first sale",
       description:
-        "WazaBolt connects to your business WhatsApp account and turns conversations into answers, orders and loyal customers.",
+        "Start in minutes with no Meta approval: sell, track and share on WhatsApp. Connect your WhatsApp Business number when you want a shared team inbox.",
     },
     pricing: {
       eyebrow: "Pricing",
       title: "Try free for 14 days, then pick your plan",
-      description: "Every plan is priced in FCFA, from 3,000 FCFA a month. Try WazaBolt free for 14 days with no payment, then choose the plan that fits your shop.",
+      description: "From 3,000 FCFA a month in Cameroon, or $5 a month in other countries. Start with 14 days of the Business plan free, with no payment, then choose the plan that fits your shop, restaurant or school.",
     },
     solutions: {
       eyebrow: "Solutions",
       title: "Built for the way your business sells",
-      description: "If your customers message you on WhatsApp, WazaBolt can help you answer, sell and follow up.",
+      description: "Shops and boutiques, restaurants and schools — and many other businesses — use WazaBolt to sell, manage and follow up.",
     },
     resources: {
       eyebrow: "Resources",
       title: "Everything you need to get started",
-      description: "Answers, guides and help for running your business on WhatsApp with WazaBolt.",
+      description: "Answers, guides and help for running your business with WazaBolt.",
       items: {
         how: {
           title: "How WazaBolt works",
-          text: "A walkthrough of connecting WhatsApp, adding your business information and letting automation respond.",
+          text: "A walkthrough of creating your account, adding your products, menu or classes, selling — and connecting WhatsApp when you're ready.",
           cta: "See how it works",
         },
         guides: {
           title: "Setup guides",
-          text: "Step-by-step guides for connecting your business WhatsApp account and building your catalog.",
+          text: "Step-by-step guides for setting up your shop, restaurant or school, and connecting your business WhatsApp account.",
           cta: "Coming soon",
         },
         help: { title: "Help & contact", text: "Questions before you start? Reach the WazaBolt team.", cta: "Contact us" },
@@ -607,7 +660,7 @@ const en = {
       callUs: "Call us",
       whatsapp: "WhatsApp",
       chatWhatsapp: "Chat with us on WhatsApp",
-      whatsappGreeting: "Hello WazaBolt, I'd like to know more about your WhatsApp assistant.",
+      whatsappGreeting: "Hello WazaBolt, I'd like to know more about WazaBolt for my business.",
       email: "Email",
       writeUs: "Write to us",
       address: "Address",
@@ -618,19 +671,19 @@ const en = {
       eyebrow: "About WazaBolt",
       title: "Helping African businesses move at the speed of their customers",
       description:
-        "WazaBolt is a business automation platform that helps companies use WhatsApp to answer customers, take orders and grow. We're starting in Cameroon and building for the whole continent.",
+        "WazaBolt is business management software for shops, restaurants and schools, with WhatsApp built in: sales, stock, credit, documents, marks and fees in one place. We're starting in Cameroon and building for the whole continent.",
       principles: [
         {
           title: "Built for African businesses",
-          text: "Prices in FCFA, replies in English, French and Pidgin, and a product designed around how businesses here already sell: on WhatsApp.",
+          text: "Prices in FCFA, a dashboard in English and French, and a product designed around how businesses here already work: on the phone and on WhatsApp.",
         },
         {
-          title: "Honest automation",
-          text: "WazaBolt only answers from information a business has given it. When it can't confirm something, it says so and brings in a person.",
+          title: "Honest software",
+          text: "Profit is labelled estimated, payments are recorded by your team and never shown as verified, and features that aren't ready are marked coming soon.",
         },
         {
           title: "Your team stays in charge",
-          text: "Automation handles the routine. People handle the rest — and can take over any conversation at any moment.",
+          text: "Owners decide who sees what: staff, teachers and kitchen accounts each get only the access they need.",
         },
       ],
     },
@@ -655,17 +708,17 @@ const en = {
       retail: {
         metaTitle: "Shop management software in Cameroon: sales, stock and credit",
         metaDescription:
-          "WazaBolt for shops and boutiques in Cameroon: record sales at the till, track stock by size and colour, follow customer credit, make receipts in FCFA and answer customers on WhatsApp. Free plan.",
+          "WazaBolt for shops and boutiques in Cameroon: record sales at the till, track stock by size and colour, follow customer credit, make receipts in FCFA and share them on WhatsApp. 14-day free trial.",
         eyebrow: "For shops and boutiques",
         title: "Run your shop from your phone",
-        lead: "Record every sale, know what is left in stock, see who owes you money, and let WazaBolt answer your customers on WhatsApp in English, French and Pidgin.",
+        lead: "Record every sale, know what is left in stock, see who owes you money, and share receipts and invoices with your customers on WhatsApp.",
         features: [
           { title: "A till for every sale", text: "Ring up sales in seconds, take cash, MTN MoMo or Orange Money, and print or share the receipt." },
           { title: "Stock that keeps itself up to date", text: "Each sale takes the items out of stock. Track sizes and colours, set a minimum and see what is running low." },
           { title: "Customer credit, under control", text: "Sell on credit, record payments when they come, and see at a glance who owes you and how much." },
           { title: "Expenses and estimated profit", text: "Log rent, transport and other costs and see your estimated profit for the day, the week or the month (paid plans)." },
           { title: "Invoices, receipts and quotations in FCFA", text: "Make professional documents in English or French, download them as PDF or send them on WhatsApp." },
-          { title: "A WhatsApp assistant that sells for you", text: "It answers price and stock questions from your catalogue, takes orders with delivery details and passes the conversation to you when needed." },
+          { title: "Your online shop page", text: "Your products and prices on your own page. Customers tap Order on WhatsApp and the message reaches you with the product already written. An AI assistant to answer them is coming soon." },
         ],
         faq: [
           { q: "Can I try it for free?", a: "Yes. Every new shop gets 14 days free, with no payment. Then the Boutique plan starts at 3,000 FCFA a month, and Business, with expenses, estimated profit and reports, at 7,500 FCFA." },
@@ -729,15 +782,15 @@ const en = {
     howTitle: "How a term works with WazaBolt Schools",
     how: [
       { title: "Set up your school once", text: "Choose your grading (out of 20 or out of 100), then add your classes, subjects with coefficients, and students." },
-      { title: "Teachers enter their marks", text: "Each teacher gets a free account and enters marks for their own classes and subjects, from a phone or a computer." },
+      { title: "Teachers enter their marks", text: "Up to 30 teachers get a free account each and enter marks for their own classes and subjects, from a phone or a computer. Teachers never see fees." },
       { title: "Averages are calculated for you", text: "Subject averages, general averages, grades and positions in class are worked out from the marks, the same way every time." },
-      { title: "Publish and print report cards", text: "Check the results, publish them, and download report cards as PDF, one student or a whole class at a time." },
+      { title: "Publish and share report cards", text: "Check the results and publish them: marks lock once published. Download report cards as PDF, one student or a whole class at once, and send them to parents on WhatsApp." },
     ],
     featuresTitle: "Everything a school office needs",
     moreFaq: [
       { q: "Which plan lets us record marks and calculate averages?", a: "Every plan. Marks, averages, grades, positions and report cards are included from School Starter. Bigger plans add more students, more office users and school-wide reports." },
       { q: "Does it work for English and French schools?", a: "Yes. Choose marks out of 20 with coefficients and sequences, or marks out of 100 with continuous assessment and exams. Report cards come in English or French." },
-      { q: "How do we pay?", a: "In Cameroon, by MTN Mobile Money or Orange Money, monthly or yearly. Tell us your plan on the Billing page, pay, and we switch it on." },
+      { q: "How do we pay?", a: "In Cameroon, by MTN Mobile Money or Orange Money, monthly or yearly; in other countries, by bank transfer in US dollars. Choose your plan on the Billing page and pay: the WazaBolt team checks the payment and switches the plan on by hand, usually the same day." },
     ],
     ctaTitle: "Ready for a calmer end of term?",
     ctaText: "Set up your school in an afternoon and try WazaBolt Schools free for 14 days.",
@@ -791,42 +844,42 @@ const en = {
     items: {
       retail: {
         name: "Retail",
-        useCases: ["Share products, prices and stock from your catalogue", "Capture orders with delivery details", "Answer opening-hours and location questions"],
+        useCases: ["Ring up sales and track stock by size and colour", "Follow customer credit and part payments", "Share receipts on WhatsApp and take orders from your shop page"],
         exampleQuestion: "Do you still have the 5L cooking oil?",
       },
       restaurants: {
         name: "Restaurants",
-        useCases: ["Share the menu and prices", "Take pickup and delivery orders", "Answer “Are you open now?”"],
+        useCases: ["Menu with options and priced extras", "Tables, open bills and a kitchen screen", "Takeaway and delivery orders, also from your menu page"],
         exampleQuestion: "Is the ndolé available today?",
       },
       hotels: {
         name: "Hotels",
-        useCases: ["Answer questions about rooms, rates and check-in times", "Collect booking requests for reception", "Share directions and hotel policies"],
+        useCases: ["Invoices, receipts and quotations for guests", "Track what each guest owes, with part payments", "Answer guests from a shared WhatsApp team inbox"],
         exampleQuestion: "What time is check-in?",
       },
       fashion: {
         name: "Fashion",
-        useCases: ["Share items with sizes and prices", "Capture orders and delivery addresses", "Answer delivery-fee questions from your own rates"],
+        useCases: ["Stock by size and colour, with low-stock alerts", "Orders with delivery addresses", "Your online shop page with Order on WhatsApp"],
         exampleQuestion: "Do you have this dress in size L?",
       },
       beauty: {
         name: "Beauty & Salons",
-        useCases: ["Share your service menu and prices", "Collect appointment requests", "Answer questions about products you sell"],
+        useCases: ["Your services and prices in one catalogue", "Sales at the till, in cash or Mobile Money", "Receipts and each customer's history in one place"],
         exampleQuestion: "How much are knotless braids?",
       },
       realEstate: {
         name: "Real Estate",
-        useCases: ["Share listing details and prices", "Collect buyer and tenant details", "Pass viewing requests to your agents"],
+        useCases: ["Quotations, invoices and receipts for clients", "Track deposits and balances owed", "Client records and a shared WhatsApp inbox"],
         exampleQuestion: "Is the 2-bedroom in Bonamoussadi still available?",
       },
       schools: {
         name: "Schools",
-        useCases: ["Answer questions about fees and enrolment dates", "Share the list of required documents", "Collect parent enquiries for the office"],
+        useCases: ["Marks, results and PDF report cards", "School fee invoices, receipts and balances", "Report cards and receipts sent to parents on WhatsApp"],
         exampleQuestion: "When does registration for next year start?",
       },
       services: {
         name: "Professional Services",
-        useCases: ["Explain your services and fees", "Collect client details and requests", "Hand complex questions to your team"],
+        useCases: ["Quotations, invoices and receipts", "Client records with balances and statements", "Expenses and estimated profit"],
         exampleQuestion: "What documents do I need for a business registration?",
       },
     },
@@ -834,10 +887,10 @@ const en = {
 
   auth: {
     points: [
-      "Automated replies from your own catalogue and FAQs",
-      "Replies in English, French and Pidgin",
-      "Orders captured inside the conversation",
-      "Your team can take over any chat, any time",
+      "Sales, stock and customer credit in one place",
+      "Invoices and receipts shared on WhatsApp",
+      "Built for shops, restaurants and schools",
+      "14 days of the Business plan free, no payment needed",
     ],
     notConfigured:
       "Accounts aren't open yet: the authentication service hasn't been connected. Set the Supabase environment variables to enable sign-up and login.",
@@ -1089,6 +1142,13 @@ const en = {
       intro: "Fill in the form, check the preview and download a professional PDF. Free, no account needed.",
       privacy: "Nothing you type is saved: the PDF is made and sent straight to you.",
       remember: "Remember my business details on this device",
+      banner: {
+        title: "Making invoices every day? Let WazaBolt keep the records for you.",
+        text: "With a free WazaBolt account, every document is saved with your customer, and balances update on their own.",
+        points: ["Customer balances saved automatically", "Credit and part payments tracked", "Stock goes down with every sale", "Receipts sent on WhatsApp in one tap"],
+        cta: "Start your 14-day free trial",
+        note: "No payment needed. Your free generator stays free.",
+      },
     },
   },
 

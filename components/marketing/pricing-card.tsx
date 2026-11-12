@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Check, Minus, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { annualMonthsPaid, type Plan } from "@/config/plans";
+import { annualMonthsPaid, monthlyPriceIn, type Plan, type PlanCurrency } from "@/config/plans";
 import type { Locale } from "@/lib/i18n/config";
 import { format, formatNumber, formatXaf } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import type { Messages } from "@/messages/en";
 
 /** What each plan lists: its own features, with "Everything in …" for the bigger plans. */
-export function planFeatures(plan: Plan, previous: Plan | undefined, t: Messages["pricing"], locale: Locale) {
+export function planFeatures(plan: Plan, previous: Plan | undefined, t: Messages["pricing"], locale: Locale, currency: PlanCurrency = "XAF") {
   const f = t.features;
   const n = (v: number) => formatNumber(v, locale);
   const users = { label: format(plan.maxMembers === 1 ? f.members : f.membersPlural, { count: n(plan.maxMembers) }), included: true };
@@ -19,7 +19,7 @@ export function planFeatures(plan: Plan, previous: Plan | undefined, t: Messages
     label:
       plan.includedBranches <= 1
         ? f.shop
-        : plan.extraBranchPrice === null
+        : plan.extraBranchPrice === null || currency !== "XAF"
           ? format(f.shopsNoExtra, { count: n(plan.includedBranches) })
           : format(f.shops, { count: n(plan.includedBranches), price: formatXaf(plan.extraBranchPrice, locale) }),
     included: true,
@@ -73,14 +73,14 @@ export function schoolPlanFeatures(plan: Plan, previous: Plan | undefined, t: Me
  * kitchen accounts, the restaurant tools (on every plan), and what the bigger
  * plans add: expenses, profit and reports, then more restaurants.
  */
-export function restaurantPlanFeatures(plan: Plan, previous: Plan | undefined, t: Messages["pricing"], locale: Locale) {
+export function restaurantPlanFeatures(plan: Plan, previous: Plan | undefined, t: Messages["pricing"], locale: Locale, currency: PlanCurrency = "XAF") {
   const f = t.restaurant.features;
   const n = (v: number) => formatNumber(v, locale);
   const staff = { label: format(plan.maxMembers === 1 ? f.staff : f.staffPlural, { count: n(plan.maxMembers) }), included: true };
   const own = [
     { label: f.reports, included: plan.hasProfit && plan.hasReports },
     {
-      label: plan.includedBranches > 1 ? format(f.locations, { count: n(plan.includedBranches), price: formatXaf(plan.extraBranchPrice ?? 0, locale) }) : "",
+      label: plan.includedBranches > 1 ? (currency === "XAF" && plan.extraBranchPrice !== null ? format(f.locations, { count: n(plan.includedBranches), price: formatXaf(plan.extraBranchPrice, locale) }) : format(f.locationsNoExtra, { count: n(plan.includedBranches) })) : "",
       included: plan.includedBranches > 1,
     },
   ];
@@ -108,6 +108,7 @@ export function PricingCard({
   t,
   recommended,
   audience = "shop",
+  currency = "XAF",
 }: {
   plan: Plan;
   previous?: Plan;
@@ -116,7 +117,14 @@ export function PricingCard({
   recommended: string;
   /** "school" / "restaurant": the plan in their terms, and a sign-up as that business type. */
   audience?: "shop" | "school" | "restaurant";
+  /** The plan currency shown: FCFA (Cameroon) or US dollars (every other country). */
+  currency?: PlanCurrency;
 }) {
+  // Marketing prices in dollars read as "$5" ("5 $US" in French), with cents only when there are some.
+  const usd = (v: number) =>
+    new Intl.NumberFormat(locale === "fr" ? "fr-FR" : "en-US", { style: "currency", currency: "USD", minimumFractionDigits: Number.isInteger(v) ? 0 : 2 }).format(v);
+  const money = (v: number) => (currency === "XAF" ? formatXaf(v, locale) : usd(v));
+  const monthly = monthlyPriceIn(plan, currency);
   const featured = plan.highlighted;
   const kind = plan.id === "free" ? "shop" : audience;
   const onSale = plan.id as "boutique" | "business" | "multishop";
@@ -127,9 +135,11 @@ export function PricingCard({
       : kind === "restaurant"
         ? format(t.restaurant.plans[onSale], { count: formatNumber(plan.includedBranches, locale) })
         : t.plans[plan.id].description;
-  const features = (kind === "school" ? schoolPlanFeatures : kind === "restaurant" ? restaurantPlanFeatures : planFeatures)(plan, previous, t, locale);
+  const features =
+    kind === "school" ? schoolPlanFeatures(plan, previous, t, locale) : (kind === "restaurant" ? restaurantPlanFeatures : planFeatures)(plan, previous, t, locale, currency);
   const signUpType = kind === "school" ? "&type=school" : kind === "restaurant" ? "&type=restaurant" : "";
-  const choose = kind === "school" ? t.school.choose : kind === "restaurant" ? t.restaurant.choose : t.choose;
+  // The free trial is of the Business plan: the other plans are chosen after it.
+  const choose = !featured ? t.chooseOther : kind === "school" ? t.school.choose : kind === "restaurant" ? t.restaurant.choose : t.choose;
   return (
     <div
       className={cn(
@@ -137,6 +147,7 @@ export function PricingCard({
         featured ? "bg-deep text-white shadow-float lg:-translate-y-3 lg:hover:-translate-y-4" : "border border-line bg-white shadow-card",
       )}
       data-testid={`plan-card-${plan.id}`}
+      data-currency={currency}
     >
       {featured ? (
         <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-gold px-3 py-1 text-xs font-bold text-deep">
@@ -146,16 +157,16 @@ export function PricingCard({
       <h3 className={cn("type-h3 text-xl", featured && "text-white")}>{name}</h3>
       <p className={cn("mt-1 min-h-10 text-sm", featured ? "text-white/70" : "text-slate")}>{description}</p>
       <p className="mt-5 flex flex-wrap items-baseline gap-x-1.5 group-data-[interval=year]/billing:hidden" data-testid="price-month">
-        <span className="font-display text-3xl font-extrabold tracking-tight whitespace-nowrap">{formatXaf(plan.monthlyPrice, locale)}</span>
+        <span className="font-display text-3xl font-extrabold tracking-tight whitespace-nowrap">{money(monthly)}</span>
         <span className={cn("text-sm", featured ? "text-white/70" : "text-slate")}>{t.perMonth}</span>
       </p>
       <div className="mt-5 hidden group-data-[interval=year]/billing:block" data-testid="price-year">
         <p className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="font-display text-3xl font-extrabold tracking-tight whitespace-nowrap">{formatXaf(plan.monthlyPrice * annualMonthsPaid, locale)}</span>
+          <span className="font-display text-3xl font-extrabold tracking-tight whitespace-nowrap">{money(monthly * annualMonthsPaid)}</span>
           <span className={cn("text-sm", featured ? "text-white/70" : "text-slate")}>{t.perYear}</span>
         </p>
         <p className={cn("mt-1 text-xs", featured ? "text-white/70" : "text-slate")}>
-          <s>{formatXaf(plan.monthlyPrice * 12, locale)}</s> · {t.annualNote}
+          <s>{money(monthly * 12)}</s> · {t.annualNote}
         </p>
       </div>
       <ul className="mt-5 flex flex-1 flex-col gap-2 text-sm">
@@ -176,7 +187,7 @@ export function PricingCard({
       <Button asChild variant={featured ? "default" : "outline"} className="mt-6 h-auto min-h-11 w-full px-4 py-2.5 text-center leading-snug whitespace-normal">
         <Link href={localizePath(locale, `/register?plan=${plan.id}${signUpType}`)}>{format(choose, { plan: name })}</Link>
       </Button>
-      <p className={cn("mt-2 text-center text-xs", featured ? "text-white/70" : "text-slate")}>{t.trialNote}</p>
+      <p className={cn("mt-2 text-center text-xs", featured ? "text-white/70" : "text-slate")}>{featured ? t.trialNote : t.trialNoteOther}</p>
     </div>
   );
 }

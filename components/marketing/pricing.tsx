@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Bot, Check, CreditCard, Info } from "lucide-react";
+import { Bot, Check, CreditCard, GraduationCap, Info, UtensilsCrossed } from "lucide-react";
 
 import { BillingToggle } from "@/components/marketing/billing-toggle";
 import { PricingCard } from "@/components/marketing/pricing-card";
+import { PricingSwitch } from "@/components/marketing/pricing-switch";
 import { SectionHeading } from "@/components/marketing/section-heading";
-import { addons, aiTopup, aiTrial, bundles, plans } from "@/config/plans";
+import { addons, aiTopup, aiTrial, annualMonthsPaid, bundles, plans, trialDays, type PlanCurrency } from "@/config/plans";
 import { aiLaunchedForPublicPages } from "@/lib/billing/ai-flag";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatAmount, formatNumber, formatXaf } from "@/lib/i18n/format";
@@ -15,6 +16,31 @@ export async function Pricing() {
   const [locale, messages, aiLaunched] = await Promise.all([getLocale(), getMessages(), aiLaunchedForPublicPages()]);
   const t = messages.pricing;
   const ai = t.ai;
+  const recommended = messages.common.badges.recommended;
+  const grid = (currency: PlanCurrency, audience: "shop" | "school") => (
+    <>
+      <ul className="mt-10 grid gap-5 md:grid-cols-3" data-testid={`plans-${currency}-${audience}`}>
+        {plans.map((plan, i) => (
+          <li key={plan.id}>
+            <PricingCard plan={plan} previous={i > 0 ? plans[i - 1] : undefined} locale={locale} t={t} recommended={recommended} audience={audience} currency={currency} />
+          </li>
+        ))}
+      </ul>
+      {audience === "shop" ? (
+        <p className="mx-auto mt-6 flex max-w-3xl items-start gap-2 rounded-xl bg-white px-4 py-3 text-sm text-deep shadow-card" data-testid="pricing-restaurant-note">
+          <UtensilsCrossed className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden />
+          <span>{format(t.restaurant.note, { count: formatNumber(plans[0].maxKitchen, locale) })}</span>
+        </p>
+      ) : (
+        <p className="mx-auto mt-6 flex max-w-3xl items-start gap-2 rounded-xl bg-white px-4 py-3 text-sm text-deep shadow-card" data-testid="pricing-school-note">
+          <GraduationCap className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden />
+          <span>{format(t.school.note, { count: formatNumber(plans[0].maxTeachers, locale) })}</span>
+        </p>
+      )}
+      {currency === "USD" ? <p className="mx-auto mt-3 max-w-3xl text-center text-sm text-slate">{t.switch.usdHint}</p> : null}
+    </>
+  );
+  const panels = { "XAF-shop": grid("XAF", "shop"), "XAF-school": grid("XAF", "school"), "USD-shop": grid("USD", "shop"), "USD-school": grid("USD", "school") } as const;
   return (
     <section id="pricing" aria-labelledby="pricing-title" className="bg-mint/60 py-20 sm:py-28">
       <div className="container-page">
@@ -22,14 +48,21 @@ export async function Pricing() {
 
         <div className="mt-10">
           <BillingToggle labels={{ choice: t.billingChoice, monthly: t.monthly, annual: t.annual, badge: t.annualBadge }}>
-            <ul className="mt-10 grid gap-5 md:grid-cols-3">
-              {plans.map((plan, i) => (
-                <li key={plan.id}>
-                  <PricingCard plan={plan} previous={i > 0 ? plans[i - 1] : undefined} locale={locale} t={t} recommended={messages.common.badges.recommended} />
-                </li>
-              ))}
-            </ul>
-          </BillingToggle>
+          <PricingSwitch labels={t.switch} panels={panels} />
+          <ul className="mx-auto mt-6 flex max-w-3xl flex-col gap-2 text-sm text-slate" data-testid="pricing-notes">
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden />
+              {format(t.notes.trial, { days: trialDays })}
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden />
+              {format(t.notes.annual, { paid: annualMonthsPaid })}
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden />
+              {t.notes.readOnly}
+            </li>
+          </ul>
           <p className="mt-6 flex flex-col items-center gap-2 text-center text-sm">
             <Link href={`${localizePath(locale, "/schools")}#plans`} className="font-semibold text-waza-700 hover:underline" data-testid="pricing-schools-link">
               {t.school.link} →
@@ -38,6 +71,7 @@ export async function Pricing() {
               {t.restaurant.link} →
             </Link>
           </p>
+          </BillingToggle>
         </div>
 
         <section aria-labelledby="ai-addon-title" className="mt-12 rounded-2xl border border-line bg-white p-6 shadow-card" data-testid="ai-addon">
@@ -115,6 +149,7 @@ export async function Pricing() {
             <div className="text-sm leading-relaxed text-deep">
               <p className="font-semibold">{t.paymentTitle}</p>
               <p className="mt-1 text-deep/80">{t.paymentText}</p>
+              <p className="mt-2 text-deep/80" data-testid="pricing-till-note">{t.tillNote}</p>
               <p className="mt-3 font-semibold" data-testid="pricing-outside">
                 {t.outsideTitle}
               </p>
