@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { WazaBoltLogo } from "@/components/brand/logo";
 import { COUNTRY_PAGES } from "@/config/countries";
-import { footerNav, siteConfig } from "@/config/site";
+import { companyLine, footerNav, siteConfig } from "@/config/site";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
 
@@ -67,7 +67,7 @@ export async function SiteFooter() {
         {/* The registered business, as on the RCCM form (Meta's business verification compares the website with it). */}
         {siteConfig.legal.entityName ? (
           <p className="container-page pb-6 text-xs text-cream/55" data-testid="footer-legal">
-            {[siteConfig.legal.tradeName ?? siteConfig.legal.entityName, siteConfig.legal.rccm && `RCCM ${siteConfig.legal.rccm}`, siteConfig.contact.address, siteConfig.contact.phone, siteConfig.contact.email].filter(Boolean).join(" · ")}
+            {[companyLine, siteConfig.contact.address, siteConfig.contact.phone, siteConfig.contact.email].filter(Boolean).join(" · ")}
           </p>
         ) : null}
       </div>

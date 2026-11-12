@@ -1,15 +1,14 @@
 import { PageIntro } from "@/components/marketing/page-intro";
-import { siteConfig } from "@/config/site";
+import { companyLine, siteConfig } from "@/config/site";
 import type { Locale } from "@/lib/i18n/config";
 import type { LegalBlock, LegalDoc } from "@/lib/legal/types";
 
 /** Who runs WazaBolt, from config/site.ts → legal (registered details only once they are filled in). */
 function operatorLine(locale: Locale) {
-  const { entityName, rccm, niu } = siteConfig.legal;
   const address = siteConfig.contact.address;
-  if (!entityName) return locale === "fr" ? `WazaBolt est exploité depuis : ${address}.` : `WazaBolt is operated from ${address}.`;
-  const ids = [rccm ? `RCCM ${rccm}` : null, niu ? `NIU ${niu}` : null].filter(Boolean).join(", ");
-  return locale === "fr" ? `WazaBolt est exploité par ${entityName}${ids ? ` (${ids})` : ""}, ${address}.` : `WazaBolt is operated by ${entityName}${ids ? ` (${ids})` : ""}, ${address}.`;
+  if (!siteConfig.legal.entityName) return locale === "fr" ? `WazaBolt est exploité depuis : ${address}.` : `WazaBolt is operated from ${address}.`;
+  // "WazaBolt ENTERPRISE, Bamenda, Cameroon (RCCM …)", as in the footer and on the contact page.
+  return locale === "fr" ? `WazaBolt est exploité par ${companyLine}. Adresse : ${address}.` : `WazaBolt is operated by ${companyLine}. Address: ${address}.`;
 }
 
 function fill(text: string, locale: Locale) {

@@ -22,7 +22,8 @@ const en: LegalDoc = {
       heading: "1. The service",
       body: [
         "WazaBolt is business management software used in a web browser on a phone, tablet or computer. Depending on the business type and plan, it includes sales at the till, products and stock, customer credit, orders, invoices, receipts and quotations, expenses and estimated profit, reports, an online shop page, and team accounts. Restaurants also get menus, tables and open bills, takeaway and delivery, and a kitchen screen. Schools also get school years and terms, classes and subjects, marks, results, report cards and school fees. A business can share documents as PDF on WhatsApp and, once it connects its own WhatsApp Business number, answer customers from a shared team inbox.",
-        "A WhatsApp AI assistant is in preparation and is not available yet. Section 8 applies to it once it is offered. Features may evolve; what each plan includes is shown on our Pricing page and in your dashboard.",
+        "Our free invoice, receipt and quotation generator can be used without an account. What you type in it is used only to make your PDF and is not saved on our servers; if you ask it to, your business details are kept in your own browser only. To prevent abuse, the number of PDFs per visitor per hour is limited, using a hashed form of the visitor's IP address. The documents it makes are yours, and you are responsible for their content.",
+        "A WhatsApp AI assistant is in preparation and is not available yet; no customer conversation is sent to an AI provider today. Section 8 applies to it once it is offered. Features may evolve; what each plan includes is shown on our Pricing page and in your dashboard.",
         "WazaBolt is an independent product. It is not affiliated with, endorsed by or sponsored by WhatsApp or Meta. WhatsApp is a trademark of its respective owner.",
       ],
     },
@@ -91,6 +92,7 @@ const en: LegalDoc = {
             "You are responsible for the information you add to WazaBolt (products, prices, stock, policies, marks, fees, messages) and for the products, services and teaching you provide. Keep it accurate.",
             "You are responsible for your relationship with your customers, and for a school with its students and parents, including deliveries, payments, refunds, results, report cards and complaints.",
             "For the personal data of your customers, students, parents and staff you are the data controller and WazaBolt acts as your processor: we process it only to provide the service, following your instructions and our Privacy Policy, keep it confidential and secure, use only service providers bound by the same obligations, help you answer people's requests, and delete it when your account is closed. A school must have a lawful basis for the data of its students, who are often minors, and for sending results to parents.",
+            "A school is responsible for its students' marks, results and report cards, and decides when results are published (marks lock once published) and who receives them, for example a parent's WhatsApp number. WazaBolt never contacts students and never uses their data for any other purpose.",
           ],
         },
       ],
@@ -129,7 +131,7 @@ const en: LegalDoc = {
       id: "ip",
       heading: "11. Intellectual property",
       body: [
-        "WazaBolt, its software, design and brand belong to WazaBolt. You keep all rights to your content (business information, product photos, marks, documents, messages) and allow us to use it only to provide the service to you.",
+        "WazaBolt, its software, design and brand belong to WazaBolt. Your data is yours: you keep all rights to your content (business information, product photos, marks, documents, messages), you can export it at any time, including in read-only mode, and you allow us to use it only to provide the service to you.",
       ],
     },
     {
@@ -184,7 +186,8 @@ const fr: LegalDoc = {
       heading: "1. Le service",
       body: [
         "WazaBolt est un logiciel de gestion utilisé dans un navigateur web, sur téléphone, tablette ou ordinateur. Selon le type d'entreprise et le forfait, il comprend les ventes à la caisse, les produits et le stock, le crédit client, les commandes, les factures, reçus et devis, les dépenses et le bénéfice estimé, les rapports, une page boutique en ligne et des comptes d'équipe. Les restaurants disposent aussi des menus, des tables et additions ouvertes, de l'emporter et de la livraison, et d'un écran cuisine. Les écoles disposent aussi des années scolaires et trimestres, des classes et matières, des notes, des résultats, des bulletins et des frais de scolarité. Une entreprise peut partager ses documents en PDF sur WhatsApp et, une fois son propre numéro WhatsApp Business connecté, répondre à ses clients depuis une messagerie d'équipe partagée.",
-        "Un assistant IA WhatsApp est en préparation et n'est pas encore disponible. La section 8 s'y appliquera dès qu'il sera proposé. Les fonctionnalités peuvent évoluer ; le contenu de chaque forfait figure sur notre page Tarifs et dans votre tableau de bord.",
+        "Notre générateur gratuit de factures, reçus et devis peut être utilisé sans compte. Ce que vous y saisissez sert uniquement à créer votre PDF et n'est pas enregistré sur nos serveurs ; si vous le demandez, les informations de votre entreprise sont conservées uniquement dans votre propre navigateur. Pour éviter les abus, le nombre de PDF par visiteur et par heure est limité, à l'aide d'une forme chiffrée de l'adresse IP du visiteur. Les documents créés vous appartiennent, et vous êtes responsable de leur contenu.",
+        "Un assistant IA WhatsApp est en préparation et n'est pas encore disponible ; aucune conversation client n'est envoyée aujourd'hui à un fournisseur d'IA. La section 8 s'y appliquera dès qu'il sera proposé. Les fonctionnalités peuvent évoluer ; le contenu de chaque forfait figure sur notre page Tarifs et dans votre tableau de bord.",
         "WazaBolt est un produit indépendant. Il n'est ni affilié, ni approuvé, ni sponsorisé par WhatsApp ou Meta. WhatsApp est une marque de son propriétaire respectif.",
       ],
     },
@@ -253,6 +256,7 @@ const fr: LegalDoc = {
             "Vous êtes responsable des informations que vous ajoutez à WazaBolt (produits, prix, stock, politiques, notes, frais, messages) et des produits, services et enseignements que vous fournissez. Tenez-les exacts.",
             "Vous êtes responsable de votre relation avec vos clients et, pour une école, avec ses élèves et leurs parents, y compris les livraisons, paiements, remboursements, résultats, bulletins et réclamations.",
             "Pour les données personnelles de vos clients, élèves, parents et employés, vous êtes le responsable du traitement et WazaBolt agit comme votre sous-traitant : nous les traitons uniquement pour fournir le service, selon vos instructions et notre Politique de confidentialité, les gardons confidentielles et sécurisées, n'utilisons que des prestataires soumis aux mêmes obligations, vous aidons à répondre aux demandes des personnes concernées, et les supprimons à la fermeture de votre compte. Une école doit disposer d'une base légale pour les données de ses élèves, souvent mineurs, et pour l'envoi des résultats aux parents.",
+            "Une école est responsable des notes, résultats et bulletins de ses élèves, et décide quand les résultats sont publiés (les notes sont alors verrouillées) et qui les reçoit, par exemple le numéro WhatsApp d'un parent. WazaBolt ne contacte jamais les élèves et n'utilise jamais leurs données à d'autres fins.",
           ],
         },
       ],
@@ -291,7 +295,7 @@ const fr: LegalDoc = {
       id: "ip",
       heading: "11. Propriété intellectuelle",
       body: [
-        "WazaBolt, son logiciel, son design et sa marque appartiennent à WazaBolt. Vous conservez tous les droits sur votre contenu (informations de l'entreprise, photos de produits, notes, documents, messages) et nous autorisez à l'utiliser uniquement pour vous fournir le service.",
+        "WazaBolt, son logiciel, son design et sa marque appartiennent à WazaBolt. Vos données vous appartiennent : vous conservez tous les droits sur votre contenu (informations de l'entreprise, photos de produits, notes, documents, messages), vous pouvez l'exporter à tout moment, y compris en lecture seule, et vous nous autorisez à l'utiliser uniquement pour vous fournir le service.",
       ],
     },
     {

@@ -242,7 +242,7 @@ const fr: Messages = {
           "Votre jeton d'accès est stocké chiffré sur nos serveurs",
         ],
       },
-      ai: "L'assistant IA, qui répondra aux questions courantes et prendra les commandes en français, en anglais et en pidgin, arrive bientôt. Il aura besoin d'un numéro connecté.",
+      ai: "L'assistant IA, qui répondra aux questions courantes et prendra les commandes en français, en anglais et en pidgin, arrive bientôt et n'est pas encore disponible. Il aura besoin d'un numéro connecté. Aucune conversation client n'est envoyée aujourd'hui à un fournisseur d'IA.",
     },
   },
 
@@ -424,7 +424,7 @@ const fr: Messages = {
     notes: {
       trial: "Chaque nouvelle entreprise commence par {days} jours gratuits du forfait Business (École Standard pour les écoles), une fois par propriétaire. Aucun paiement demandé.",
       annual: "Paiement annuel : payez {paid} mois, profitez de 12.",
-      readOnly: "Quand un essai ou un forfait se termine sans paiement, votre entreprise passe en lecture seule : rien n'est supprimé, et vous pouvez toujours consulter et exporter vos données.",
+      readOnly: "Quand un forfait payé se termine sans paiement, vous avez 3 jours de grâce ; ensuite, ou quand un essai se termine sans forfait, votre entreprise passe en lecture seule : rien n'est supprimé, vous pouvez toujours consulter et exporter vos données, et le paiement rétablit votre forfait.",
     },
     perMonth: "/mois",
     perYear: "/an",
@@ -532,7 +532,7 @@ const fr: Messages = {
       title: "Ajoutez l'assistant IA",
       text: "L'assistant WhatsApp répondra à vos clients à votre place : prix, stock, horaires et commandes, de jour comme de nuit. Vous pourrez l'ajouter à n'importe quel forfait.",
       comingSoon: "Bientôt disponible",
-      comingSoonText: "L'assistant IA n'est pas encore disponible. Vous pourrez bientôt l'ajouter à n'importe quel forfait.",
+      comingSoonText: "L'assistant IA arrive bientôt et n'est pas encore disponible. Vous pourrez alors l'ajouter à n'importe quel forfait. Aucune conversation client n'est envoyée aujourd'hui à un fournisseur d'IA.",
       conversations: "{count} conversations clients / mois",
       perMonthExtra: "+{price}/mois",
       addons: {
@@ -572,7 +572,7 @@ const fr: Messages = {
       },
       {
         q: "Faut-il une validation de Meta ou de WhatsApp pour commencer ?",
-        a: "Non. Inscrivez-vous et commencez tout de suite : enregistrez vos ventes, partagez reçus et factures en PDF sur WhatsApp, et laissez vos clients commander depuis votre page boutique en ligne. Connecter un numéro WhatsApp Business officiel (avec l'ID du numéro, l'ID du compte WhatsApp Business et le jeton d'accès fournis par Meta) est facultatif et ajoute la messagerie d'équipe.",
+        a: "Non. Dès le premier jour, vous partagez reçus, factures, devis et bulletins scolaires en PDF sur WhatsApp depuis votre propre téléphone, et vos clients commandent depuis votre page boutique avec « Commander sur WhatsApp ». Connecter un numéro WhatsApp Business officiel via la plateforme WhatsApp Business de Meta (avec l'ID du numéro, l'ID du compte WhatsApp Business et le jeton d'accès) est facultatif : cela ajoute une messagerie d'équipe partagée dans WazaBolt, et le jeton d'accès est stocké chiffré.",
       },
       {
         q: "Mes clients doivent-ils télécharger une appli ?",
@@ -588,7 +588,7 @@ const fr: Messages = {
       },
       {
         q: "Que se passe-t-il à la fin de l'essai gratuit ?",
-        a: "Chaque nouvelle entreprise a 14 jours du forfait Business offerts, une fois par propriétaire. Si vous ne choisissez pas de forfait, votre entreprise passe en lecture seule : rien n'est supprimé, et vous pouvez toujours consulter et exporter vos données.",
+        a: "Chaque nouvelle entreprise commence par 14 jours gratuits du forfait Business (École Standard pour les écoles), sans paiement demandé. C'est un seul essai par propriétaire, quel que soit le nombre d'entreprises créées. Si vous ne choisissez pas de forfait, votre entreprise passe en lecture seule : rien n'est supprimé, vous pouvez toujours consulter et exporter vos données, et le paiement la rétablit. Quand un forfait payé se termine sans paiement, vous avez 3 jours de grâce avant le passage en lecture seule.",
       },
       {
         q: "Quelles langues WazaBolt parle-t-il ?",
@@ -596,7 +596,7 @@ const fr: Messages = {
       },
       {
         q: "L'assistant IA WhatsApp est-il disponible ?",
-        a: "Pas encore : il arrive bientôt. À son lancement, vous pourrez l'ajouter à n'importe quel forfait, avec un nombre de conversations clients par mois. Il répondra uniquement à partir des produits, prix, FAQ et conditions que vous ajoutez, et passera la main à votre équipe quand il ne peut pas confirmer une information.",
+        a: "Pas encore : il arrive bientôt et n'est pas encore disponible, et aucune conversation client n'est envoyée aujourd'hui à un fournisseur d'IA. À son lancement, vous pourrez l'ajouter à n'importe quel forfait, avec un nombre de conversations clients par mois. Il répondra uniquement à partir des produits, prix, FAQ et conditions que vous ajoutez, et passera la main à votre équipe quand il ne peut pas confirmer une information.",
       },
       {
         q: "WazaBolt est-il réservé au Cameroun ?",
@@ -664,6 +664,7 @@ const fr: Messages = {
       writeUs: "Nous écrire",
       address: "Adresse",
       openMap: "Ouvrir dans Google Maps",
+      company: "Entreprise :",
       existingCustomer: "Déjà client de WazaBolt ? Indiquez le nom de votre entreprise pour que nous retrouvions votre compte rapidement.",
     },
     about: {
@@ -734,11 +735,11 @@ const fr: Messages = {
         lead: "Les enseignants saisissent leurs notes, l'école vérifie et publie les résultats, et les bulletins sortent en PDF, prêts à imprimer ou à envoyer aux parents.",
         features: [
           { title: "Élèves, classes et matières", text: "Inscrivez les élèves dans leurs classes, définissez les matières et leurs coefficients, et organisez l'année en trimestres et évaluations." },
-          { title: "Des notes saisies par les enseignants", text: "Chaque enseignant a un compte gratuit et ne saisit que les notes de ses classes et matières. Chaque modification est enregistrée." },
+          { title: "Des notes saisies par les enseignants", text: "Jusqu'à 30 comptes enseignants gratuits. Chaque enseignant ne saisit que les notes de ses classes et matières et ne voit jamais les frais. Chaque modification est enregistrée." },
           { title: "Vos règles de notation", text: "Notes sur 20 ou sur 100, coefficients, évaluations pondérées et mentions, calculées de la même façon à chaque fois." },
-          { title: "Des résultats publiés quand vous êtes prêts", text: "Vérifiez les résultats, puis publiez-les. Les parents ne voient les résultats qu'après leur publication par l'école." },
-          { title: "Des bulletins en PDF", text: "Un bulletin par élève, ou toute une classe dans un seul PDF avec les forfaits payants, en français ou en anglais." },
-          { title: "Frais de scolarité avec factures et reçus", text: "Facturez les frais par élève, enregistrez ce que paient les parents et remettez un reçu pour chaque paiement." },
+          { title: "Des résultats publiés quand vous êtes prêts", text: "Vérifiez les résultats, puis publiez-les : les notes sont verrouillées une fois publiées. Les parents ne voient les résultats qu'après leur publication par l'école." },
+          { title: "Des bulletins en PDF, envoyés sur WhatsApp", text: "Un bulletin par élève, ou toute une classe dans un seul PDF, en français ou en anglais, envoyé aux parents sur WhatsApp." },
+          { title: "Frais de scolarité et soldes", text: "Facturez les frais par élève, enregistrez ce que paient les parents, remettez un reçu pour chaque paiement, et voyez le solde de chaque élève et de chaque parent." },
         ],
         faq: [
           { q: "Les parents ont-ils besoin d'un compte ?", a: "Non. Les parents reçoivent les résultats de l'école : un bulletin imprimé, ou un PDF sur WhatsApp envoyé par l'école." },
@@ -755,7 +756,7 @@ const fr: Messages = {
         lead: "Ouvrez une addition pour chaque table, envoyez chaque tournée à l'écran cuisine, ajoutez suppléments et remarques, et clôturez l'addition une fois payée. Vos clients peuvent aussi commander sur WhatsApp.",
         features: [
           { title: "Des additions ouvertes par table", text: "Les serveurs ajoutent les plats à l'addition de la table, tournée après tournée. Le total est toujours à jour." },
-          { title: "Un écran pour la cuisine", text: "Chaque tournée s'affiche sur l'écran cuisine, qui se met à jour tout seul. Les cuisiniers indiquent les plats en préparation et prêts." },
+          { title: "Un écran pour la cuisine", text: "Chaque tournée s'affiche sur l'écran cuisine, qui se met à jour tout seul. Les cuisiniers indiquent les plats en préparation et prêts. Jusqu'à 10 comptes cuisine gratuits, en plus des utilisateurs du forfait." },
           { title: "Suppléments et remarques", text: "Les suppléments payants, comme un œuf ou du plantain en plus, et les remarques comme « sans piment » partent en cuisine avec le plat." },
           { title: "À emporter et livraison", text: "Prenez les commandes à emporter ou à livrer à côté des tables, au même endroit." },
           { title: "Paiements et addition", text: "Imprimez l'addition, encaissez plusieurs paiements pour une table et clôturez l'addition quand elle est entièrement payée." },
@@ -822,7 +823,7 @@ const fr: Messages = {
       { q: "Combien coûte WazaBolt {inCountry} ?", a: "Boutique {p1}, Business {p2} et Multi-boutique {p3} par mois, payés en dollars US. À l'année, 2 mois sont offerts. Chaque nouvelle entreprise a 14 jours gratuits, sans payer." },
       { q: "Comment payer depuis {theCountry} ?", a: "Par virement bancaire en dollars US. Envoyez une demande depuis la page Facturation, l'équipe WazaBolt vous envoie les coordonnées bancaires, et votre forfait démarre dès que le paiement arrive. Pas besoin de carte." },
       { q: "Est-ce que ça marche avec une connexion faible ?", a: "Oui. WazaBolt marche dans le navigateur de tous les téléphones, même avec une connexion lente, et vos données sont enregistrées en ligne." },
-      { q: "L'assistant IA WhatsApp est-il disponible {inCountry} ?", a: "Pas encore : il arrive bientôt. Aujourd'hui, vos clients peuvent déjà commander sur WhatsApp depuis votre page boutique." },
+      { q: "L'assistant IA WhatsApp est-il disponible {inCountry} ?", a: "Pas encore : il arrive bientôt et n'est pas encore disponible, et aucune conversation client n'est envoyée aujourd'hui à un fournisseur d'IA. Vos clients peuvent déjà commander sur WhatsApp depuis votre page boutique." },
     ],
     otherCountries: "WazaBolt dans d'autres pays",
     cameroon: "Cameroun",

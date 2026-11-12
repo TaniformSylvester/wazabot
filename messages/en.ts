@@ -245,7 +245,7 @@ const en = {
           "Your access token is stored encrypted on our servers",
         ],
       },
-      ai: "The AI assistant, which will answer common questions and take orders in English, French and Pidgin, is coming soon. It will need a connected number.",
+      ai: "The AI assistant, which will answer common questions and take orders in English, French and Pidgin, is coming soon and not yet available. It will need a connected number. No customer conversation is sent to an AI provider today.",
     },
   },
 
@@ -426,7 +426,7 @@ const en = {
     notes: {
       trial: "Every new business starts with {days} days of the Business plan free (School Standard for schools), once per owner. No payment needed.",
       annual: "Annual billing: pay {paid} months, get 12.",
-      readOnly: "When a trial or plan ends unpaid, your business becomes read-only: nothing is deleted, and you can still view and export your data.",
+      readOnly: "When a paid plan ends unpaid, you get 3 days of grace; after that, or when a trial ends without a plan, your business becomes read-only: nothing is deleted, you can still view and export your data, and paying restores your plan.",
     },
     perMonth: "/month",
     perYear: "/year",
@@ -534,7 +534,7 @@ const en = {
       title: "Add the AI assistant",
       text: "The WhatsApp assistant will answer your customers for you: prices, stock, opening hours and orders, day and night. You'll be able to add it to any plan.",
       comingSoon: "Coming soon",
-      comingSoonText: "The AI assistant isn't available yet. When it is, you'll be able to add it to any plan.",
+      comingSoonText: "The AI assistant is coming soon and not yet available. When it is, you'll be able to add it to any plan. No customer conversation is sent to an AI provider today.",
       conversations: "{count} customer conversations / month",
       perMonthExtra: "+{price}/month",
       addons: {
@@ -573,7 +573,7 @@ const en = {
       },
       {
         q: "Do I need Meta or WhatsApp approval to start?",
-        a: "No. Sign up and start straight away: record sales, share PDF receipts and invoices on WhatsApp, and let customers order from your online shop page. Connecting an official WhatsApp Business number (with the Phone Number ID, WhatsApp Business Account ID and access token from Meta) is optional and adds the shared team inbox.",
+        a: "No. From day one you share PDF receipts, invoices, quotations and school report cards on WhatsApp from your own phone, and customers order from your online shop page with Order on WhatsApp. Connecting an official WhatsApp Business number through Meta's WhatsApp Business Platform (with the Phone Number ID, WhatsApp Business Account ID and access token) is optional: it adds one shared team inbox inside WazaBolt, and the access token is stored encrypted.",
       },
       {
         q: "Do my customers need to download an app?",
@@ -589,7 +589,7 @@ const en = {
       },
       {
         q: "What happens when my free trial ends?",
-        a: "Every new business gets 14 days of the Business plan free, once per owner. If you don't choose a plan, your business becomes read-only: nothing is deleted, and you can still view and export your data.",
+        a: "Every new business starts with 14 days of the Business plan free (School Standard for schools), with no payment needed. It's one trial per owner, however many businesses you create. If you don't choose a plan, your business becomes read-only: nothing is deleted, you can still view and export your data, and paying restores it. When a paid plan ends unpaid, you get 3 days of grace before it becomes read-only.",
       },
       {
         q: "Which languages does WazaBolt speak?",
@@ -597,7 +597,7 @@ const en = {
       },
       {
         q: "Is the WhatsApp AI assistant available now?",
-        a: "Not yet: it's coming soon. When it launches, you'll be able to add it to any plan, with a set number of customer conversations each month. It will answer only from the products, prices, FAQs and policies you add, and hand the conversation to your team when it can't confirm something.",
+        a: "Not yet: it's coming soon and not yet available, and no customer conversation is sent to an AI provider today. When it launches, you'll be able to add it to any plan, with a set number of customer conversations each month. It will answer only from the products, prices, FAQs and policies you add, and hand the conversation to your team when it can't confirm something.",
       },
       {
         q: "Is WazaBolt only for Cameroon?",
@@ -665,6 +665,7 @@ const en = {
       writeUs: "Write to us",
       address: "Address",
       openMap: "Open in Google Maps",
+      company: "Company:",
       existingCustomer: "Already using WazaBolt? Include your business name so we can find your account quickly.",
     },
     about: {
@@ -735,11 +736,11 @@ const en = {
         lead: "Teachers enter their marks, the school checks and publishes the results, and report cards come out as PDF, ready to print or send to parents.",
         features: [
           { title: "Students, classes and subjects", text: "Enrol students in their classes, set the subjects with their coefficients, and organise the year into terms and assessments." },
-          { title: "Marks entered by teachers", text: "Each teacher gets a free account and enters marks only for their own classes and subjects. Every change is recorded." },
+          { title: "Marks entered by teachers", text: "Up to 30 free teacher accounts. Each teacher enters marks only for their own classes and subjects and never sees fees. Every change is recorded." },
           { title: "Your grading rules", text: "Marks out of 20 or out of 100, coefficients, weighted assessments and grade boundaries, calculated the same way every time." },
-          { title: "Results published when you are ready", text: "Check the results, then publish them. Parents only see results after the school publishes them." },
-          { title: "Report cards in PDF", text: "One report card per student, or a whole class in one PDF on paid plans, in English or French." },
-          { title: "School fees with invoices and receipts", text: "Bill fees per student, record what parents pay, and give a receipt for every payment." },
+          { title: "Results published when you are ready", text: "Check the results, then publish them: marks lock once published. Parents only see results after the school publishes them." },
+          { title: "Report cards in PDF, sent on WhatsApp", text: "One report card per student, or a whole class in one PDF, in English or French, sent to parents on WhatsApp." },
+          { title: "School fees and balances", text: "Bill fees per student, record what parents pay, give a receipt for every payment, and see each student's and each parent's balance." },
         ],
         faq: [
           { q: "Do parents need an account?", a: "No. Parents receive results from the school: a printed report card, or a PDF on WhatsApp sent by the school." },
@@ -756,7 +757,7 @@ const en = {
         lead: "Open a bill for each table, send each round to the kitchen screen, add extras and notes, and close the bill once it is paid. Customers can also order on WhatsApp.",
         features: [
           { title: "Open bills per table", text: "Waiters add dishes to the table's bill round after round. The total is always up to date." },
-          { title: "A screen for the kitchen", text: "Each round appears on the kitchen screen, which refreshes on its own. Cooks mark dishes as being prepared and ready." },
+          { title: "A screen for the kitchen", text: "Each round appears on the kitchen screen, which refreshes on its own. Cooks mark dishes as being prepared and ready. Up to 10 free kitchen accounts, on top of your plan's users." },
           { title: "Extras and notes", text: "Priced extras like an extra egg or plantain, and notes like “no pepper”, go straight to the kitchen with the dish." },
           { title: "Takeaway and delivery", text: "Take orders to go or for delivery next to the dine-in tables, all in the same place." },
           { title: "Payments and the bill", text: "Print the bill, take several payments for one table, and close the bill when it is paid in full." },
@@ -823,7 +824,7 @@ const en = {
       { q: "How much does WazaBolt cost {inCountry}?", a: "Boutique {p1}, Business {p2} and Multi-shop {p3} a month, paid in US dollars. Pay yearly and get 2 months free. Every new business gets 14 days free, with no payment." },
       { q: "How do I pay from {theCountry}?", a: "By bank transfer in US dollars. Send a request on the Billing page, the WazaBolt team sends you the bank details, and your plan starts as soon as the payment arrives. You don't need a card." },
       { q: "Does it work on a weak connection?", a: "Yes. WazaBolt works in the browser of any phone, even on a slow connection, and your records are saved online." },
-      { q: "Is the WhatsApp AI assistant available {inCountry}?", a: "Not yet: it's coming soon. Today, customers can already order on WhatsApp from your shop page." },
+      { q: "Is the WhatsApp AI assistant available {inCountry}?", a: "Not yet: it's coming soon and not yet available, and no customer conversation is sent to an AI provider today. Customers can already order on WhatsApp from your shop page." },
     ],
     otherCountries: "WazaBolt in other countries",
     cameroon: "Cameroon",

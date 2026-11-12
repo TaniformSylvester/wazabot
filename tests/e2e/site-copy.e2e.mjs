@@ -39,7 +39,7 @@ const text = async (path) => {
     ok("home: the AI assistant is coming soon, never presented as live", /A WhatsApp AI assistant is coming soon/.test(home) && /AI assistant · coming soon/.test(home) && /Coming soon: the AI assistant/.test(home) && !/AI Business Assistant on WhatsApp/.test(home) && !/its AI assistant answers customer questions/.test(home));
     ok("home: shops, restaurants and schools as three cards, with 10 free kitchen and 30 free teacher accounts", /data-testid="core-verticals"/.test(homeHtml) && /Shops &amp; boutiques|Shops & boutiques/.test(home) && /up to 10 free kitchen accounts/.test(home) && /up to 30 free teacher accounts/.test(home));
     ok("home: the menu has Shops, Restaurants and Schools", /href="\/en\/solutions\/retail"[^>]*>Shops</.test(homeHtml) && /href="\/en\/solutions\/restaurants"[^>]*>Restaurants</.test(homeHtml) && /href="\/en\/schools"[^>]*>Schools</.test(homeHtml));
-    ok("home: the contact phone is +237 651 57 59 33, the company is registered (RCCM)", /\+237 651 57 59 33/.test(home) && /RCCM RC\/BDA\/2026\/A\/000590/.test(home) && /WazaBolt ENTERPRISE · RCCM/.test(home) && !/SYLVESTER WANKA TANIFORM/.test(home) && /Mawa Hotel Junction, opposite Mawa Hotel, Mile 6 Nkwen, Bamenda III, Cameroon/.test(home) && !/675 12 98 68/.test(home));
+    ok("home: the contact phone is +237 651 57 59 33, the company is registered (RCCM)", /\+237 651 57 59 33/.test(home) && /RCCM RC\/BDA\/2026\/A\/000590/.test(home) && /WazaBolt ENTERPRISE, Bamenda, Cameroon \(RCCM RC\/BDA\/2026\/A\/000590\)/.test(home) && !/SYLVESTER WANKA TANIFORM/.test(home) && /Mawa Hotel Junction, opposite Mawa Hotel, Mile 6 Nkwen, Bamenda III, Cameroon/.test(home) && !/675 12 98 68/.test(home));
     ok("home: contact@wazabolt.com in the footer", /contact@wazabolt\.com/.test(home));
     ok("home: Facebook and Instagram in the footer", /facebook\.com\/profile\.php\?id=61594928852496/.test(homeHtml) && /instagram\.com\/wazabolt/.test(homeHtml));
     const { text: homeFr } = await text("/fr");
@@ -51,17 +51,30 @@ const text = async (path) => {
       ok(`schools (${locale}): the school menu links back to the WazaBolt home page`, new RegExp(`aria-label="${label}"[^>]*data-testid="school-main-site" href="/${locale}">`).test(schools));
     }
 
+    // ------------------------------------------------------------ the company, named the same way everywhere
+    const company = /WazaBolt ENTERPRISE, Bamenda, Cameroon \(RCCM RC\/BDA\/2026\/A\/000590\)/;
+    for (const path of ["/en/contact", "/fr/contact", "/en/terms", "/fr/terms", "/en/privacy", "/fr/privacy"]) {
+      const { text: page } = await text(path);
+      ok(`${path}: the company as "WazaBolt ENTERPRISE, Bamenda, Cameroon (RCCM …)", with the Mawa Hotel address`, company.test(page) && /Mawa Hotel Junction, opposite Mawa Hotel, Mile 6 Nkwen, Bamenda III, Cameroon/.test(page) && /\+237 651 57 59 33/.test(page) && !/SYLVESTER WANKA TANIFORM/.test(page));
+    }
+
+    // ------------------------------------------------------------ the verticals' pages
+    const { text: resto } = await text("/en/solutions/restaurants");
+    ok("restaurants: kitchen screen with up to 10 free kitchen accounts, tables and open bills", /kitchen screen/.test(resto) && /Up to 10 free kitchen accounts/.test(resto) && /Open bills per table/.test(resto));
+    const { text: schoolPage } = await text("/en/schools");
+    ok("schools: 30 free teachers who never see fees, marks lock once published, report cards sent on WhatsApp, balances", /30 free teacher accounts|Up to 30 teachers/.test(schoolPage) && /never see(s)? fees/.test(schoolPage) && /marks lock once published/.test(schoolPage) && /sent to parents on WhatsApp|send them to parents on WhatsApp/.test(schoolPage) && /balance/.test(schoolPage));
+
     // ------------------------------------------------------------ how it works
     const { text: how } = await text("/en/how-it-works");
     ok("how it works: no Meta approval to start; connecting a number (Phone Number ID, WABA ID, access token) adds the team inbox", /no Meta approval needed to start/.test(how) && /Without connecting a number/.test(how) && /Phone Number ID, WhatsApp Business Account ID and access token/.test(how) && /shared team inbox/.test(how) && /stored encrypted/.test(how));
-    ok("how it works: the AI sections are labelled coming soon", /is coming soon\. It will need a connected number/.test(how) && /Coming soon: the AI assistant/.test(how) && /the AI assistant is not available yet/.test(how));
+    ok("how it works: the AI sections are labelled coming soon", /is coming soon and not yet available\. It will need a connected number\. No customer conversation is sent to an AI provider today/.test(how) && /Coming soon: the AI assistant/.test(how) && /the AI assistant is not available yet/.test(how));
     const { text: howFr } = await text("/fr/how-it-works");
     ok("how it works (fr): « sans validation de Meta », the two ways", /Aucune validation de Meta|aucune validation de Meta/.test(howFr) && /Sans connecter de numéro/.test(howFr) && /Avec votre numéro WhatsApp Business connecté/.test(howFr));
 
     // ------------------------------------------------------------ FAQ: payments by hand
     // The answers open in place (an accordion) and are in the page's FAQ data for search engines.
     const { html: faq } = await text("/en/faq");
-    ok("FAQ: till payments recorded by hand; plans switched on by hand, usually the same day; read-only after the trial", /recorded by your team/.test(faq) && /switches your plan on by hand, usually the same day/.test(faq) && /read-only/.test(faq) && /Do I need Meta or WhatsApp approval to start\?/.test(faq));
+    ok("FAQ: till payments recorded by hand; plans switched on by hand, usually the same day; read-only after the trial", /recorded by your team/.test(faq) && /switches your plan on by hand, usually the same day/.test(faq) && /read-only/.test(faq) && /3 days of grace/.test(faq) && /one trial per owner, however many businesses/.test(faq) && /no customer conversation is sent to an AI provider today/.test(faq) && /one shared team inbox/.test(faq) && /Do I need Meta or WhatsApp approval to start\?/.test(faq));
 
     // ------------------------------------------------------------ terms
     for (const [locale, checks] of [

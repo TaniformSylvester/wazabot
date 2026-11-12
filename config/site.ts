@@ -63,6 +63,9 @@ export const siteConfig = {
 } as const;
 
 /** Nav labels are keys of `common.nav` in the dictionaries; hrefs are locale-free (localized at render). */
+/** The company as named across the site (footer, contact page, Terms and Privacy): "WazaBolt ENTERPRISE, Bamenda, Cameroon (RCCM …)". */
+export const companyLine = [siteConfig.legal.tradeName ?? siteConfig.legal.entityName ?? siteConfig.name, "Bamenda, Cameroon"].join(", ") + (siteConfig.legal.rccm ? ` (RCCM ${siteConfig.legal.rccm})` : "");
+
 export type NavKey = "home" | "features" | "howItWorks" | "pricing" | "solutions" | "shops" | "restaurants" | "schools" | "faq" | "about" | "contact" | "resources" | "privacy" | "terms" | "documentTool";
 export type NavItem = { key: NavKey; href: string };
 

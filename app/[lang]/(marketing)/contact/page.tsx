@@ -1,7 +1,7 @@
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { PageIntro } from "@/components/marketing/page-intro";
-import { siteConfig } from "@/config/site";
+import { companyLine, siteConfig } from "@/config/site";
 import { getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
 
@@ -39,7 +39,10 @@ export default async function ContactPage() {
             </li>
           ))}
         </ul>
-        <p className="type-small mt-8 max-w-2xl text-slate">{t.existingCustomer}</p>
+        <p className="type-small mt-8 text-deep" data-testid="contact-company">
+          <span className="font-semibold">{t.company}</span> {companyLine} · {c.address}
+        </p>
+        <p className="type-small mt-2 max-w-2xl text-slate">{t.existingCustomer}</p>
       </section>
     </>
   );
