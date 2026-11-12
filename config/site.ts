@@ -41,6 +41,8 @@ export const siteConfig = {
   legal: {
     /** Registered name, as on the taxpayer record (sole proprietorship; trade name on the RCCM certificate: WazaBolt ENTERPRISE). */
     entityName: "SYLVESTER WANKA TANIFORM (WazaBolt ENTERPRISE)" as string | null,
+    /** The trade name on the RCCM certificate, shown in the site footer. */
+    tradeName: "WazaBolt ENTERPRISE" as string | null,
     /** Trade register number (RCCM), Court of First Instance, Bamenda, 15 Oct 2026. */
     rccm: "RC/BDA/2026/A/000590" as string | null,
     /** Taxpayer number (NIU). */
