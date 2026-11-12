@@ -109,7 +109,7 @@ const en = {
       mobile: "Mobile",
       skipToContent: "Skip to content",
     },
-    schoolNav: { badge: "Schools", home: "WazaBolt Schools home", how: "How it works", features: "Features", plans: "Plans", faq: "Questions", start: "Start free trial", startShort: "Start free" },
+    schoolNav: { badge: "Schools", home: "WazaBolt Schools home", mainSite: "WazaBolt home", mainSiteShort: "Home", how: "How it works", features: "Features", plans: "Plans", faq: "Questions", start: "Start free trial", startShort: "Start free" },
     footer: { product: "Product", company: "Company", legal: "Legal", follow: "Follow WazaBolt", countries: "Countries" },
     status: {
       aiOnline: "AI Online",

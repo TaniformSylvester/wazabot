@@ -45,6 +45,12 @@ const text = async (path) => {
     const { text: homeFr } = await text("/fr");
     ok("home (fr): the same positioning, the assistant « bientôt »", /Gérez votre boutique, votre restaurant ou votre école/.test(homeFr) && /Un assistant IA WhatsApp arrive bientôt/.test(homeFr) && /Assistant IA · bientôt disponible/.test(homeFr) && /Boutiques/.test(homeFr) && /Écoles/.test(homeFr));
 
+    // ------------------------------------------------------------ the schools page has a way back
+    for (const [locale, label] of [["en", "WazaBolt home"], ["fr", "Accueil WazaBolt"]]) {
+      const { html: schools } = await text(`/${locale}/schools`);
+      ok(`schools (${locale}): the school menu links back to the WazaBolt home page`, new RegExp(`aria-label="${label}"[^>]*data-testid="school-main-site" href="/${locale}">`).test(schools));
+    }
+
     // ------------------------------------------------------------ how it works
     const { text: how } = await text("/en/how-it-works");
     ok("how it works: no Meta approval to start; connecting a number (Phone Number ID, WABA ID, access token) adds the team inbox", /no Meta approval needed to start/.test(how) && /Without connecting a number/.test(how) && /Phone Number ID, WhatsApp Business Account ID and access token/.test(how) && /shared team inbox/.test(how) && /stored encrypted/.test(how));

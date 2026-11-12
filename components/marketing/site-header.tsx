@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Menu } from "lucide-react";
+import { ArrowLeft, ArrowRight, Menu } from "lucide-react";
 
 import { WazaBoltLogo } from "@/components/brand/logo";
 import { useI18n } from "@/components/i18n/i18n-provider";
@@ -49,6 +49,17 @@ export function SiteHeader() {
   const active = (h: string) => !school && isActive(splitLocale(h).path);
   const homeHref = school ? href("/schools") : href("/");
   const registerHref = school ? `${href("/register")}?type=schools` : href("/register");
+  // The way back from the school-only menu to the main site (shops, restaurants, the home page).
+  const mainSite = school ? (
+    <Link href={href("/")} aria-label={sn.mainSite} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-deep/80 transition-colors hover:border-waza-500 hover:text-waza-700" data-testid="school-main-site">
+      <ArrowLeft className="size-4" aria-hidden />
+      {/* Short label where the desktop menu is tight (1280–1439 px), the full one elsewhere (phones' menu included). */}
+      <span className="xl:max-[1439px]:hidden">{sn.mainSite}</span>
+      <span className="hidden xl:max-[1439px]:inline" aria-hidden>
+        {sn.mainSiteShort}
+      </span>
+    </Link>
+  ) : null;
   const badge = school ? (
     <span className="rounded-full bg-mint px-2.5 py-0.5 font-display text-sm font-bold text-waza-700" data-testid="school-badge">
       {sn.badge}
@@ -77,7 +88,8 @@ export function SiteHeader() {
           {badge}
         </Link>
 
-        <nav aria-label={t.common.nav.main} className="hidden xl:block" data-testid={school ? "school-nav" : undefined}>
+        <nav aria-label={t.common.nav.main} className="hidden xl:flex xl:items-center xl:gap-3" data-testid={school ? "school-nav" : undefined}>
+          {mainSite}
           <ul className="flex items-center xl:gap-1">
             {nav.map((item) => (
               // The logo links home, so "Home" only appears once there is room for it.
@@ -124,7 +136,8 @@ export function SiteHeader() {
                 {badge}
               </span>
               <nav aria-label={t.common.nav.mobile} className="mt-6">
-                <ul className="flex flex-col gap-1">
+                {mainSite ? <SheetClose asChild>{mainSite}</SheetClose> : null}
+                <ul className={cn("flex flex-col gap-1", mainSite && "mt-4")}>
                   {nav.map((item) => (
                     <li key={item.href}>
                       <SheetClose asChild>

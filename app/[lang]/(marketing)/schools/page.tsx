@@ -41,7 +41,7 @@ export default async function SchoolsPage() {
       <PageIntro eyebrow={s.brand} title={s.title} description={s.lead} />
       <div className="container-page flex flex-col items-center gap-3 pb-4">
         <div className="flex flex-col items-center gap-3 sm:flex-row">
-          <Button asChild size="lg" className="group">
+          <Button asChild size="lg" className="group h-auto min-h-12 max-w-full whitespace-normal py-3 text-center leading-snug">
             <Link href={register} data-testid="schools-start">
               {s.start}
               <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
