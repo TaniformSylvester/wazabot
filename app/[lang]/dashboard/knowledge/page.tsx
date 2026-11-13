@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { BookOpen, FileText, Plus, Search } from "lucide-react";
 
+import { AiComingSoon } from "@/components/app/ai-coming-soon";
+import { aiLaunchedForPublicPages } from "@/lib/billing/ai-flag";
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, DeleteButton } from "@/components/app/form";
 import { EmptyState, LinkTabs, PageHeader, Panel, StatusBadge, buttonLink, formatDate, param, secondaryLink } from "@/components/app/ui";
@@ -22,7 +24,7 @@ export default async function KnowledgePage({ searchParams }: PageProps<"/[lang]
   const k = d.knowledge;
   const tab = param(sp.tab) === "documents" ? "documents" : "faqs";
   const q = param(sp.q);
-  const [faqs, docs] = await Promise.all([listFaqs(business.id, tab === "faqs" ? q : undefined), listDocuments(business.id, tab === "documents" ? q : undefined)]);
+  const [faqs, docs, aiLaunched] = await Promise.all([listFaqs(business.id, tab === "faqs" ? q : undefined), listDocuments(business.id, tab === "documents" ? q : undefined), aiLaunchedForPublicPages()]);
   const canEdit = canManageBusiness(business.role);
   const href = (p: string) => localizePath(locale, p);
   const newHref = href(tab === "faqs" ? "/dashboard/knowledge/faqs/new" : "/dashboard/knowledge/documents/new");
@@ -42,6 +44,7 @@ export default async function KnowledgePage({ searchParams }: PageProps<"/[lang]
           ) : null
         }
       />
+      {aiLaunched ? null : <AiComingSoon badge={d.aiComingSoon.badge} text={d.aiComingSoon.text} />}
       {param(sp.saved) ? <FormAlert tone="success">{k.saved}</FormAlert> : null}
       <LinkTabs
         active={tab}

@@ -1144,10 +1144,10 @@ const en = {
       privacy: "Nothing you type is saved: the PDF is made and sent straight to you.",
       remember: "Remember my business details on this device",
       banner: {
-        title: "Making invoices every day? Let WazaBolt keep the records for you.",
-        text: "With a free WazaBolt account, every document is saved with your customer, and balances update on their own.",
+        title: "Want to automatically save customer balances, track credit, and send receipts straight to WhatsApp?",
+        text: "Start your 14-day free WazaBolt trial: every document is saved with your customer, and balances update on their own.",
         points: ["Customer balances saved automatically", "Credit and part payments tracked", "Stock goes down with every sale", "Receipts sent on WhatsApp in one tap"],
-        cta: "Start your 14-day free trial",
+        cta: "Start your 14-day free WazaBolt trial",
         note: "No payment needed. Your free generator stays free.",
       },
     },
@@ -3396,6 +3396,22 @@ const en = {
         label: "I understand: WhatsApp (Meta) may charge my business directly for some messages. These fees are separate from WazaBolt.",
         hint: "Meta bills your business itself, on the payment method in your Meta account. WazaBolt never charges you for them.",
       },
+      howToPay: {
+        title: "How paying works",
+        description: "Nothing is charged automatically: you pay the WazaBolt team, and we switch your plan on by hand.",
+        xaf: [
+          "Choose your plan below and send the request.",
+          "Pay the WazaBolt team by MTN Mobile Money or Orange Money. We confirm the amount and the number with you.",
+          "The WazaBolt team checks the payment and switches your plan on by hand, usually the same day.",
+        ],
+        usd: [
+          "Choose your plan below and send the request (Nigeria, South Africa, Ghana, Kenya, Zimbabwe and other countries outside Cameroon).",
+          "Pay by bank transfer in US dollars, to the bank details on this page (or the ones we send you), with your business name as the reference.",
+          "The WazaBolt team checks that the transfer arrived and switches your plan on by hand, usually the same day.",
+        ],
+        tillXaf: "Payments at your till (cash, MTN MoMo, Orange Money, bank transfer, card or credit) are different: your team records them, and WazaBolt doesn't check them with MTN, Orange or the bank.",
+        tillUsd: "Payments at your till (cash, mobile wallets, bank transfer, card or credit) are different: your team records them, and WazaBolt doesn't check them with your bank or operator.",
+      },
       change: {
         title: "Choose or change your plan",
         description: "Choose a plan and how we can reach you. You pay the WazaBolt team by MTN Mobile Money or Orange Money, and we switch it on once it's paid. Nothing is charged here.",
@@ -3449,8 +3465,26 @@ const en = {
       payments: { title: "Payments", none: "No payments recorded yet.", date: "Date", plan: "For", amount: "Amount", reference: "Reference", period: "Period", kinds: { plan: "Plan", topup: "AI top-up", setup_fee: "Setup fee" } },
     },
 
+    aiComingSoon: {
+      badge: "Coming soon",
+      text: "The WhatsApp AI assistant isn't active yet, and no customer conversation is sent to an AI provider today. What you prepare here is saved, and goes live as soon as the assistant launches.",
+    },
     settings: {
       title: "Settings",
+      aiKnowledge: {
+        title: "AI knowledge & personality",
+        description: "Prepare the WhatsApp AI assistant ahead of time: the answers it will give and how it will sound.",
+        faqs: "Questions and answers",
+        faqsCount: "{count} saved",
+        documents: "Services, policies and other information",
+        documentsCount: "{count} saved",
+        personality: "Personality and languages",
+        personalityText: "Tone, reply length and languages",
+        addFaq: "Add a question",
+        addDocument: "Add services or a policy",
+        open: "Open",
+        readOnly: "Only the owner or an admin can change what the assistant will know.",
+      },
       modules: {
         title: "Modules",
         description: "The parts of WazaBolt this business uses. Turning one off hides it from the menu; nothing is deleted.",

@@ -24,6 +24,8 @@ import { localizePath } from "@/lib/i18n/paths";
 import { setModule } from "@/lib/actions/school";
 import { MODULES, getBusinessModules } from "@/lib/modules";
 import { createClient } from "@/lib/supabase/server";
+import { listDocuments, listFaqs } from "@/lib/data/queries";
+import { aiLaunchedForPublicPages } from "@/lib/billing/ai-flag";
 
 export const generateMetadata = dashboardMetadata((d) => d.settings.title);
 
@@ -43,7 +45,8 @@ export default async function SettingsPage() {
   const shopUrl = `${siteConfig.url.replace(/\/$/, "")}/s/${business.slug}`;
   const shopOn = !!receipt?.shop_enabled;
   const sh = s.shop;
-  const modules = await getBusinessModules(business);
+  const [modules, faqs, knowledgeDocs, aiLaunched] = await Promise.all([getBusinessModules(business), listFaqs(business.id), listDocuments(business.id), aiLaunchedForPublicPages()]);
+  const ak = s.aiKnowledge;
   const bt = businessProfileText(d.business, modules.includes("school") && !modules.includes("commerce"));
 
   return (
@@ -86,6 +89,40 @@ export default async function SettingsPage() {
         </ul>
         <p className="mt-3 text-xs text-slate">{s.modules.note}</p>
       </Panel>
+
+      {modules.includes("ai") ? (
+        <Panel
+          id="ai-knowledge"
+          title={ak.title}
+          description={ak.description}
+          actions={aiLaunched ? null : <StatusBadge tone="amber">{d.aiComingSoon.badge}</StatusBadge>}
+        >
+          {aiLaunched ? null : <p className="mb-4 text-sm text-slate" data-testid="ai-knowledge-note">{d.aiComingSoon.text}</p>}
+          <ul className="grid gap-3 sm:grid-cols-3" data-testid="ai-knowledge">
+            {[
+              { label: ak.faqs, hint: format(ak.faqsCount, { count: faqs.length }), href: "/dashboard/knowledge?tab=faqs", add: { label: ak.addFaq, href: "/dashboard/knowledge/faqs/new" } },
+              { label: ak.documents, hint: format(ak.documentsCount, { count: knowledgeDocs.length }), href: "/dashboard/knowledge?tab=documents", add: { label: ak.addDocument, href: "/dashboard/knowledge/documents/new" } },
+              { label: ak.personality, hint: ak.personalityText, href: "/dashboard/ai", add: null },
+            ].map((item) => (
+              <li key={item.href} className="flex flex-col gap-1 rounded-xl border border-border p-4">
+                <p className="font-semibold text-deep">{item.label}</p>
+                <p className="text-sm text-slate">{item.hint}</p>
+                <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
+                  <Link href={localizePath(locale, item.href)} className="text-waza-700 hover:underline">
+                    {ak.open}
+                  </Link>
+                  {item.add && canEdit ? (
+                    <Link href={localizePath(locale, item.add.href)} className="text-waza-700 hover:underline">
+                      {item.add.label}
+                    </Link>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!canEdit ? <p className="mt-3 text-xs text-slate">{ak.readOnly}</p> : null}
+        </Panel>
+      ) : null}
 
       <Panel id="business" title={bt.title} description={bt.description}>
         {!canEdit ? <FormAlert tone="info" className="mb-4">{d.common.readOnly}</FormAlert> : null}

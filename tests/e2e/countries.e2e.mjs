@@ -206,8 +206,30 @@ mkdirSync("test-results", { recursive: true });
     await page3.goto(`${APP}/en/dashboard/products`);
     ok("prices in shillings show in whole units (250 KES)", (await page3.locator("main").getByText("250 KES").count()) >= 1);
     await page3.goto(`${APP}/en/dashboard/billing`);
+    ok("billing (Kenya): how paying works — bank transfer in US dollars, switched on by hand; no Mobile Money", /bank transfer in US dollars/.test(await page3.getByTestId("how-to-pay").innerText()) && /by hand, usually the same day/.test(await page3.getByTestId("how-to-pay").innerText()) && !/Mobile Money/.test(await page3.getByTestId("how-to-pay").innerText()));
     ok("billing: a Kenyan business pays its plan in US dollars by bank transfer", /prices are in USD, paid by bank transfer/.test(await page3.getByTestId("other-country").innerText()));
     ok("…$5, $12 and $25 a month, like Zimbabwe", /5\.00 USD\/month/.test(await page3.getByTestId("billing-plan-boutique").innerText()) && /12\.00 USD\/month/.test(await page3.getByTestId("billing-plan-business").innerText()) && /25\.00 USD\/month/.test(await page3.getByTestId("billing-plan-multishop").innerText()));
+
+    // ---------------------------------------------------------------- Nigeria, South Africa, Ghana: currency, time zone, and a local number saved with the country code
+    for (const c of [
+      { code: "NG", currency: "NGN", tz: "Africa/Lagos", label: "naira", local: "0803 123 4567", saved: "2348031234567" },
+      { code: "ZA", currency: "ZAR", tz: "Africa/Johannesburg", label: "rand", local: "082 123 4567", saved: "27821234567" },
+      { code: "GH", currency: "GHS", tz: "Africa/Accra", label: "cedi", local: "024 123 4567", saved: "233241234567" },
+    ]) {
+      const U = { name: `Owner ${c.code}`, business: `Shop ${c.code} ${stamp}`, email: `${c.code.toLowerCase()}-owner+${stamp}@example.com`, password: "Wazabolt2026", country: c.code };
+      const pg = await (await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "en-US" })).newPage();
+      pg.on("pageerror", (e) => errors.push(String(e)));
+      await register(pg, U);
+      const id = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${U.email}'`);
+      sql(`update businesses set onboarding_step = 6, onboarding_completed_at = now() where id = '${id}'`);
+      await pg.goto(`${APP}/en/dashboard/customers/new`);
+      await pg.locator("main").getByLabel("Name").fill(`Customer ${c.code}`);
+      await pg.locator("main").getByLabel("WhatsApp number").fill(c.local);
+      await pg.locator("main").getByRole("button", { name: "Save" }).click();
+      await pg.waitForURL(/\/dashboard\/customers\/[0-9a-f-]{36}/, { timeout: 15000 });
+      ok(`${c.code}: a sign-up is in ${c.label} (${c.currency}), ${c.tz} time; ${c.local} is saved as +${c.saved}`, sql(`select country_code || ' ' || currency || ' ' || timezone from businesses where id = '${id}'`) === `${c.code} ${c.currency} ${c.tz}` && sql(`select whatsapp_phone from customers where business_id = '${id}' and name = 'Customer ${c.code}'`) === c.saved);
+      await pg.context().close();
+    }
 
     ok("no browser errors", errors.length === 0, errors.join(" | "));
   } catch (e) {

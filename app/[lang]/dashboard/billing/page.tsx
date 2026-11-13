@@ -261,6 +261,22 @@ export default async function BillingPage() {
         </Panel>
       ) : null}
 
+      {canRequest ? (
+        <Panel id="how-to-pay" title={b.howToPay.title} description={b.howToPay.description}>
+          <ol className="flex flex-col gap-3" data-testid="how-to-pay">
+            {(fcfaOnly ? b.howToPay.xaf : b.howToPay.usd).map((step, i) => (
+              <li key={step} className="flex gap-3 text-sm text-deep">
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-mint text-xs font-bold text-waza-700">{i + 1}</span>
+                <span className="pt-0.5">{step}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 rounded-xl bg-surface px-4 py-3 text-xs text-slate" data-testid="till-note">
+            {fcfaOnly ? b.howToPay.tillXaf : b.howToPay.tillUsd}
+          </p>
+        </Panel>
+      ) : null}
+
       {bank ? (
         <Panel id="bank-details" title={b.bankDetails.title} description={b.bankDetails.intro}>
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2" data-testid="bank-details">

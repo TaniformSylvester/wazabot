@@ -104,6 +104,19 @@ mkdirSync("test-results", { recursive: true });
     await page.goto(`${APP}/en/dashboard`);
     ok("the dashboard says how many trial days are left", /Free trial of Business: 14 days left/.test(await page.getByTestId("trial-banner").innerText()));
     await page.goto(`${APP}/en/dashboard/billing`);
+    const howToPay = await main.getByTestId("how-to-pay").innerText();
+    ok("billing: how paying works in Cameroon — request, pay by MTN Mobile Money or Orange Money, switched on by hand by the team, usually the same day", /MTN Mobile Money or Orange Money/.test(howToPay) && /by hand, usually the same day/.test(howToPay) && /doesn't check them with MTN, Orange or the bank/.test(await main.getByTestId("till-note").innerText()), howToPay);
+    // The AI assistant, prepared ahead of time: Settings, Knowledge and the AI page say it's coming soon and nothing goes to an AI provider.
+    await page.goto(`${APP}/en/dashboard/settings`);
+    const aiPanel = await main.locator("#ai-knowledge").innerText();
+    ok("settings: AI knowledge & personality, coming soon, nothing sent to an AI provider today, links to FAQs, services and policies, personality", /AI knowledge & personality/.test(aiPanel) && /Coming soon/.test(aiPanel) && /no customer conversation is sent to an AI provider today/.test(aiPanel) && /Questions and answers/.test(aiPanel) && /Services, policies/.test(aiPanel) && /Personality and languages/.test(aiPanel), aiPanel.replace(/\n/g, " | "));
+    for (const path of ["/en/dashboard/knowledge", "/en/dashboard/ai"]) {
+      await page.goto(`${APP}${path}`);
+      ok(`${path}: the "coming soon" note`, /no customer conversation is sent to an AI provider today/.test(await main.getByTestId("ai-coming-soon-note").innerText()));
+    }
+    await page.goto(`${APP}/fr/dashboard/settings`);
+    ok("settings (fr): « Connaissances et personnalité de l'IA », bientôt disponible", /Connaissances et personnalité de l'IA/.test(await main.locator("#ai-knowledge").innerText()) && /Bientôt disponible/.test(await main.locator("#ai-knowledge").innerText()));
+    await page.goto(`${APP}/en/dashboard/billing`);
     ok("billing: the trial, no payment needed; the AI assistant coming soon (no add-on to choose)", /Free trial until/.test(await main.getByTestId("billing-state").innerText()) && (await main.getByTestId("ai-coming-soon").count()) === 1 && (await main.getByLabel("AI assistant").count()) === 0);
 
     // ---------------------------------------------------------------- Boutique: what it leaves out

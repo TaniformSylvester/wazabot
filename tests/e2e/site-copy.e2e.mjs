@@ -98,9 +98,9 @@ const text = async (path) => {
 
     // ------------------------------------------------------------ the free generator
     const { text: tool, html: toolHtml } = await text("/en/tools/documents");
-    ok("generator: a trial invitation under the tool (balances, credit, stock, receipts in one tap)", /data-testid="doc-trial-banner"/.test(toolHtml) && /Customer balances saved automatically/.test(tool) && /Credit and part payments tracked/.test(tool) && /Receipts sent on WhatsApp in one tap/.test(tool) && /Start your 14-day free trial/.test(tool));
+    ok("generator: a trial invitation under the tool (balances, credit, stock, receipts in one tap)", /data-testid="doc-trial-banner"/.test(toolHtml) && /Customer balances saved automatically/.test(tool) && /Credit and part payments tracked/.test(tool) && /Receipts sent on WhatsApp in one tap/.test(tool) && /Want to automatically save customer balances, track credit, and send receipts straight to WhatsApp\?/.test(tool) && /Start your 14-day free WazaBolt trial/.test(tool));
     const { html: toolFrHtml, text: toolFr } = await text("/fr/tools/documents");
-    ok("generator (fr): the invitation in French", /data-testid="doc-trial-banner"/.test(toolFrHtml) && /Commencer l'essai gratuit de 14 jours/.test(toolFr));
+    ok("generator (fr): the invitation in French", /data-testid="doc-trial-banner"/.test(toolFrHtml) && /Commencer l'essai gratuit WazaBolt de 14 jours/.test(toolFr));
 
     // ------------------------------------------------------------ sign-up page
     const { text: reg } = await text("/en/register");

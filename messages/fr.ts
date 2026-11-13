@@ -1143,10 +1143,10 @@ const fr: Messages = {
       privacy: "Rien de ce que vous saisissez n'est enregistré : le PDF est créé et vous est envoyé directement.",
       remember: "Retenir les informations de mon entreprise sur cet appareil",
       banner: {
-        title: "Vous faites des factures tous les jours ? Laissez WazaBolt tenir vos comptes.",
-        text: "Avec un compte WazaBolt gratuit, chaque document est enregistré avec votre client, et les soldes se mettent à jour tout seuls.",
+        title: "Envie d'enregistrer automatiquement les soldes de vos clients, de suivre les crédits et d'envoyer vos reçus directement sur WhatsApp ?",
+        text: "Commencez votre essai gratuit WazaBolt de 14 jours : chaque document est enregistré avec votre client, et les soldes se mettent à jour tout seuls.",
         points: ["Soldes clients enregistrés automatiquement", "Crédits et acomptes suivis", "Le stock baisse à chaque vente", "Reçus envoyés sur WhatsApp en un geste"],
-        cta: "Commencer l'essai gratuit de 14 jours",
+        cta: "Commencer l'essai gratuit WazaBolt de 14 jours",
         note: "Aucun paiement demandé. Le générateur reste gratuit.",
       },
     },
@@ -3395,6 +3395,22 @@ const fr: Messages = {
         label: "J'ai compris : WhatsApp (Meta) peut facturer directement mon entreprise pour certains messages. Ces frais sont séparés de WazaBolt.",
         hint: "Meta facture votre entreprise elle-même, sur le moyen de paiement de votre compte Meta. WazaBolt ne vous les facture jamais.",
       },
+      howToPay: {
+        title: "Comment se passe le paiement",
+        description: "Rien n'est prélevé automatiquement : vous payez l'équipe WazaBolt, et nous activons votre forfait à la main.",
+        xaf: [
+          "Choisissez votre forfait ci-dessous et envoyez la demande.",
+          "Payez l'équipe WazaBolt par MTN Mobile Money ou Orange Money. Nous vous confirmons le montant et le numéro.",
+          "L'équipe WazaBolt vérifie le paiement et active votre forfait à la main, en général le jour même.",
+        ],
+        usd: [
+          "Choisissez votre forfait ci-dessous et envoyez la demande (Nigéria, Afrique du Sud, Ghana, Kenya, Zimbabwe et autres pays hors du Cameroun).",
+          "Payez par virement bancaire en dollars US, aux coordonnées indiquées sur cette page (ou celles que nous vous envoyons), avec le nom de votre entreprise comme référence.",
+          "L'équipe WazaBolt vérifie que le virement est arrivé et active votre forfait à la main, en général le jour même.",
+        ],
+        tillXaf: "Les paiements à votre caisse (espèces, MTN MoMo, Orange Money, virement, carte ou crédit) sont autre chose : votre équipe les enregistre, et WazaBolt ne les vérifie pas auprès de MTN, d'Orange ou de la banque.",
+        tillUsd: "Les paiements à votre caisse (espèces, portefeuilles mobiles, virement, carte ou crédit) sont autre chose : votre équipe les enregistre, et WazaBolt ne les vérifie pas auprès de votre banque ou opérateur.",
+      },
       change: {
         title: "Choisir ou changer de forfait",
         description: "Choisissez un forfait et comment vous joindre. Vous payez l'équipe WazaBolt par MTN Mobile Money ou Orange Money, et nous l'activons dès réception. Rien n'est débité ici.",
@@ -3448,8 +3464,26 @@ const fr: Messages = {
       payments: { title: "Paiements", none: "Aucun paiement enregistré.", date: "Date", plan: "Pour", amount: "Montant", reference: "Référence", period: "Période", kinds: { plan: "Forfait", topup: "Recharge IA", setup_fee: "Frais d'installation" } },
     },
 
+    aiComingSoon: {
+      badge: "Bientôt disponible",
+      text: "L'assistant IA WhatsApp n'est pas encore actif, et aucune conversation client n'est envoyée aujourd'hui à un fournisseur d'IA. Ce que vous préparez ici est enregistré, et sera utilisé dès le lancement de l'assistant.",
+    },
     settings: {
       title: "Paramètres",
+      aiKnowledge: {
+        title: "Connaissances et personnalité de l'IA",
+        description: "Préparez dès maintenant l'assistant IA WhatsApp : les réponses qu'il donnera et le ton qu'il prendra.",
+        faqs: "Questions et réponses",
+        faqsCount: "{count} enregistrée(s)",
+        documents: "Services, politiques et autres informations",
+        documentsCount: "{count} enregistré(s)",
+        personality: "Personnalité et langues",
+        personalityText: "Ton, longueur des réponses et langues",
+        addFaq: "Ajouter une question",
+        addDocument: "Ajouter des services ou une politique",
+        open: "Ouvrir",
+        readOnly: "Seul le propriétaire ou un administrateur peut modifier ce que l'assistant saura.",
+      },
       modules: {
         title: "Modules",
         description: "Les parties de WazaBolt utilisées par cette entreprise. En désactiver une la retire du menu ; rien n'est supprimé.",

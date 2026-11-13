@@ -1,3 +1,5 @@
+import { AiComingSoon } from "@/components/app/ai-coming-soon";
+import { aiLaunchedForPublicPages } from "@/lib/billing/ai-flag";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -20,7 +22,7 @@ export const generateMetadata = dashboardMetadata((d) => d.ai.title);
 export default async function AiAssistantPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/ai"));
-  const [settings, connection, usage] = await Promise.all([getAiSettingsRow(business.id), getWhatsAppConnection(business.id), getAiUsageSummary(business.id)]);
+  const [settings, connection, usage, aiLaunched] = await Promise.all([getAiSettingsRow(business.id), getWhatsAppConnection(business.id), getAiUsageSummary(business.id), aiLaunchedForPublicPages()]);
   const d = t.dashboard;
   const a = d.ai;
   const canEdit = canManageBusiness(business.role);
@@ -31,6 +33,7 @@ export default async function AiAssistantPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <PageHeader title={a.title} description={a.description} />
+      {aiLaunched ? null : <AiComingSoon badge={d.aiComingSoon.badge} text={d.aiComingSoon.text} />}
       <LinkTabs
         active="general"
         tabs={[
