@@ -6,6 +6,7 @@ import { VERTICAL_CONFIG, type KpiFormat, type Vertical } from "@/config/vertica
 import type { Locale } from "@/lib/i18n/config";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
+import type { Permissions } from "@/lib/auth/permissions";
 import type { Messages } from "@/messages/en";
 
 /*
@@ -38,18 +39,36 @@ export type VerticalText = {
   catalogCount: string;
 };
 
-export function VerticalSlots({ vertical, view, t, currency, locale }: { vertical: Vertical; view: VerticalView; t: V; currency: string; locale: Locale }) {
+export function VerticalSlots({
+  vertical,
+  view,
+  t,
+  currency,
+  locale,
+  permissions,
+}: {
+  vertical: Vertical;
+  view: VerticalView;
+  t: V;
+  currency: string;
+  locale: Locale;
+  /** What the viewer may see and do: staff get no money figures and no manager-only actions. */
+  permissions: Pick<Permissions, "canViewRevenue" | "canEditCatalog">;
+}) {
   const cfg = VERTICAL_CONFIG[vertical];
   const w: VerticalText = t[vertical];
   const href = (p: string) => localizePath(locale, p);
   const show = (fmt: KpiFormat, v: number | null) =>
     v === null ? "—" : fmt === "currency" ? formatMoney(v, currency, locale) : fmt === "percent" ? formatPercent(v, locale) : formatNumber(v, locale);
   const Catalog = cfg.catalog.icon;
+  // Money figures for owners and managers only; staff keep the counts. Manager-only actions are left out for staff.
+  const kpis = cfg.kpis.filter((k) => permissions.canViewRevenue || !k.financial);
+  const actions = cfg.quickActions.filter((a) => permissions.canEditCatalog || !a.managerOnly);
   return (
     <section aria-label={t.label} className="flex flex-col gap-4" data-testid="vertical-slots" data-vertical={vertical}>
       {/* Three headline numbers: three across even on a phone, numbers first. */}
-      <ul className="grid grid-cols-3 gap-2 sm:gap-3 [&>li]:min-w-0" data-testid="vertical-kpis">
-        {cfg.kpis.map(({ key, icon: Icon, format: fmt, href: to }) => (
+      <ul className="grid gap-2 sm:gap-3 [&>li]:min-w-0" style={{ gridTemplateColumns: `repeat(${kpis.length}, minmax(0, 1fr))` }} data-testid="vertical-kpis">
+        {kpis.map(({ key, icon: Icon, format: fmt, href: to }) => (
           <li key={key}>
             <Link href={href(to)} className="flex h-full flex-col gap-1 rounded-2xl border border-border bg-card p-3 shadow-card transition-colors hover:border-waza-500 sm:p-4" data-testid={`kpi-${key}`}>
               <span className="flex items-center justify-between gap-1 text-[0.6875rem] leading-tight text-slate sm:text-sm">
@@ -66,7 +85,7 @@ export function VerticalSlots({ vertical, view, t, currency, locale }: { vertica
       {/* Four quick actions: two by two on a phone (short labels), four across from tablets (full labels). */}
       <nav aria-label={t.quickActions} data-testid="vertical-actions">
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-          {cfg.quickActions.map(({ key, icon: Icon, href: to }, i) => {
+          {actions.map(({ key, icon: Icon, href: to }, i) => {
             const label = w.actions[key];
             return (
               <li key={key}>

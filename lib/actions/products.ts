@@ -1,5 +1,7 @@
 "use server";
 
+import { createAdminClient } from "@/lib/supabase/admin";
+import { canToggleAvailability, permissionsFor } from "@/lib/auth/permissions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -163,11 +165,20 @@ async function uploadImage(businessId: string, productId: string, file: File) {
   return null;
 }
 
+/**
+ * Available / not available (a product, or a dish on the menu). Owners and
+ * managers, and staff who take orders (agents): permissions.canToggleStockOnly.
+ * Staff may change this one field only — the database lets only admins
+ * update products, so for agents the update goes through the server's admin
+ * client, after the role check here and limited to this business's product.
+ */
 export async function setProductActive(productId: string, active: boolean): Promise<FormState> {
   if (!isUuid(productId)) return fail("invalid");
-  const ctx = await authorize("admin");
-  if (!ctx) return denied();
-  const supabase = await createClient();
+  const ctx = await authorize("agent");
+  if (!ctx || !canToggleAvailability(ctx.business.role)) return denied();
+  const manager = permissionsFor(ctx.business.role).canEditCatalog;
+  const supabase = manager ? await createClient() : createAdminClient();
+  if (!supabase) return fail("unknown");
   const { error } = await supabase.from("products").update({ active }).eq("id", productId).eq("business_id", ctx.business.id);
   if (error) return fail(dbError(error));
   revalidatePath("/[lang]/dashboard", "layout");

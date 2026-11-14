@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { permissionsFor } from "@/lib/auth/permissions";
 import { Bot, Check, Minus } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
@@ -32,6 +34,18 @@ export const generateMetadata = dashboardMetadata((d) => d.billing.title);
 export default async function BillingPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/billing"));
+  // Billing is for owners and managers. Staff of a business still waiting for its plan only learn that the owner is on it.
+  if (!permissionsFor(business.role).canViewRevenue) {
+    if (!business.awaitingPaidPlan) redirect(localizePath(locale, "/dashboard"));
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col gap-6">
+        <PageHeader title={t.dashboard.billing.title} />
+        <FormAlert tone="info">
+          <span data-testid="billing-staff">{t.dashboard.billing.awaitingPlan.staff}</span>
+        </FormAlert>
+      </div>
+    );
+  }
   const [{ usage, pendingRequest, payments }, access, ent, modules] = await Promise.all([
     getBilling(business.id),
     getPlanAccess(business.id),

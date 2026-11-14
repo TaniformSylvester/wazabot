@@ -1,3 +1,4 @@
+import { PermissionsProvider } from "@/components/auth/permissions-provider";
 import { planCurrencyFor } from "@/config/economics";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -216,7 +217,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </div>
         ) : null}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">
+          <PermissionsProvider role={business?.role ?? null}>{children}</PermissionsProvider>
+        </main>
       </div>
     </div>
   );

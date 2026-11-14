@@ -1729,6 +1729,8 @@ const fr: Messages = {
       sort: { label: "Trier", name: "Nom", newest: "Plus récents", priceHigh: "Prix (décroissant)", stockLow: "Stock (le plus bas d'abord)" },
       archive: "Archiver",
       restore: "Restaurer",
+      markUnavailable: "Marquer indisponible",
+      markAvailable: "Marquer disponible",
       archived: "Archivé",
       options: {
         title: "Couleurs et tailles",
@@ -3440,6 +3442,7 @@ const fr: Messages = {
         title: "Cette entreprise s'ouvre dès que son forfait est payé",
         text: "Chaque propriétaire a droit à un essai gratuit, et vous l'avez déjà utilisé. L'équipe WazaBolt vous contactera pour le paiement de cette entreprise ; elle s'ouvre dès que le forfait est confirmé. Vos autres entreprises fonctionnent normalement : passez de l'une à l'autre avec le nom en haut de la page.",
         noRequest: "Choisissez un forfait ci-dessous pour ouvrir cette entreprise.",
+        staff: "Cette entreprise ouvre dès que son forfait est payé. Le propriétaire ou un responsable s'en occupe ; vous pourrez y travailler dès la confirmation.",
       },
       noPayments: "Vous payez l'équipe WazaBolt par MTN Mobile Money ou Orange Money ; rien n'est débité dans WazaBolt.",
       bankTransferShown: "Vos prix sont en {currency}, payés par virement bancaire sur le compte ci-dessous. Envoyez une demande pour le forfait voulu, faites le virement, et votre forfait démarre dès que le paiement arrive.",

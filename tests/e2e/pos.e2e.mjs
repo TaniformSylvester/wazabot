@@ -376,13 +376,33 @@ mkdirSync("test-results", { recursive: true });
          insert into business_members (business_id, user_id, role) select '${bizId}', id, 'agent' from u`);
     const cm = cp.locator("main");
     await cp.goto(`${APP}/en/dashboard`);
-    await cm.getByTestId("business-overview").waitFor({ timeout: 15000 });
+    await cm.getByTestId("vertical-slots").waitFor({ timeout: 15000 });
     const nav = await cp.locator("aside nav").innerText();
+    // Staff (a cashier, stored role "agent"): no money on the dashboard, no Billing, AI settings or Automations; the inbox stays.
     ok(
-      "permissions: a cashier sees sales but no profit, and no Expenses or Reports",
-      /Sales/.test(nav) && !/Expenses|Reports/.test(nav) && (await cm.getByTestId("today-profit").count()) === 0 && /66,000 FCFA/.test(await cm.getByTestId("today-sales").innerText()),
+      "permissions (staff): the dashboard keeps counts, the queue and the actions they can do, but no money figures",
+      (await cm.getByTestId("kpi-lowStock").count()) === 1 && (await cm.getByTestId("kpi-salesToday").count()) === 0 && (await cm.getByTestId("kpi-creditOwed").count()) === 0 && (await cm.getByTestId("business-overview").count()) === 0 && (await cm.getByTestId("shop-today").count()) === 0 && (await cm.getByTestId("vertical-queue").count()) === 1 && (await cm.getByTestId("action-newSale").count()) === 1 && (await cm.getByTestId("action-addProduct").count()) === 0 && (await cm.getByTestId("action-addExpense").count()) === 0 && !/66,000 FCFA/.test(await cm.innerText()),
+    );
+    ok(
+      "permissions (staff): Sales and Conversations in the menu; no Expenses, Reports, Billing, AI Assistant or Automations",
+      /Sales/.test(nav) && /Conversations/.test(nav) && !/Expenses|Reports|Billing|AI Assistant|Automations/.test(nav),
       nav.replace(/\n/g, " "),
     );
+    for (const path of ["/dashboard/billing", "/dashboard/ai", "/dashboard/ai/test", "/dashboard/automations"]) {
+      await cp.goto(`${APP}/en${path}`);
+      ok(`permissions (staff): ${path} sends them back to the dashboard`, /\/en\/dashboard$/.test(new URL(cp.url()).pathname), cp.url());
+    }
+    await cp.goto(`${APP}/en/dashboard/conversations`);
+    ok("permissions (staff): the live conversations queue stays open", /\/dashboard\/conversations/.test(cp.url()));
+    await cp.goto(`${APP}/en/dashboard/settings`);
+    ok("permissions (staff): no AI knowledge & personality settings", (await cm.locator("#ai-knowledge").count()) === 0);
+    // Availability: staff can mark a product unavailable and available again, and nothing else in the catalogue.
+    await cp.goto(`${APP}/en/dashboard/products`);
+    const jeansRow = cm.locator("tr", { hasText: "Jeans" });
+    await jeansRow.getByRole("button", { name: "Mark unavailable" }).click();
+    for (let i = 0; i < 40 && sql(`select active::text from products where business_id = '${bizId}' and name = 'Jeans'`) !== "false"; i++) await cp.waitForTimeout(250);
+    ok("permissions (staff): a cashier marks a product unavailable", sql(`select active::text from products where business_id = '${bizId}' and name = 'Jeans'`) === "false" && (await cm.getByRole("link", { name: /New product/ }).count()) === 0);
+    sql(`update products set active = true where business_id = '${bizId}' and name = 'Jeans'`);
     await cp.goto(`${APP}/en/dashboard/reports`);
     await cm.getByText(/Only the owner and admins can see reports/).waitFor({ timeout: 15000 }).catch(() => {});
     const cashierReports = await cm.innerText();

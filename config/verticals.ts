@@ -38,14 +38,14 @@ export type Vertical = (typeof VERTICALS)[number];
 /** How a headline number is written: money in the business's currency, a plain count, or a share (0–1). */
 export type KpiFormat = "currency" | "count" | "percent";
 
-export type KpiDef = { key: string; icon: LucideIcon; format: KpiFormat; href: string };
-export type QuickActionDef = { key: string; icon: LucideIcon; href: string };
+export type KpiDef = { key: string; icon: LucideIcon; format: KpiFormat; href: string; /** Money: shown to owners and managers only (permissions.canViewRevenue). */ financial?: true };
+export type QuickActionDef = { key: string; icon: LucideIcon; href: string; /** Shown to owners and managers only (staff can't do it: the server refuses it too). */ managerOnly?: true };
 export type VerticalConfig = {
   /** Exactly three headline numbers, most important first. */
   kpis: [KpiDef, KpiDef, KpiDef];
   /** The work waiting for the team (titles in dashboard.verticals.<v>.queueTitle / queueEmpty). */
   queue: { href: string };
-  /** Exactly four quick actions; each has a short label for phones and a full one for wider screens. */
+  /** Exactly four quick actions (staff see the ones not marked managerOnly); each has a short label for phones and a full one for wider screens. */
   quickActions: [QuickActionDef, QuickActionDef, QuickActionDef, QuickActionDef];
   /** Where the catalogue lives (its name: dashboard.verticals.<v>.catalogLabel — Inventory, Menu Items or Programs). */
   catalog: { href: string; icon: LucideIcon };
@@ -54,23 +54,23 @@ export type VerticalConfig = {
 export const VERTICAL_CONFIG: Record<Vertical, VerticalConfig> = {
   shop: {
     kpis: [
-      { key: "salesToday", icon: Banknote, format: "currency", href: "/dashboard/sales" },
-      { key: "creditOwed", icon: HandCoins, format: "currency", href: "/dashboard/customers?balance=1" },
+      { key: "salesToday", icon: Banknote, format: "currency", href: "/dashboard/sales", financial: true },
+      { key: "creditOwed", icon: HandCoins, format: "currency", href: "/dashboard/customers?balance=1", financial: true },
       { key: "lowStock", icon: PackageX, format: "count", href: "/dashboard/products" },
     ],
     queue: { href: "/dashboard/orders" },
     quickActions: [
       { key: "newSale", icon: ShoppingCart, href: "/dashboard/sales/new" },
-      { key: "addProduct", icon: Package, href: "/dashboard/products/new" },
+      { key: "addProduct", icon: Package, href: "/dashboard/products/new", managerOnly: true },
       { key: "addCustomer", icon: UserPlus, href: "/dashboard/customers/new" },
-      { key: "addExpense", icon: Wallet, href: "/dashboard/expenses#add-expense" },
+      { key: "addExpense", icon: Wallet, href: "/dashboard/expenses#add-expense", managerOnly: true },
     ],
     catalog: { href: "/dashboard/products", icon: Package },
   },
   restaurant: {
     kpis: [
       { key: "openBills", icon: UtensilsCrossed, format: "count", href: "/dashboard/restaurant" },
-      { key: "turnoverToday", icon: Banknote, format: "currency", href: "/dashboard/sales" },
+      { key: "turnoverToday", icon: Banknote, format: "currency", href: "/dashboard/sales", financial: true },
       { key: "kitchenQueue", icon: ChefHat, format: "count", href: "/dashboard/restaurant/kitchen" },
     ],
     queue: { href: "/dashboard/restaurant" },
@@ -78,21 +78,21 @@ export const VERTICAL_CONFIG: Record<Vertical, VerticalConfig> = {
       { key: "openBill", icon: LayoutGrid, href: "/dashboard/restaurant" },
       { key: "takeaway", icon: Receipt, href: "/dashboard/restaurant/new" },
       { key: "kitchen", icon: ChefHat, href: "/dashboard/restaurant/kitchen" },
-      { key: "addDish", icon: UtensilsCrossed, href: "/dashboard/products/new" },
+      { key: "addDish", icon: UtensilsCrossed, href: "/dashboard/products/new", managerOnly: true },
     ],
     catalog: { href: "/dashboard/products", icon: UtensilsCrossed },
   },
   school: {
     kpis: [
       { key: "students", icon: Backpack, format: "count", href: "/dashboard/school/students" },
-      { key: "feesCollected", icon: Banknote, format: "percent", href: "/dashboard/school/fees" },
+      { key: "feesCollected", icon: Banknote, format: "percent", href: "/dashboard/school/fees", financial: true },
       { key: "classesPublished", icon: ClipboardCheck, format: "count", href: "/dashboard/school/results" },
     ],
     queue: { href: "/dashboard/school/results" },
     quickActions: [
       { key: "enterMarks", icon: PenLine, href: "/dashboard/school/marks" },
-      { key: "addStudent", icon: UserPlus, href: "/dashboard/school/students/new" },
-      { key: "fees", icon: Wallet, href: "/dashboard/school/fees" },
+      { key: "addStudent", icon: UserPlus, href: "/dashboard/school/students/new", managerOnly: true },
+      { key: "fees", icon: Wallet, href: "/dashboard/school/fees", managerOnly: true },
       { key: "reportCards", icon: FileText, href: "/dashboard/school/results" },
     ],
     catalog: { href: "/dashboard/school/classes", icon: BookOpenCheck },

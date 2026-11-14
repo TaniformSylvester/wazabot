@@ -1,3 +1,4 @@
+import { canToggleAvailability } from "@/lib/auth/permissions";
 import Link from "next/link";
 import { Package, Plus, Search } from "lucide-react";
 
@@ -32,6 +33,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
   };
   const [{ rows, total, page }, categories] = await Promise.all([listProducts(business.id, filters), listProductCategories(business.id)]);
   const canEdit = canManageBusiness(business.role);
+  const canToggle = canToggleAvailability(business.role);
   // Several branches: the badge is the total; the line under it is the working branch's stock.
   const branch = await getBranchContext(business);
   const here = branch.multi ? await branchStock(business.id, branch.current.id) : null;
@@ -120,7 +122,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
                   <th className={`${th} text-right`}>{p.columns.price}</th>
                   <th className={th}>{p.columns.stock}</th>
                   <th className={th}>{p.columns.status}</th>
-                  {canEdit ? <th className={th}><span className="sr-only">{d.common.edit}</span></th> : null}
+                  {canToggle ? <th className={th}><span className="sr-only">{d.common.edit}</span></th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -165,10 +167,11 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
                         {r.active ? d.common.active : p.archived}
                       </StatusBadge>
                     </td>
-                    {canEdit ? (
+                    {canToggle ? (
                       <td className={`${td} text-right`}>
+                        {/* Staff who take orders can switch availability only (permissions.canToggleStockOnly); managers archive and restore. */}
                         <ActionButton action={setProductActive.bind(null, r.id, !r.active)} errors={d.errors} variant="ghost">
-                          {r.active ? p.archive : p.restore}
+                          {canEdit ? (r.active ? p.archive : p.restore) : r.active ? p.markUnavailable : p.markAvailable}
                         </ActionButton>
                       </td>
                     ) : null}

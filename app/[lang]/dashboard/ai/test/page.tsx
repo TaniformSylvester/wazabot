@@ -1,3 +1,4 @@
+import { permissionsFor } from "@/lib/auth/permissions";
 import { redirect } from "next/navigation";
 
 import { FormAlert } from "@/components/auth/form-alert";
@@ -17,6 +18,8 @@ export const generateMetadata = dashboardMetadata((d) => d.aiTest.title);
 export default async function AiTestChatPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/ai/test"));
+  // The assistant's settings: owners and managers only.
+  if (!permissionsFor(business.role).canConfigureAI) redirect(localizePath(locale, "/dashboard"));
   if (!hasRole(business.role, "agent")) redirect(localizePath(locale, "/dashboard/ai"));
   const d = t.dashboard;
   const href = (p: string) => localizePath(locale, p);

@@ -1,3 +1,5 @@
+import { permissionsFor } from "@/lib/auth/permissions";
+import { redirect } from "next/navigation";
 import { AiComingSoon } from "@/components/app/ai-coming-soon";
 import { aiLaunchedForPublicPages } from "@/lib/billing/ai-flag";
 import Link from "next/link";
@@ -22,6 +24,8 @@ export const generateMetadata = dashboardMetadata((d) => d.ai.title);
 export default async function AiAssistantPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/ai"));
+  // The assistant's settings: owners and managers only.
+  if (!permissionsFor(business.role).canConfigureAI) redirect(localizePath(locale, "/dashboard"));
   const [settings, connection, usage, aiLaunched] = await Promise.all([getAiSettingsRow(business.id), getWhatsAppConnection(business.id), getAiUsageSummary(business.id), aiLaunchedForPublicPages()]);
   const d = t.dashboard;
   const a = d.ai;

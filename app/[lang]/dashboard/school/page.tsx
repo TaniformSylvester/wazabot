@@ -1,3 +1,5 @@
+import { RoleGuard } from "@/components/auth/role-guard";
+import { permissionsFor } from "@/lib/auth/permissions";
 import { planNameFor } from "@/lib/billing/plan-names";
 import Link from "next/link";
 import { CheckCircle2, Circle, PenLine, Settings } from "lucide-react";
@@ -174,8 +176,10 @@ export default async function SchoolPage() {
           </>
         }
       />
-      <VerticalSlots vertical="school" view={schoolView} t={d.verticals} currency={business.currency} locale={locale} />
+      <VerticalSlots vertical="school" view={schoolView} t={d.verticals} currency={business.currency} locale={locale} permissions={permissionsFor(business.role)} />
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Fee collection: owners and managers only. */}
+        <RoleGuard allowedRoles={["owner", "manager"]}>
         <Panel
           title={format(o.collection.title, { year: year?.name ?? "" })}
           actions={
@@ -196,6 +200,7 @@ export default async function SchoolPage() {
             <p className="text-sm text-slate">{o.collection.none}</p>
           )}
         </Panel>
+        </RoleGuard>
         <Panel
           title={o.publication.title}
           description={o.publication.text}

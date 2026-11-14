@@ -1,3 +1,5 @@
+import { permissionsFor } from "@/lib/auth/permissions";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -13,6 +15,8 @@ export const generateMetadata = () => pageMetadata("languages", "/dashboard/ai/l
 export default async function LanguageSettingsPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/ai/languages"));
+  // The assistant's settings: owners and managers only.
+  if (!permissionsFor(business.role).canConfigureAI) redirect(localizePath(locale, "/dashboard"));
   const settings = await getBusinessAiSettings();
   const l = t.dashboard.languages;
 

@@ -1,3 +1,5 @@
+import { permissionsFor } from "@/lib/auth/permissions";
+import { redirect } from "next/navigation";
 import { Workflow } from "lucide-react";
 
 import { EmptyState, PageHeader } from "@/components/app/ui";
@@ -11,7 +13,8 @@ export const generateMetadata = dashboardMetadata((d) => d.automations.title);
 /** Placeholder: automations (follow-ups, reminders, broadcasts) are out of scope for this stage. */
 export default async function AutomationsPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
-  await requireBusiness(localizePath(locale, "/dashboard/automations"));
+  const { business } = await requireBusiness(localizePath(locale, "/dashboard/automations"));
+  if (!permissionsFor(business.role).canConfigureAI) redirect(localizePath(locale, "/dashboard"));
   const a = t.dashboard.automations;
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">

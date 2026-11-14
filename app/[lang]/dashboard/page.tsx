@@ -1,3 +1,5 @@
+import { RoleGuard } from "@/components/auth/role-guard";
+import { permissionsFor } from "@/lib/auth/permissions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -65,6 +67,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
   const h = d.home;
 
   const isAdmin = hasRole(business.role, "admin");
+  const perms = permissionsFor(business.role);
   const planAllowsProfit = (await businessCanUse(business.id, "profit"));
   const showProfit = isAdmin && planAllowsProfit;
   const restaurant = modules.includes("restaurant");
@@ -101,7 +104,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
     metrics.unreadConversations ? { key: "chats", text: format(at.chatsWaiting, { count: n(metrics.unreadConversations) }), cta: at.chatsWaitingCta, href: "/dashboard/conversations", icon: attentionIcons.chats, tone: "blue" as const } : null,
     shop.toHandOver.total ? { key: "orders", text: format(at.toHandOver, { count: n(shop.toHandOver.total) }), cta: at.toHandOverCta, href: "/dashboard/orders", icon: attentionIcons.orders, tone: "blue" as const } : null,
     stock.total ? { key: "stock", text: format(at.lowStock, { count: n(stock.total) }), cta: at.lowStockCta, href: "/dashboard/products", icon: attentionIcons.stock, tone: "gold" as const } : null,
-    shop.overdueCredit.customers
+    perms.canViewRevenue && shop.overdueCredit.customers
       ? { key: "credit", text: format(at.overdueCredit, { count: n(shop.overdueCredit.customers), amount: formatMoney(shop.overdueCredit.amount, business.currency, locale), days: n(OVERDUE_CREDIT_DAYS) }), cta: at.overdueCreditCta, href: "/dashboard/customers?balance=1", icon: attentionIcons.credit, tone: "coral" as const }
       : null,
   ].filter((a) => a !== null);
@@ -164,7 +167,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
 
       <AttentionBanners items={attention} label={at.label} locale={locale} />
 
-      <VerticalSlots vertical={vertical} view={view} t={v} currency={business.currency} locale={locale} />
+      <VerticalSlots vertical={vertical} view={view} t={v} currency={business.currency} locale={locale} permissions={perms} />
 
       {floor ? (
         <RestaurantToday
@@ -217,21 +220,24 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
       ) : null}
 
       {isAdmin && !planAllowsProfit ? <PlanUpsell text={d.plan.profitLocked} cta={d.plan.upgrade} locale={locale} compact /> : null}
-      <BusinessOverview
-        overview={overview}
-        recent={recentSales.rows.slice(0, 5)}
-        currency={business.currency}
-        locale={locale}
-        t={d}
-        showProfit={showProfit}
-        canSell={hasRole(business.role, "agent")}
-      />
+      {/* Money — sales, credit, payments by method, sales vs expenses: owners and managers only. Staff keep the counts, the queue and the actions above. */}
+      <RoleGuard allowedRoles={["owner", "manager"]}>
+        <BusinessOverview
+          overview={overview}
+          recent={recentSales.rows.slice(0, 5)}
+          currency={business.currency}
+          locale={locale}
+          t={d}
+          showProfit={showProfit}
+          canSell={hasRole(business.role, "agent")}
+        />
 
-      <ShopToday shop={shop} currency={business.currency} locale={locale} t={d} days={OVERDUE_CREDIT_DAYS} canSell={hasRole(business.role, "agent")} />
+        <ShopToday shop={shop} currency={business.currency} locale={locale} t={d} days={OVERDUE_CREDIT_DAYS} canSell={hasRole(business.role, "agent")} />
 
-      {shop.trend ? (
-        <SalesVsExpenses trend={shop.trend} view={params.trend === "week" ? "week" : "day"} currency={business.currency} locale={locale} t={d} />
-      ) : null}
+        {shop.trend ? (
+          <SalesVsExpenses trend={shop.trend} view={params.trend === "week" ? "week" : "day"} currency={business.currency} locale={locale} t={d} />
+        ) : null}
+      </RoleGuard>
 
       <section aria-labelledby="whatsapp-title">
         <h2 id="whatsapp-title" className="type-h3 mb-4">

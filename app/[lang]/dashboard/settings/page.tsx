@@ -1,3 +1,4 @@
+import { permissionsFor } from "@/lib/auth/permissions";
 import Link from "next/link";
 import { ActionForm, SelectField, SubmitButton } from "@/components/app/form";
 import { setBusinessCountry } from "@/lib/actions/business";
@@ -90,7 +91,7 @@ export default async function SettingsPage() {
         <p className="mt-3 text-xs text-slate">{s.modules.note}</p>
       </Panel>
 
-      {modules.includes("ai") ? (
+      {modules.includes("ai") && permissionsFor(business.role).canConfigureAI ? (
         <Panel
           id="ai-knowledge"
           title={ak.title}

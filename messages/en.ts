@@ -1730,6 +1730,8 @@ const en = {
       sort: { label: "Sort", name: "Name", newest: "Newest", priceHigh: "Price (high to low)", stockLow: "Stock (low first)" },
       archive: "Archive",
       restore: "Restore",
+      markUnavailable: "Mark unavailable",
+      markAvailable: "Mark available",
       archived: "Archived",
       options: {
         title: "Colours and sizes",
@@ -3441,6 +3443,7 @@ const en = {
         title: "This business opens once its plan is paid",
         text: "Each owner gets one free trial, and you already used yours. The WazaBolt team will contact you to arrange payment for this business; it opens as soon as the plan is confirmed. Your other businesses work as usual: switch to them with the name at the top of the page.",
         noRequest: "Choose a plan below to open this business.",
+        staff: "This business opens once its plan is paid. The owner or a manager takes care of it; you'll be able to work here as soon as it's confirmed.",
       },
       noPayments: "You pay the WazaBolt team by MTN Mobile Money or Orange Money; nothing is charged in WazaBolt itself.",
       bankTransferShown: "Your prices are in {currency}, paid by bank transfer to the account below. Send a request for the plan you want, make the transfer, and your plan starts as soon as the payment arrives.",
