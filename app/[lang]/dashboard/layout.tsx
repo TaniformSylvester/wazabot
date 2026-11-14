@@ -9,6 +9,7 @@ import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { defaultModules, getBusinessModules } from "@/lib/modules";
 import { UserCard, initials } from "@/components/dashboard/user-card";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { HandoffAlerts } from "@/components/dashboard/handoff-alerts";
 import { Clock, Lock, PauseCircle, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
 import { cookies } from "next/headers";
 
@@ -137,6 +138,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className={connected ? "size-2 rounded-full bg-waza-500" : "size-2 rounded-full bg-line-strong"} aria-hidden />
             {connected ? d.header.whatsappConnected : d.header.whatsappNotConnected}
           </Link>
+          {/* The live handoff queue: refreshes the page, "(n)" on the tab, chime and notifications (members who work the inbox). */}
+          {business && modules.includes("ai") && business.role !== "teacher" && business.role !== "kitchen" ? (
+            <HandoffAlerts labels={d.header.alerts} conversationsHref={localizePath(locale, "/dashboard/conversations")} />
+          ) : null}
           <LanguageSwitcher persist />
           <Link
             href={localizePath(locale, "/dashboard/settings")}

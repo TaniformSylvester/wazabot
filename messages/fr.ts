@@ -1325,6 +1325,14 @@ const fr: Messages = {
     header: {
       yourBusiness: "Votre entreprise",
       whatsappNotConnected: "WhatsApp non connecté",
+      alerts: {
+        sound: "Son d'alerte du comptoir",
+        soundOn: "Le son d'alerte est activé : un carillon retentit quand un client attend une personne. Cliquez pour le couper.",
+        soundOff: "Le son d'alerte est coupé. Cliquez pour entendre un carillon quand un client attend une personne.",
+        notifyTitle: "WazaBolt — un client attend",
+        notifyHandoff: "{name} demande à parler à une personne.",
+        notifyMessage: "Nouveau message de {name}.",
+      },
       whatsappConnected: "WhatsApp connecté",
       accountSettings: "Paramètres du compte",
       switchBusiness: "Changer d'entreprise",

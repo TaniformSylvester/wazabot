@@ -1326,6 +1326,14 @@ const en = {
     header: {
       yourBusiness: "Your business",
       whatsappNotConnected: "WhatsApp not connected",
+      alerts: {
+        sound: "Counter alert sound",
+        soundOn: "Counter alert sound is on: a chime plays when a customer waits for a person. Click to turn it off.",
+        soundOff: "Counter alert sound is off. Click to hear a chime when a customer waits for a person.",
+        notifyTitle: "WazaBolt — a customer is waiting",
+        notifyHandoff: "{name} asked for a person.",
+        notifyMessage: "New message from {name}.",
+      },
       whatsappConnected: "WhatsApp connected",
       accountSettings: "Account settings",
       switchBusiness: "Switch business",
