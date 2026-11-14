@@ -1799,6 +1799,8 @@ const en = {
           saving: "Saving…",
           saved: "Stock updated.",
           ownersOnly: "Only the owner or an admin can adjust stock.",
+          staffCount: "Count what is on the shelf and enter the number. Stock in, damaged or lost stock, prices and names are changed by the owner or a manager.",
+          staffCountSubmit: "Save stock count",
         },
         reasons: { opening: "Opening stock", purchase: "Purchase / restock", sale: "Sale", return: "Return", damaged: "Damaged", lost: "Lost or stolen", adjustment: "Stock count / adjustment" },
         history: {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authorize } from "@/lib/auth/dal";
+import { MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -23,7 +23,7 @@ function done(formData: FormData, tab: "faqs" | "documents") {
 }
 
 export async function saveFaq(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = faqSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -42,7 +42,7 @@ export async function saveFaq(_prev: FormState, formData: FormData): Promise<For
 }
 
 export async function saveDocument(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = documentSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -62,7 +62,7 @@ export async function saveDocument(_prev: FormState, formData: FormData): Promis
 
 export async function setKnowledgeActive(table: Table, id: string, active: boolean): Promise<FormState> {
   if (!TABLES.includes(table) || !isUuid(id)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from(table).update({ active }).eq("id", id).eq("business_id", ctx.business.id);
@@ -73,7 +73,7 @@ export async function setKnowledgeActive(table: Table, id: string, active: boole
 
 export async function deleteKnowledge(table: Table, id: string): Promise<FormState> {
   if (!TABLES.includes(table) || !isUuid(id)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from(table).delete().eq("id", id).eq("business_id", ctx.business.id);

@@ -1,5 +1,5 @@
 import { isUuid } from "@/lib/actions/form";
-import { authorize } from "@/lib/auth/dal";
+import { MANAGERS, requireRole, roleErrorResponse } from "@/lib/auth/requireRole";
 import { getEntitlements, schoolReportsAllowed } from "@/lib/data/queries";
 import { getSchoolReport, listTerms, pickYear } from "@/lib/data/school";
 import { isLocale } from "@/lib/i18n/config";
@@ -10,8 +10,10 @@ import { toCsv, type Cell } from "@/lib/reports/csv";
 export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard/school/reports/export">) {
   const { lang } = await ctx.params;
   if (!isLocale(lang)) return new Response("Not found", { status: 404 });
-  const auth = await authorize("admin", { readOnlyOk: true });
-  if (!auth) return new Response("Forbidden", { status: 403 });
+  // Revenue figures: owners and managers only (401 signed out, 403 staff).
+  const check = await requireRole(MANAGERS, { access: "read", readOnlyOk: true });
+  if (!check.ok) return roleErrorResponse(check);
+  const auth = check.ctx;
   const { business } = auth;
   if (!schoolReportsAllowed(await getEntitlements(business.id)))
     return new Response("School reports need a bigger plan (Billing).", {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authorize } from "@/lib/auth/dal";
+import { MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { WEEKDAYS, dayHoursSchema, type OpeningHours } from "@/lib/business/hours";
 import { isLocale } from "@/lib/i18n/config";
 import { isCountryCode } from "@/lib/i18n/country-packs";
@@ -31,7 +31,7 @@ function onboardingRedirect(formData: FormData) {
 
 /** Onboarding step 1 and Settings → Business profile. */
 export async function saveBusinessProfile(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = businessProfileSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -52,7 +52,7 @@ export async function saveBusinessProfile(_prev: FormState, formData: FormData):
 
 /** Onboarding step 2 and Settings → Opening hours. Fields: hours.<day>.open|close|closed */
 export async function saveOpeningHours(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
 
   const hours: OpeningHours = {};
@@ -84,7 +84,7 @@ export async function saveOpeningHours(_prev: FormState, formData: FormData): Pr
 
 /** Records onboarding progress for steps that have their own forms elsewhere (products, FAQs, WhatsApp). */
 export async function advanceOnboarding(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const finishing = formData.get("next_step") === "done";
   const supabase = await createClient();
@@ -113,7 +113,7 @@ const MAX_LOGO_BYTES = 2 * 1024 * 1024;
  * which Storage policies only let owners/admins of that business write.
  */
 export async function saveReceiptSettings(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = receiptSettingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -146,7 +146,7 @@ export async function saveReceiptSettings(_prev: FormState, formData: FormData):
 
 /** The owner or an admin sets the business's country (currency, time zone, languages), before amounts are recorded (WB470). */
 export async function setBusinessCountry(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const country = formData.get("country");
   if (!isCountryCode(country)) return fail("invalid");

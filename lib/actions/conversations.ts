@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, requireRoleForAction } from "@/lib/auth/requireRole";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -19,7 +19,7 @@ import { denied } from "./denied";
  */
 export async function startConversation(customerId: string, locale: string): Promise<FormState> {
   if (!isUuid(customerId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data: existing } = await supabase
@@ -55,7 +55,7 @@ export async function startConversation(customerId: string, locale: string): Pro
  */
 export async function setConversationAi(conversationId: string, aiEnabled: boolean): Promise<FormState> {
   if (!isUuid(conversationId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -76,7 +76,7 @@ export async function setConversationAi(conversationId: string, aiEnabled: boole
 export async function setConversationStatus(conversationId: string, status: string): Promise<FormState> {
   const parsed = conversationStatusSchema.safeParse(status);
   if (!isUuid(conversationId) || !parsed.success) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase
@@ -92,7 +92,7 @@ export async function setConversationStatus(conversationId: string, status: stri
 /** Clears the unread counter when a team member opens the conversation. */
 export async function markConversationRead(conversationId: string): Promise<void> {
   if (!isUuid(conversationId)) return;
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return;
   const supabase = await createClient();
   await supabase.from("conversations").update({ unread_count: 0 }).eq("id", conversationId).eq("business_id", ctx.business.id).gt("unread_count", 0);

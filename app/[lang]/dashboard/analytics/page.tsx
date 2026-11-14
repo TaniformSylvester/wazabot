@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { Bot, ChartColumn, Coins, Hand, MessagesSquare, ShoppingBag, Users } from "lucide-react";
 
 import { PageHeader, Panel, StatCard, formatMoney, formatPercent } from "@/components/app/ui";
 import { requireBusiness } from "@/lib/auth/dal";
+import { permissionsFor } from "@/lib/auth/permissions";
 import { getAnalytics } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -33,6 +35,8 @@ function Bars({ rows, noData }: { rows: { label: string; value: number; display?
 export default async function AnalyticsPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/analytics"));
+  // Revenue and sales figures: owners and managers only.
+  if (!permissionsFor(business.role).canViewRevenue) redirect(localizePath(locale, "/dashboard"));
   const a = await getAnalytics(business.id, business.currency);
   const d = t.dashboard;
   const s = d.analytics;

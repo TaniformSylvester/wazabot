@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { logServerError } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -24,7 +24,7 @@ const connectSchema = z.object({
 
 /** Dashboard → WhatsApp: verify the number with Meta and store the token encrypted (owners/admins). */
 export async function connectWhatsAppAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = connectSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -39,7 +39,7 @@ export async function connectWhatsAppAction(_prev: FormState, formData: FormData
 }
 
 export async function disconnectWhatsAppAction(): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const done = await disconnectWhatsApp(ctx.business.id, ctx.user.id);
   revalidatePath("/[lang]/dashboard", "layout");
@@ -57,7 +57,7 @@ const sendSchema = z.object({
  * switches to Human Mode so the assistant won't answer over the person.
  */
 export async function sendWhatsAppMessage(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const parsed = sendSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -127,7 +127,7 @@ export async function sendWhatsAppMessage(_prev: FormState, formData: FormData):
 /** Blue ticks: tells WhatsApp the team has read the customer's latest message (best effort). */
 export async function markWhatsAppRead(conversationId: string): Promise<void> {
   if (!isUuid(conversationId)) return;
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return;
   const supabase = await createClient();
   const { data: last } = await supabase

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -15,7 +15,7 @@ import { denied } from "./denied";
 
 /** Create or edit a customer (agents and above). */
 export async function saveCustomer(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   // Local numbers are read in the business's country (+237, +263, +254…).
   const parsed = customerSchemaFor(ctx.business.countryCode).safeParse(formObject(formData));
@@ -62,7 +62,7 @@ export async function saveCustomer(_prev: FormState, formData: FormData): Promis
 /** Deleting is limited to admins; customers with orders can't be deleted (orders keep their history). */
 export async function deleteCustomer(customerId: string, locale: string): Promise<FormState> {
   if (!isUuid(customerId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("customers").delete().eq("id", customerId).eq("business_id", ctx.business.id);

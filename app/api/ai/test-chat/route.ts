@@ -1,4 +1,5 @@
 import { sendTestMessage } from "@/lib/ai/test-chat";
+import { MANAGERS, requireRole, roleErrorResponse } from "@/lib/auth/requireRole";
 
 /*
  * AI Assistant → Test chat. A plain JSON endpoint (signed-in team members
@@ -11,6 +12,9 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const started = Date.now();
+  // 401 / 403 before anything else: the AI test bench is for owners and managers.
+  const auth = await requireRole(MANAGERS);
+  if (!auth.ok) return roleErrorResponse(auth);
   let body: unknown = null;
   try {
     body = await request.json();

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { authorize, getCurrentBusiness } from "@/lib/auth/dal";
+import { getCurrentBusiness } from "@/lib/auth/dal";
+import { EVERYONE, requireRoleForAction } from "@/lib/auth/requireRole";
 import { businessCanUse } from "@/lib/billing/plan-access";
 import { getBranchContext } from "@/lib/branches";
 import { emit } from "@/lib/core/events";
@@ -45,7 +46,7 @@ export type SaleError = "forbidden" | "plan_required" | "invalid" | "empty" | "c
 export type SaleResult = { ok: true; id: string } | { ok: false; error: SaleError; item?: string };
 
 export async function createSale(input: SaleInput): Promise<SaleResult> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return { ok: false, error: (await getCurrentBusiness())?.readOnly ? "plan_required" : "forbidden" };
   const parsed = saleSchema.safeParse(input);
   if (!parsed.success) {

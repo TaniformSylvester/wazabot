@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { authorize } from "@/lib/auth/dal";
+import { MANAGERS, requireRoleForAction, type RoleContext } from "@/lib/auth/requireRole";
 import { MAX_BROADCAST_TEXT, broadcastTemplateName, composeBroadcastBody } from "@/lib/broadcasts/compose";
 import { processBroadcast, startBroadcast, submitBroadcastTemplate, syncBroadcastTemplate } from "@/lib/broadcasts/service";
 import { isLocale } from "@/lib/i18n/config";
@@ -42,7 +42,7 @@ const broadcastSchema = z.object({
 const revalidate = () => revalidatePath("/[lang]/dashboard/broadcasts", "layout");
 
 export async function createBroadcast(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = broadcastSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -74,12 +74,12 @@ export async function createBroadcast(_prev: FormState, formData: FormData): Pro
   return ok(id);
 }
 
-type Ctx = NonNullable<Awaited<ReturnType<typeof authorize>>>;
+type Ctx = RoleContext;
 type Admin = NonNullable<ReturnType<typeof createAdminClient>>;
 
 async function adminFor(id: string): Promise<{ error: FormState } | { ctx: Ctx; admin: Admin }> {
   if (!isUuid(id)) return { error: fail("invalid") };
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return { error: fail("forbidden") };
   const admin = createAdminClient();
   if (!admin) return { error: fail("whatsapp_not_configured") };
@@ -125,7 +125,7 @@ export async function resumeBroadcast(broadcastId: string): Promise<FormState> {
 
 export async function deleteBroadcast(broadcastId: string, locale: string): Promise<FormState> {
   if (!isUuid(broadcastId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("broadcasts").delete().eq("id", broadcastId).eq("business_id", ctx.business.id).select("id");

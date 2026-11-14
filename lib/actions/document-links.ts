@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { businessSnapshot, getDocument, getDocumentSettings, rowToDocument } from "@/lib/data/documents";
 import { customerStatement } from "@/lib/data/statements";
 import { DOCUMENT_LABELS } from "@/lib/documents/labels";
@@ -42,7 +42,7 @@ function linkError(error: { code?: string; message?: string } | null): FormState
 /** Staff: an issued invoice for an order (lines and totals from the order). Opens it. */
 export async function createOrderInvoice(orderId: string, locale: string): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const settings = await getDocumentSettings(ctx.business.id);
   const supabase = await createClient();
@@ -67,7 +67,7 @@ const invoicePaymentSchema = z.object({
 /** Staff: a payment received against an issued invoice (an order's invoice records it on the order). */
 export async function recordInvoicePayment(documentId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(documentId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const parsed = invoicePaymentSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -98,7 +98,7 @@ const voidSchema = z.object({
 
 /** Owners/admins: void a payment recorded on an invoice by mistake (not while it has a receipt). */
 export async function voidInvoicePayment(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = voidSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -115,7 +115,7 @@ export async function voidInvoicePayment(_prev: FormState, formData: FormData): 
 /** Staff: the receipt for a recorded payment ('order' = order payment, 'invoice' = invoice payment). Opens it. */
 export async function createPaymentReceipt(source: "order" | "invoice", paymentId: string, locale: string): Promise<FormState> {
   if (!isUuid(paymentId) || (source !== "order" && source !== "invoice")) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const settings = await getDocumentSettings(ctx.business.id);
   const supabase = await createClient();
@@ -135,7 +135,7 @@ export async function createPaymentReceipt(source: "order" | "invoice", paymentI
 /** Staff: an issued document's PDF to its customer on WhatsApp (inside the 24-hour window). */
 export async function sendDocumentWhatsApp(documentId: string): Promise<FormState> {
   if (!isUuid(documentId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   // Read with the user's session: RLS proves the document is theirs.
   const row = await getDocument(ctx.business.id, documentId);
@@ -176,7 +176,7 @@ export async function sendStatementWhatsApp(customerId: string, options: { from:
   if (!isUuid(customerId)) return fail("invalid");
   const p = period.safeParse(options);
   if (!p.success) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const st = await customerStatement(ctx.business, customerId, p.data);
   if (!st) return fail("not_found");

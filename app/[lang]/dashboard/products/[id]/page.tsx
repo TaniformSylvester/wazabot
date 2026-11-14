@@ -10,6 +10,7 @@ import { PageHeader, Panel, StatusBadge, TableWrap, formatDate, formatMoney, for
 import { adjustStock, deleteProduct, transferStock } from "@/lib/actions/products";
 import { isUuid } from "@/lib/actions/form";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
+import { canToggleAvailability } from "@/lib/auth/permissions";
 import { getProduct, listStockMovements } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -36,6 +37,8 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   const p = d.products;
   const inv = p.inventory;
   const canEdit = canManageBusiness(business.role);
+  // Staff who take orders may record a stock count (availability and stock only; never prices or names).
+  const canCount = !canEdit && canToggleAvailability(business.role);
   const showMargin = canEdit && (await businessCanUse(business.id, "profit"));
   const n = (v: number) => formatNumber(v, locale);
   const money = (v: number) => formatMoney(v, product.currency, locale);
@@ -153,6 +156,20 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
                 <TextField name="note" label={inv.adjust.note} maxLength={300} />
                 <div>
                   <SubmitButton>{inv.adjust.submit}</SubmitButton>
+                </div>
+              </ActionForm>
+            ) : canCount && tracked.length ? (
+              // Staff who take orders: a stock count only (the server and the database refuse anything else).
+              <ActionForm action={adjustStock} text={{ errors: d.errors, saved: inv.adjust.saved, saving: inv.adjust.saving }} successMessage={inv.adjust.saved} hidden={{ product_id: product.id, reason: "adjustment" }}>
+                <p className="text-sm text-slate" data-testid="staff-stock-count">{inv.adjust.staffCount}</p>
+                {branchCtx.multi && !branchCtx.locked ? <SelectField name="branch_id" label={br.branch} defaultValue={branchCtx.current.id} options={branchOptions} /> : null}
+                {tracked.length > 1 || tracked[0].id ? (
+                  <SelectField name="variant_id" label={inv.adjust.variant} defaultValue={tracked[0].id ?? ""} options={tracked.map((v) => ({ value: v.id ?? "", label: v.label }))} />
+                ) : null}
+                <TextField name="counted" label={inv.adjust.counted} inputMode="numeric" required />
+                <TextField name="note" label={inv.adjust.note} maxLength={300} />
+                <div>
+                  <SubmitButton>{inv.adjust.staffCountSubmit}</SubmitButton>
                 </div>
               </ActionForm>
             ) : (

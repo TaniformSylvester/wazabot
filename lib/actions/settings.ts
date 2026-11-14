@@ -1,9 +1,10 @@
 "use server";
 
+import { MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { canManageBusiness, getCurrentBusiness, requireUser } from "@/lib/auth/dal";
+import { requireUser } from "@/lib/auth/dal";
 import { isLocale } from "@/lib/i18n/config";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
@@ -11,9 +12,10 @@ import { languageSettingsSchema, type SettingsActionResult } from "@/lib/validat
 
 /** Save reply languages + response style in one transaction (update_business_language_settings). */
 export async function saveLanguageSettings(input: unknown): Promise<SettingsActionResult> {
-  await requireUser();
-  const business = await getCurrentBusiness();
-  if (!business || !canManageBusiness(business.role) || business.awaitingPaidPlan) return { ok: false, error: "forbidden" };
+  // The assistant's languages: owners and managers only.
+  const ctx = await requireRoleForAction(MANAGERS);
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const business = ctx.business;
 
   const parsed = languageSettingsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid", fieldErrors: z.flattenError(parsed.error).fieldErrors };

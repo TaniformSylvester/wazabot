@@ -10,6 +10,7 @@ import { z } from "zod";
 import { siteConfig } from "@/config/site";
 import { setActiveBusiness } from "@/lib/auth/active-business";
 import { ACTIVE_BUSINESS_COOKIE, authorize, getCurrentUser, listMyBusinesses } from "@/lib/auth/dal";
+import { MANAGERS, OWNER, requireRoleForAction } from "@/lib/auth/requireRole";
 import { isLocale, type Locale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -39,9 +40,10 @@ const inviteUrl = (locale: Locale, token: string) => `${siteConfig.url}${localiz
 const localeOf = (v: FormDataEntryValue | string | null | undefined): Locale => (isLocale(v) ? v : "en");
 
 export async function inviteMember(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
-  if (!ctx) return denied();
   const parsed = inviteSchema.safeParse(formObject(formData));
+  // Inviting a manager (stored role "admin") is for the owner only; managers invite staff (the database checks this too).
+  const ctx = await requireRoleForAction(parsed.success && parsed.data.role === "admin" ? OWNER : MANAGERS);
+  if (!ctx) return denied();
   if (!parsed.success) return invalid(parsed.error);
   const { token, hash } = newToken();
   const supabase = await createClient();
@@ -62,7 +64,7 @@ export async function inviteMember(_prev: FormState, formData: FormData): Promis
 /** A fresh link for a pending invitation (the old link stops working). */
 export async function renewInvitation(invitationId: string, locale: string): Promise<FormState> {
   if (!isUuid(invitationId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const { token, hash } = newToken();
   const supabase = await createClient();
@@ -77,7 +79,7 @@ export async function renewInvitation(invitationId: string, locale: string): Pro
 
 export async function revokeInvitation(invitationId: string): Promise<FormState> {
   if (!isUuid(invitationId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("revoke_invitation", { p_invitation_id: invitationId });
@@ -91,7 +93,8 @@ export async function revokeInvitation(invitationId: string): Promise<FormState>
 
 export async function updateMemberRole(userId: string, role: string): Promise<FormState> {
   if (!isUuid(userId) || !["admin", "agent", "viewer", "teacher", "kitchen"].includes(role)) return fail("invalid");
-  const ctx = await authorize("admin");
+  // Making someone a manager is for the owner only (the database also refuses a manager changing another manager).
+  const ctx = await requireRoleForAction(role === "admin" ? OWNER : MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_member_role", { p_business_id: ctx.business.id, p_user_id: userId, p_role: role });
@@ -105,7 +108,7 @@ export async function updateMemberRole(userId: string, role: string): Promise<Fo
 
 export async function removeMember(userId: string): Promise<FormState> {
   if (!isUuid(userId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   if (userId === ctx.user.id) return fail("forbidden");
   const supabase = await createClient();

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { businessSnapshot, getDocumentSettings } from "@/lib/data/documents";
 import { computeReportCards, getPublication, getSchoolSettings, schoolLanguage } from "@/lib/data/school";
 import { renderReportCardsPdf, reportCardFileName } from "@/lib/documents/pdf/render";
@@ -46,7 +47,7 @@ const number = (min: number, max: number) =>
 // ---------------------------------------------------------------- module
 export async function setModule(module: string, enabled: boolean): Promise<FormState> {
   if (!(MODULES as readonly string[]).includes(module)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_business_module", { p_business_id: ctx.business.id, p_module: module, p_enabled: enabled });
@@ -74,7 +75,7 @@ const settingsSchema = z.object({
 });
 
 export async function saveSchoolSettings(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = settingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -96,7 +97,7 @@ export async function saveSchoolSettings(_prev: FormState, formData: FormData): 
 /** Fills the grading settings from a preset (owners/admins). */
 export async function applyGradingPreset(preset: string): Promise<FormState> {
   if (!(GRADING_PRESETS as readonly string[]).includes(preset)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const settings = await getSchoolSettings(ctx.business.id);
   const def = gradingPreset(preset as (typeof GRADING_PRESETS)[number], schoolLanguage(settings, ctx.business));
@@ -132,7 +133,7 @@ const yearSchema = z.object({
 });
 
 export async function createYear(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = yearSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -164,7 +165,7 @@ export async function createYear(_prev: FormState, formData: FormData): Promise<
 
 export async function setCurrentYear(yearId: string): Promise<FormState> {
   if (!isUuid(yearId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   await supabase.from("academic_years").update({ is_current: false }).eq("business_id", ctx.business.id).eq("is_current", true);
@@ -175,7 +176,7 @@ export async function setCurrentYear(yearId: string): Promise<FormState> {
 
 export async function addTerm(yearId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(yearId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = z.object({ name: requiredText(40) }).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -188,7 +189,7 @@ export async function addTerm(yearId: string, _prev: FormState, formData: FormDa
 
 export async function addAssessment(termId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(termId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = z.object({ name: requiredText(40), weight: number(0.01, 1000), max_mark: number(0.01, 1000) }).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -204,7 +205,7 @@ export async function addAssessment(termId: string, _prev: FormState, formData: 
 /** Removes an assessment (and its marks) — not while a class's results for the term are published. */
 export async function removeAssessment(assessmentId: string): Promise<FormState> {
   if (!isUuid(assessmentId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data: a } = await supabase.from("school_assessments").select("term_id").eq("business_id", ctx.business.id).eq("id", assessmentId).maybeSingle();
@@ -218,7 +219,7 @@ export async function removeAssessment(assessmentId: string): Promise<FormState>
 
 // ---------------------------------------------------------------- subjects and classes
 export async function createSubject(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = z.object({ name: requiredText(80), code: optionalText(12) }).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -232,7 +233,7 @@ const classSchema = z.object({ name: requiredText(60), level: optionalText(40), 
 
 export async function createClass(yearId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(yearId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = classSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -244,7 +245,7 @@ export async function createClass(yearId: string, _prev: FormState, formData: Fo
 
 export async function updateClass(classId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(classId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = classSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -256,7 +257,7 @@ export async function updateClass(classId: string, _prev: FormState, formData: F
 
 export async function addClassSubject(classId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(classId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = z.object({ subject_id: z.uuid({ error: "required" }), coefficient: number(0.01, 100), teacher_id: optionalUuid }).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -269,7 +270,7 @@ export async function addClassSubject(classId: string, _prev: FormState, formDat
 
 export async function updateClassSubject(classSubjectId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(classSubjectId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = z.object({ coefficient: number(0.01, 100), teacher_id: optionalUuid }).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -282,7 +283,7 @@ export async function updateClassSubject(classSubjectId: string, _prev: FormStat
 /** Removes a subject from a class (its marks go too) — not while the class has published results. */
 export async function removeClassSubject(classSubjectId: string): Promise<FormState> {
   if (!isUuid(classSubjectId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data: cs } = await supabase.from("class_subjects").select("class_id").eq("business_id", ctx.business.id).eq("id", classSubjectId).maybeSingle();
@@ -342,7 +343,7 @@ async function enrol(supabase: Awaited<ReturnType<typeof createClient>>, busines
 
 export async function saveStudent(locale: string, studentId: string | null, _prev: FormState, formData: FormData): Promise<FormState> {
   if (studentId !== null && !isUuid(studentId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const parsed = studentSchemaFor(ctx.business.countryCode).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -370,7 +371,7 @@ export async function saveStudent(locale: string, studentId: string | null, _pre
 
 export async function enrolStudent(classId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(classId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const studentId = z.uuid().safeParse(formData.get("student_id"));
   if (!studentId.success) return fail("invalid", { student_id: ["required"] });
@@ -382,7 +383,7 @@ export async function enrolStudent(classId: string, _prev: FormState, formData: 
 
 export async function unenrolStudent(enrollmentId: string): Promise<FormState> {
   if (!isUuid(enrollmentId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("school_enrollments").update({ status: "left" }).eq("business_id", ctx.business.id).eq("id", enrollmentId);
@@ -461,7 +462,7 @@ export async function saveTermComment(_prev: FormState, formData: FormData): Pro
 /** Owners/admins: compute the class's results from the marks now and freeze them. */
 export async function publishResults(classId: string, termId: string): Promise<FormState> {
   if (!isUuid(classId) || !isUuid(termId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const data = await computeReportCards(ctx.business, classId, termId);
   if (!data) return fail("not_found");
@@ -473,7 +474,7 @@ export async function publishResults(classId: string, termId: string): Promise<F
 
 export async function withdrawResults(publicationId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(publicationId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = z.object({ reason: z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string().min(3, "reason_required").max(300, "too_long")) }).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -486,7 +487,7 @@ export async function withdrawResults(publicationId: string, _prev: FormState, f
 /** Staff: a published report card to the student's guardian on WhatsApp (inside the 24-hour window). */
 export async function sendReportCard(classId: string, termId: string, studentId: string): Promise<FormState> {
   if (!isUuid(classId) || !isUuid(termId) || !isUuid(studentId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const pub = await getPublication(ctx.business.id, termId, classId);
   // Never before the results are published.
@@ -523,7 +524,7 @@ const feeSchema = z.object({ name: requiredText(80), amount: money.refine((v) =>
 
 export async function createFee(yearId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(yearId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = feeSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -536,7 +537,7 @@ export async function createFee(yearId: string, _prev: FormState, formData: Form
 /** Owners/admins: an invoice for the fee to every enrolled student without one (to their guardian). */
 export async function billFee(feeId: string): Promise<FormState> {
   if (!isUuid(feeId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const docSettings = await getDocumentSettings(ctx.business.id);
   const supabase = await createClient();

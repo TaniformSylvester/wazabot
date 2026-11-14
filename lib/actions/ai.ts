@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { authorize, getBusinessAiSettings } from "@/lib/auth/dal";
+import { getBusinessAiSettings } from "@/lib/auth/dal";
+import { MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { REPLY_LENGTHS, TONES } from "@/lib/ai/style";
 import { isLocale } from "@/lib/i18n/config";
 import { LANGUAGE_CODES, aiLanguageCodes } from "@/lib/i18n/languages";
@@ -18,7 +19,7 @@ import { denied } from "./denied";
 
 /** AI Assistant → General settings (owners/admins). Languages are saved by saveLanguageSettings. */
 export async function saveAiSettings(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = aiSettingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -48,7 +49,7 @@ const personalitySchema = z.object({
  * Saved through update_business_language_settings so languages stay consistent.
  */
 export async function saveOnboardingPersonality(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = personalitySchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);

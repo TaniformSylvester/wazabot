@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { authorize } from "@/lib/auth/dal";
+
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { businessSnapshot, getDocument, getDocumentSettings } from "@/lib/data/documents";
 import { computeTotals } from "@/lib/documents/calc";
 import type { SubmitResult } from "@/lib/documents/editor-state";
@@ -28,7 +29,7 @@ const docPath = (locale: string, path: string) => (isLocale(locale) ? localizePa
 
 /** Create or update a draft; with intent "issue", also give it its number. Redirects to the document on success. */
 export async function saveDocument(locale: string, id: string | null, input: unknown, customerId: string | null, intent: "save" | "issue"): Promise<SubmitResult> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return { ok: false, error: "forbidden" };
   if (id !== null && !isUuid(id)) return { ok: false, error: "invalid" };
   const parsed = documentSchema(BUSINESS_MAX_ITEMS).safeParse(input);
@@ -101,7 +102,7 @@ export async function saveDocument(locale: string, id: string | null, input: unk
 }
 
 async function rpcAction(name: "issue_document" | "void_document" | "set_quotation_status", args: Record<string, string>, min: "agent" | "admin"): Promise<FormState> {
-  const ctx = await authorize(min);
+  const ctx = await requireRoleForAction(min === "admin" ? MANAGERS : EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc(name, args as never);
@@ -134,7 +135,7 @@ export async function voidDocument(id: string, _prev: FormState, formData: FormD
 /** Deletes a draft (issued documents are kept: void them). */
 export async function deleteDraft(id: string, locale: string): Promise<FormState> {
   if (!isUuid(id)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("documents").delete().eq("id", id).eq("business_id", ctx.business.id).eq("status", "draft").select("id");
@@ -147,7 +148,7 @@ export async function deleteDraft(id: string, locale: string): Promise<FormState
 /** A new draft with the same customer, lines and terms — the way to correct an issued document. */
 export async function duplicateDocument(id: string, locale: string): Promise<FormState> {
   if (!isUuid(id)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const src = await getDocument(ctx.business.id, id);
   if (!src) return fail("not_found");
@@ -215,7 +216,7 @@ const settingsSchema = z.object({
 
 /** Documents → Settings (owners and admins): numbering and defaults. */
 export async function saveDocumentSettings(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = settingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);

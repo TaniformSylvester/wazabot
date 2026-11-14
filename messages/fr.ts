@@ -1798,6 +1798,8 @@ const fr: Messages = {
           saving: "Enregistrement…",
           saved: "Stock mis à jour.",
           ownersOnly: "Seul le propriétaire ou un administrateur peut ajuster le stock.",
+          staffCount: "Comptez ce qui est en rayon et saisissez le nombre. Les entrées de stock, les pertes, les prix et les noms sont modifiés par le propriétaire ou un gérant.",
+          staffCountSubmit: "Enregistrer l'inventaire",
         },
         reasons: { opening: "Stock initial", purchase: "Achat / réapprovisionnement", sale: "Vente", return: "Retour", damaged: "Endommagé", lost: "Perdu ou volé", adjustment: "Inventaire / ajustement" },
         history: {

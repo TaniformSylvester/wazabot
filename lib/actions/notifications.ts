@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { logServerError } from "@/lib/log";
 import { notifyFollowUp } from "@/lib/notifications/events";
 import { submitTemplates, syncTemplates } from "@/lib/notifications/service";
@@ -24,7 +24,7 @@ const settingsSchema = z.object({ order_updates: checkbox, appointment_updates: 
 const revalidate = () => revalidatePath("/[lang]/dashboard", "layout");
 
 export async function saveNotificationSettings(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = settingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -40,7 +40,7 @@ export async function saveNotificationSettings(_prev: FormState, formData: FormD
 }
 
 export async function submitTemplatesAction(): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const admin = createAdminClient();
   if (!admin) return fail("whatsapp_not_configured");
@@ -51,7 +51,7 @@ export async function submitTemplatesAction(): Promise<FormState> {
 }
 
 export async function syncTemplatesAction(): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const admin = createAdminClient();
   if (!admin) return fail("whatsapp_not_configured");
@@ -63,7 +63,7 @@ export async function syncTemplatesAction(): Promise<FormState> {
 /** Conversation page, after the 24-hour window: sends the follow-up template so the customer can reply. */
 export async function sendFollowUp(conversationId: string): Promise<FormState> {
   if (!isUuid(conversationId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const admin = createAdminClient();
   if (!admin) return fail("whatsapp_not_configured");

@@ -107,7 +107,7 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
   },
   {
     key: "insights",
-    items: [{ key: "analytics", href: "/dashboard/analytics", icon: ChartColumn, module: "commerce" }],
+    items: [{ key: "analytics", href: "/dashboard/analytics", icon: ChartColumn, module: "commerce", minRole: "admin" }],
   },
   {
     key: "settings",

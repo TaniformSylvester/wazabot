@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { localDate, localStamp, localTime } from "@/lib/business/time";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
@@ -26,7 +26,7 @@ import { denied } from "./denied";
 const revalidate = () => revalidatePath("/[lang]/dashboard", "layout");
 
 export async function saveBookingSettings(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = bookingSettingsSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -47,7 +47,7 @@ export async function saveBookingSettings(_prev: FormState, formData: FormData):
 }
 
 export async function saveService(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = serviceSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -66,7 +66,7 @@ export async function saveService(_prev: FormState, formData: FormData): Promise
 
 export async function deleteService(serviceId: string): Promise<FormState> {
   if (!isUuid(serviceId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("services").delete().eq("id", serviceId).eq("business_id", ctx.business.id);
@@ -81,7 +81,7 @@ export async function deleteService(serviceId: string): Promise<FormState> {
 /** Free local times ("10:00") for a service on a local date — for the booking form. */
 export async function getFreeTimes(serviceId: string, date: string): Promise<string[]> {
   if (!isUuid(serviceId) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return [];
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return [];
   const supabase = await createClient();
   const { data } = await supabase.rpc("available_slots", { p_business_id: ctx.business.id, p_service_id: serviceId, p_from: date, p_days: 1 });
@@ -90,7 +90,7 @@ export async function getFreeTimes(serviceId: string, date: string): Promise<str
 }
 
 export async function createAppointment(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const parsed = appointmentSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -121,7 +121,7 @@ export async function createAppointment(_prev: FormState, formData: FormData): P
 
 export async function setAppointmentStatus(appointmentId: string, status: string): Promise<FormState> {
   if (!isUuid(appointmentId) || !(APPOINTMENT_STATUSES as readonly string[]).includes(status)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("appointments").update({ status }).eq("id", appointmentId).eq("business_id", ctx.business.id).select("id");

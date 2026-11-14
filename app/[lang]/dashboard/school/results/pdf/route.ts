@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { isUuid } from "@/lib/actions/form";
-import { getCurrentBusiness } from "@/lib/auth/dal";
+import { EVERYONE, requireRole, roleErrorResponse } from "@/lib/auth/requireRole";
 import { bulkReportCardsAllowed, getEntitlements } from "@/lib/data/queries";
 import { computeReportCards, getPublication } from "@/lib/data/school";
 import { renderReportCardsPdf, reportCardFileName } from "@/lib/documents/pdf/render";
@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
   const classId = q.get("class") ?? "";
   const termId = q.get("term") ?? "";
   const studentId = q.get("student");
-  const business = await getCurrentBusiness();
+  // Any member of the business may read its documents (401 signed out, 403 not a member); queries below are scoped to this business.
+  const check = await requireRole(EVERYONE, { access: "read", readOnlyOk: true });
+  if (!check.ok) return roleErrorResponse(check);
+  const business = check.ctx.business;
   if (!business || !isUuid(classId) || !isUuid(termId) || (studentId && !isUuid(studentId))) return new NextResponse("Not found", { status: 404 });
   if (!studentId && !bulkReportCardsAllowed(await getEntitlements(business.id))) {
     return new NextResponse("Report cards for a whole class need a bigger plan (Billing).", { status: 403 });

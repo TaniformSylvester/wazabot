@@ -11,7 +11,7 @@ import { answerWithRules } from "@/lib/ai/rules";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
 import { resolveCatalogPhoto } from "@/lib/ai/tools/registry";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
-import { authorize } from "@/lib/auth/dal";
+import { MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { logClaudeCalls, type ClaudeCallUsage } from "@/lib/billing/costs";
 import { isOpenAt } from "@/lib/business/hours";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
@@ -76,7 +76,8 @@ export async function sendTestMessage(input: unknown): Promise<TestChatResult> {
 }
 
 async function runTestMessage(input: unknown): Promise<TestChatResult> {
-  const ctx = await authorize("agent");
+  // The AI system: owners and managers only (staff use the inbox, not the assistant's test bench).
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return { ok: false, error: "forbidden" };
   if (!aiConfigured()) return { ok: false, error: "not_configured" };
   const parsed = inputSchema.safeParse(input);

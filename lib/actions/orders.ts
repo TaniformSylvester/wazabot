@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { redirect } from "next/navigation";
 
 import { getBranchContext } from "@/lib/branches";
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -23,7 +23,7 @@ import { denied } from "./denied";
  * never trusted from the browser. No payment is taken.
  */
 export async function createOrder(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const parsed = orderSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -69,7 +69,7 @@ export async function createOrder(_prev: FormState, formData: FormData): Promise
  * for delivered orders; an order with a refund stays cancelled or returned.
  */
 export async function updateOrder(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const id = String(formData.get("id") ?? "");
   if (!isUuid(id)) return fail("invalid");
@@ -92,7 +92,7 @@ export async function updateOrder(_prev: FormState, formData: FormData): Promise
 
 export async function deleteOrder(orderId: string, locale: string): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("orders").delete().eq("id", orderId).eq("business_id", ctx.business.id);
@@ -107,7 +107,7 @@ export async function deleteOrder(orderId: string, locale: string): Promise<Form
 
 /** Owners/admins: a sale recorded without a customer (walk-in) is linked to the customer who bought it. Once only. */
 export async function linkOrderCustomer(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const orderId = String(formData.get("order_id") ?? "");
   const customerId = String(formData.get("customer_id") ?? "");

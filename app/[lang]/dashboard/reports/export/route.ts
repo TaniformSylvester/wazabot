@@ -1,4 +1,4 @@
-import { authorize } from "@/lib/auth/dal";
+import { MANAGERS, requireRole, roleErrorResponse } from "@/lib/auth/requireRole";
 import { businessCanUse } from "@/lib/billing/plan-access";
 import { listBranches } from "@/lib/branches";
 import { expensesBetween, groupDays, invoicePaymentsBetween, productSales, resolvePeriod, salesByDay, topCustomers, type ReportGroup } from "@/lib/data/reports";
@@ -17,8 +17,10 @@ export async function GET(request: Request, ctx: RouteContext<"/[lang]/dashboard
   const { lang } = await ctx.params;
   if (!isLocale(lang)) return new Response("Not found", { status: 404 });
   // Exports are reads: a business without a plan (read-only) can still download its records.
-  const auth = await authorize("admin", { readOnlyOk: true });
-  if (!auth) return new Response("Forbidden", { status: 403 });
+  // Revenue figures: owners and managers only (401 signed out, 403 staff).
+  const check = await requireRole(MANAGERS, { access: "read", readOnlyOk: true });
+  if (!check.ok) return roleErrorResponse(check);
+  const auth = check.ctx;
   const { business } = auth;
   const url = new URL(request.url);
   const type = TYPES.find((t) => t === url.searchParams.get("type"));

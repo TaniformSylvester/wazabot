@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { authorize } from "@/lib/auth/dal";
+import { MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { logServerError } from "@/lib/log";
 import { notifyTeamOfPlanRequest } from "@/lib/admin/plan-requests";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -33,7 +33,7 @@ const requestSchema = z.object({
 });
 
 export async function requestPlanChange(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin", { whileAwaitingPlan: true });
+  const ctx = await requireRoleForAction(MANAGERS, { whileAwaitingPlan: true });
   if (!ctx) return denied();
   const parsed = requestSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -73,7 +73,7 @@ export async function requestPlanChange(_prev: FormState, formData: FormData): P
 
 export async function cancelPlanChange(requestId: string): Promise<FormState> {
   if (!isUuid(requestId)) return fail("invalid");
-  const ctx = await authorize("admin", { whileAwaitingPlan: true });
+  const ctx = await requireRoleForAction(MANAGERS, { whileAwaitingPlan: true });
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("cancel_plan_change", { p_request_id: requestId });
@@ -87,7 +87,7 @@ export async function cancelPlanChange(requestId: string): Promise<FormState> {
 
 /** A one-off AI top-up for this usage period (with the AI add-on; once AI launches). */
 export async function requestAiTopup(): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   // Top-ups are priced in FCFA only.
   if (ctx.business.currency !== "XAF") return fail("not_in_currency");
@@ -108,7 +108,7 @@ export async function requestAiTopup(): Promise<FormState> {
 
 /** Starts the free AI trial (once per business, once AI launches), after the Meta fees notice. */
 export async function startAiTrial(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   if (formData.get("accept_meta_notice") !== "on") return fail("meta_notice_required", { accept_meta_notice: ["required"] });
   const supabase = await createClient();

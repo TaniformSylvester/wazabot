@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { notifyTeamOfPlanRequest } from "@/lib/admin/plan-requests";
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { WORKING_BRANCH_COOKIE, getBranchContext } from "@/lib/branches";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
@@ -35,7 +35,7 @@ const branchSchema = z.object({
 });
 
 export async function saveBranch(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = branchSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -55,7 +55,7 @@ export async function saveBranch(_prev: FormState, formData: FormData): Promise<
 /** Pause a branch (no sales there; its stock and history stay) or reopen it (needs room in the plan). */
 export async function setBranchActive(branchId: string, active: boolean): Promise<FormState> {
   if (!isUuid(branchId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("branches").update({ active }).eq("id", branchId).eq("business_id", ctx.business.id).select("id").maybeSingle();
@@ -69,7 +69,7 @@ export async function setBranchActive(branchId: string, active: boolean): Promis
 
 /** Owners and admins: work in another branch (only a preference; members tied to a branch can't switch). */
 export async function switchBranch(branchId: string, locale: string, path: string) {
-  const ctx = await authorize("viewer");
+  const ctx = await requireRoleForAction(EVERYONE, { access: "read" });
   if (ctx && isUuid(branchId)) {
     const { branches, locked } = await getBranchContext(ctx.business);
     if (!locked && branches.some((b) => b.id === branchId)) {
@@ -89,7 +89,7 @@ const extraSchema = z.object({
 
 /** Ask WazaBolt for a number of extra branches (Business and Pro); approved once paid, like a plan change. */
 export async function requestExtraBranches(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   // Extra shops are priced in FCFA only.
   if (ctx.business.currency !== "XAF") return fail("not_in_currency");
@@ -117,7 +117,7 @@ export async function requestExtraBranches(_prev: FormState, formData: FormData)
 /** Tie an agent, viewer or kitchen member to a branch (empty: every branch). */
 export async function setMemberBranch(userId: string, branchId: string): Promise<FormState> {
   if (!isUuid(userId) || (branchId !== "" && !isUuid(branchId))) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_member_branch", { p_business_id: ctx.business.id, p_user_id: userId, p_branch_id: branchId || undefined });

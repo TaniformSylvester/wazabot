@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { getBranchContext } from "@/lib/branches";
 import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -56,7 +57,7 @@ const tableSchema = z.object({
 
 /** Owners/admins: add a table, or rename one (id). */
 export async function saveTable(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = tableSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -79,7 +80,7 @@ export async function saveTable(_prev: FormState, formData: FormData): Promise<F
 /** Owners/admins: switch a table off (kept for past bills) or back on. */
 export async function setTableActive(tableId: string, active: boolean): Promise<FormState> {
   if (!isUuid(tableId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("restaurant_tables").update({ active }).eq("id", tableId).eq("business_id", ctx.business.id);
@@ -91,7 +92,7 @@ export async function setTableActive(tableId: string, active: boolean): Promise<
 /** Agents: open a bill on a free table, then go to it. */
 export async function openBill(tableId: string, locale: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(tableId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const guests = Number(formData.get("guests") || 0);
   const supabase = await createClient();
@@ -112,7 +113,7 @@ export async function openBill(tableId: string, locale: string, _prev: FormState
 
 /** Agents: a takeaway or delivery order with its dishes (sent to the kitchen). */
 export async function createRestaurantOrder(serviceType: "takeaway" | "delivery", locale: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const raw = formObject(formData);
   const items = itemsSchema.safeParse(raw.items);
@@ -145,7 +146,7 @@ export async function createRestaurantOrder(serviceType: "takeaway" | "delivery"
 /** Agents: dishes added to an open order go to the kitchen as one round. */
 export async function addDishes(orderId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const items = itemsSchema.safeParse(formObject(formData).items);
   if (!items.success) return fail(items.error.issues[0]?.message === "empty_order" ? "empty_order" : "invalid");
@@ -162,7 +163,7 @@ export async function addDishes(orderId: string, _prev: FormState, formData: For
 /** Agents: lines not sent yet (e.g. a WhatsApp order, checked) go to the kitchen. */
 export async function sendToKitchen(orderId: string): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("restaurant_send_to_kitchen", { p_business_id: ctx.business.id, p_order_id: orderId });
@@ -174,7 +175,7 @@ export async function sendToKitchen(orderId: string): Promise<FormState> {
 /** Agents (before the kitchen starts) / owners and admins: take a line off, with a reason. */
 export async function removeDish(itemId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!isUuid(itemId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const reason = String(formData.get("reason") ?? "").trim();
   if (reason.length < 3 || reason.length > 300) return fail("invalid", { reason: ["required"] });
@@ -188,7 +189,7 @@ export async function removeDish(itemId: string, _prev: FormState, formData: For
 /** Agents: close a bill paid in full. */
 export async function closeBill(orderId: string): Promise<FormState> {
   if (!isUuid(orderId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("restaurant_close_bill", { p_business_id: ctx.business.id, p_order_id: orderId });

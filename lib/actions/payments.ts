@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { emit } from "@/lib/core/events";
 import { logServerError } from "@/lib/log";
 import { paymentError, receivedAt } from "@/lib/payments/received";
@@ -37,7 +37,7 @@ const paymentSchema = z.object({
 
 /** Agents and up: a payment towards one sale or order. */
 export async function recordOrderPayment(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const orderId = z.uuid().safeParse(formData.get("order_id"));
   const parsed = paymentSchema.safeParse(formObject(formData));
@@ -69,7 +69,7 @@ export async function recordOrderPayment(_prev: FormState, formData: FormData): 
 
 /** Agents and up: a customer pays towards what they owe (oldest sales first). */
 export async function recordCustomerPayment(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const customerId = z.uuid().safeParse(formData.get("customer_id"));
   const parsed = paymentSchema.safeParse(formObject(formData));
@@ -101,7 +101,7 @@ export async function recordCustomerPayment(_prev: FormState, formData: FormData
 
 /** Owners/admins: money given back for a cancelled or returned order. */
 export async function recordOrderRefund(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const orderId = z.uuid().safeParse(formData.get("order_id"));
   const parsed = paymentSchema.safeParse(formObject(formData));
@@ -131,7 +131,7 @@ export async function recordOrderRefund(_prev: FormState, formData: FormData): P
 
 /** Owners/admins: void a payment or refund recorded by mistake (it stays in the history). */
 export async function voidPayment(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = z.object({ group_id: z.uuid({ error: "required" }), reason: z.string().trim().min(3, "reason_required").max(300, "too_long") }).safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);

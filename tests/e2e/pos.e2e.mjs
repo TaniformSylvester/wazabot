@@ -418,6 +418,42 @@ mkdirSync("test-results", { recursive: true });
       /Only the owner and admins can see reports/.test(cashierReports) && cashierCsv.status() === 403 && cashierSale === 0 && !/Cost price|4,500/.test(cashierProduct),
       `csv ${cashierCsv.status()}`,
     );
+    // Stock: a cashier records a stock count (the counted quantity), nothing else — no price, name, stock-in or delete.
+    const shirtBefore = stockOf("T-Shirt");
+    const countForm = cm.getByTestId("staff-stock-count");
+    ok(
+      "field allowlist (staff): the product page offers a stock count only — no reason picker, price, name or delete",
+      (await countForm.count()) === 1 && (await cm.getByLabel(/^Reason/).count()) === 0 && (await cm.getByRole("button", { name: /Delete/ }).count()) === 0 && (await cm.locator('input[name="price"]:enabled').count()) === 0,
+    );
+    await cm.getByLabel(/Counted stock/).fill(String(shirtBefore + 2));
+    await cm.getByRole("button", { name: "Save stock count" }).click();
+    for (let i = 0; i < 40 && stockOf("T-Shirt") !== shirtBefore + 2; i++) await cp.waitForTimeout(250);
+    const lastMove = () => sql(`select reason || ' ' || quantity_change || ' ' || coalesce(u.email, '') from stock_movements m left join auth.users u on u.id = m.created_by where m.business_id = '${bizId}' and m.product_id = (select id from products where business_id = '${bizId}' and name = 'T-Shirt') order by m.created_at desc limit 1`);
+    ok("field allowlist (staff): a cashier's stock count is saved as a count, under their name", stockOf("T-Shirt") === shirtBefore + 2 && lastMove() === `adjustment 2 ${cashier.email}`, `${stockOf("T-Shirt")} ${lastMove()}`);
+    // The database refuses the rest, even called directly with the cashier's own session.
+    const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:54321";
+    const tokenRes = await fetch(`${SUPA}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: ANON, "content-type": "application/json" }, body: JSON.stringify({ email: cashier.email, password: cashier.password }) });
+    const cashierJwt = (await tokenRes.json()).access_token;
+    const shirtId = sql(`select id from products where business_id = '${bizId}' and name = 'T-Shirt'`);
+    const rest = (path, init) => fetch(`${SUPA}/rest/v1/${path}`, { ...init, headers: { apikey: ANON, authorization: `Bearer ${cashierJwt}`, "content-type": "application/json", prefer: "return=representation", ...init.headers } });
+    const rpcStock = (args) => rest("rpc/adjust_stock", { method: "POST", body: JSON.stringify({ p_business_id: bizId, p_product_id: shirtId, ...args }) });
+    const stockIn = await rpcStock({ p_reason: "purchase", p_quantity: 50 });
+    const lost = await rpcStock({ p_reason: "lost", p_quantity: 1 });
+    // Refused outright (no table permission) or matching no row: either way nothing changes.
+    const refused = async (res) => !res.ok || ((await res.json()) ?? []).length === 0;
+    const priceEdit = await refused(await rest(`products?id=eq.${shirtId}`, { method: "PATCH", body: JSON.stringify({ price: 1, name: "Hacked" }) }));
+    const del = await refused(await rest(`products?id=eq.${shirtId}`, { method: "DELETE" }));
+    const countBack = await rpcStock({ p_reason: "adjustment", p_new_stock: shirtBefore });
+    ok(
+      "field allowlist (database): with their own session a cashier can't add stock, record a loss, change the price or name, or delete — a count goes through",
+      stockIn.status === 403 && lost.status === 403 && priceEdit && del && countBack.ok && stockOf("T-Shirt") === shirtBefore && sql(`select price::int || ':' || name from products where id = '${shirtId}'`) === "8000:T-Shirt",
+      `in ${stockIn.status} lost ${lost.status} patch refused ${priceEdit} delete refused ${del} count ${countBack.status}`,
+    );
+    // Revenue and the AI system: closed to staff on the server, not only hidden.
+    await cp.goto(`${APP}/en/dashboard/analytics`);
+    ok("permissions (staff): analytics (revenue) sends them back to the dashboard", /\/en\/dashboard$/.test(new URL(cp.url()).pathname), cp.url());
+    const testChat = await cp.request.post(`${APP}/api/ai/test-chat`, { data: { message: "hi", history: [], language: null } });
+    ok("permissions (staff): the AI test-chat API answers 403", testChat.status() === 403, String(testChat.status()));
     await cp.goto(`${APP}/en/dashboard/sales/new`);
     await cm.getByPlaceholder("Search products by name or SKU").waitFor({ timeout: 15000 });
     await cm.getByRole("button", { name: /^T-Shirt —/ }).click();

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authorize } from "@/lib/auth/dal";
+import { MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -20,7 +20,7 @@ import { businessCanUse } from "@/lib/billing/plan-access";
  */
 
 export async function saveExpense(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   // Expenses are in the Business plan.
   if (!(await businessCanUse(ctx.business.id, "expenses"))) return fail("plan_limit_feature");
@@ -45,7 +45,7 @@ export async function saveExpense(_prev: FormState, formData: FormData): Promise
 
 export async function deleteExpense(id: string, locale: string): Promise<FormState> {
   if (!isUuid(id)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { data, error } = await supabase.from("expenses").delete().eq("id", id).eq("business_id", ctx.business.id).select("id").maybeSingle();

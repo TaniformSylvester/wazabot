@@ -1,11 +1,12 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { forbiddenProductFields, stockChangeAllowed } from "@/lib/auth/field-allowlist";
 import { canToggleAvailability, permissionsFor } from "@/lib/auth/permissions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authorize } from "@/lib/auth/dal";
+import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -22,7 +23,7 @@ const PRODUCT_IMAGES_BUCKET = "product-images";
 
 /** Create or update a product with its variants (owners/admins). */
 export async function saveProduct(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = productSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -174,28 +175,34 @@ async function uploadImage(businessId: string, productId: string, file: File) {
  */
 export async function setProductActive(productId: string, active: boolean): Promise<FormState> {
   if (!isUuid(productId)) return fail("invalid");
-  const ctx = await authorize("agent");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx || !canToggleAvailability(ctx.business.role)) return denied();
+  const changes = { active };
+  if (forbiddenProductFields(ctx.member.appRole, changes).length) return denied();
   const manager = permissionsFor(ctx.business.role).canEditCatalog;
   const supabase = manager ? await createClient() : createAdminClient();
   if (!supabase) return fail("unknown");
-  const { error } = await supabase.from("products").update({ active }).eq("id", productId).eq("business_id", ctx.business.id);
+  const { error } = await supabase.from("products").update(changes).eq("id", productId).eq("business_id", ctx.business.id);
   if (error) return fail(dbError(error));
   revalidatePath("/[lang]/dashboard", "layout");
   return ok(productId);
 }
 
 /**
- * Owners/admins: change stock with a reason (purchase, return, damaged, lost,
- * or a stock count). adjust_stock() records it in the stock history and never
- * lets stock go below zero.
+ * Change stock with a reason (purchase, return, damaged, lost, or a stock
+ * count). Owners/admins: every reason. Staff who take orders (agents): a stock
+ * count only, in their own branch if they are tied to one (the database checks
+ * the same). adjust_stock() records it in the stock history and never lets
+ * stock go below zero.
  */
 export async function adjustStock(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(EVERYONE);
   if (!ctx) return denied();
   const parsed = stockAdjustSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
   const a = parsed.data;
+  const count = a.reason === "adjustment";
+  if (!stockChangeAllowed(ctx.member.appRole, { reason: a.reason, counted: count ? a.counted : null, quantity: count ? null : a.quantity })) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("adjust_stock", {
     p_business_id: ctx.business.id,
@@ -217,7 +224,7 @@ export async function adjustStock(_prev: FormState, formData: FormData): Promise
 
 /** Owners/admins: move stock from one branch to another (the total doesn't change). */
 export async function transferStock(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const parsed = stockTransferSchema.safeParse(formObject(formData));
   if (!parsed.success) return invalid(parsed.error);
@@ -243,7 +250,7 @@ export async function transferStock(_prev: FormState, formData: FormData): Promi
 /** Deletes a product that was never sold (the database refuses otherwise: archive it). Past orders keep their snapshot. */
 export async function deleteProduct(productId: string, locale: string): Promise<FormState> {
   if (!isUuid(productId)) return fail("invalid");
-  const ctx = await authorize("admin");
+  const ctx = await requireRoleForAction(MANAGERS);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.from("products").delete().eq("id", productId).eq("business_id", ctx.business.id);
