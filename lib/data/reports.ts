@@ -436,7 +436,15 @@ export async function getShopDashboard(businessId: string, timezone: string, wit
   const [payments, soldToday, open, overdue, sales, expenses] = await Promise.all([
     db.from("order_payments").select("amount, method, kind").eq("business_id", businessId).is("voided_at", null).gte("received_at", localDayStart(today, timezone)).limit(20000),
     db.from("orders").select("balance_due").eq("business_id", businessId).eq("status", "delivered").gt("balance_due", 0).gte("created_at", localDayStart(today, timezone)).limit(20000),
-    db.from("orders").select("delivery_method").eq("business_id", businessId).is("service_type", null).neq("channel", "pos").in("status", TO_HAND_OVER).limit(5000),
+    db
+      .from("orders")
+      .select("id, order_number, delivery_method, status, total, created_at, customers(name, whatsapp_phone)")
+      .eq("business_id", businessId)
+      .is("service_type", null)
+      .neq("channel", "pos")
+      .in("status", TO_HAND_OVER)
+      .order("created_at")
+      .limit(5000),
     db
       .from("orders")
       .select("customer_id, balance_due, created_at, customers(name, whatsapp_phone)")
@@ -458,7 +466,21 @@ export async function getShopDashboard(businessId: string, timezone: string, wit
   const onCredit = (soldToday.data ?? []).reduce((a, o) => a + Number(o.balance_due ?? 0), 0);
 
   const openRows = open.data ?? [];
-  const toHandOver = { total: openRows.length, delivery: openRows.filter((o) => o.delivery_method === "delivery").length, pickup: openRows.filter((o) => o.delivery_method === "pickup").length };
+  const toHandOver = {
+    total: openRows.length,
+    delivery: openRows.filter((o) => o.delivery_method === "delivery").length,
+    pickup: openRows.filter((o) => o.delivery_method === "pickup").length,
+    /** The oldest first: what the team should hand over next. */
+    next: openRows.slice(0, 5).map((o) => ({
+      id: o.id,
+      number: o.order_number,
+      customer: o.customers ? o.customers.name || `+${o.customers.whatsapp_phone}` : null,
+      method: o.delivery_method as "delivery" | "pickup" | null,
+      status: o.status,
+      total: Number(o.total),
+      createdAt: o.created_at,
+    })),
+  };
 
   // Overdue credit, per customer (the oldest unpaid sale first).
   const perCustomer = new Map<string, { id: string; name: string; amount: number; since: string }>();

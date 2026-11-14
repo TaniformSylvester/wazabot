@@ -15,7 +15,6 @@ import {
   PackageX,
   ShoppingBag,
   Smartphone,
-  UserPlus,
   Users,
 } from "lucide-react";
 
@@ -34,6 +33,8 @@ import { floorState, kitchenQueue } from "@/lib/data/restaurant";
 import { getBranchContext } from "@/lib/branches";
 import { plans } from "@/config/plans";
 import { AttentionBanners, RestaurantToday, SalesVsExpenses, ShopToday, attentionIcons, type Attention } from "@/components/app/dashboard-sections";
+import { VerticalSlots, type VerticalView } from "@/components/app/vertical-slots";
+import { verticalOf } from "@/config/verticals";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format, formatNumber } from "@/lib/i18n/format";
@@ -105,6 +106,42 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
       : null,
   ].filter((a) => a !== null);
 
+  // The vertical slots (config/verticals.ts): numbers already loaded above, shaped for this business type.
+  const vertical = verticalOf(modules);
+  const v = d.verticals;
+  const money = (x: number) => formatMoney(x, business.currency, locale);
+  const view: VerticalView =
+    vertical === "restaurant" && floor
+      ? (() => {
+          const bills = [...floor.tables.filter((x) => x.bill).map((x) => ({ ...x.bill!, tableName: x.name as string | null })), ...floor.others.map((o) => ({ ...o, tableName: null }))].sort((a, b) => a.created_at.localeCompare(b.created_at));
+          return {
+            kpis: { openBills: bills.length, turnoverToday: overview.today.revenue, kitchenQueue: kitchenCounts ? kitchenCounts.new + kitchenCounts.preparing : null },
+            hints: kitchenCounts ? { kitchenQueue: format(v.restaurant.ready, { count: n(kitchenCounts.ready) }) } : undefined,
+            queue: bills.slice(0, 5).map((b) => ({
+              id: b.id,
+              title: b.tableName ? format(v.restaurant.table, { name: b.tableName }) : `${b.order_number} · ${d.restaurant.serviceTypes[b.service_type as keyof typeof d.restaurant.serviceTypes] ?? b.service_type}`,
+              detail: [b.guests ? format(v.restaurant.guests, { count: n(b.guests) }) : null, b.readyRounds ? format(v.restaurant.ready, { count: n(b.readyRounds) }) : null, formatDate(b.created_at, locale, true)].filter(Boolean).join(" · "),
+              href: `/dashboard/restaurant/orders/${b.id}`,
+              aside: money(b.total),
+            })),
+            queueTotal: bills.length,
+            catalogCount: overview.stock.products,
+          };
+        })()
+      : {
+          kpis: { salesToday: overview.today.revenue, creditOwed: overview.customers.outstanding, lowStock: stock.total },
+          hints: { salesToday: format(h.biz.salesCount, { count: n(overview.today.sales) }) },
+          queue: shop.toHandOver.next.map((o) => ({
+            id: o.id,
+            title: `${o.number} · ${o.customer ?? d.orders.notLinked}`,
+            detail: [o.method ? v.shop[o.method] : null, d.orders.statuses[o.status as keyof typeof d.orders.statuses] ?? o.status, formatDate(o.createdAt, locale, true)].filter(Boolean).join(" · "),
+            href: `/dashboard/orders/${o.id}`,
+            aside: money(o.total),
+          })),
+          queueTotal: shop.toHandOver.total,
+          catalogCount: overview.stock.products,
+        };
+
   const stats = [
     { label: h.metrics.conversations, value: n(metrics.conversations), icon: MessagesSquare },
     { label: h.metrics.newCustomers, value: n(metrics.newCustomers30d), icon: Users },
@@ -127,6 +164,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
 
       <AttentionBanners items={attention} label={at.label} locale={locale} />
 
+      <VerticalSlots vertical={vertical} view={view} t={v} currency={business.currency} locale={locale} />
+
       {floor ? (
         <RestaurantToday
           tables={floor.tables}
@@ -135,6 +174,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
           turnover={overview.today.revenue}
           kitchen={kitchenCounts}
           maxKitchen={plans[0].maxKitchen}
+          withStats={false}
           currency={business.currency}
           locale={locale}
           t={d}
@@ -267,22 +307,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/[lang]
         </Panel>
       ) : null}
 
-      <section aria-label={h.quick.title} className="flex flex-wrap gap-2">
-        {[
-          { label: h.quick.product, href: "/dashboard/products/new", icon: Package },
-          { label: h.quick.customer, href: "/dashboard/customers/new", icon: UserPlus },
-          { label: h.quick.order, href: "/dashboard/orders/new", icon: ShoppingBag },
-          { label: h.quick.faq, href: "/dashboard/knowledge/faqs/new", icon: BookOpen },
-        ].map((q) => (
-          <Link
-            key={q.href}
-            href={href(q.href)}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-deep hover:bg-mint"
-          >
-            <q.icon className="size-4" aria-hidden /> {q.label}
-          </Link>
-        ))}
-      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel id="recent-conversations" title={h.recentConversations}>

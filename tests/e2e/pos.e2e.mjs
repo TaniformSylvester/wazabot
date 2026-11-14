@@ -274,6 +274,9 @@ mkdirSync("test-results", { recursive: true });
     const best = await card("best-sellers");
     ok("dashboard: best sellers, stock and customer figures, trend chart", /^1\s*T-Shirt\s*6 sold/.test(best) && /Low stock\s*1/.test(await card("stock-stats")) && /Owe you money\s*2/.test(await card("customer-stats")) && (await main.getByTestId("sales-trend").isVisible()), best.replace(/\n/g, " "));
     ok("dashboard: recent sales and alerts", /ORD-00004/.test(await card("recent-sales")) && /2 customer\(s\) owe you 17,000 FCFA/.test(await card("business-alerts")));
+    // The shop vertical's slots: three numbers, the queue, four quick actions, the catalogue (Inventory).
+    ok("dashboard (shop vertical): sales today 66,000, credit owed 17,000, low stock 1; nothing to hand over (till sales only); 4 quick actions starting with a sale; the catalogue is Inventory (2 products)",
+      (await main.getByTestId("vertical-slots").getAttribute("data-vertical")) === "shop" && /66,000 FCFA/.test(await card("kpi-salesToday")) && /17,000 FCFA/.test(await card("kpi-creditOwed")) && /Low stock\s*1/.test(await card("kpi-lowStock")) && (await main.getByTestId("vertical-queue-empty").count()) === 1 && (await main.getByTestId("vertical-actions").getByRole("link").count()) === 4 && (await main.getByTestId("action-newSale").getAttribute("href")) === "/en/dashboard/sales/new" && /Inventory\s*2 product\(s\)/.test(await card("vertical-catalog")));
     // Today by payment method, sold on credit, the till, sales vs expenses, and the banners at the top.
     const byMethod = await card("shop-today");
     ok("dashboard: today by payment method (as recorded), 17,000 FCFA sold on credit, a till button", /Cash/.test(byMethod) && /Sold on credit\s*17,000 FCFA/.test(byMethod) && /doesn't check payments with MTN, Orange or the bank/.test(byMethod) && (await main.getByTestId("quick-sale").count()) === 1, byMethod.replace(/\n/g, " | "));

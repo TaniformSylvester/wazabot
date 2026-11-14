@@ -160,11 +160,13 @@ mkdirSync("test-results", { recursive: true });
 
     // ---------------------------------------------------------------- The restaurant dashboard
     await open(`/en/dashboard`);
-    const today = await main.getByTestId("restaurant-today").innerText();
+    const slots = main.getByTestId("vertical-slots");
     const t1Tile = main.getByTestId("table-grid").locator("a", { hasText: "T1" });
-    ok("dashboard: restaurant today — 1 open bill (12,000), the kitchen queue (1 new), T1 shown with its open bill, links to the floor and the kitchen screen, 10 free kitchen accounts", /Open bills\s*1/.test(today) && /12,000 FCFA on open bills/.test(today) && /1 new · 0 preparing · 0 ready/.test(today) && (await t1Tile.getAttribute("data-state")) === "occupied" && (await main.getByTestId("open-kitchen").getAttribute("href")) === "/en/dashboard/restaurant/kitchen" && /Up to 10 free kitchen accounts/.test(today), today.replace(/\n/g, " | "));
+    const queue = await main.getByTestId("vertical-queue").innerText();
+    ok("dashboard (restaurant vertical): open bills 1, in the kitchen 1, the queue lists Table T1 at 12,000 FCFA, 4 quick actions (floor, takeaway, kitchen screen, dish), the catalogue is Menu Items", (await slots.getAttribute("data-vertical")) === "restaurant" && /Open bills\s*1/.test(await main.getByTestId("kpi-openBills").innerText()) && /In the kitchen\s*1/.test(await main.getByTestId("kpi-kitchenQueue").innerText()) && /Table T1/.test(queue) && /12,000 FCFA/.test(queue) && (await main.getByTestId("vertical-actions").getByRole("link").count()) === 4 && (await main.getByTestId("action-kitchen").getAttribute("href")) === "/en/dashboard/restaurant/kitchen" && /Menu Items/.test(await main.getByTestId("vertical-catalog").innerText()), queue.replace(/\n/g, " | "));
+    ok("dashboard: the table grid (T1 with its open bill) and the 10 free kitchen accounts", (await t1Tile.getAttribute("data-state")) === "occupied" && /Up to 10 free kitchen accounts/.test(await main.getByTestId("restaurant-today").innerText()));
     await open(`/fr/dashboard`);
-    ok("dashboard (fr): le restaurant aujourd'hui", /Le restaurant aujourd'hui/.test(await main.getByTestId("restaurant-today").innerText()) && /Ouvrir l'écran cuisine/.test(await main.getByTestId("restaurant-today").innerText()));
+    ok("dashboard (fr): additions ouvertes, écran cuisine, plats du menu", /Additions ouvertes/.test(await main.getByTestId("kpi-openBills").innerText()) && /Écran cuisine/.test(await main.getByTestId("action-kitchen").innerText()) && /Plats du menu/.test(await main.getByTestId("vertical-catalog").innerText()));
 
     // ---------------------------------------------------------------- The cook (a free kitchen seat, even with Free limits in force)
     sql(`update businesses set free_limits_from = current_date where id = '${biz}'`);

@@ -1,12 +1,13 @@
 import { planNameFor } from "@/lib/billing/plan-names";
 import Link from "next/link";
-import { Backpack, Banknote, CheckCircle2, Circle, ClipboardCheck, PenLine, School, Settings } from "lucide-react";
+import { CheckCircle2, Circle, PenLine, Settings } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton } from "@/components/app/form";
 import { PlanUpsell } from "@/components/app/plan-upsell";
-import { PageHeader, Panel, StatCard, formatMoney, formatPercent, secondaryLink } from "@/components/app/ui";
+import { PageHeader, Panel, formatMoney, formatPercent, secondaryLink } from "@/components/app/ui";
 import { UsageMeter } from "@/components/app/usage-meter";
+import { VerticalSlots, type VerticalView } from "@/components/app/vertical-slots";
 import { cheapestPlanWith, type Plan } from "@/config/plans";
 import { setModule } from "@/lib/actions/school";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
@@ -102,9 +103,8 @@ export default async function SchoolPage() {
     );
   }
 
-  const [{ count: students }, { count: published }, fees, ent, termUsage, { data: pubs }] = await Promise.all([
+  const [{ count: students }, fees, ent, termUsage, { data: pubs }] = await Promise.all([
     db.from("school_students").select("id", { count: "exact", head: true }).eq("business_id", business.id).eq("status", "active"),
-    db.from("school_result_publications").select("id", { count: "exact", head: true }).eq("business_id", business.id).is("withdrawn_at", null),
     year ? listFeeItems(business.id, year.id) : Promise.resolve([]),
     getEntitlements(business.id),
     Promise.all(terms.map((x) => termReportCardUsage(x.id))),
@@ -124,11 +124,30 @@ export default async function SchoolPage() {
     return p ? planNameFor(p.id, t.pricing.plans[p.id].name, true, locale) : "";
   };
   const summary = await feeSummary(business.id, fees.map((f) => f.id));
-  const due = [...summary.byFee.values()].reduce((sum, f) => sum + f.billed - f.paid, 0);
   const billed = [...summary.byFee.values()].reduce((sum, f) => sum + f.billed, 0);
   const paid = [...summary.byFee.values()].reduce((sum, f) => sum + f.paid, 0);
   const collectedShare = billed > 0 ? Math.min(1, paid / billed) : 0;
   const money = (v: number) => formatMoney(v, business.currency, locale);
+  // The vertical slots (config/verticals.ts): the term to work on is the first one not fully published.
+  const vs = d.verticals.school;
+  const focus = publishedByTerm.find((x) => x.published < classes.length) ?? publishedByTerm.at(-1) ?? null;
+  const publishedIn = new Set((pubs ?? []).filter((p) => p.term_id === focus?.term.id).map((p) => p.class_id));
+  const toPublish = focus ? classes.filter((c) => !publishedIn.has(c.id)) : [];
+  const schoolView: VerticalView = {
+    kpis: { students: students ?? 0, feesCollected: billed > 0 ? collectedShare : null, classesPublished: focus ? focus.published : null },
+    hints: {
+      ...(billed > 0 ? { feesCollected: format(vs.feesHint, { paid: money(paid), billed: money(billed) }) } : {}),
+      ...(focus ? { classesPublished: format(vs.publishedHint, { total: formatNumber(classes.length, locale), term: focus.term.name }) } : {}),
+    },
+    queue: toPublish.slice(0, 5).map((c) => ({
+      id: c.id,
+      title: c.name,
+      detail: format(vs.notPublished, { term: focus!.term.name }),
+      href: `/dashboard/school/results?class=${c.id}&term=${focus!.term.id}`,
+    })),
+    queueTotal: toPublish.length,
+    catalogCount: classes.length,
+  };
   const steps: [string, boolean, string][] = [
     [o.setup.profile, settings.saved, "/dashboard/school/settings"],
     [o.setup.year, !!year && terms.length > 0 && terms.every((x) => x.assessments.length > 0), "/dashboard/school/settings#years"],
@@ -155,12 +174,7 @@ export default async function SchoolPage() {
           </>
         }
       />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="school-stats">
-        <StatCard label={o.stats.students} value={String(students ?? 0)} icon={Backpack} noData="—" />
-        <StatCard label={o.stats.classes} value={String(classes.length)} icon={School} noData="—" />
-        <StatCard label={o.stats.published} value={String(published ?? 0)} icon={ClipboardCheck} noData="—" />
-        <StatCard label={o.stats.feesDue} value={formatMoney(Math.max(0, due), business.currency, locale)} icon={Banknote} noData="—" />
-      </div>
+      <VerticalSlots vertical="school" view={schoolView} t={d.verticals} currency={business.currency} locale={locale} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel
           title={format(o.collection.title, { year: year?.name ?? "" })}

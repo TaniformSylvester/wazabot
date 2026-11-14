@@ -152,7 +152,7 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/[lang]/
             </Panel>
           ) : null}
         </div>
-        <Panel title={e.add}>
+        <Panel id="add-expense" title={e.add}>
           <ExpenseForm today={today} currency={business.currency} locale={locale} t={e} methods={d.payments.methods} text={{ errors: d.errors, saved: d.common.saved, saving: d.common.saving }} submitLabel={e.add} branches={branchField} />
         </Panel>
       </div>

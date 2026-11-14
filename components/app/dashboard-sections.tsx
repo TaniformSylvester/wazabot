@@ -195,7 +195,10 @@ export function RestaurantToday({
   currency,
   locale,
   t,
+  withStats = true,
 }: {
+  /** False when the dashboard's vertical slots already show the numbers and the links (the table grid stays). */
+  withStats?: boolean;
   tables: FloorTable[];
   openTotal: number;
   openCount: number;
@@ -215,8 +218,9 @@ export function RestaurantToday({
     <section aria-labelledby="restaurant-today-title" className="flex flex-col gap-4" data-testid="restaurant-today">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="restaurant-today-title" className="type-h3">
-          {r.title}
+          {withStats ? r.title : r.tables}
         </h2>
+        {withStats ? (
         <span className="flex flex-wrap gap-2">
           <Link href={href("/dashboard/restaurant")} className={link}>
             <LayoutGrid className="size-4" aria-hidden /> {r.openFloor}
@@ -225,7 +229,9 @@ export function RestaurantToday({
             <ChefHat className="size-4" aria-hidden /> {r.openKitchen}
           </Link>
         </span>
+        ) : null}
       </div>
+      {withStats ? (
       <ul className="grid gap-3 sm:grid-cols-3">
         <li data-testid="restaurant-open-bills">
           <StatCard label={r.openBills} value={n(openCount)} icon={UtensilsCrossed} hint={format(r.openBillsHint, { amount: money(openTotal) })} noData="—" />
@@ -243,7 +249,8 @@ export function RestaurantToday({
           />
         </li>
       </ul>
-      <Panel title={r.tables}>
+      ) : null}
+      <Panel title={withStats ? r.tables : undefined}>
         {tables.length ? (
           <>
             <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8" data-testid="table-grid">
