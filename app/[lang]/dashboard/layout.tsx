@@ -9,7 +9,12 @@ import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { defaultModules, getBusinessModules } from "@/lib/modules";
 import { UserCard, initials } from "@/components/dashboard/user-card";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { Clock, Lock, PauseCircle, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Clock, Lock, PauseCircle, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { cookies } from "next/headers";
+
+import { ActionButton } from "@/components/app/form";
+import { clearSampleData, dismissSampleBanner } from "@/lib/actions/sample-data";
+import { SAMPLE_BANNER_COOKIE, hiddenSampleBanners } from "@/lib/onboarding/sample-banner";
 
 import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
@@ -40,7 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const user = await requireUser(localizePath(locale, "/dashboard"));
   const business = await getCurrentBusiness();
-  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests, paused, modules, branchCtx] = await Promise.all([
+  const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests, paused, modules, branchCtx, sampleBanner] = await Promise.all([
     business ? getWhatsAppConnection(business.id) : null,
     // Owners and admins are warned before the monthly AI allowance runs out.
     business && hasRole(business.role, "admin") ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
@@ -50,6 +55,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     business ? aiPausedByWazaBolt(business.id) : false,
     business ? getBusinessModules(business) : defaultModules(null),
     business ? getBranchContext(business) : null,
+    // Sample data from the workspace's creation, until the owner clears it (or this browser hides the banner).
+    business ? showSampleBanner(business.id) : false,
   ]);
   const billingHref = localizePath(locale, "/dashboard/billing");
   const bar = "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm sm:px-6 print:hidden";
@@ -217,10 +224,37 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </div>
         ) : null}
+        {sampleBanner && business ? (
+          <div role="status" data-testid="sample-data-banner" className={`${bar} border-waza-100 bg-mint/60 text-deep`}>
+            <Sparkles className="size-4 shrink-0 text-waza-700" aria-hidden />
+            <p className="min-w-0 flex-1">
+              {modules.includes("school") && !modules.includes("commerce") ? d.sampleData.school : d.sampleData.text}
+              {business.role !== "owner" ? ` ${d.sampleData.ownerOnly}` : null}
+            </p>
+            <span className="flex flex-wrap items-center gap-2">
+              {/* Owner only: the server action and the database check it again. */}
+              {business.role === "owner" ? (
+                <ActionButton action={clearSampleData} confirm={d.sampleData.confirm} pendingLabel={d.sampleData.clearing} errors={d.errors} variant="dark">
+                  {d.sampleData.clear}
+                </ActionButton>
+              ) : null}
+              <ActionButton action={dismissSampleBanner} errors={d.errors} variant="ghost">
+                {d.sampleData.dismiss}
+              </ActionButton>
+            </span>
+          </div>
+        ) : null}
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">
           <PermissionsProvider role={business?.role ?? null}>{children}</PermissionsProvider>
         </main>
       </div>
     </div>
   );
+}
+
+async function showSampleBanner(businessId: string): Promise<boolean> {
+  if (hiddenSampleBanners((await cookies()).get(SAMPLE_BANNER_COOKIE)?.value).includes(businessId)) return false;
+  const db = await createClient();
+  const { data } = await db.rpc("has_sample_data", { p_business_id: businessId });
+  return data === true;
 }

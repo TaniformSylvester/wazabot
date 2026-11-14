@@ -103,7 +103,7 @@ mkdirSync("test-results", { recursive: true });
     await main.getByLabel("WhatsApp number").fill("670100002");
     await main.getByRole("button", { name: /Save|Add customer|Create/ }).first().click();
     await main.getByText("A customer with this WhatsApp number already exists.").waitFor({ timeout: 10000 });
-    ok("the same WhatsApp number is refused (no duplicate customer)", sql(`select count(*) from customers where business_id = '${bizId}'`) === "2");
+    ok("the same WhatsApp number is refused (no duplicate customer)", sql(`select count(*) from customers where business_id = '${bizId}' and not is_sample`) === "2");
 
     // 20 customers created at the same moment (separate connections): 20 different IDs, none reused.
     await Promise.all(
@@ -111,7 +111,7 @@ mkdirSync("test-results", { recursive: true });
         sqlAsync("psql", [DB, "-v", "ON_ERROR_STOP=1", "-qtAc", `insert into public.customers (business_id, whatsapp_phone, name) values ('${bizId}', '2376702000${String(i).padStart(2, "0")}', 'Bulk ${i}')`]),
       ),
     );
-    const refs = sql(`select count(*) || ' ' || count(distinct reference) || ' ' || max(reference) from customers where business_id = '${bizId}'`);
+    const refs = sql(`select count(*) || ' ' || count(distinct reference) || ' ' || max(reference) from customers where business_id = '${bizId}' and not is_sample`);
     ok("20 customers created at the same time get 20 different IDs (CUS-000003 … CUS-000022)", refs === "22 22 CUS-000022", refs);
 
     await page.goto(`${APP}/en/dashboard/customers?q=CUS-000002`);

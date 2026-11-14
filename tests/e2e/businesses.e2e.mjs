@@ -116,7 +116,8 @@ mkdirSync("test-results", { recursive: true });
     await page.getByRole("heading", { name: "Products" }).first().waitFor({ timeout: 15000 }).catch(() => {});
     ok("switching to the first shop (on its trial): it works as usual", /\/en\/dashboard\/products/.test(page.url()) && (await switcher.inputValue()) === first, page.url());
     sql(`insert into products (business_id, name, price) values ('${first}', 'Robe Ankara', 15000)`);
-    ok("each business keeps its own data", sql(`select count(*) from products where business_id = '${second}'`) === "0");
+    // (The restaurant starts with its own sample menu; none of the shop's products.)
+    ok("each business keeps its own data", sql(`select count(*) from products where business_id = '${second}' and not is_sample`) === "0" && sql(`select count(*) from products where business_id = '${second}' and name = 'Robe Ankara'`) === "0");
 
     // ---------------------------------------------------------------- WazaBolt approves the plan (as the admin page does)
     sql(`update subscriptions set plan_id = 'boutique', status = 'active', billing_interval = 'year' where business_id = '${second}'; update plan_change_requests set status = 'approved', decided_at = now() where business_id = '${second}'`);

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 
-import { StatusBadge, formatDate } from "@/components/app/ui";
+import { SampleBadge, StatusBadge, formatDate } from "@/components/app/ui";
 import type { listConversations } from "@/lib/data/queries";
 import type { Locale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
@@ -29,6 +29,7 @@ export function ConversationList({
   t,
   searchLabel,
   locale,
+  sampleLabel,
 }: {
   rows: Row[];
   activeId?: string;
@@ -37,6 +38,8 @@ export function ConversationList({
   t: C;
   searchLabel: string;
   locale: Locale;
+  /** "Sample": marks the sample conversations a new workspace starts with. */
+  sampleLabel?: string;
 }) {
   const qs = (f: ConversationFilterKey) => {
     const p = new URLSearchParams();
@@ -94,6 +97,7 @@ export function ConversationList({
                     <StatusBadge tone={r.ai_enabled ? "blue" : "amber"}>{r.ai_enabled ? t.aiOnline : t.humanMode}</StatusBadge>
                     {r.status !== "open" ? <StatusBadge>{t.statuses[r.status as keyof C["statuses"]] ?? r.status}</StatusBadge> : null}
                     {r.human_requested ? <StatusBadge tone="red">{t.humanRequested}</StatusBadge> : null}
+                    {r.is_sample && sampleLabel ? <SampleBadge label={sampleLabel} /> : null}
                     {r.unread_count > 0 ? (
                       <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-waza-500 px-1.5 text-[0.6875rem] font-bold text-deep">{r.unread_count}</span>
                     ) : null}

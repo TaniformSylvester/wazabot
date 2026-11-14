@@ -167,7 +167,7 @@ function related(v: unknown): DocumentRelated | null {
 /** Customers to pick from in the editor. */
 export async function listDocumentCustomers(businessId: string): Promise<CustomerChoice[]> {
   const db = await createClient();
-  const { data } = await db.from("customers").select("id, reference, name, whatsapp_phone, email, city").eq("business_id", businessId).order("name").limit(2000);
+  const { data } = await db.from("customers").select("id, reference, name, whatsapp_phone, email, city").eq("business_id", businessId).eq("is_sample", false).order("name").limit(2000);
   return (data ?? []).map((c) => ({ id: c.id, reference: c.reference, name: c.name || `+${c.whatsapp_phone}`, phone: c.whatsapp_phone ? `+${c.whatsapp_phone}` : null, email: c.email, address: c.city }));
 }
 
@@ -175,7 +175,7 @@ export async function listDocumentCustomers(businessId: string): Promise<Custome
 export async function listDocumentCatalog(businessId: string): Promise<CatalogChoice[]> {
   const db = await createClient();
   const [{ data: products }, { data: services }] = await Promise.all([
-    db.from("products").select("id, name, price, options, product_variants(id, name, value, options, price_modifier, sort_order)").eq("business_id", businessId).eq("active", true).order("name").limit(1000),
+    db.from("products").select("id, name, price, options, product_variants(id, name, value, options, price_modifier, sort_order)").eq("business_id", businessId).eq("active", true).eq("is_sample", false).order("name").limit(1000),
     db.from("services").select("id, name, price").eq("business_id", businessId).eq("active", true).order("sort_order").limit(500),
   ]);
   const out: CatalogChoice[] = [];

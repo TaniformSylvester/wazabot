@@ -74,7 +74,7 @@ export const searchProducts = tool({
     if (!words.length) return [];
     const { data } = await ctx.db
       .from("products")
-      .select("id, name, description, category, sku, price, currency, stock_quantity, image_url, options, extras, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
+      .select("id, name, description, category, sku, price, currency, stock_quantity, image_url, options, extras, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)").eq("is_sample", false)
       .eq("business_id", ctx.businessId)
       .eq("active", true)
       .or(words.flatMap((w) => [`name.ilike.%${w}%`, `category.ilike.%${w}%`, `description.ilike.%${w}%`, `sku.ilike.%${w}%`]).join(","))
@@ -156,7 +156,7 @@ export const checkProductOptions = tool({
   async run(ctx, { productId, choose }) {
     const { data } = await ctx.db
       .from("products")
-      .select("name, active, price, currency, stock_quantity, image_url, options, product_variants(id, name, value, options, price_modifier, stock_quantity)")
+      .select("name, active, price, currency, stock_quantity, image_url, options, product_variants(id, name, value, options, price_modifier, stock_quantity)").eq("is_sample", false)
       .eq("business_id", ctx.businessId)
       .eq("id", productId)
       .maybeSingle();
@@ -204,7 +204,7 @@ export function catalogPhotoUrl(url: string | null | undefined): string | null {
  * none (the main photo may show another colour).
  */
 export async function resolveCatalogPhoto(db: SupabaseClient<Database>, businessId: string, photo: { product_id: string; colour: string | null }) {
-  const { data } = await db.from("products").select("name, image_url, options, active").eq("business_id", businessId).eq("id", photo.product_id).maybeSingle();
+  const { data } = await db.from("products").select("name, image_url, options, active").eq("is_sample", false).eq("business_id", businessId).eq("id", photo.product_id).maybeSingle();
   if (!data?.active) return null;
   const wanted = photo.colour?.trim().toLowerCase();
   const colour = wanted ? (parseOptions(data.options).find((o) => o.colour)?.values.find((v) => v.value.toLowerCase() === wanted) ?? null) : null;
@@ -222,7 +222,7 @@ export const viewProductPhotos = tool({
     "Returns the photos as images.",
   input: z.object({ productIds: z.array(z.uuid()).min(1).max(2) }),
   async run(ctx, { productIds }) {
-    const { data } = await ctx.db.from("products").select("id, name, image_url, active").eq("business_id", ctx.businessId).in("id", productIds);
+    const { data } = await ctx.db.from("products").select("id, name, image_url, active").eq("is_sample", false).eq("business_id", ctx.businessId).in("id", productIds);
     const photos: ProductPhoto[] = [];
     const withoutPhoto: string[] = [];
     for (const p of data ?? []) {
@@ -255,7 +255,7 @@ export const checkProductStock = tool({
     const [{ data }, branches] = await Promise.all([
       ctx.db
         .from("products")
-        .select("name, active, stock_quantity, options, product_variants(id, name, value, options, stock_quantity)")
+        .select("name, active, stock_quantity, options, product_variants(id, name, value, options, stock_quantity)").eq("is_sample", false)
         .eq("business_id", ctx.businessId)
         .eq("id", productId)
         .maybeSingle(),
@@ -624,7 +624,7 @@ export const cancelAppointment = tool({
 async function estimateOrder(ctx: ToolContext, items: { productId: string; variantId?: string; quantity: number; extras?: string[] }[]) {
   const { data } = await ctx.db
     .from("products")
-    .select("id, name, price, currency, active, stock_quantity, options, extras, product_variants(id, name, value, options, price_modifier, stock_quantity)")
+    .select("id, name, price, currency, active, stock_quantity, options, extras, product_variants(id, name, value, options, price_modifier, stock_quantity)").eq("is_sample", false)
     .eq("business_id", ctx.businessId)
     .in("id", items.map((i) => i.productId));
   const byId = new Map((data ?? []).map((p) => [p.id, p]));

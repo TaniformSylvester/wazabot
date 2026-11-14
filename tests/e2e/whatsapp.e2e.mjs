@@ -219,7 +219,9 @@ async function signUp(browser, user) {
   // ----------------------------------------------------------- tenant isolation
   const { ctx: ctxB, page: pb } = await signUp(browser, B);
   await pb.goto(`${APP}/en/dashboard/conversations`);
-  ok("business B sees none of A's WhatsApp conversations", (await pb.locator("main").getByText("No conversations yet").count()) === 1);
+  // (B starts with its own two sample chats; none of A's customers.)
+  await pb.locator("main").getByTestId("sample-badge").first().waitFor({ timeout: 15000 }).catch(() => {});
+  ok("business B sees none of A's WhatsApp conversations", (await pb.locator("main").getByText("Chantal").count()) === 0 && (await pb.locator("main").getByTestId("sample-badge").count()) === 2);
   await pb.goto(`${APP}/en/dashboard/whatsapp`);
   await pb.locator("main").getByLabel("Phone Number ID").fill(FAKE.phoneNumberId);
   await pb.locator("main").getByLabel("WhatsApp Business Account ID").fill(FAKE.wabaId);
@@ -228,8 +230,8 @@ async function signUp(browser, user) {
   await pb.locator("main").getByText("already connected to another WazaBolt business").waitFor({ timeout: 15000 });
   ok("B cannot connect A's number", true);
   const bTok = await token(B.email, B.password);
-  const bMsgs = await (await fetch(`${SUPABASE}/rest/v1/messages?select=id`, { headers: rest(bTok) })).json();
-  ok("REST: B sees none of A's messages", Array.isArray(bMsgs) && bMsgs.length === 0);
+  const bMsgs = await (await fetch(`${SUPABASE}/rest/v1/messages?select=id,conversations(is_sample)`, { headers: rest(bTok) })).json();
+  ok("REST: B sees none of A's messages (only its own sample chats')", Array.isArray(bMsgs) && bMsgs.every((m) => m.conversations?.is_sample === true), JSON.stringify(bMsgs).slice(0, 200));
   const rpc = await fetch(`${SUPABASE}/rest/v1/rpc/ingest_whatsapp_message`, {
     method: "POST",
     headers: { ...rest(bTok), "content-type": "application/json" },

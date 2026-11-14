@@ -152,7 +152,8 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
   );
 
   async function ProductsStep({ businessId, currency, menu }: { businessId: string; currency: string; menu: boolean }) {
-    const { rows } = await listProducts(businessId);
+    // What the business added itself (sample items are listed on the Products page, labelled).
+    const rows = (await listProducts(businessId)).rows.filter((r) => !r.is_sample);
     const p = d.products;
     const addLabel = menu ? o.addDish : o.addProduct;
     return (
@@ -253,7 +254,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/[lang
   }
 
   async function FaqsStep({ businessId }: { businessId: string }) {
-    const faqs = await listFaqs(businessId);
+    const faqs = (await listFaqs(businessId)).filter((f) => !f.is_sample);
     const f = d.knowledge.faqs.fields;
     return (
       <div className="flex flex-col gap-6">

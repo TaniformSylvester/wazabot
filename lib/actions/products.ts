@@ -38,7 +38,8 @@ export async function saveProduct(_prev: FormState, formData: FormData): Promise
     // Stock isn't edited here: after the opening stock it changes through sales and adjustStock (with a reason).
     const { stock_quantity: _opening, ...editable } = fields;
     void _opening;
-    const { error } = await supabase.from("products").update(editable).eq("id", existingId).eq("business_id", businessId);
+    // Saving a sample item's details makes it the business's own (it can then be sold and is kept when sample data is cleared).
+    const { error } = await supabase.from("products").update({ ...editable, is_sample: false }).eq("id", existingId).eq("business_id", businessId);
     if (error) {
       logServerError("products.update", error);
       return fail(dbError(error));

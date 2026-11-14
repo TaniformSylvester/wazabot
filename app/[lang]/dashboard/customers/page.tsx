@@ -3,7 +3,7 @@ import { Plus, Search, Users } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { CopyText } from "@/components/app/copy-button";
-import { EmptyState, PageHeader, Pagination, Panel, StatusBadge, TableWrap, buttonLink, formatDate, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
+import { EmptyState, PageHeader, Pagination, Panel, SampleBadge, StatusBadge, TableWrap, buttonLink, formatDate, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { PAGE_SIZE, listCustomers } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
@@ -144,6 +144,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/[lang]
                       <Link href={localizePath(locale, `/dashboard/customers/${r.id}`)} className="font-semibold hover:underline">
                         {r.name || (school ? sc.page.unnamed : c.unnamed)}
                       </Link>
+                      {r.is_sample ? <SampleBadge label={t.dashboard.sampleData.badge} /> : null}
                     </td>
                     <td className={`${td} text-slate`}>
                       <CopyText value={r.reference} label={format(school ? sc.page.copyReference : c.copyReference, { reference: r.reference })} copiedLabel={c.copied} />

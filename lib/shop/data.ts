@@ -30,7 +30,7 @@ export async function loadShop(slug: string, opts: { q?: string; category?: stri
   const q = (opts.q ?? "").replace(/[%_,()*\\]/g, " ").trim().slice(0, 60);
   let list = db
     .from("products")
-    .select("id, name, description, category, price, stock_quantity, image_url, options, updated_at, product_variants(price_modifier, stock_quantity)", { count: "exact" })
+    .select("id, name, description, category, price, stock_quantity, image_url, options, updated_at, product_variants(price_modifier, stock_quantity)", { count: "exact" }).eq("is_sample", false)
     .eq("business_id", b.id)
     .eq("active", true);
   if (q) list = list.or(`name.ilike.%${q}%,category.ilike.%${q}%,description.ilike.%${q}%`);
@@ -40,7 +40,7 @@ export async function loadShop(slug: string, opts: { q?: string; category?: stri
       .order("category", { ascending: true, nullsFirst: false })
       .order("name")
       .range((page - 1) * SHOP_PAGE_SIZE, page * SHOP_PAGE_SIZE - 1),
-    db.from("products").select("category").eq("business_id", b.id).eq("active", true).not("category", "is", null).limit(2000),
+    db.from("products").select("category").eq("is_sample", false).eq("business_id", b.id).eq("active", true).not("category", "is", null).limit(2000),
     db.from("whatsapp_connections").select("status, display_phone_number").eq("business_id", b.id).maybeSingle(),
     db.from("branches").select("name, address, city, phone, hours").eq("business_id", b.id).eq("active", true).order("is_main", { ascending: false }).order("created_at"),
   ]);
@@ -103,7 +103,7 @@ export async function shopPhotoSource(slug: string, id: string): Promise<string 
   let url: string | null | undefined;
   if (id === "logo") url = b.logo_url;
   else if (/^[0-9a-f-]{36}$/i.test(id)) {
-    const { data: p } = await db.from("products").select("image_url").eq("business_id", b.id).eq("id", id).eq("active", true).maybeSingle();
+    const { data: p } = await db.from("products").select("image_url").eq("is_sample", false).eq("business_id", b.id).eq("id", id).eq("active", true).maybeSingle();
     url = p?.image_url;
   }
   // Only WazaBolt's own storage, and only this business's folder.

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionForm, SelectField, SubmitButton, TextField } from "@/components/app/form";
 import { FilterSelect } from "@/components/school/filter-select";
-import { PageHeader, Panel, TableWrap, param, td, th } from "@/components/app/ui";
+import { PageHeader, Panel, SampleBadge, TableWrap, param, td, th } from "@/components/app/ui";
 import { createClass, createSubject } from "@/lib/actions/school";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { listClasses, listSubjects, listTeachers, pickYear } from "@/lib/data/school";
@@ -113,6 +113,7 @@ export default async function ClassesPage({ searchParams }: PageProps<"/[lang]/d
                   <li key={x.id} className="rounded-full bg-surface px-3 py-1 text-sm text-deep">
                     {x.name}
                     {x.code ? <span className="ml-1 text-xs text-slate">{x.code}</span> : null}
+                    {x.is_sample ? <SampleBadge label={t.dashboard.sampleData.badge} /> : null}
                   </li>
                 ))}
               </ul>

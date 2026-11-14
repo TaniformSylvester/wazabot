@@ -56,6 +56,12 @@ async function signUp(browser, user, locale) {
   await page.getByTestId("setup-type").getByText(fr ? "Boutique" : "Shop", { exact: true }).click();
   await page.getByRole("button", { name: fr ? "Créer mon espace" : "Create my workspace" }).click();
   await page.waitForURL(/\/dashboard\?welcome=1/, { timeout: 15000 });
+  // This suite starts from an empty workspace (empty states, tenant isolation): the owner clears the sample data first.
+  const banner = page.getByTestId("sample-data-banner");
+  await banner.waitFor({ timeout: 15000 });
+  page.once("dialog", (d) => d.accept());
+  await banner.getByRole("button", { name: fr ? "Effacer les données d'exemple" : "Clear sample data" }).click();
+  await banner.waitFor({ state: "detached", timeout: 15000 });
   await page.goto(`${APP}/${locale}/dashboard/onboarding?step=1`);
   await page.getByTestId("onboarding-steps").waitFor({ timeout: 15000 });
   return { ctx, page };

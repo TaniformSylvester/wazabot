@@ -68,11 +68,13 @@ export async function sendWhatsAppMessage(_prev: FormState, formData: FormData):
   const supabase = await createClient();
   const { data: conv } = await supabase
     .from("conversations")
-    .select("id, last_customer_message_at, customers(whatsapp_phone)")
+    .select("id, last_customer_message_at, is_sample, customers(whatsapp_phone)")
     .eq("business_id", businessId)
     .eq("id", conversation_id)
     .maybeSingle();
   if (!conv?.customers) return fail("not_found");
+  // A sample conversation is never sent to WhatsApp (its number isn't real).
+  if (conv.is_sample) return fail("sample_conversation");
   if (!windowOpen(conv.last_customer_message_at)) return fail("whatsapp_window_closed");
 
   const wa = await whatsappForBusiness(businessId);

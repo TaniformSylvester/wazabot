@@ -143,8 +143,10 @@ mkdirSync("test-results", { recursive: true });
     ok("a sale in Bonamoussadi is recorded there and takes its stock only (4 → 1; main still 6)", sql(`select branch_id from orders where id = '${saleId}'`) === b2 && qty(b2) === 1 && qty(mainBranch) === 6);
     ok("…the product list shows this branch's stock under the total", await (async () => {
       await page.goto(`${APP}/en/dashboard/products`);
-      await main.getByTestId("branch-stock").first().waitFor({ timeout: 15000 });
-      return (await main.getByTestId("branch-stock").first().innerText()) === "Bonamoussadi: 1";
+      // (The list also has the new workspace's sample items: read the Robe Ankara row.)
+      const row = main.locator("tr", { hasText: "Robe Ankara" });
+      await row.getByTestId("branch-stock").waitFor({ timeout: 15000 });
+      return (await row.getByTestId("branch-stock").innerText()) === "Bonamoussadi: 1";
     })());
 
     // ---------------------------------------------------------------- A cashier tied to Bonamoussadi

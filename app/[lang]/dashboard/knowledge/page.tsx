@@ -5,7 +5,7 @@ import { AiComingSoon } from "@/components/app/ai-coming-soon";
 import { aiLaunchedForPublicPages } from "@/lib/billing/ai-flag";
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, DeleteButton } from "@/components/app/form";
-import { EmptyState, LinkTabs, PageHeader, Panel, StatusBadge, buttonLink, formatDate, param, secondaryLink } from "@/components/app/ui";
+import { EmptyState, LinkTabs, PageHeader, Panel, SampleBadge, StatusBadge, buttonLink, formatDate, param, secondaryLink } from "@/components/app/ui";
 import { deleteKnowledge, setKnowledgeActive } from "@/lib/actions/knowledge";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
 import { listDocuments, listFaqs } from "@/lib/data/queries";
@@ -89,6 +89,7 @@ export default async function KnowledgePage({ searchParams }: PageProps<"/[lang]
                       <Link href={href(`/dashboard/knowledge/faqs/${f.id}`)} className="font-semibold text-deep hover:underline">
                         {f.question}
                       </Link>
+                      {f.is_sample ? <SampleBadge label={t.dashboard.sampleData.badge} /> : null}
                       <p className="mt-1 line-clamp-2 text-sm text-slate">{f.answer}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <StatusBadge tone={f.active ? "green" : "neutral"} dot>

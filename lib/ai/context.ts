@@ -87,9 +87,9 @@ export async function buildBusinessContext(db: Db, businessId: string, now = new
   const [biz, settings, faqs, docs, products, langs, booking, services, branches] = await Promise.all([
     db.from("businesses").select("*").eq("id", businessId).maybeSingle(),
     db.from("ai_settings").select("*").eq("business_id", businessId).maybeSingle(),
-    db.from("faqs").select("question, answer").eq("business_id", businessId).eq("active", true).order("priority", { ascending: false }).limit(MAX_FAQS),
+    db.from("faqs").select("question, answer").eq("is_sample", false).eq("business_id", businessId).eq("active", true).order("priority", { ascending: false }).limit(MAX_FAQS),
     db.from("knowledge_documents").select("document_type, title, content").eq("business_id", businessId).eq("active", true).limit(MAX_DOCS),
-    db.from("products").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("active", true),
+    db.from("products").select("id", { count: "exact", head: true }).eq("is_sample", false).eq("business_id", businessId).eq("active", true),
     db.from("business_languages").select("language_code").eq("business_id", businessId).order("sort_order", { ascending: true }),
     db.from("booking_settings").select("enabled").eq("business_id", businessId).maybeSingle(),
     db.from("services").select("id, name, description, duration_minutes, price, currency").eq("business_id", businessId).eq("active", true).order("sort_order").order("name").limit(MAX_SERVICES),

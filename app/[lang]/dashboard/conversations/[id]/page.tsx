@@ -5,7 +5,7 @@ import { Check, CheckCheck, ChevronLeft, CircleAlert, Clock, FileText, Film, Ima
 
 import { CONVERSATION_FILTERS, ConversationList, filterToQuery, type ConversationFilterKey } from "@/components/app/conversation-list";
 import { ConversationControls } from "@/components/app/conversation-controls";
-import { DefinitionList, StatusBadge, conversationStatusTone, formatDate, param } from "@/components/app/ui";
+import { DefinitionList, SampleBadge, StatusBadge, conversationStatusTone, formatDate, param } from "@/components/app/ui";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { Composer } from "@/components/app/composer";
 import { ActionButton } from "@/components/app/form";
@@ -100,7 +100,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
       </Link>
       <div className="grid overflow-hidden rounded-3xl border border-border bg-card shadow-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[20rem_1fr] xl:grid-cols-[20rem_1fr_19rem]">
         <aside className="hidden min-h-0 flex-col border-r border-border lg:flex" aria-label={c.title}>
-          <ConversationList rows={rows} activeId={conversation.id} filter={filter} q={q} t={c} searchLabel={d.common.search} locale={locale} />
+          <ConversationList rows={rows} activeId={conversation.id} filter={filter} q={q} t={c} searchLabel={d.common.search} locale={locale} sampleLabel={d.sampleData.badge} />
         </aside>
 
         <section className="flex min-h-[70dvh] min-w-0 flex-col lg:min-h-0" aria-label={name}>
@@ -112,6 +112,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
               </StatusBadge>
               <StatusBadge tone={conversationStatusTone[conversation.status]}>{statusLabel}</StatusBadge>
               {conversation.human_requested ? <StatusBadge tone="red">{c.humanRequested}</StatusBadge> : null}
+              {conversation.is_sample ? <SampleBadge label={d.sampleData.badge} /> : null}
             </div>
             <p className="text-xs text-slate">{conversation.ai_enabled ? (assistantLive ? c.aiOnlineText : c.aiNotLiveText) : c.humanModeText}</p>
             {canAct ? (
@@ -151,7 +152,10 @@ export default async function ConversationPage({ params, searchParams }: PagePro
           </ol>
 
           <footer className="border-t border-border p-4">
-            {!canAct ? (
+            {conversation.is_sample ? (
+              // A sample conversation: its customer isn't real, so there's nothing to send (the server refuses too).
+              <ComposerNote text={d.errors.sample_conversation} />
+            ) : !canAct ? (
               <ComposerNote text={c.composer.readOnly} />
             ) : !connected ? (
               <ComposerNote text={c.composerDisabled}>

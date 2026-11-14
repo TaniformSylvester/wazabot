@@ -11,6 +11,7 @@ import { getCurrentUser } from "@/lib/auth/dal";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
+import { seedVertical } from "@/lib/onboarding/seedVertical";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SIGNUP_BUSINESS_TYPES, workspaceSetupSchema } from "@/lib/validation/auth";
@@ -62,6 +63,7 @@ export async function createBusiness(_prev: FormState, formData: FormData): Prom
     });
   }
 
+  await seedVertical(id);
   await setActiveBusiness(id);
   revalidatePath("/[lang]/dashboard", "layout");
   const locale = isLocale(v.locale) ? v.locale : user.uiLocale;
@@ -86,6 +88,8 @@ export async function setupWorkspace(_prev: FormState, formData: FormData): Prom
     logServerError("businesses.setup", error);
     return fail(dbError(error));
   }
+  // Sample products / menu / subjects, two WhatsApp chats and FAQ templates, marked as sample (never fatal).
+  await seedVertical(id);
   await setActiveBusiness(id);
   revalidatePath("/[lang]/dashboard", "layout");
   redirect(localizePath(isLocale(v.locale) ? v.locale : user.uiLocale, "/dashboard?welcome=1"));

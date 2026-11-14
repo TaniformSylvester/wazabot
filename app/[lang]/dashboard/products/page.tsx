@@ -4,7 +4,7 @@ import { Package, Plus, Search } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton } from "@/components/app/form";
-import { EmptyState, PageHeader, Pagination, Panel, StatusBadge, TableWrap, buttonLink, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
+import { EmptyState, PageHeader, Pagination, Panel, SampleBadge, StatusBadge, TableWrap, buttonLink, formatMoney, param, secondaryLink, td, th, withQuery } from "@/components/app/ui";
 import { setProductActive } from "@/lib/actions/products";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
 import { PAGE_SIZE, PRODUCT_SORTS, listProductCategories, listProducts } from "@/lib/data/queries";
@@ -139,7 +139,10 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[lang]/
                           </span>
                         )}
                         <span className="min-w-0">
-                          <span className="block truncate">{r.name}</span>
+                          <span className="block truncate">
+                            {r.name}
+                            {r.is_sample ? <SampleBadge label={t.dashboard.sampleData.badge} /> : null}
+                          </span>
                           {r.sku ? <span className="block text-xs font-normal text-slate">{r.sku}</span> : null}
                         </span>
                       </Link>

@@ -393,6 +393,8 @@ mkdirSync("test-results", { recursive: true });
     );
     for (const path of ["/dashboard/billing", "/dashboard/ai", "/dashboard/ai/test", "/dashboard/automations"]) {
       await cp.goto(`${APP}/en${path}`);
+      // The redirect can arrive after the layout has started streaming (a client-side navigation): wait for it.
+      await cp.waitForURL((u) => /\/en\/dashboard$/.test(u.pathname), { timeout: 15000 }).catch(() => {});
       ok(`permissions (staff): ${path} sends them back to the dashboard`, /\/en\/dashboard$/.test(new URL(cp.url()).pathname), cp.url());
     }
     await cp.goto(`${APP}/en/dashboard/conversations`);
@@ -454,6 +456,7 @@ mkdirSync("test-results", { recursive: true });
     );
     // Revenue and the AI system: closed to staff on the server, not only hidden.
     await cp.goto(`${APP}/en/dashboard/analytics`);
+    await cp.waitForURL((u) => /\/en\/dashboard$/.test(u.pathname), { timeout: 15000 }).catch(() => {});
     ok("permissions (staff): analytics (revenue) sends them back to the dashboard", /\/en\/dashboard$/.test(new URL(cp.url()).pathname), cp.url());
     const testChat = await cp.request.post(`${APP}/api/ai/test-chat`, { data: { message: "hi", history: [], language: null } });
     ok("permissions (staff): the AI test-chat API answers 403", testChat.status() === 403, String(testChat.status()));

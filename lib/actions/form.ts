@@ -30,6 +30,9 @@ export type ActionErrorKey =
   | "invite_invalid"
   | "invite_wrong_email"
   | "already_invited"
+  | "sample_conversation"
+  | "sample_customer"
+  | "sample_product"
   | "invite_email_unconfirmed"
   | "already_on_plan"
   // Stage 6
@@ -168,6 +171,10 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "ai_trial_used";
     case "WB470":
       return "country_locked";
+    case "WB490":
+      return "sample_customer";
+    case "WB491":
+      return "sample_product";
     case "WB480":
       return "already_invited";
     case "WB481":

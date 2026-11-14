@@ -220,6 +220,7 @@ async function inventoryStats(businessId: string, withCost: boolean) {
     .select("id, price, stock_quantity, low_stock_threshold, product_variants(stock_quantity, price_modifier)")
     .eq("business_id", businessId)
     .eq("active", true)
+    .eq("is_sample", false)
     .limit(5000);
   const costs = withCost ? await productCosts(businessId) : new Map<string, number | null>();
   let low = 0;
@@ -272,8 +273,8 @@ export async function getOverview(businessId: string, timezone: string, withProf
     withProfit ? salesByDay(businessId, from, today) : Promise.resolve([] as DayFigures[]),
     db.from("order_payments").select("amount").eq("business_id", businessId).gte("received_at", localDayStart(today, timezone)).limit(20000),
     customersWhoOwe(businessId, 5),
-    db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId),
-    db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId).gte("created_at", localDayStart(monthStart, timezone)),
+    db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("is_sample", false),
+    db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("is_sample", false).gte("created_at", localDayStart(monthStart, timezone)),
     bestSellers(businessId, timezone, monthStart),
     inventoryStats(businessId, withProfit),
     getStockAlerts(businessId, 6),

@@ -319,7 +319,8 @@ mkdirSync("test-results", { recursive: true });
     ok("a published report card for one student (one page)", pages(opdf) === 1 && odl.suggestedFilename() === "bulletin-stu-000001-trimestre-1.pdf", odl.suggestedFilename());
     await main.getByTestId("result-rows").locator("tr").filter({ hasText: "BELLO Amina" }).getByTestId("send-whatsapp").click();
     await main.getByText("WhatsApp isn't connected. Connect your number first.").waitFor({ timeout: 15000 });
-    ok("sending to the parent is refused while WhatsApp isn't connected (nothing faked)", sql(`select count(*) from messages where business_id = '${biz}'`) === "0");
+    // (The school's sample chats have their own messages: none outside them.)
+    ok("sending to the parent is refused while WhatsApp isn't connected (nothing faked)", sql(`select count(*) from messages m join conversations c on c.id = m.conversation_id where m.business_id = '${biz}' and not c.is_sample`) === "0");
     ok("students without a parent number say so", (await main.getByTestId("result-rows").getByText("No parent number").count()) === 2);
 
     await main.getByLabel("Reason").fill("Erreur en mathématiques");

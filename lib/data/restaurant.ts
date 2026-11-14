@@ -134,6 +134,8 @@ export async function listMenu(businessId: string): Promise<MenuDish[]> {
     .select("id, name, category, price, stock_quantity, options, extras, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
     .eq("business_id", businessId)
     .eq("active", true)
+    // Sample dishes are never ordered.
+    .eq("is_sample", false)
     .order("category", { nullsFirst: false })
     .order("name")
     .limit(500);

@@ -47,10 +47,12 @@ export async function sendPdfOnWhatsApp(input: SendPdfInput, wa = whatsappForBus
   if (!conn || !admin) return { ok: false, error: "whatsapp_not_connected" };
 
   const [{ data: customer }, { data: business }] = await Promise.all([
-    admin.from("customers").select("whatsapp_phone, name, preferred_language").eq("business_id", input.businessId).eq("id", input.customerId).maybeSingle(),
+    admin.from("customers").select("whatsapp_phone, name, preferred_language, is_sample").eq("business_id", input.businessId).eq("id", input.customerId).maybeSingle(),
     admin.from("businesses").select("name, default_language").eq("id", input.businessId).maybeSingle(),
   ]);
   if (!customer?.whatsapp_phone) return { ok: false, error: "not_found" };
+  // Nothing is ever sent to a sample customer (its number isn't real).
+  if (customer.is_sample) return { ok: false, error: "sample_customer" };
   // The conversation the customer last wrote in (as shown before sending), or a new one to keep the message in.
   const { data: latest } = await admin
     .from("conversations")

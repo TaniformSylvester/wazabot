@@ -126,7 +126,7 @@ export async function listTerms(businessId: string, yearId: string) {
 // ---------------------------------------------------------------- classes and subjects
 export async function listSubjects(businessId: string) {
   const db = await createClient();
-  const { data } = await db.from("school_subjects").select("id, name, code").eq("business_id", businessId).order("name");
+  const { data } = await db.from("school_subjects").select("id, name, code, is_sample").eq("business_id", businessId).order("name");
   return data ?? [];
 }
 

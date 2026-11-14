@@ -1150,6 +1150,7 @@ export type Database = {
       };
       conversations: {
         Row: {
+          is_sample: boolean;
           ai_enabled: boolean;
           ai_summary: string | null;
           ai_summary_updated_at: string | null;
@@ -1168,6 +1169,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          is_sample?: boolean;
           ai_enabled?: boolean;
           ai_summary?: string | null;
           ai_summary_updated_at?: string | null;
@@ -1186,6 +1188,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          is_sample?: boolean;
           ai_enabled?: boolean;
           ai_summary?: string | null;
           ai_summary_updated_at?: string | null;
@@ -1307,6 +1310,7 @@ export type Database = {
       };
       customers: {
         Row: {
+          is_sample: boolean;
           business_id: string;
           city: string | null;
           created_at: string;
@@ -1329,6 +1333,7 @@ export type Database = {
           whatsapp_phone: string;
         };
         Insert: {
+          is_sample?: boolean;
           business_id: string;
           city?: string | null;
           created_at?: string;
@@ -1351,6 +1356,7 @@ export type Database = {
           whatsapp_phone: string;
         };
         Update: {
+          is_sample?: boolean;
           business_id?: string;
           city?: string | null;
           created_at?: string;
@@ -1761,6 +1767,7 @@ export type Database = {
       };
       faqs: {
         Row: {
+          is_sample: boolean;
           active: boolean;
           answer: string;
           business_id: string;
@@ -1772,6 +1779,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          is_sample?: boolean;
           active?: boolean;
           answer: string;
           business_id: string;
@@ -1783,6 +1791,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          is_sample?: boolean;
           active?: boolean;
           answer?: string;
           business_id?: string;
@@ -2689,6 +2698,7 @@ export type Database = {
       };
       orders: {
         Row: {
+          is_sample: boolean;
           amount_paid: number;
           amount_refunded: number;
           balance_due: number | null;
@@ -2727,6 +2737,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          is_sample?: boolean;
           amount_paid?: number;
           amount_refunded?: number;
           balance_due?: never;
@@ -2765,6 +2776,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          is_sample?: boolean;
           amount_paid?: number;
           amount_refunded?: number;
           balance_due?: never;
@@ -3169,6 +3181,7 @@ export type Database = {
       };
       products: {
         Row: {
+          is_sample: boolean;
           active: boolean;
           business_id: string;
           category: string | null;
@@ -3190,6 +3203,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          is_sample?: boolean;
           active?: boolean;
           business_id: string;
           category?: string | null;
@@ -3211,6 +3225,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          is_sample?: boolean;
           active?: boolean;
           business_id?: string;
           category?: string | null;
@@ -3775,18 +3790,21 @@ export type Database = {
       };
       school_subjects: {
         Row: {
+          is_sample: boolean;
           business_id: string;
           code: string | null;
           id: string;
           name: string;
         };
         Insert: {
+          is_sample?: boolean;
           business_id: string;
           code?: string | null;
           id?: string;
           name: string;
         };
         Update: {
+          is_sample?: boolean;
           business_id?: string;
           code?: string | null;
           id?: string;
@@ -5156,6 +5174,14 @@ export type Database = {
       set_business_module: {
         Args: { p_business_id: string; p_enabled: boolean; p_module: string };
         Returns: undefined;
+      };
+      clear_sample_data: {
+        Args: { p_business_id: string };
+        Returns: Json;
+      };
+      has_sample_data: {
+        Args: { p_business_id: string };
+        Returns: boolean;
       };
       setup_workspace: {
         Args: { p_country: string; p_industry: string; p_name: string };

@@ -67,6 +67,10 @@ export async function sendFollowUp(conversationId: string): Promise<FormState> {
   if (!ctx) return denied();
   const admin = createAdminClient();
   if (!admin) return fail("whatsapp_not_configured");
+  // A sample conversation is never sent to WhatsApp.
+  const { data: conv } = await admin.from("conversations").select("is_sample").eq("business_id", ctx.business.id).eq("id", conversationId).maybeSingle();
+  if (!conv) return fail("not_found");
+  if (conv.is_sample) return fail("sample_conversation");
   const r = await notifyFollowUp(admin, ctx.business.id, conversationId);
   revalidate();
   if (!r) return fail("not_found");

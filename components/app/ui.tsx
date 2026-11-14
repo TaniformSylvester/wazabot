@@ -317,3 +317,12 @@ export const buttonLink =
   "inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground transition-colors hover:bg-waza-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/35 [&_svg]:size-4";
 export const secondaryLink =
   "inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border bg-card px-4 text-sm font-semibold text-deep transition-colors hover:bg-mint focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/35 [&_svg]:size-4";
+
+/** Marks a row seeded as sample data for a new workspace (lib/onboarding/seedVertical.ts). */
+export function SampleBadge({ label }: { label: string }) {
+  return (
+    <span className="ml-2 inline-flex w-fit items-center rounded-full bg-gold-100 px-2 py-0.5 align-middle text-[0.6875rem] font-bold uppercase tracking-wide text-gold-800" data-testid="sample-badge">
+      {label}
+    </span>
+  );
+}

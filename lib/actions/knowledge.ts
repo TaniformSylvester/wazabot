@@ -31,7 +31,8 @@ export async function saveFaq(_prev: FormState, formData: FormData): Promise<For
   if (id && !isUuid(id)) return fail("invalid");
   const supabase = await createClient();
   const { error } = id
-    ? await supabase.from("faqs").update(parsed.data).eq("id", id).eq("business_id", ctx.business.id)
+    ? // Saving a sample FAQ template makes it the business's own (the assistant can then use it).
+      await supabase.from("faqs").update({ ...parsed.data, is_sample: false }).eq("id", id).eq("business_id", ctx.business.id)
     : await supabase.from("faqs").insert({ ...parsed.data, business_id: ctx.business.id });
   if (error) {
     logServerError("knowledge.saveFaq", error);

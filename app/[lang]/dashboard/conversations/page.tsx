@@ -31,7 +31,7 @@ export default async function ConversationsPage({ searchParams }: PageProps<"/[l
       ) : (
         <div className="grid overflow-hidden rounded-3xl border border-border bg-card shadow-card lg:h-[calc(100dvh-12rem)] lg:grid-cols-[22rem_1fr]">
           <div className="flex min-h-0 flex-col lg:border-r lg:border-border">
-            <ConversationList rows={rows} filter={filter} q={q} t={c} searchLabel={t.dashboard.common.search} locale={locale} />
+            <ConversationList rows={rows} filter={filter} q={q} t={c} searchLabel={t.dashboard.common.search} locale={locale} sampleLabel={t.dashboard.sampleData.badge} />
           </div>
           <div className="hidden flex-col items-center justify-center p-10 text-center lg:flex">
             <MessagesSquare className="size-10 text-line-strong" aria-hidden />

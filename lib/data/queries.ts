@@ -46,14 +46,14 @@ export async function getDashboardMetrics(businessId: string): Promise<Dashboard
   const db = await createClient();
   const count = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count ?? 0);
   const [conversations, newCustomers30d, orders, humanHandovers, unreadConversations, resolved] = await Promise.all([
-    count(db.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId)),
-    count(db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId).gte("created_at", since(30))),
+    count(db.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("is_sample", false)),
+    count(db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("is_sample", false).gte("created_at", since(30))),
     count(db.from("orders").select("id", { count: "exact", head: true }).eq("business_id", businessId)),
     count(
       db.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).or("ai_enabled.eq.false,human_requested.eq.true"),
     ),
     count(db.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).gt("unread_count", 0)),
-    db.from("conversations").select("id, ai_enabled, human_requested").eq("business_id", businessId).eq("status", "resolved").limit(2000),
+    db.from("conversations").select("id, ai_enabled, human_requested").eq("business_id", businessId).eq("is_sample", false).eq("status", "resolved").limit(2000),
   ]);
 
   let aiResolutionRate: number | null = null;
@@ -85,8 +85,8 @@ export type SetupProgress = {
 export async function getSetupProgress(businessId: string, profileDone: boolean, hoursDone: boolean): Promise<SetupProgress> {
   const db = await createClient();
   const [products, faqs, docs, ai, wa] = await Promise.all([
-    db.from("products").select("id", { count: "exact", head: true }).eq("business_id", businessId),
-    db.from("faqs").select("id", { count: "exact", head: true }).eq("business_id", businessId),
+    db.from("products").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("is_sample", false),
+    db.from("faqs").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("is_sample", false),
     db.from("knowledge_documents").select("id", { count: "exact", head: true }).eq("business_id", businessId),
     db.from("ai_settings").select("updated_at, created_at").eq("business_id", businessId).maybeSingle(),
     db.from("whatsapp_connections").select("status").eq("business_id", businessId).maybeSingle(),
@@ -130,7 +130,7 @@ export async function listProducts(businessId: string, f: ProductFilter = {}) {
   const db = await createClient();
   let q = db
     .from("products")
-    .select("id, name, category, sku, price, unit, currency, stock_quantity, low_stock_threshold, image_url, active, updated_at, product_variants(count)", { count: "exact" })
+    .select("id, name, category, sku, price, unit, currency, stock_quantity, low_stock_threshold, image_url, active, updated_at, is_sample, product_variants(count)", { count: "exact" })
     .eq("business_id", businessId);
   const pattern = searchPattern(f.q);
   if (pattern) q = q.or(`name.ilike.${pattern},sku.ilike.${pattern},category.ilike.${pattern}`);
@@ -158,7 +158,7 @@ export async function getProduct(businessId: string, id: string, withCost = fals
   const { data } = await db
     .from("products")
     .select(
-      "id, business_id, name, description, category, sku, price, currency, stock_quantity, image_url, active, created_at, updated_at, low_stock_threshold, stock_low, unit, options, extras, product_variants(id, name, value, options, stock_quantity, price_modifier, sort_order)",
+      "id, business_id, name, description, category, sku, price, currency, stock_quantity, image_url, active, created_at, updated_at, low_stock_threshold, stock_low, unit, options, extras, is_sample, product_variants(id, name, value, options, stock_quantity, price_modifier, sort_order)",
     )
     .eq("business_id", businessId)
     .eq("id", id)
@@ -202,6 +202,8 @@ export async function listSellableProducts(businessId: string) {
     .select("id, name, price, currency, stock_quantity, options, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
     .eq("business_id", businessId)
     .eq("active", true)
+    // Sample items are never sold.
+    .eq("is_sample", false)
     .order("name")
     .limit(500);
   return (data ?? []).map((p) => ({ ...p, options: parseOptions(p.options), product_variants: [...p.product_variants].sort((a, b) => a.sort_order - b.sort_order) }));
@@ -278,7 +280,7 @@ export async function listCustomers(businessId: string, f: { q?: string; languag
   }
   let q = db
     .from("customers")
-    .select("id, reference, name, whatsapp_phone, preferred_language, city, tags, last_contact_at, created_at", { count: "exact" })
+    .select("id, reference, name, whatsapp_phone, preferred_language, city, tags, last_contact_at, created_at, is_sample", { count: "exact" })
     .eq("business_id", businessId);
   const pattern = customerPattern(f.q);
   if (pattern) q = q.or(`name.ilike.${pattern},whatsapp_phone.ilike.${pattern},city.ilike.${pattern},email.ilike.${pattern},reference.ilike.${pattern}`);
@@ -379,7 +381,7 @@ export async function getCustomer(businessId: string, id: string) {
 
 export async function listCustomerOptions(businessId: string) {
   const db = await createClient();
-  const { data } = await db.from("customers").select("id, reference, name, whatsapp_phone").eq("business_id", businessId).order("name").limit(1000);
+  const { data } = await db.from("customers").select("id, reference, name, whatsapp_phone").eq("business_id", businessId).eq("is_sample", false).order("name").limit(1000);
   return data ?? [];
 }
 
@@ -392,7 +394,7 @@ export async function listConversations(businessId: string, f: ConversationFilte
   const db = await createClient();
   let q = db
     .from("conversations")
-    .select("id, status, ai_enabled, human_requested, unread_count, language, last_message_at, created_at, customers(id, name, whatsapp_phone)")
+    .select("id, status, ai_enabled, human_requested, unread_count, language, last_message_at, created_at, is_sample, customers(id, name, whatsapp_phone)")
     .eq("business_id", businessId);
   if (f.status && (CONVERSATION_STATUSES as readonly string[]).includes(f.status)) q = q.eq("status", f.status);
   else q = q.neq("status", "archived");
@@ -544,6 +546,8 @@ export async function listPosProducts(businessId: string) {
     .select("id, name, sku, category, price, unit, stock_quantity, image_url, options, product_variants(id, name, value, options, price_modifier, stock_quantity, sort_order)")
     .eq("business_id", businessId)
     .eq("active", true)
+    // Sample items are never sold.
+    .eq("is_sample", false)
     .order("name")
     .limit(1000);
   return (data ?? []).map((p) => ({ ...p, price: Number(p.price), options: parseOptions(p.options), product_variants: [...p.product_variants].sort((a, b) => a.sort_order - b.sort_order).map((v) => ({ ...v, price_modifier: Number(v.price_modifier) })) }));
@@ -684,12 +688,12 @@ export async function getAnalytics(businessId: string, currency: string): Promis
   const db = await createClient();
   const [metrics, customers, conv, orders, items, custLangs, msgLangs] = await Promise.all([
     getDashboardMetrics(businessId),
-    db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId),
-    db.from("conversations").select("status").eq("business_id", businessId).limit(10000),
+    db.from("customers").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("is_sample", false),
+    db.from("conversations").select("status").eq("business_id", businessId).eq("is_sample", false).limit(10000),
     db.from("orders").select("status, total").eq("business_id", businessId).limit(10000),
     db.from("order_items").select("product_name, quantity, orders!inner(status)").eq("business_id", businessId).neq("orders.status", "cancelled").limit(10000),
-    db.from("customers").select("preferred_language").eq("business_id", businessId).limit(10000),
-    db.from("messages").select("language").eq("business_id", businessId).eq("direction", "inbound").not("language", "is", null).limit(10000),
+    db.from("customers").select("preferred_language").eq("business_id", businessId).eq("is_sample", false).limit(10000),
+    db.from("messages").select("language, conversations!inner(is_sample)").eq("business_id", businessId).eq("conversations.is_sample", false).eq("direction", "inbound").not("language", "is", null).limit(10000),
   ]);
 
   const tally = <T extends string>(values: T[]) => values.reduce<Record<string, number>>((acc, v) => ((acc[v] = (acc[v] ?? 0) + 1), acc), {});
@@ -756,6 +760,7 @@ export async function getStockAlerts(businessId: string, max = 8): Promise<{ ale
     .from("products")
     .select("id, name, stock_quantity, low_stock_threshold, options, product_variants(name, value, options, stock_quantity)")
     .eq("business_id", businessId)
+    .eq("is_sample", false)
     .eq("active", true)
     .limit(2000);
   const alerts: StockAlert[] = [];
