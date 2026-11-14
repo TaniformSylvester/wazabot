@@ -250,6 +250,25 @@ mkdirSync("test-results", { recursive: true });
   const agentLink = await linkBox.inputValue();
   ok("invitation link created with WhatsApp sharing", /\/en\/invite\/[A-Za-z0-9_-]{32}$/.test(agentLink) && (await main.getByRole("link", { name: "Share on WhatsApp" }).getAttribute("href")).startsWith("https://wa.me/?text="));
   ok("pending invitation listed", (await main.getByText("Pending invitations").count()) === 1);
+  // A second live invitation for the same email is refused (the first link keeps working).
+  await page.reload();
+  await main.getByLabel("Their email address").fill(AGENT.email.toUpperCase());
+  await main.getByLabel("Role", { exact: true }).selectOption("viewer");
+  await main.getByRole("button", { name: "Create invitation link" }).click();
+  await main.getByText(/already has a pending invitation/).waitFor({ timeout: 10000 }).catch(() => {});
+  const liveInvites = (email) => sql(`select count(*) from business_invitations where business_id = '${biz.id}' and email = '${email}' and accepted_at is null and revoked_at is null`);
+  ok("a second invitation for the same email is refused; one live invitation", (await main.getByText(/already has a pending invitation/).count()) === 1 && liveInvites(AGENT.email) === "1" && sql(`select role from business_invitations where business_id = '${biz.id}' and email = '${AGENT.email}' and revoked_at is null`) === "agent");
+  // An expired invitation doesn't block a new one.
+  const LATE = `ops-late+${stamp}@example.com`;
+  sql(`insert into business_invitations (business_id, email, role, token_hash, expires_at) values ('${biz.id}', '${LATE}', 'agent', md5('late${stamp}') || md5('late2${stamp}'), now() - interval '1 day')`);
+  await page.reload();
+  await main.getByLabel("Their email address").fill(LATE);
+  await main.getByLabel("Role", { exact: true }).selectOption("agent");
+  await main.getByRole("button", { name: "Create invitation link" }).click();
+  await main.getByRole("textbox", { name: `Invitation link for ${LATE}` }).waitFor({ timeout: 10000 }).catch(() => {});
+  ok("an expired invitation doesn't block a new one (it is closed)", liveInvites(LATE) === "1" && sql(`select count(*) from business_invitations where email = '${LATE}' and revoked_at is not null`) === "1");
+  // Pending invitations hold a team seat; let this one lapse so the plan's seats stay free for the rest of the suite.
+  sql(`update business_invitations set expires_at = now() - interval '1 minute' where email = '${LATE}' and revoked_at is null`);
   await page.screenshot({ path: "test-results/stage4-team-invite.png", fullPage: true });
 
   // A new person signs up from the link: joins this business, no business of their own.
@@ -261,7 +280,11 @@ mkdirSync("test-results", { recursive: true });
   await ap.getByLabel("Your name").fill(AGENT.name);
   await ap.getByLabel("Password", { exact: true }).fill(AGENT.password);
   await ap.getByRole("button", { name: "Create account and join" }).click();
-  await ap.getByText(/open the confirmation email we sent you/).waitFor({ timeout: 10000 });
+  await ap.getByText(/We sent a confirmation link to/).waitFor({ timeout: 10000 });
+  ok(
+    "an invited sign-up doesn't join before the email is confirmed (the invitation stays pending)",
+    sql(`select count(*) from business_members m join auth.users u on u.id = m.user_id where u.email = '${AGENT.email}'`) === "0" && liveInvites(AGENT.email) === "1",
+  );
   await ap.goto(linkFrom(await latestMail(AGENT.email, "Confirm")));
   await ap.waitForURL(/\/dashboard/);
   await ap.getByText("Your email is confirmed — welcome to WazaBolt!").waitFor({ timeout: 10000 });
@@ -295,7 +318,7 @@ mkdirSync("test-results", { recursive: true });
   await otherBox.waitFor({ timeout: 10000 });
   const firstOtherLink = await otherBox.inputValue();
   await page.reload();
-  await main.getByRole("button", { name: "New link" }).click();
+  await main.getByRole("listitem").filter({ hasText: OTHER.email }).getByRole("button", { name: "New link" }).click();
   const renewed = main.getByRole("textbox", { name: `Invitation link for ${OTHER.email}` });
   await renewed.waitFor({ timeout: 10000 });
   const otherLink = await renewed.inputValue();
@@ -312,9 +335,29 @@ mkdirSync("test-results", { recursive: true });
   await op.getByText("You've joined Awa Styles.", { exact: false }).waitFor({ timeout: 10000 });
   const switcher = op.getByLabel("Switch business");
   ok("existing account joins as admin and gets a business switcher", (await switcher.count()) === 1 && (await op.getByText("Admin", { exact: true }).count()) >= 1);
+  ok("the accepted invitation is closed", sql(`select count(*) from business_invitations where business_id = '${biz.id}' and email = '${OTHER.email}' and accepted_at is not null`) === "1" && liveInvites(OTHER.email) === "0");
+  // Invitations are for the owner only: a manager sees the pending ones but can't invite, renew or cancel — nor straight through the database.
+  await op.goto(`${APP}/en/dashboard/team`);
+  await op.getByTestId("invites-owner-only").waitFor({ timeout: 10000 }).catch(() => {});
+  ok(
+    "managers: no invitation form or invitation buttons, a note that the owner invites",
+    (await op.getByTestId("invites-owner-only").count()) === 1 && (await op.getByLabel("Their email address").count()) === 0 && (await op.getByRole("button", { name: "New link" }).count()) === 0 && (await op.getByRole("button", { name: "Cancel", exact: true }).count()) === 0 && (await op.getByText(LATE).count()) === 1,
+  );
+  const otherTok = await token(OTHER.email, OTHER.password);
+  const rpc = (fn, body) => fetch(`${SUPABASE}/rest/v1/rpc/${fn}`, { method: "POST", headers: restHeaders(otherTok), body: JSON.stringify(body) });
+  const lateId = sql(`select id from business_invitations where email = '${LATE}' and revoked_at is null`);
+  const mInvite = await rpc("create_invitation", { p_business_id: biz.id, p_email: `ops-x+${stamp}@example.com`, p_role: "agent", p_token_hash: "a".repeat(64) });
+  const mRenew = await rpc("renew_invitation", { p_invitation_id: lateId, p_token_hash: "b".repeat(64) });
+  const mRevoke = await rpc("revoke_invitation", { p_invitation_id: lateId });
+  ok("managers can't create, renew or cancel invitations in the database either", mInvite.status === 403 && mRenew.status === 403 && mRevoke.status === 403 && sql(`select count(*) from business_invitations where email = '${LATE}' and revoked_at is null`) === "1", `${mInvite.status} ${mRenew.status} ${mRevoke.status}`);
+  // An owner invitation is impossible: the role is manager or staff only.
+  const ownerTok = await token(OWNER.email, OWNER.password);
+  const ownerRole = await fetch(`${SUPABASE}/rest/v1/rpc/create_invitation`, { method: "POST", headers: restHeaders(ownerTok), body: JSON.stringify({ p_business_id: biz.id, p_email: `ops-y+${stamp}@example.com`, p_role: "owner", p_token_hash: "c".repeat(64) }) });
+  ok("an invitation can't make someone an owner", !ownerRole.ok && sql(`select count(*) from business_invitations where email = 'ops-y+${stamp}@example.com'`) === "0", String(ownerRole.status));
+  await op.goto(`${APP}/en/dashboard`);
   await switcher.selectOption({ label: "Clara Beauty" });
-  await op.waitForURL((u) => u.pathname === "/en/dashboard/onboarding" || (u.pathname === "/en/dashboard" && !u.search.includes("joined")));
-  await op.getByLabel("Switch business").waitFor();
+  // The switch reloads the dashboard for the other business.
+  for (let i = 0; i < 60 && ((await op.getByLabel("Switch business").inputValue().catch(() => biz.id)) === biz.id || (await op.getByText("Owner", { exact: true }).count()) === 0); i++) await sleep(250);
   ok("switching back to their own business", (await op.getByLabel("Switch business").inputValue()) !== biz.id && (await op.getByText("Owner", { exact: true }).count()) >= 1);
   await op.screenshot({ path: "test-results/stage4-switcher.png" });
 

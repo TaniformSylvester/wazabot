@@ -20,9 +20,9 @@ import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "
 import { denied } from "./denied";
 
 /*
- * Team (Stage 4): invitation links, roles, removing members, leaving, and
- * switching between businesses. The rules (who may invite or change whom)
- * are enforced by the database functions; these actions only shape input.
+ * Team (Stage 4): invitation links (owner only), roles, removing members,
+ * leaving, and switching between businesses. The rules (who may invite or
+ * change whom) are enforced by the database functions too.
  */
 
 const inviteSchema = z.object({
@@ -41,8 +41,8 @@ const localeOf = (v: FormDataEntryValue | string | null | undefined): Locale => 
 
 export async function inviteMember(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = inviteSchema.safeParse(formObject(formData));
-  // Inviting a manager (stored role "admin") is for the owner only; managers invite staff (the database checks this too).
-  const ctx = await requireRoleForAction(parsed.success && parsed.data.role === "admin" ? OWNER : MANAGERS);
+  // Invitations are for the owner only (the database checks this too). Roles: manager ("admin") or staff — never owner.
+  const ctx = await requireRoleForAction(OWNER);
   if (!ctx) return denied();
   if (!parsed.success) return invalid(parsed.error);
   const { token, hash } = newToken();
@@ -64,7 +64,7 @@ export async function inviteMember(_prev: FormState, formData: FormData): Promis
 /** A fresh link for a pending invitation (the old link stops working). */
 export async function renewInvitation(invitationId: string, locale: string): Promise<FormState> {
   if (!isUuid(invitationId)) return fail("invalid");
-  const ctx = await requireRoleForAction(MANAGERS);
+  const ctx = await requireRoleForAction(OWNER);
   if (!ctx) return denied();
   const { token, hash } = newToken();
   const supabase = await createClient();
@@ -79,7 +79,7 @@ export async function renewInvitation(invitationId: string, locale: string): Pro
 
 export async function revokeInvitation(invitationId: string): Promise<FormState> {
   if (!isUuid(invitationId)) return fail("invalid");
-  const ctx = await requireRoleForAction(MANAGERS);
+  const ctx = await requireRoleForAction(OWNER);
   if (!ctx) return denied();
   const supabase = await createClient();
   const { error } = await supabase.rpc("revoke_invitation", { p_invitation_id: invitationId });
@@ -155,7 +155,8 @@ export async function acceptInvitation(token: string, locale: string): Promise<F
   const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
   if (error || !data) {
     logServerError("team.accept", error);
-    return fail(error?.code === "42501" ? "invite_wrong_email" : "invite_invalid");
+    // Wrong account, unconfirmed email, or a full plan (seats) are told apart; anything else: the link isn't valid.
+    return fail(error?.code === "42501" ? "invite_wrong_email" : ["WB481", "WB413", "WB416", "WB419"].includes(error?.code ?? "") ? dbError(error) : "invite_invalid");
   }
   await setActiveBusiness(data);
   revalidatePath("/[lang]/dashboard", "layout");

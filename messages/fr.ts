@@ -1038,7 +1038,7 @@ const fr: Messages = {
       invalidTitle: "Invitation indisponible",
       states: {
         expired: "Cette invitation a expiré. Demandez un nouveau lien à la personne qui vous a invité(e).",
-        accepted: "Cette invitation a été acceptée. Si vous venez de créer votre compte, ouvrez l'e-mail de confirmation que nous vous avons envoyé, puis connectez-vous.",
+        accepted: "Cette invitation a été acceptée. Connectez-vous pour ouvrir l'entreprise.",
         revoked: "Cette invitation a été annulée ou remplacée par un lien plus récent. Demandez-en un nouveau.",
         invalid: "Ce lien d'invitation n'est pas valable. Vérifiez qu'il est complet, ou demandez-en un nouveau.",
       },
@@ -1469,6 +1469,8 @@ const fr: Messages = {
       already_member: "Cette personne fait déjà partie de votre équipe.",
       invite_invalid: "Ce lien d'invitation n'est plus valable. Demandez-en un nouveau.",
       invite_wrong_email: "Cette invitation a été envoyée à une autre adresse e-mail.",
+      already_invited: "Cette personne a déjà une invitation en attente. Utilisez « Nouveau lien » ci-dessous pour envoyer un nouveau lien.",
+      invite_email_unconfirmed: "Confirmez d'abord votre adresse e-mail — ouvrez le lien que nous vous avons envoyé — puis rouvrez l'invitation.",
       already_on_plan: "Vous avez déjà ce forfait.",
       slot_unavailable: "Ce créneau n'est plus libre. Choisissez une autre heure.",
       templates_failed: "Meta n'a pas accepté les modèles. Consultez le motif à côté de chacun, puis réessayez.",
@@ -3441,6 +3443,7 @@ const fr: Messages = {
       leaving: "Départ…",
       confirmLeave: "Quitter {business} ?",
       ownerManagesAdmins: "Seul le propriétaire peut inviter ou gérer les administrateurs.",
+      ownerInvites: "Seul le propriétaire invite de nouvelles personnes dans l'équipe. Demandez-lui d'envoyer un lien d'invitation.",
     },
     billing: {
       title: "Facturation",

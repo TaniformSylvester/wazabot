@@ -152,7 +152,7 @@ mkdirSync("test-results", { recursive: true });
     await tp.getByLabel("Your name").fill(TEACHER.name);
     await tp.getByLabel("Password", { exact: true }).fill(TEACHER.password);
     await tp.getByRole("button", { name: "Create account and join" }).click();
-    await tp.getByText(/open the confirmation email we sent you/).waitFor({ timeout: 10000 });
+    await tp.getByText(/We sent a confirmation link to/).waitFor({ timeout: 10000 });
     await tp.goto(linkFrom(await latestMail(TEACHER.email, "Confirm")));
     await tp.waitForURL(/\/dashboard\/school/, { timeout: 15000 });
     await settle(tp);

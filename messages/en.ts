@@ -1039,7 +1039,7 @@ const en = {
       invalidTitle: "Invitation not available",
       states: {
         expired: "This invitation has expired. Ask the person who invited you for a new link.",
-        accepted: "This invitation has been accepted. If you just created your account, open the confirmation email we sent you, then log in.",
+        accepted: "This invitation has been accepted. Log in to open the business.",
         revoked: "This invitation was cancelled or replaced by a newer link. Ask for a new one.",
         invalid: "This invitation link isn't valid. Check you copied all of it, or ask for a new one.",
       },
@@ -1470,6 +1470,8 @@ const en = {
       already_member: "This person is already in your team.",
       invite_invalid: "This invitation link isn't valid any more. Ask for a new one.",
       invite_wrong_email: "This invitation was sent to another email address.",
+      already_invited: "This person already has a pending invitation. Use “New link” on it below to send a fresh link.",
+      invite_email_unconfirmed: "Confirm your email address first — check your inbox for the link we sent — then open the invitation again.",
       already_on_plan: "You're already on this plan.",
       slot_unavailable: "That time isn't free any more. Choose another time.",
       templates_failed: "Meta didn't accept the templates. See the reason next to each one, then try again.",
@@ -3442,6 +3444,7 @@ const en = {
       leaving: "Leaving…",
       confirmLeave: "Leave {business}?",
       ownerManagesAdmins: "Only the owner can invite or manage admins.",
+      ownerInvites: "Only the owner invites people to the team. Ask the owner to send an invitation link.",
     },
     billing: {
       title: "Billing",

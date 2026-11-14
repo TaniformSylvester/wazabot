@@ -29,6 +29,8 @@ export type ActionErrorKey =
   | "already_member"
   | "invite_invalid"
   | "invite_wrong_email"
+  | "already_invited"
+  | "invite_email_unconfirmed"
   | "already_on_plan"
   // Stage 6
   | "slot_unavailable"
@@ -166,6 +168,10 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "ai_trial_used";
     case "WB470":
       return "country_locked";
+    case "WB480":
+      return "already_invited";
+    case "WB481":
+      return "invite_email_unconfirmed";
     case "23505":
       return "duplicate";
     case "22023":

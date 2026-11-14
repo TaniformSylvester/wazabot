@@ -42,7 +42,7 @@ export default async function TeamPage() {
   const d = t.dashboard;
   const tm = d.team;
   const roleLabel = (r: string) => d.header.roles[r as BusinessRole] ?? r;
-  // The Kitchen role is offered to restaurants.
+  // Roles an invitation or a role change can give: manager or staff, never owner. The Kitchen role is offered to restaurants.
   const assignable = (isOwner ? (["admin", "agent", "viewer", "teacher", "kitchen"] as const) : (["agent", "viewer", "teacher", "kitchen"] as const))
     .filter((r) => r !== "kitchen" || modules.includes("restaurant"))
     .map((r) => ({ value: r, label: roleLabel(r) }));
@@ -62,18 +62,22 @@ export default async function TeamPage() {
       {showTeachers ? <p className="-mt-3 text-xs text-slate">{d.plan.usage.teachersNote}</p> : null}
       {showKitchen ? <p className="-mt-3 text-xs text-slate">{d.plan.usage.kitchenNote}</p> : null}
 
-      {isAdmin ? (
+      {/* Invitations: the owner creates, renews and cancels them; managers see the pending ones. */}
+      {isOwner ? (
         <Panel title={tm.invite} description={tm.inviteText}>
           <InviteForm t={tm} errors={d.errors} roles={assignable} locale={locale} businessName={business.name} />
-          {!isOwner ? <p className="mt-3 text-xs text-slate">{tm.ownerManagesAdmins}</p> : null}
         </Panel>
+      ) : isAdmin ? (
+        <p className="text-sm text-slate" data-testid="invites-owner-only">
+          {tm.ownerInvites}
+        </p>
       ) : null}
 
       {isAdmin && invitations.length ? (
         <Panel title={tm.pending}>
           <ul className="divide-y divide-border">
             {invitations.map((inv) => {
-              const manageable = inv.role !== "admin" || isOwner;
+              const manageable = isOwner;
               return (
                 <li key={inv.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start">
                   <div className="min-w-0 flex-1">

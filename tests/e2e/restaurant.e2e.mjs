@@ -186,7 +186,7 @@ mkdirSync("test-results", { recursive: true });
     await kp.getByLabel("Your name").fill(COOK.name);
     await kp.getByLabel("Password", { exact: true }).fill(COOK.password);
     await kp.getByRole("button", { name: "Create account and join" }).click();
-    await kp.getByText(/open the confirmation email we sent you/).waitFor({ timeout: 10000 });
+    await kp.getByText(/We sent a confirmation link to/).waitFor({ timeout: 10000 });
     await kp.goto(linkFrom(await latestMail(COOK.email, "Confirm")));
     await kp.waitForURL(/\/dashboard\/restaurant\/kitchen/, { timeout: 15000 });
     await kp.waitForLoadState("networkidle").catch(() => {});
