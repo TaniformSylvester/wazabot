@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { GraduationCap, MailCheck, Store, Shapes, UtensilsCrossed } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
@@ -12,22 +12,26 @@ import { Button } from "@/components/ui/button";
 import { signUp } from "@/lib/actions/auth";
 import { format } from "@/lib/i18n/format";
 import { rich } from "@/lib/i18n/rich";
-import { cn } from "@/lib/utils";
-import { SIGNUP_BUSINESS_TYPES, SIGNUP_COUNTRIES, type RegisterInput, type SignupBusinessType, type SignupCountry, authRules, rulesResolver } from "@/lib/validation/auth-rules";
+import { type RegisterInput, type SignupBusinessType, type SignupCountry, authRules, rulesResolver } from "@/lib/validation/auth-rules";
 
 const TYPE_ICONS = { retail: Store, school: GraduationCap, restaurant: UtensilsCrossed, other: Shapes } as const;
 
-/** defaultType: pre-selected from the page the visitor came from (e.g. the schools page → School). */
-export function RegisterForm({ disabled = false, defaultType, defaultCountry = "CM" }: { disabled?: boolean; defaultType?: SignupBusinessType; defaultCountry?: SignupCountry }) {
+/**
+ * Sign-up: the account only (name, email, password). The business is named,
+ * given its currency and type on the setup screen once the email is
+ * confirmed; vertical / country (from the page the visitor came from) travel
+ * with the sign-up so that screen opens with them chosen.
+ */
+export function RegisterForm({ disabled = false, vertical, country }: { disabled?: boolean; vertical?: SignupBusinessType; country?: SignupCountry }) {
   const { a, locale, href, fieldError, errorText } = useAuthText();
   const form = useForm<RegisterInput>({
     resolver: rulesResolver<RegisterInput>(authRules.register),
-    defaultValues: { fullName: "", businessName: "", businessType: defaultType, country: defaultCountry, email: "", password: "" },
+    defaultValues: { fullName: "", email: "", password: "" },
   });
-  const { onSubmit, pending, result } = useServerForm(form, (values) => signUp(values, locale));
+  const { onSubmit, pending, result } = useServerForm(form, (values) => signUp({ ...values, vertical, country }, locale));
   const errors = form.formState.errors;
-  const chosenType = useWatch({ control: form.control, name: "businessType" });
   const link = "font-semibold text-waza-700 hover:underline";
+  const Icon = vertical ? TYPE_ICONS[vertical] : null;
 
   if (result?.ok) {
     return (
@@ -57,56 +61,13 @@ export function RegisterForm({ disabled = false, defaultType, defaultCountry = "
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
       {result && !result.ok ? <FormAlert tone="error">{errorText(result.error)}</FormAlert> : null}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <FormField label={a.fields.fullName} autoComplete="name" error={fieldError(errors.fullName?.message)} registration={form.register("fullName")} />
-        <FormField
-          label={chosenType === "school" ? a.fields.schoolName : a.fields.businessName}
-          autoComplete="organization"
-          error={fieldError(errors.businessName?.message)}
-          registration={form.register("businessName")}
-        />
-      </div>
-      <fieldset className="flex flex-col gap-2" aria-describedby="business-type-hint">
-        <legend className="mb-2 text-sm font-semibold text-deep">{a.fields.businessType}</legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="business-type">
-          {SIGNUP_BUSINESS_TYPES.map((type) => {
-            const Icon = TYPE_ICONS[type];
-            return (
-              <label
-                key={type}
-                className={cn(
-                  "flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border px-3 py-3 text-sm font-semibold transition-colors has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-waza-500/20",
-                  chosenType === type ? "border-waza-500 bg-mint text-deep" : "border-border bg-card text-slate hover:border-waza-500",
-                )}
-              >
-                <input type="radio" value={type} className="sr-only" {...form.register("businessType")} />
-                <Icon className="size-5" aria-hidden />
-                {a.fields.businessTypes[type]}
-              </label>
-            );
-          })}
-        </div>
-        {errors.businessType ? (
-          <p className="text-sm text-coral-700" role="alert">
-            {fieldError(errors.businessType.message)}
-          </p>
-        ) : (
-          <p id="business-type-hint" className="text-xs text-slate">
-            {a.fields.businessTypeHint}
-          </p>
-        )}
-      </fieldset>
-      <label className="flex flex-col gap-1.5 text-sm font-semibold text-deep">
-        {a.fields.country}
-        <select {...form.register("country")} defaultValue={defaultCountry} className="h-12 rounded-xl border border-input bg-card px-3 text-base font-normal text-deep" data-testid="signup-country">
-          {SIGNUP_COUNTRIES.map((c) => (
-            <option key={c} value={c}>
-              {a.fields.countries[c]}
-            </option>
-          ))}
-        </select>
-        <span className="text-xs font-normal text-slate">{a.fields.countryHint}</span>
-      </label>
+      {vertical && Icon ? (
+        <p className="flex items-center gap-2 rounded-2xl bg-mint px-4 py-3 text-sm text-deep" data-testid="signup-vertical" data-vertical={vertical}>
+          <Icon className="size-5 shrink-0 text-waza-700" aria-hidden />
+          {format(a.register.forVertical, { type: a.fields.businessTypes[vertical] })}
+        </p>
+      ) : null}
+      <FormField label={a.fields.fullName} autoComplete="name" error={fieldError(errors.fullName?.message)} registration={form.register("fullName")} />
       <FormField
         label={a.fields.email}
         type="email"

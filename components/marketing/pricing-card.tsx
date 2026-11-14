@@ -137,7 +137,7 @@ export function PricingCard({
         : t.plans[plan.id].description;
   const features =
     kind === "school" ? schoolPlanFeatures(plan, previous, t, locale) : (kind === "restaurant" ? restaurantPlanFeatures : planFeatures)(plan, previous, t, locale, currency);
-  const signUpType = kind === "school" ? "&type=school" : kind === "restaurant" ? "&type=restaurant" : "";
+  const signUpType = kind === "school" ? "&vertical=school" : kind === "restaurant" ? "&vertical=restaurant" : "";
   // The free trial is of the Business plan: the other plans are chosen after it.
   const choose = !featured ? t.chooseOther : kind === "school" ? t.school.choose : kind === "restaurant" ? t.restaurant.choose : t.choose;
   return (

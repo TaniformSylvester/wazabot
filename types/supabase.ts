@@ -5157,6 +5157,10 @@ export type Database = {
         Args: { p_business_id: string; p_enabled: boolean; p_module: string };
         Returns: undefined;
       };
+      setup_workspace: {
+        Args: { p_country: string; p_industry: string; p_name: string };
+        Returns: string;
+      };
       set_member_branch: {
         Args: { p_branch_id?: string; p_business_id: string; p_user_id: string };
         Returns: undefined;

@@ -44,15 +44,20 @@ async function signUp(browser, user, locale) {
   await page.goto(`${APP}/${locale}/register`);
   const fr = locale === "fr";
   await page.getByLabel(fr ? "Votre nom" : "Your name").fill(user.name);
-  await page.getByLabel(fr ? "Nom de l'entreprise" : "Business name").fill(user.business);
-  await page.getByTestId("business-type").getByText(fr ? "Boutique" : "Shop", { exact: true }).click();
   await page.getByLabel(fr ? "E-mail" : "Email", { exact: true }).fill(user.email);
   await page.getByLabel(fr ? "Mot de passe" : "Password", { exact: true }).fill(user.password);
   await page.getByRole("button", { name: fr ? "Créer mon compte" : "Create account" }).click();
   await page.getByText(fr ? "Vérifiez votre boîte mail" : "Check your email").waitFor({ timeout: 10000 });
   const mail = await latestMail(user.email, fr ? "Confirmez" : "Confirm");
   await page.goto(linkFrom(mail));
-  await page.waitForURL(/\/dashboard\/onboarding/);
+  // The one-screen workspace setup, then the dashboard; the guided setup (tested here) is opened from there.
+  await page.waitForURL(/\/dashboard\/setup/, { timeout: 15000 });
+  await page.getByLabel(fr ? "Nom de l'entreprise" : "Business name").fill(user.business);
+  await page.getByTestId("setup-type").getByText(fr ? "Boutique" : "Shop", { exact: true }).click();
+  await page.getByRole("button", { name: fr ? "Créer mon espace" : "Create my workspace" }).click();
+  await page.waitForURL(/\/dashboard\?welcome=1/, { timeout: 15000 });
+  await page.goto(`${APP}/${locale}/dashboard/onboarding?step=1`);
+  await page.getByTestId("onboarding-steps").waitFor({ timeout: 15000 });
   return { ctx, page };
 }
 

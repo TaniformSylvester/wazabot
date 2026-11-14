@@ -15,8 +15,35 @@ export type SignupBusinessType = (typeof SIGNUP_BUSINESS_TYPES)[number];
 export const SIGNUP_COUNTRIES = ["CM", "ZW", "NG", "ZA", "GH", "KE"] as const;
 export type SignupCountry = (typeof SIGNUP_COUNTRIES)[number];
 
-export type RegisterInput = { fullName: string; businessName: string; businessType: SignupBusinessType; country: SignupCountry; email: string; password: string };
+/**
+ * ?vertical= from the home page's tabs (and the older ?type= from other
+ * pages): the business type to pre-select on the workspace setup screen.
+ */
+export const SIGNUP_VERTICALS = ["shop", "restaurant", "school"] as const;
+export type SignupVertical = (typeof SIGNUP_VERTICALS)[number];
+const VERTICAL_ALIASES: Record<string, SignupBusinessType> = {
+  shop: "retail",
+  shops: "retail",
+  retail: "retail",
+  restaurant: "restaurant",
+  restaurants: "restaurant",
+  school: "school",
+  schools: "school",
+  other: "other",
+};
+/** The business type for a ?vertical= (or ?type=) value; undefined when unknown. */
+export function businessTypeFromVertical(value: unknown): SignupBusinessType | undefined {
+  return typeof value === "string" ? VERTICAL_ALIASES[value.trim().toLowerCase()] : undefined;
+}
+/** The ?vertical= value for a business type (other → none). */
+export function verticalOfType(type: SignupBusinessType | undefined): SignupVertical | undefined {
+  return type === "retail" ? "shop" : type === "restaurant" || type === "school" ? type : undefined;
+}
+
+/** Sign-up creates the account only; the business is named and typed on the setup screen after the email is confirmed. */
+export type RegisterInput = { fullName: string; email: string; password: string };
 export type InviteSignUpInput = Pick<RegisterInput, "fullName" | "password">;
+export type WorkspaceSetupInput = { name: string; currency: SignupCountry; type: SignupBusinessType };
 export type LoginInput = { email: string; password: string };
 export type ForgotPasswordInput = { email: string };
 export type ResetPasswordInput = { password: string; confirmPassword: string };
@@ -42,9 +69,6 @@ const between = (min: string, value: unknown) => {
 export const authRules = {
   register: {
     fullName: (v) => between("name_required", v),
-    businessName: (v) => between("business_required", v),
-    businessType: (v) => ((SIGNUP_BUSINESS_TYPES as readonly unknown[]).includes(v) ? null : "business_type_required"),
-    country: (v) => (v === undefined || (SIGNUP_COUNTRIES as readonly unknown[]).includes(v) ? null : "invalid"),
     email,
     password: newPassword,
   },

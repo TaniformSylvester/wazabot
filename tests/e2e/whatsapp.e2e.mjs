@@ -69,14 +69,17 @@ async function signUp(browser, user) {
   const page = await ctx.newPage();
   await page.goto(`${APP}/en/register`);
   await page.getByLabel("Your name").fill(user.name);
-  await page.getByLabel("Business name").fill(user.business);
-  await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
   await page.getByLabel("Email", { exact: true }).fill(user.email);
   await page.getByLabel("Password", { exact: true }).fill(user.password);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.getByText("Check your email").waitFor({ timeout: 10000 });
   await page.goto(linkFrom(await latestMail(user.email, "Confirm")));
-  await page.waitForURL(/\/dashboard\/onboarding/);
+  // Then the one-screen workspace setup: name, currency, type.
+  await page.waitForURL(/\/dashboard\/setup/, { timeout: 15000 });
+  await page.getByLabel(/^(Business|School) name$/).fill(user.business);
+  await page.getByTestId("setup-type").getByText("Shop", { exact: true }).click();
+  await page.getByRole("button", { name: "Create my workspace" }).click();
+  await page.waitForURL(/\/dashboard(\/school)?(\?|$)/, { timeout: 15000 });
   return { ctx, page };
 }
 
@@ -122,7 +125,9 @@ async function signUp(browser, user) {
   ok("number outside the account refused", true);
   if (DB) {
     // Another business used this number before: on a free trial it can't be connected again here.
-    sql(`insert into whatsapp_number_history (phone_number_id, business_id) select '${FAKE.phoneNumberId}', id from businesses order by created_at limit 1`);
+    // (A business of its own, so the test doesn't depend on what else is in the database.)
+    const earlier = sql(`with b as (insert into businesses (name) values ('Earlier business ${stamp}') returning id), l as (insert into business_languages (business_id, language_code, sort_order) select id, 'en', 0 from b) select id from b`);
+    sql(`insert into whatsapp_number_history (phone_number_id, business_id) values ('${FAKE.phoneNumberId}', '${earlier}')`);
     await main.getByLabel("Phone Number ID").fill(FAKE.phoneNumberId);
     await main.getByLabel("WhatsApp Business Account ID").fill(FAKE.wabaId);
     await main.getByLabel("Access token").fill("GOOD-token-abcdefghijklmn1234");

@@ -33,7 +33,7 @@ export default async function SchoolsPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const s = t.schoolsHome;
   const page = t.landing.pages.schools;
-  const register = `${localizePath(locale, "/register")}?type=schools`;
+  const register = `${localizePath(locale, "/register")}?vertical=school`;
   const faq = [...page.faq, ...s.moreFaq];
   return (
     <>

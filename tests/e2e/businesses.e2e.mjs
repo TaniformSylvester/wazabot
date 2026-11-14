@@ -55,14 +55,17 @@ mkdirSync("test-results", { recursive: true });
     const U = { email: `multi+${stamp}@example.com`, password: "Wazabolt2026" };
     await page.goto(`${APP}/en/register`);
     await page.getByLabel("Your name").fill("Awa Fon");
-    await page.getByLabel("Business name").fill("Awa Styles");
-    await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
     await page.getByLabel("Email", { exact: true }).fill(U.email);
     await page.getByLabel("Password", { exact: true }).fill(U.password);
     await page.getByRole("button", { name: "Create account" }).click();
     await page.getByText("Check your email").waitFor({ timeout: 10000 });
     await page.goto(linkFrom(await latestMail(U.email, "Confirm")));
-    await page.waitForURL(/\/dashboard\/onboarding/, { timeout: 15000 });
+    // Then the one-screen workspace setup: name, currency, type.
+    await page.waitForURL(/\/dashboard\/setup/, { timeout: 15000 });
+    await page.getByLabel(/^(Business|School) name$/).fill("Awa Styles");
+    await page.getByTestId("setup-type").getByText("Shop", { exact: true }).click();
+    await page.getByRole("button", { name: "Create my workspace" }).click();
+    await page.waitForURL(/\/dashboard(\/school)?(\?|$)/, { timeout: 15000 });
     const userId = sql(`select id from auth.users where email = '${U.email}'`);
     const first = sql(`select business_id from business_members where user_id = '${userId}'`);
 
@@ -118,10 +121,12 @@ mkdirSync("test-results", { recursive: true });
     // ---------------------------------------------------------------- WazaBolt approves the plan (as the admin page does)
     sql(`update subscriptions set plan_id = 'boutique', status = 'active', billing_interval = 'year' where business_id = '${second}'; update plan_change_requests set status = 'approved', decided_at = now() where business_id = '${second}'`);
     await switcher.selectOption(second);
-    await page.waitForURL(/\/en\/dashboard\/onboarding/, { timeout: 15000 });
+    await page.waitForURL(/\/en\/dashboard(\?.*)?$/, { timeout: 15000 });
+    ok("once approved, the restaurant opens on its dashboard (with its setup checklist)", (await page.getByRole("heading", { name: "Finish setting up" }).count()) === 1, page.url());
+    await page.goto(`${APP}/en/dashboard/onboarding?step=1`);
     await page.getByTestId("onboarding-steps").waitFor({ timeout: 15000 });
     const flow = await page.getByTestId("onboarding-steps").getAttribute("data-flow");
-    ok("once approved, the restaurant opens on its own setup (menu and tables)", flow === "profile,hours,menu,tables,faqs,ai,whatsapp", flow);
+    ok("…and its guided setup is the restaurant one (menu and tables)", flow === "profile,hours,menu,tables,faqs,ai,whatsapp", flow);
     await page.goto(`${APP}/en/dashboard/products`);
     await page.getByRole("heading", { name: "Products" }).first().waitFor({ timeout: 15000 }).catch(() => {});
     ok("…and its pages open", !/\/billing/.test(page.url()), page.url());

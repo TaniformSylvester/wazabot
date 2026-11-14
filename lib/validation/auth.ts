@@ -20,14 +20,21 @@ const newPassword = z
   .regex(/[A-Za-z]/, "password_letter")
   .regex(/[0-9]/, "password_number");
 
+/** Sign-up: the account only. vertical / country only pre-fill the setup screen after confirmation (unknown values are dropped). */
 export const registerSchema = z.object({
   fullName: z.string().trim().min(2, "name_required").max(120, "too_long"),
-  businessName: z.string().trim().min(2, "business_required").max(120, "too_long"),
-  businessType: z.enum(SIGNUP_BUSINESS_TYPES, "business_type_required"),
-  // Sets the business's currency, time zone and languages (country packs).
-  country: z.enum(SIGNUP_COUNTRIES).default("CM"),
   email,
   password: newPassword,
+  vertical: z.enum(SIGNUP_BUSINESS_TYPES).optional().catch(undefined),
+  country: z.enum(SIGNUP_COUNTRIES).optional().catch(undefined),
+});
+
+/** The workspace setup screen: name, currency (by country: it also sets the time zone and languages) and business type. */
+export const workspaceSetupSchema = z.object({
+  name: z.string().trim().min(2, "business_required").max(120, "too_long"),
+  currency: z.enum(SIGNUP_COUNTRIES, "invalid_option"),
+  type: z.enum(SIGNUP_BUSINESS_TYPES, "business_type_required"),
+  locale: z.string().optional(),
 });
 
 /** Sign-up from an invitation link: the email comes from the invitation. */

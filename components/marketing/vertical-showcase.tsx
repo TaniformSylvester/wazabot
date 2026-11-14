@@ -33,6 +33,9 @@ const VERTICALS = [
 
 const BULLET_ICONS = [Bot, Zap, Hand];
 
+/** Each tab's "Start" button signs up with its business type (?vertical=), pre-selected on the workspace setup screen. */
+const VERTICAL_PARAM = { shops: "shop", restaurants: "restaurant", schools: "school" } as const;
+
 function ChatPreview({ v, s }: { v: Vertical; s: Showcase }) {
   const c = v.chat;
   return (
@@ -126,7 +129,7 @@ export async function VerticalShowcase() {
           </ul>
           <p className="mt-6 text-sm text-slate">{format(v.note, vars)}</p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link href={localizePath(locale, key === "schools" ? "/register?type=schools" : `/register?type=${key === "shops" ? "shop" : "restaurant"}`)} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
+            <Link href={localizePath(locale, `/register?vertical=${VERTICAL_PARAM[key]}`)} data-testid={`showcase-start-${key}`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
               {s.start} <ArrowRight className="size-4" aria-hidden />
             </Link>
             <Link href={localizePath(locale, href)} className="inline-flex min-h-11 items-center rounded-full border border-line bg-white px-5 text-sm font-semibold text-deep hover:bg-mint">

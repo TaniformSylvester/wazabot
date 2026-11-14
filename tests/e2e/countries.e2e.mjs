@@ -36,18 +36,24 @@ async function latestMail(to, subjectIncludes) {
 }
 const linkFrom = (mail) => (mail?.HTML.match(/href="([^"]*\/auth\/confirm[^"]*)"/) || [])[1]?.replace(/&amp;/g, "&");
 
+/** The setup screen's currency picker as the last sign-up saw it. */
+let setupCurrencies = { options: [], chosen: "" };
 async function register(page, u) {
   await page.goto(`${APP}/en/register`);
   await page.getByLabel("Your name").fill(u.name);
-  await page.getByLabel("Business name").fill(u.business);
-  await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
-  if (u.country) await page.getByTestId("signup-country").selectOption(u.country);
   await page.getByLabel("Email", { exact: true }).fill(u.email);
   await page.getByLabel("Password", { exact: true }).fill(u.password);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.getByText("Check your email").waitFor({ timeout: 10000 });
   await page.goto(linkFrom(await latestMail(u.email, "Confirm")));
-  await page.waitForURL(/\/dashboard\/onboarding/);
+  // Then the one-screen workspace setup: name, currency, type.
+  await page.waitForURL(/\/dashboard\/setup/, { timeout: 15000 });
+  setupCurrencies = { options: await page.getByTestId("setup-currency").locator("option").allInnerTexts(), chosen: await page.getByTestId("setup-currency").inputValue() };
+  await page.getByLabel(/^(Business|School) name$/).fill(u.business);
+  await page.getByTestId("setup-type").getByText("Shop", { exact: true }).click();
+  if (u.country) await page.getByTestId("setup-currency").selectOption(u.country);
+  await page.getByRole("button", { name: "Create my workspace" }).click();
+  await page.waitForURL(/\/dashboard(\/school)?(\?|$)/, { timeout: 15000 });
 }
 
 mkdirSync("test-results", { recursive: true });
@@ -75,10 +81,12 @@ mkdirSync("test-results", { recursive: true });
 
   try {
     // ---------------------------------------------------------------- sign-up in Zimbabwe
-    await page.goto(`${APP}/en/register`);
-    const options = await page.getByTestId("signup-country").locator("option").allInnerTexts();
-    ok("sign-up offers the country (Cameroon by default; Zimbabwe, Nigeria, South Africa, Ghana, Kenya)", options.join(" / ") === "Cameroon (FCFA) / Zimbabwe (US dollars) / Nigeria (naira) / South Africa (rand) / Ghana (cedi) / Kenya (shillings)" && (await page.getByTestId("signup-country").inputValue()) === "CM", options.join(" / "));
     await register(page, OWNER);
+    ok(
+      "the setup screen offers the currency by country (FCFA, Cameroon by default; US dollar, naira, rand, cedi, shilling)",
+      setupCurrencies.options.join(" / ") === "FCFA (XAF) — Cameroon / US dollar (USD) — Zimbabwe / Naira (NGN) — Nigeria / Rand (ZAR) — South Africa / Cedi (GHS) — Ghana / Shilling (KES) — Kenya" && setupCurrencies.chosen === "CM",
+      setupCurrencies.options.join(" / "),
+    );
     const biz = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${OWNER.email}'`);
     sql(`update businesses set onboarding_step = 6, onboarding_completed_at = now() where id = '${biz}'`);
     ok("the business is set up in US dollars, Harare time, English", sql(`select country_code || ' ' || currency || ' ' || timezone from businesses where id = '${biz}'`) === "ZW USD Africa/Harare");

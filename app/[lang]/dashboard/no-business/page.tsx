@@ -2,18 +2,20 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Building2, Plus } from "lucide-react";
 
-import { getCurrentBusiness, requireUser } from "@/lib/auth/dal";
+import { getCurrentBusiness, listMyBusinesses, requireUser } from "@/lib/auth/dal";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
 
 export const generateMetadata = dashboardMetadata((d) => d.noBusiness.title);
 
-/** Signed in, but no longer a member of any business. */
+/** Signed in, but no longer a member of any business — or not set up yet (then: the setup screen). */
 export default async function NoBusinessPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
-  await requireUser(localizePath(locale, "/dashboard"));
+  const user = await requireUser(localizePath(locale, "/dashboard"));
   if (await getCurrentBusiness()) redirect(localizePath(locale, "/dashboard"));
+  // Signed up but never set up a business (e.g. confirmed the email, then came back later): the one-screen setup.
+  if (user.setupLater && !(await listMyBusinesses()).length) redirect(localizePath(locale, "/dashboard/setup"));
   const nb = t.dashboard.noBusiness;
   return (
     <div className="mx-auto flex max-w-md flex-col items-center py-20 text-center">

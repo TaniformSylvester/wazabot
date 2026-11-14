@@ -49,26 +49,55 @@ mkdirSync("test-results", { recursive: true });
   };
 
   try {
-    // ---------------------------------------------------------------- The marketing pages pass the type along
+    // ---------------------------------------------------------------- The marketing pages pass the vertical along
     const page = await newPage();
+    await page.goto(`${APP}/en`);
+    const startHref = async (k) => page.getByTestId(`showcase-start-${k}`).getAttribute("href");
+    ok(
+      "home: each showcase tab's Start button signs up with its vertical (shop, restaurant, school)",
+      (await startHref("shops")) === "/en/register?vertical=shop" && (await startHref("restaurants")) === "/en/register?vertical=restaurant" && (await startHref("schools")) === "/en/register?vertical=school",
+    );
     await page.goto(`${APP}/en/schools`);
-    ok("the schools page's Start free goes to sign-up with the school type", (await page.locator('main a[href="/en/register?type=schools"]').count()) >= 1);
+    ok("the schools page's Start free goes to sign-up as a school", (await page.locator('main a[href="/en/register?vertical=school"]').count()) >= 1);
 
-    // ---------------------------------------------------------------- A school, from the schools page
+    // ---------------------------------------------------------------- A school, from the home page's Schools tab
     const S = { name: "Marie Ngo", business: "Collège La Réussite", email: `signup-school+${stamp}@example.com`, password: "Wazabolt2026" };
-    await page.goto(`${APP}/en/register?type=schools`);
-    const picker = page.getByTestId("business-type");
-    ok("sign-up: School is pre-selected when coming from the schools page", await picker.getByLabel("School").isChecked());
+    await page.goto(`${APP}/en`);
+    await page.getByRole("tab", { name: "Schools" }).click();
+    await page.getByTestId("showcase-start-schools").click();
+    await page.waitForURL(/\/en\/register\?vertical=school/, { timeout: 15000 });
+    ok("sign-up: the account only, saying the business type (School) carried from the tab", (await page.getByTestId("signup-vertical").getAttribute("data-vertical")) === "school" && (await page.getByLabel("School name").count()) === 0 && (await page.getByLabel("Business name").count()) === 0);
     await page.getByLabel("Your name").fill(S.name);
-    await page.getByLabel("School name").fill(S.business);
     await page.getByLabel("Email", { exact: true }).fill(S.email);
     await page.getByLabel("Password", { exact: true }).fill(S.password);
     await page.getByRole("button", { name: "Create account" }).click();
     await page.getByText("Check your email").waitFor({ timeout: 10000 });
-    ok("before the email is confirmed, the business has no type yet", industryOf(S.email) === "-");
-    await page.goto(linkFrom(await latestMail(S.email, "Confirm")));
-    await page.waitForURL(/\/dashboard\/onboarding\?step=1/, { timeout: 15000 });
-    ok("confirming the email sets the business type: school", industryOf(S.email) === "school");
+    ok("before the email is confirmed: no business, the vertical kept on the account", industryOf(S.email) === "" && sql(`select raw_user_meta_data ->> 'vertical' from auth.users where email = '${S.email}'`) === "school");
+    const schoolLink = linkFrom(await latestMail(S.email, "Confirm"));
+    await page.goto(schoolLink);
+    await page.waitForURL(/\/en\/dashboard\/setup\?vertical=school/, { timeout: 15000 }).catch(() => {});
+    ok("confirming the email opens the setup screen with the vertical (from the account, whatever the email links to)", /\/en\/dashboard\/setup\?vertical=school$/.test(page.url()), page.url());
+    ok("setup: School pre-selected, the name field asks for the School name, FCFA by default", (await page.locator('input[name="type"][value="school"]').isChecked()) && (await page.getByLabel("School name").count()) === 1 && (await page.getByTestId("setup-currency").inputValue()) === "CM");
+    // The vertical survives another sign-in: a new browser, a plain login, and the setup still has School chosen.
+    const again = await newPage();
+    await again.goto(`${APP}/en/login`);
+    await again.getByLabel("Email", { exact: true }).fill(S.email);
+    await again.getByLabel("Password", { exact: true }).fill(S.password);
+    await again.getByRole("button", { name: "Log in" }).click();
+    await again.waitForURL(/\/en\/dashboard\/setup/, { timeout: 15000 });
+    ok("signing in again before the setup: back on the setup screen, School still chosen", await again.locator('input[name="type"][value="school"]').isChecked(), again.url());
+    await again.context().close();
+    await page.getByLabel("School name").fill(S.business);
+    await page.getByRole("button", { name: "Create my workspace" }).click();
+    await page.waitForURL(/\/en\/dashboard\/school/, { timeout: 15000 });
+    ok("creating the workspace opens the school's dashboard straight away", /\/en\/dashboard\/school/.test(page.url()), page.url());
+    ok("the business: a school, in FCFA, on its 14-day trial", industryOf(S.email) === "school" && sql(`select b.currency || ' ' || s.status from businesses b join business_members m on m.business_id = b.id join auth.users u on u.id = m.user_id join subscriptions s on s.business_id = b.id where u.email = '${S.email}'`) === "XAF trialing");
+    // Opening the setup again (back button, second tab) doesn't make a second business.
+    await page.goto(`${APP}/en/dashboard/setup?vertical=school`);
+    ok("the setup screen, once done, goes back to the dashboard (one business)", !/\/setup/.test(page.url()) && sql(`select count(*) from business_members m join auth.users u on u.id = m.user_id where u.email = '${S.email}'`) === "1", page.url());
+    // The guided setup is still there, one click away.
+    await page.goto(`${APP}/en/dashboard/onboarding?step=1`);
+    await page.getByTestId("onboarding-steps").waitFor({ timeout: 15000 });
     const flow = await page.getByTestId("onboarding-steps").getAttribute("data-flow");
     ok("the setup is the school one: profile, school, FAQs, AI, WhatsApp (no products)", flow === "profile,school,faqs,ai,whatsapp", flow);
     ok("…step 1 of 5, with School already chosen", (await page.getByText("Step 1 of 5").count()) === 1 && (await page.locator('main select[name="industry"]').inputValue()) === "school");
@@ -92,19 +121,27 @@ mkdirSync("test-results", { recursive: true });
     // ---------------------------------------------------------------- A restaurant, chosen on the form (in French)
     const fr = await newPage("fr-FR");
     const R = { name: "Paul Tabi", business: "Chez Tabi", email: `signup-resto+${stamp}@example.com`, password: "Wazabolt2026" };
-    await fr.goto(`${APP}/fr/register`);
-    await fr.getByRole("button", { name: "Créer mon compte" }).click();
-    ok("sign-up without a type: asks for it (in French)", (await fr.getByText("Choisissez le type d'entreprise.").count()) === 1);
+    // From the Nigeria page: the country (and so the currency) is carried to the setup screen.
+    await fr.goto(`${APP}/fr/register?country=NG`);
+    ok("sign-up without a vertical: no business type shown", (await fr.getByTestId("signup-vertical").count()) === 0);
     await fr.getByLabel("Votre nom").fill(R.name);
-    await fr.getByLabel("Nom de l'entreprise").fill(R.business);
-    await fr.getByTestId("business-type").getByText("Restaurant", { exact: true }).click();
     await fr.getByLabel("E-mail", { exact: true }).fill(R.email);
     await fr.getByLabel("Mot de passe", { exact: true }).fill(R.password);
     await fr.getByRole("button", { name: "Créer mon compte" }).click();
     await fr.getByText("Vérifiez votre boîte mail").waitFor({ timeout: 10000 });
     await fr.goto(linkFrom(await latestMail(R.email, "Confirmez")));
-    await fr.waitForURL(/\/fr\/dashboard\/onboarding\?step=1/, { timeout: 15000 });
-    ok("restaurant: business type set on confirmation", industryOf(R.email) === "restaurant");
+    await fr.waitForURL(/\/fr\/dashboard\/setup/, { timeout: 15000 });
+    ok("the country from the sign-up link pre-selects the currency: naira", (await fr.getByTestId("setup-currency").inputValue()) === "NG", fr.url());
+    await fr.getByRole("button", { name: "Créer mon espace" }).click();
+    await fr.getByText("Choisissez le type d'entreprise.").waitFor({ timeout: 10000 }).catch(() => {});
+    ok("setup without a type: asks for it (in French)", (await fr.getByText("Choisissez le type d'entreprise.").count()) === 1);
+    await fr.getByLabel("Nom de l'entreprise").fill(R.business);
+    await fr.getByTestId("setup-type").getByText("Restaurant", { exact: true }).click();
+    await fr.getByRole("button", { name: "Créer mon espace" }).click();
+    await fr.waitForURL(/\/fr\/dashboard\?welcome=1/, { timeout: 15000 });
+    ok("restaurant: the type and the currency chosen on the setup screen (naira, Nigeria, Lagos time)", industryOf(R.email) === "restaurant" && sql(`select b.currency || ' ' || b.country_code || ' ' || b.timezone from businesses b join business_members m on m.business_id = b.id join auth.users u on u.id = m.user_id where u.email = '${R.email}'`) === "NGN NG Africa/Lagos");
+    await fr.goto(`${APP}/fr/dashboard/onboarding?step=1`);
+    await fr.getByTestId("onboarding-steps").waitFor({ timeout: 15000 });
     const rflow = await fr.getByTestId("onboarding-steps").getAttribute("data-flow");
     ok("restaurant setup: profile, hours, menu, tables, FAQs, AI, WhatsApp", rflow === "profile,hours,menu,tables,faqs,ai,whatsapp", rflow);
     await fr.goto(`${APP}/fr/dashboard/onboarding?step=3`);

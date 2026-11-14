@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { forgotPasswordSchema, inviteSignUpSchema, loginSchema, registerSchema, resetPasswordSchema } from "@/lib/validation/auth";
-import { authRules, rulesResolver } from "@/lib/validation/auth-rules";
+import { workspaceSetupPath } from "@/lib/auth/workspace-setup";
+import { forgotPasswordSchema, inviteSignUpSchema, loginSchema, registerSchema, resetPasswordSchema, workspaceSetupSchema } from "@/lib/validation/auth";
+import { authRules, businessTypeFromVertical, rulesResolver } from "@/lib/validation/auth-rules";
 
 /*
  * The browser's sign-in/sign-up checks (no Zod, to keep those pages light)
@@ -35,13 +36,30 @@ describe("browser sign-up/sign-in checks agree with the server's", () => {
     }
   });
 
-  it("names and business type (sign-up)", async () => {
+  it("names (sign-up: the account only)", async () => {
     for (const fullName of names) {
-      for (const businessType of ["retail", "school", "", "spaceship"]) {
-        const v = { fullName, businessName: fullName, businessType, email: "awa@shop.cm", password: "Wazabolt2026" };
-        expect(await ruleFirst(authRules.register, v), `${fullName}/${businessType}`).toEqual(zodFirst(registerSchema, v));
-      }
+      const v = { fullName, email: "awa@shop.cm", password: "Wazabolt2026" };
+      expect(await ruleFirst(authRules.register, v), fullName).toEqual(zodFirst(registerSchema, v));
     }
+  });
+
+  it("?vertical= / ?type= map to a business type; unknown values are dropped, never an error", () => {
+    expect(businessTypeFromVertical("shop")).toBe("retail");
+    expect(businessTypeFromVertical("Restaurant")).toBe("restaurant");
+    expect(businessTypeFromVertical("schools")).toBe("school");
+    expect(businessTypeFromVertical("spaceship")).toBeUndefined();
+    expect(businessTypeFromVertical(undefined)).toBeUndefined();
+    expect(registerSchema.parse({ fullName: "Awa Fon", email: "awa@shop.cm", password: "Wazabolt2026", vertical: "spaceship", country: "XX" })).toEqual({ fullName: "Awa Fon", email: "awa@shop.cm", password: "Wazabolt2026" });
+    expect(workspaceSetupPath({ vertical: "school", country: "NG" })).toBe("/dashboard/setup?vertical=school&country=NG");
+    expect(workspaceSetupPath({ vertical: "retail" })).toBe("/dashboard/setup?vertical=shop");
+    expect(workspaceSetupPath({})).toBe("/dashboard/setup");
+  });
+
+  it("the workspace setup: a name, a currency (by country) and a type", () => {
+    expect(workspaceSetupSchema.safeParse({ name: "Awa Styles", currency: "CM", type: "retail" }).success).toBe(true);
+    const bad = workspaceSetupSchema.safeParse({ name: "A", currency: "US", type: "spaceship" });
+    expect(bad.success).toBe(false);
+    expect(bad.error?.issues.map((i) => `${String(i.path[0])}:${i.message}`).sort()).toEqual(["currency:invalid_option", "name:business_required", "type:business_type_required"]);
   });
 
   it("emails: never stricter than the server (anything the server accepts passes here too)", async () => {

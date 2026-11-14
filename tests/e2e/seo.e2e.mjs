@@ -66,16 +66,16 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
     const school = (await get("/en/schools")).body;
     ok("WazaBolt Schools page: FAQ and breadcrumb Home › WazaBolt Schools", types(school).includes("FAQPage") && jsonLd(school).find((g) => g["@type"] === "BreadcrumbList")?.itemListElement?.length === 2);
     const header = (school.match(/<header[\s\S]*?<\/header>/) || [""])[0];
-    ok("WazaBolt Schools: a school-only top menu (How it works, Features, Plans, Questions), the Schools badge and a school sign-up; no shop menu", /data-testid="school-nav"/.test(header) && ["#how", "#features", "#plans", "#faq"].every((h) => header.includes(`href="${h}"`)) && /data-testid="school-badge"/.test(header) && header.includes("/en/register?type=schools") && !header.includes('href="/en/pricing"') && !header.includes('href="/en/solutions"'));
+    ok("WazaBolt Schools: a school-only top menu (How it works, Features, Plans, Questions), the Schools badge and a school sign-up; no shop menu", /data-testid="school-nav"/.test(header) && ["#how", "#features", "#plans", "#faq"].every((h) => header.includes(`href="${h}"`)) && /data-testid="school-badge"/.test(header) && header.includes("/en/register?vertical=school") && !header.includes('href="/en/pricing"') && !header.includes('href="/en/solutions"'));
     ok("…and the other pages keep the main menu", !/data-testid="school-nav"/.test(home) && home.includes('href="/en/pricing"'));
     const old = await fetch(`${APP}/en/solutions/schools`, { redirect: "manual" });
     ok("the old schools address redirects to /schools", [301, 308].includes(old.status) && (old.headers.get("location") ?? "").endsWith("/en/schools"), `${old.status} ${old.headers.get("location")}`);
     ok("WazaBolt Schools: school plan names (School Starter, School Standard, School Plus), no shop plan names or shop wording in the page body", /School Starter/.test(school) && /School Standard/.test(school) && /School Plus/.test(school) && !/Try Boutique|Try Multi-shop|Sales at the till/.test(school));
     ok("school landing: says what the school module does", /report cards in PDF/i.test(school) && /out of 20 or out of 100/.test(school));
-    ok("school landing: the plans in school terms (200 / 500 / unlimited students, free teachers), signing up as a school", /data-testid="school-plans"/.test(school) && /Up to 200 students/.test(school) && /Up to 500 students/.test(school) && /Unlimited students/.test(school) && /free teacher accounts/.test(school) && school.includes("type=school"));
+    ok("school landing: the plans in school terms (200 / 500 / unlimited students, free teachers), signing up as a school", /data-testid="school-plans"/.test(school) && /Up to 200 students/.test(school) && /Up to 500 students/.test(school) && /Unlimited students/.test(school) && /free teacher accounts/.test(school) && school.includes("vertical=school"));
     ok("pricing links schools and restaurants to their plans", /data-testid="pricing-schools-link"/.test((await get("/en/pricing")).body) && /data-testid="pricing-restaurants-link"/.test((await get("/en/pricing")).body));
     const resto = (await get("/en/solutions/restaurants")).body;
-    ok("restaurant landing: the plans in restaurant terms (free kitchen accounts, tables, up to 3 restaurants), signing up as a restaurant", /data-testid="restaurant-plans"/.test(resto) && /free kitchen accounts/.test(resto) && /Tables with open bills/.test(resto) && /Up to 3 restaurants/.test(resto) && resto.includes("type=restaurant"));
+    ok("restaurant landing: the plans in restaurant terms (free kitchen accounts, tables, up to 3 restaurants), signing up as a restaurant", /data-testid="restaurant-plans"/.test(resto) && /free kitchen accounts/.test(resto) && /Tables with open bills/.test(resto) && /Up to 3 restaurants/.test(resto) && resto.includes("vertical=restaurant"));
     ok("restaurant landing: no claim that the AI assistant takes orders today", !/The assistant shares the menu/.test(resto) && /coming soon/.test(resto));
     ok("a business type without its own page is a 404", (await get("/en/solutions/hotels")).status === 404);
 
@@ -89,8 +89,9 @@ const PAGES = ["/", "/features", "/how-it-works", "/solutions", "/solutions/reta
     const za = (await get("/fr/countries/south-africa")).body;
     ok("French: « en Afrique du Sud » (not « au »)", /en Afrique du Sud/.test(za) && !/au Afrique du Sud/.test(za));
     ok("a country WazaBolt doesn't sell in is a 404", (await get("/en/countries/france")).status === 404);
-    const reg = (await get("/en/register?country=KE")).body;
-    ok("sign-up from a country page has the country chosen", /<option value="KE" selected/.test(reg) || /value="KE"[^>]*selected/.test(reg), (reg.match(/<select[^>]*signup-country[\s\S]{0,600}/) || [""])[0].slice(0, 300));
+    // The country travels with the sign-up to the setup screen's currency (followed end to end in signup.e2e).
+    const reg = await get("/en/register?country=KE");
+    ok("sign-up from a country page opens (the country is carried to the setup screen)", reg.status === 200 && /Create account/.test(reg.body));
     ok("organization serves the six countries", JSON.stringify(jsonLd(home).find((g) => g["@type"] === "Organization")?.areaServed?.map((c) => c.name)) === JSON.stringify(["Cameroon", "Zimbabwe", "Nigeria", "South Africa", "Ghana", "Kenya"]));
     ok("footer links to every country page", ["nigeria", "south-africa", "ghana", "kenya", "zimbabwe"].every((s) => home.includes(`href="/en/countries/${s}"`)));
     const pricing = (await get("/en/pricing")).body;

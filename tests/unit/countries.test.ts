@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ACTIVE_COUNTRIES, getCountryPack } from "@/lib/i18n/country-packs";
 import { currencyDigits, formatAmount } from "@/lib/i18n/format";
 import { normalizeWhatsAppNumber } from "@/lib/validation/app";
-import { registerSchema } from "@/lib/validation/auth";
+import { registerSchema, workspaceSetupSchema } from "@/lib/validation/auth";
 
 const plain = (s: string) => s.replace(/[  ]/g, " ");
 
@@ -19,12 +19,13 @@ describe("country packs", () => {
     expect(getCountryPack("zz").countryCode).toBe("CM");
   });
 
-  it("sign-up: the country is chosen (Cameroon by default); an unknown one is refused", () => {
-    const base = { fullName: "Tendai Moyo", businessName: "Moyo Hardware", businessType: "retail", email: "t@example.com", password: "Wazabolt2026" };
-    expect(registerSchema.parse(base).country).toBe("CM");
-    expect(registerSchema.parse({ ...base, country: "ZW" }).country).toBe("ZW");
-    for (const c of ["NG", "ZA", "GH", "KE"]) expect(registerSchema.parse({ ...base, country: c }).country).toBe(c);
-    expect(registerSchema.safeParse({ ...base, country: "FR" }).success).toBe(false);
+  it("workspace setup: the currency is chosen by country (every active pack); an unknown one is refused", () => {
+    const base = { name: "Moyo Hardware", type: "retail" };
+    for (const c of ["CM", "ZW", "NG", "ZA", "GH", "KE"]) expect(workspaceSetupSchema.parse({ ...base, currency: c }).currency).toBe(c);
+    expect(workspaceSetupSchema.safeParse({ ...base, currency: "FR" }).success).toBe(false);
+    // A ?country= carried through sign-up only pre-selects it: an unknown one is dropped, not an error.
+    expect(registerSchema.parse({ fullName: "Tendai Moyo", email: "t@example.com", password: "Wazabolt2026", country: "ZW" }).country).toBe("ZW");
+    expect(registerSchema.parse({ fullName: "Tendai Moyo", email: "t@example.com", password: "Wazabolt2026", country: "FR" }).country).toBeUndefined();
   });
 });
 

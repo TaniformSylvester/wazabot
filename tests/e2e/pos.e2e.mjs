@@ -37,14 +37,17 @@ const linkFrom = (mail) => (mail?.HTML.match(/href="([^"]*\/auth\/confirm[^"]*)"
 async function register(page, u) {
   await page.goto(`${APP}/en/register`);
   await page.getByLabel("Your name").fill(u.name);
-  await page.getByLabel("Business name").fill(u.business);
-  await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
   await page.getByLabel("Email", { exact: true }).fill(u.email);
   await page.getByLabel("Password", { exact: true }).fill(u.password);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.getByText("Check your email").waitFor({ timeout: 10000 });
   await page.goto(linkFrom(await latestMail(u.email, "Confirm")));
-  await page.waitForURL(/\/dashboard\/onboarding/);
+  // Then the one-screen workspace setup: name, currency, type.
+  await page.waitForURL(/\/dashboard\/setup/, { timeout: 15000 });
+  await page.getByLabel(/^(Business|School) name$/).fill(u.business);
+  await page.getByTestId("setup-type").getByText("Shop", { exact: true }).click();
+  await page.getByRole("button", { name: "Create my workspace" }).click();
+  await page.waitForURL(/\/dashboard(\/school)?(\?|$)/, { timeout: 15000 });
 }
 
 mkdirSync("test-results", { recursive: true });

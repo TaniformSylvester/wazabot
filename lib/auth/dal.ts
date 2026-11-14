@@ -29,6 +29,11 @@ export type CurrentUser = {
   email: string;
   fullName: string;
   uiLocale: Locale;
+  /** Signed up with the account-only form: their business is set up on /dashboard/setup. */
+  setupLater: boolean;
+  /** The business type and country they signed up with (from ?vertical= / ?country=), to pre-select on the setup screen. */
+  signupVertical: string | null;
+  signupCountry: string | null;
 };
 
 export type CurrentBusiness = {
@@ -79,6 +84,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     email: data.user.email ?? "",
     fullName: profile?.full_name || (data.user.user_metadata?.full_name as string | undefined) || "",
     uiLocale: isLocale(profile?.ui_locale) ? profile.ui_locale : DEFAULT_LOCALE,
+    setupLater: data.user.user_metadata?.setup === "later",
+    signupVertical: typeof data.user.user_metadata?.vertical === "string" ? data.user.user_metadata.vertical : null,
+    signupCountry: typeof data.user.user_metadata?.country_code === "string" ? data.user.user_metadata.country_code : null,
   };
 });
 

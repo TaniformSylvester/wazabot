@@ -13,7 +13,7 @@ import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { SIGNUP_BUSINESS_TYPES } from "@/lib/validation/auth";
+import { SIGNUP_BUSINESS_TYPES, workspaceSetupSchema } from "@/lib/validation/auth";
 
 import { dbError, fail, formObject, invalid, type FormState } from "./form";
 
@@ -66,4 +66,27 @@ export async function createBusiness(_prev: FormState, formData: FormData): Prom
   revalidatePath("/[lang]/dashboard", "layout");
   const locale = isLocale(v.locale) ? v.locale : user.uiLocale;
   redirect(localizePath(locale, request ? "/dashboard/billing?new=1" : "/dashboard/onboarding"));
+}
+
+/**
+ * The one-screen setup after sign-up: business name, currency (by country)
+ * and business type. setup_workspace creates the person's first business (and
+ * its trial) — or returns the one already set up, so a double submit is safe —
+ * then the dashboard opens on it straight away.
+ */
+export async function setupWorkspace(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) return fail("forbidden");
+  const parsed = workspaceSetupSchema.safeParse(formObject(formData));
+  if (!parsed.success) return invalid(parsed.error);
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { data: id, error } = await supabase.rpc("setup_workspace", { p_name: v.name, p_industry: v.type, p_country: v.currency });
+  if (error || !id) {
+    logServerError("businesses.setup", error);
+    return fail(dbError(error));
+  }
+  await setActiveBusiness(id);
+  revalidatePath("/[lang]/dashboard", "layout");
+  redirect(localizePath(isLocale(v.locale) ? v.locale : user.uiLocale, "/dashboard?welcome=1"));
 }

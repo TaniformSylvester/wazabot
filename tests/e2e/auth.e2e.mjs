@@ -81,10 +81,9 @@ mkdirSync("test-results", { recursive: true });
   // 2. register validation + submit
   await page.goto(`${APP}/en/register`);
   await page.getByRole("button", { name: "Create account" }).click();
-  ok("client validation shows field errors", (await page.getByText("Enter your name.").count()) === 1 && (await page.getByText("Use at least 8 characters.").count()) === 1 && (await page.getByText("Choose the type of business.").count()) === 1);
+  ok("client validation shows field errors", (await page.getByText("Enter your name.").count()) === 1 && (await page.getByText("Use at least 8 characters.").count()) === 1);
+  ok("sign-up asks for the account only (no business fields: those come on the setup screen)", (await page.getByLabel("Business name").count()) === 0 && (await page.getByTestId("business-type").count()) === 0 && (await page.getByTestId("signup-country").count()) === 0);
   await page.getByLabel("Your name").fill(A.name);
-  await page.getByLabel("Business name").fill(A.business);
-  await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
   await page.getByLabel("Email", { exact: true }).fill(A.email);
   await page.getByLabel("Password", { exact: true }).fill("short");
   await page.getByRole("button", { name: "Create account" }).click();
@@ -105,10 +104,29 @@ mkdirSync("test-results", { recursive: true });
   const conf = await latestMail(A.email, "Confirm your WazaBolt account");
   ok("English confirmation email received", !!conf && conf.HTML.includes("Confirm my email") && linkFrom(conf).includes("next=/en/dashboard"), conf?.Subject);
   await page.goto(linkFrom(conf));
-  await page.waitForURL(/\/dashboard\/onboarding/);
-  ok("confirmation link signs in and starts onboarding", page.url().includes("/en/dashboard/onboarding?step=1&welcome=1"), page.url());
+  // Then the one-screen workspace setup: name, currency, type.
+  await page.waitForURL(/\/dashboard\/setup/, { timeout: 15000 });
+  ok(
+    "confirmation link signs in and opens the workspace setup: name, currency (FCFA by default), type — nothing pre-selected without a vertical",
+    (await page.getByRole("heading", { name: "Set up your workspace" }).count()) === 1 && (await page.getByTestId("setup-currency").inputValue()) === "CM" && (await page.getByTestId("setup-type").getAttribute("data-selected")) === "" && (await page.locator('input[name="type"]:checked').count()) === 0,
+  );
+  await page.getByRole("button", { name: "Create my workspace" }).click();
+  await page.getByText("Choose the type of business.").waitFor({ timeout: 10000 }).catch(() => {});
+  ok("setup: a name and a type are required", (await page.getByText("Choose the type of business.").count()) === 1 && /\/dashboard\/setup/.test(page.url()));
+  await page.getByLabel(/^(Business|School) name$/).fill(A.business);
+  await page.getByTestId("setup-type").getByText("Shop", { exact: true }).click();
+  await page.getByRole("button", { name: "Create my workspace" }).click();
+  await page.waitForURL(/\/dashboard(\/school)?(\?|$)/, { timeout: 15000 });
+  ok("creating the workspace goes straight to the dashboard", page.url().endsWith("/en/dashboard?welcome=1"), page.url());
   await page.getByText("Your email is confirmed").waitFor({ timeout: 15000 }).catch(() => {});
-  ok("onboarding shows welcome + setup wizard", (await page.getByText("Your email is confirmed").count()) === 1 && (await page.getByRole("heading", { name: "Set up your business" }).count()) === 1);
+  ok("the dashboard shows the welcome and the setup checklist (the guided setup one click away)", (await page.getByText("Your email is confirmed").count()) === 1 && (await page.getByRole("heading", { name: "Finish setting up" }).count()) === 1);
+  {
+    const tok = (await (await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, { method: "POST", headers: { "content-type": "application/json", apikey: ANON }, body: JSON.stringify({ email: A.email, password: A.password }) })).json()).access_token;
+    const rows = await (await fetch(`${SUPABASE}/rest/v1/businesses?select=name,industry,currency,country_code,subscriptions(status)`, { headers: { apikey: ANON, authorization: `Bearer ${tok}` } })).json();
+    const b = rows[0] ?? {};
+    const sub = Array.isArray(b.subscriptions) ? b.subscriptions[0] : b.subscriptions;
+    ok("the workspace: its name, a shop, FCFA, Cameroon, the 14-day trial — and only one", rows.length === 1 && `${b.name}|${b.industry}|${b.currency}|${b.country_code}|${sub?.status}` === `${A.business}|retail|XAF|CM|trialing`, JSON.stringify(rows));
+  }
   ok("dashboard header shows business from DB", (await page.locator("header").getByText("MJ Fashion").count()) >= 1);
   const cookies = await ctx.cookies();
   const authCookies = cookies.filter((c) => c.name.startsWith("sb-"));
@@ -238,16 +256,20 @@ mkdirSync("test-results", { recursive: true });
   ok("French visitor gets the French sign-up page", pb.url() === `${APP}/fr/register`, pb.url());
   await pb.getByRole("button", { name: "Créer mon compte" }).click();
   ok("validation messages are in French", (await pb.getByText("Saisissez votre nom.").count()) === 1);
-  await pb.getByLabel("Votre nom").fill(B.name); await pb.getByLabel("Nom de l'entreprise").fill(B.business);
-  await pb.getByTestId("business-type").getByText("Boutique", { exact: true }).click();
+  await pb.getByLabel("Votre nom").fill(B.name);
   await pb.getByLabel("E-mail", { exact: true }).fill(B.email); await pb.getByLabel("Mot de passe", { exact: true }).fill(B.password);
   await pb.getByRole("button", { name: "Créer mon compte" }).click();
   await pb.getByText("Vérifiez votre boîte mail").waitFor({ timeout: 10000 });
   const confB = await latestMail(B.email, "Confirmez votre compte WazaBolt");
   ok("French confirmation email", !!confB && confB.HTML.includes("Confirmer mon e-mail") && confB.HTML.includes('lang="fr"') && linkFrom(confB).includes("next=/fr/dashboard"), confB?.Subject);
   await pb.goto(linkFrom(confB));
-  await pb.waitForURL(/\/fr\/dashboard\/onboarding/);
-  ok("French user lands on the French onboarding", pb.url().includes("/fr/dashboard/onboarding") && (await pb.getByRole("heading", { name: "Configurez votre entreprise" }).count()) === 1, pb.url());
+  await pb.waitForURL(/\/fr\/dashboard\/setup/);
+  ok("French user lands on the French workspace setup", (await pb.getByRole("heading", { name: "Créez votre espace de travail" }).count()) === 1, pb.url());
+  await pb.getByLabel("Nom de l'entreprise").fill(B.business);
+  await pb.getByTestId("setup-type").getByText("Boutique", { exact: true }).click();
+  await pb.getByRole("button", { name: "Créer mon espace" }).click();
+  await pb.waitForURL(/\/fr\/dashboard\?welcome=1/);
+  ok("…then straight to the French dashboard", (await pb.getByText("Votre e-mail est confirmé", { exact: false }).count()) === 1, pb.url());
   ok("tenant B sees only Chez Paul", (await pb.locator("header").getByText("Chez Paul").count()) >= 1 && (await pb.getByText("MJ Fashion").count()) === 0);
   await pb.goto(`${APP}/fr/dashboard/settings`);
   ok("French sign-up sets French as the business default language", (await pb.getByText("Langue par défaut").locator("..").innerText()).includes("Français"));

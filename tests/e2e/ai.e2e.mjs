@@ -111,14 +111,17 @@ mkdirSync("test-results", { recursive: true });
   // Sign up + catalog + FAQ
   await page.goto(`${APP}/en/register`);
   await page.getByLabel("Your name").fill(U.name);
-  await page.getByLabel("Business name").fill(U.business);
-  await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
   await page.getByLabel("Email", { exact: true }).fill(U.email);
   await page.getByLabel("Password", { exact: true }).fill(U.password);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.getByText("Check your email").waitFor({ timeout: 10000 });
   await page.goto(linkFrom(await latestMail(U.email, "Confirm")));
-  await page.waitForURL(/\/dashboard\/onboarding/);
+  // Then the one-screen workspace setup: name, currency, type.
+  await page.waitForURL(/\/dashboard\/setup/, { timeout: 15000 });
+  await page.getByLabel(/^(Business|School) name$/).fill(U.business);
+  await page.getByTestId("setup-type").getByText("Shop", { exact: true }).click();
+  await page.getByRole("button", { name: "Create my workspace" }).click();
+  await page.waitForURL(/\/dashboard(\/school)?(\?|$)/, { timeout: 15000 });
   const tok = (await (await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, { method: "POST", headers: { "content-type": "application/json", apikey: ANON }, body: JSON.stringify({ email: U.email, password: U.password }) })).json()).access_token;
   const [biz] = await get(tok, "businesses?select=id");
   const [dress] = await (await post(tok, "products", { business_id: biz.id, name: "Robe Ankara", category: "Robes", description: "Robe en wax rouge", price: 15000, stock_quantity: 5 })).json();

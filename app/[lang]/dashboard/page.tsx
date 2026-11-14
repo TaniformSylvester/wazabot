@@ -56,10 +56,7 @@ const setupSteps = [
 export default async function DashboardPage({ searchParams }: PageProps<"/[lang]/dashboard">) {
   const [locale, t, params] = await Promise.all([getLocale(), getMessages(), searchParams]);
   const { user, business } = await requireBusiness(localizePath(locale, "/dashboard"));
-  // New owners/admins start with the guided setup (it follows the business type and can be skipped at any step).
-  if (!business.onboardingCompletedAt && business.onboardingStep === 0 && hasRole(business.role, "admin")) {
-    redirect(localizePath(locale, `/dashboard/onboarding?step=1${params.welcome ? "&welcome=1" : ""}`));
-  }
+  // A new business opens straight on its dashboard; the guided setup stays one click away (the "Set up" checklist below).
   // A school without the sales module starts on its school overview.
   const modules = await getBusinessModules(business);
   if (!modules.includes("commerce") && modules.includes("school")) redirect(localizePath(locale, "/dashboard/school"));

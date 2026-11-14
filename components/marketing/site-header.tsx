@@ -48,7 +48,7 @@ export function SiteHeader() {
     : mainNav.map((item) => ({ href: href(item.href), label: t.common.nav[item.key], home: item.href === "/" }));
   const active = (h: string) => !school && isActive(splitLocale(h).path);
   const homeHref = school ? href("/schools") : href("/");
-  const registerHref = school ? `${href("/register")}?type=schools` : href("/register");
+  const registerHref = school ? `${href("/register")}?vertical=school` : href("/register");
   // The way back from the school-only menu to the main site (shops, restaurants, the home page).
   const mainSite = school ? (
     <Link href={href("/")} aria-label={sn.mainSite} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-deep/80 transition-colors hover:border-waza-500 hover:text-waza-700" data-testid="school-main-site">

@@ -69,14 +69,17 @@ mkdirSync("test-results", { recursive: true });
     const COOK = { name: "Paul Cuisinier", email: `resto-cook+${stamp}@example.com`, password: "Wazabolt2026" };
     await page.goto(`${APP}/en/register`);
     await page.getByLabel("Your name").fill(OWNER.name);
-    await page.getByLabel("Business name").fill(OWNER.business);
-    await page.getByTestId("business-type").getByText("Shop", { exact: true }).click();
     await page.getByLabel("Email", { exact: true }).fill(OWNER.email);
     await page.getByLabel("Password", { exact: true }).fill(OWNER.password);
     await page.getByRole("button", { name: "Create account" }).click();
     await page.getByText("Check your email").waitFor({ timeout: 10000 });
     await page.goto(linkFrom(await latestMail(OWNER.email, "Confirm")));
-    await page.waitForURL(/\/dashboard\/onboarding/);
+    // Then the one-screen workspace setup: name, currency, type.
+    await page.waitForURL(/\/dashboard\/setup/, { timeout: 15000 });
+    await page.getByLabel(/^(Business|School) name$/).fill(OWNER.business);
+    await page.getByTestId("setup-type").getByText("Shop", { exact: true }).click();
+    await page.getByRole("button", { name: "Create my workspace" }).click();
+    await page.waitForURL(/\/dashboard(\/school)?(\?|$)/, { timeout: 15000 });
     const biz = sql(`select m.business_id from business_members m join auth.users u on u.id = m.user_id where u.email = '${OWNER.email}'`);
     sql(`update businesses set onboarding_step = 6, onboarding_completed_at = now(), free_limits_from = '2099-12-31', industry = 'restaurant', default_language = 'en' where id = '${biz}'`);
 

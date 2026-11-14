@@ -6,6 +6,7 @@ import { z } from "zod";
 import { siteConfig } from "@/config/site";
 import { authErrorKey } from "@/lib/auth/errors";
 import { safeRedirectPath } from "@/lib/auth/redirect";
+import { workspaceSetupPath } from "@/lib/auth/workspace-setup";
 import { DEFAULT_COUNTRY } from "@/lib/i18n/country-packs";
 import { localizePath } from "@/lib/i18n/paths";
 import { getRequestLocale } from "@/lib/i18n/request-locale";
@@ -35,7 +36,7 @@ export async function signUp(input: unknown, localeInput?: string): Promise<Acti
   if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  const { email, password, fullName, businessName, businessType, country } = parsed.data;
+  const { email, password, fullName, vertical, country } = parsed.data;
   const locale = await getRequestLocale(localeInput);
 
   const supabase = await createClient();
@@ -43,10 +44,11 @@ export async function signUp(input: unknown, localeInput?: string): Promise<Acti
     email,
     password,
     options: {
-      emailRedirectTo: confirmUrl(localizePath(locale, "/dashboard")),
-      // Read by the sign-up trigger (dashboard language, country pack) and the email templates.
-      // industry is applied to the new business when the email link is confirmed (app/auth/confirm).
-      data: { full_name: fullName, business_name: businessName, industry: businessType, locale, country_code: country },
+      // After confirming, the workspace setup screen, with the business type (and country) the visitor came with.
+      emailRedirectTo: confirmUrl(localizePath(locale, workspaceSetupPath({ vertical, country }))),
+      // Read by the sign-up trigger (profile only: setup "later") and the email templates. The vertical and
+      // country are kept on the account too, so any later way of signing in still lands on the right setup.
+      data: { full_name: fullName, locale, setup: "later", ...(vertical ? { vertical } : {}), ...(country ? { country_code: country } : {}) },
     },
   });
   if (error) {
