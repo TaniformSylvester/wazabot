@@ -9,6 +9,7 @@ import { LiveDemo } from "@/components/marketing/live-demo";
 import { Pricing } from "@/components/marketing/pricing";
 import { Problem } from "@/components/marketing/problem";
 import { SolutionsStrip } from "@/components/marketing/solutions-strip";
+import { VerticalShowcase } from "@/components/marketing/vertical-showcase";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { softwareGraph } from "@/lib/seo/structured-data";
@@ -19,6 +20,7 @@ export default async function HomePage() {
     <>
       <JsonLd graph={[softwareGraph(locale, t)]} />
       <Hero />
+      <VerticalShowcase />
       <SolutionsStrip />
       <Problem />
       <HowItWorks />

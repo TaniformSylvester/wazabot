@@ -149,6 +149,7 @@ const en = {
     },
     photoAlt: "A smiling shop owner in a colourful head wrap checks her business on her phone",
     orderCaptured: "New sale recorded",
+    seeShowcase: "See it for your business",
     orderItem: "Robe en wax · {price}",
   },
 
@@ -166,12 +167,98 @@ const en = {
   },
 
   solutionsStrip: {
-    title: "Built for shops, restaurants and schools",
-    text: "And for hotels, fashion, beauty, real estate and service businesses too.",
-    core: {
-      shops: { title: "Shops & boutiques", text: "Till, stock by size and colour, customer credit, receipts and your online shop page.", cta: "WazaBolt for shops" },
-      restaurants: { title: "Restaurants", text: "Menu with priced extras, tables and open bills, takeaway and delivery, and a kitchen screen with up to {kitchen} free kitchen accounts.", cta: "WazaBolt for restaurants" },
-      schools: { title: "Schools", text: "Terms, classes and coefficients, marks out of 20 or 100, PDF report cards for parents, school fees and up to {teachers} free teacher accounts.", cta: "WazaBolt Schools" },
+    title: "For every kind of business",
+    text: "Shops, restaurants and schools — and hotels, fashion, beauty, real estate and services too.",
+  },
+
+  showcase: {
+    eyebrow: "Shops · Restaurants · Schools",
+    title: "From WhatsApp chat to paid order, without hiring extra staff",
+    description: "Pick your business and see how a customer's message becomes a sale, a dish in the kitchen or a new student.",
+    tabsLabel: "Business type",
+    soon: "Coming soon",
+    start: "Start free for 14 days",
+    online: "Online",
+    assistant: "WazaBolt assistant",
+    read: "Read",
+    previewLabel: "Example conversation",
+    previewNote: "Example conversation. The AI assistant is coming soon; sharing and the team inbox work today.",
+    verticals: {
+      shops: {
+        tab: "Shops",
+        headline: "Turn “How much?” into a paid order — no extra hands at the counter.",
+        bullets: [
+          { title: "Automatic replies", text: "Price, size and stock questions answered from your catalogue, day and night.", soon: true },
+          { title: "Your catalogue in one tap", text: "Send your shop page: products, prices and stock, with an Order on WhatsApp button.", soon: false },
+          { title: "1-tap handoff", text: "Every chat lands in one team inbox. Tap Take over to answer yourself.", soon: false },
+        ],
+        note: "Sales, stock and customer credit are recorded in the same place.",
+        more: "WazaBolt for shops",
+        chat: {
+          business: "MJ Fashion",
+          initials: "MJ",
+          team: "Marie · MJ Fashion",
+          teamInitial: "M",
+          messages: [
+            { kind: "out", text: "Good evening, is the wax dress available in L? How much?", time: "21:04" },
+            { kind: "ai", text: "Good evening! Yes, 3 left in size L. It's 15,000 FCFA. Shall I keep one for you?", time: "21:04" },
+            { kind: "card", text: "Wax dress · size L", meta: "15,000 FCFA · in stock", cta: "Order on WhatsApp" },
+            { kind: "out", text: "Yes please. Can you deliver to Bonamoussadi tomorrow?", time: "21:05" },
+            { kind: "event", text: "Handed to Marie · order #1042 started" },
+            { kind: "team", text: "Yes, tomorrow before 12:00. Delivery is 1,000 FCFA, so 16,000 FCFA in all. Pay on delivery or MTN MoMo.", time: "21:07" },
+          ],
+        },
+      },
+      restaurants: {
+        tab: "Restaurants",
+        headline: "Take WhatsApp orders straight to the kitchen — no extra phone, no extra waiter.",
+        bullets: [
+          { title: "Automatic replies", text: "“Are you open?” and “What's on today?” answered from your menu.", soon: true },
+          { title: "Your menu in one tap", text: "Send your menu page: dishes, prices and priced extras. Your team sends the order to the kitchen screen.", soon: false },
+          { title: "1-tap handoff", text: "Special request or a delivery question? Tap Take over and reply yourself.", soon: false },
+        ],
+        note: "Tables, open bills and a kitchen screen with up to {kitchen} free kitchen accounts.",
+        more: "WazaBolt for restaurants",
+        chat: {
+          business: "Chez Tabi",
+          initials: "CT",
+          team: "Paul · Chez Tabi",
+          teamInitial: "P",
+          messages: [
+            { kind: "out", text: "Are you open tonight? I want 2 ndolé with plantains.", time: "19:12" },
+            { kind: "ai", text: "Yes, open until 22:00! Ndolé with ripe plantains is 3,500 FCFA. 2 portions: 7,000 FCFA. Takeaway or delivery?", time: "19:12" },
+            { kind: "card", text: "Today's menu", meta: "12 dishes · extras: egg, plantain", cta: "See the menu" },
+            { kind: "out", text: "Delivery to Bonapriso please, no pepper on one.", time: "19:13" },
+            { kind: "event", text: "Handed to Paul · sent to the kitchen screen" },
+            { kind: "team", text: "Noted: 2 ndolé, one without pepper. Ready in about 30 min, delivery 500 FCFA.", time: "19:14" },
+          ],
+        },
+      },
+      schools: {
+        tab: "Schools",
+        headline: "Answer parents and fill your classes — without more staff in the office.",
+        bullets: [
+          { title: "Automatic replies", text: "Fees, enrolment dates and required documents answered from your FAQs.", soon: true },
+          { title: "Fees in one tap", text: "Send fee invoices and receipts as PDF on WhatsApp; balances update on their own.", soon: false },
+          { title: "1-tap handoff", text: "A parent wants the principal? The office takes over the chat in one tap.", soon: false },
+        ],
+        note: "Marks, report cards and up to {teachers} free teacher accounts, who never see fees.",
+        more: "WazaBolt Schools",
+        chat: {
+          business: "Collège La Réussite",
+          initials: "LR",
+          team: "Secretariat",
+          teamInitial: "S",
+          messages: [
+            { kind: "out", text: "Good morning, how much is enrolment for Form 1, and what documents do you need?", time: "08:31" },
+            { kind: "ai", text: "Good morning! Form 1: enrolment 15,000 FCFA, tuition 90,000 FCFA a year in 3 instalments. Documents: birth certificate, last report card, 4 photos.", time: "08:31" },
+            { kind: "card", text: "Invoice · Form 1 enrolment", meta: "15,000 FCFA · PDF", cta: "Open the invoice" },
+            { kind: "out", text: "Thank you. Can I speak to the principal about a scholarship?", time: "08:33" },
+            { kind: "event", text: "Handed to the office" },
+            { kind: "team", text: "Of course. The principal can see you tomorrow at 10:00. Bring the last report card.", time: "08:40" },
+          ],
+        },
+      },
     },
   },
 

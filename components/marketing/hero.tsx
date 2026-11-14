@@ -51,9 +51,9 @@ export async function Hero() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href={localizePath(locale, "/#how-it-works")}>
+              <Link href={localizePath(locale, "/#showcase")} data-testid="hero-showcase">
                 <PlayCircle className="size-5 text-waza-600" />
-                {t.common.nav.seeHowItWorks}
+                {h.seeShowcase}
               </Link>
             </Button>
           </div>
