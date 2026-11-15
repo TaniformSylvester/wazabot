@@ -34,6 +34,8 @@ export type Permissions = {
   canManageTeam: boolean;
   /** The AI assistant's settings, knowledge and automations. */
   canConfigureAI: boolean;
+  /** The plan: Billing, payment and renewal notices, upgrade prompts, plan and add-on requests. Owners only. */
+  canManageBilling: boolean;
 };
 
 export function permissionsFor(role: BusinessRole | null | undefined): Permissions {
@@ -47,6 +49,7 @@ export function permissionsFor(role: BusinessRole | null | undefined): Permissio
     canToggleStockOnly: !manager && role === "agent",
     canManageTeam: manager,
     canConfigureAI: manager,
+    canManageBilling: app === "owner",
   };
 }
 

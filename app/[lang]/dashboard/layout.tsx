@@ -21,7 +21,8 @@ import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
 import { getBranchContext } from "@/lib/branches";
 import { currentUserIsPlatformAdmin, pendingRequestsForAdmin } from "@/lib/admin/access";
-import { getCurrentBusiness, hasRole, listMyBusinesses, requireUser } from "@/lib/auth/dal";
+import { getCurrentBusiness, listMyBusinesses, requireUser } from "@/lib/auth/dal";
+import { permissionsFor } from "@/lib/auth/permissions";
 import { formatDate } from "@/components/app/ui";
 import { siteConfig } from "@/config/site";
 import { aiPausedByWazaBolt } from "@/lib/billing/controls";
@@ -48,8 +49,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const business = await getCurrentBusiness();
   const [whatsapp, usage, businesses, platformAdmin, waitingPlanRequests, paused, modules, branchCtx, sampleBanner] = await Promise.all([
     business ? getWhatsAppConnection(business.id) : null,
-    // Owners and admins are warned before the monthly AI allowance runs out.
-    business && hasRole(business.role, "admin") ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
+    // Billing notices (trial, renewal, payment due, the AI allowance) are the owner's only; managers and staff never see them.
+    business && permissionsFor(business.role).canManageBilling ? createClient().then((db) => getUsageStatus(db, business.id)) : null,
     listMyBusinesses(),
     currentUserIsPlatformAdmin(),
     pendingRequestsForAdmin(),
@@ -195,7 +196,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </div>
         ) : null}
-        {business?.readOnly && hasRole(business.role, "admin") ? (
+        {business?.readOnly && permissionsFor(business.role).canManageBilling ? (
           <div role="status" data-testid="read-only-banner" className={`${bar} border-coral-200 bg-coral-50 text-coral-800`}>
             <Lock className="size-4 shrink-0" aria-hidden />
             <p className="min-w-0 flex-1">

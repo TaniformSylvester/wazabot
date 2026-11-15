@@ -7,6 +7,7 @@ import { GraphApiError } from "@/lib/whatsapp/graph";
 import { whatsappForBusiness, type BusinessWhatsApp } from "@/lib/whatsapp/connection";
 import { recordWhatsAppSend } from "@/lib/whatsapp/usage";
 
+import { checkEntitlements } from "@/lib/billing/checkEntitlements";
 import { OPT_REPLY, broadcastTemplateName, renderBroadcast, type BroadcastLanguage } from "./compose";
 
 /*
@@ -76,6 +77,9 @@ export async function startBroadcast(admin: Admin, businessId: string, broadcast
   if (!b) return { ok: false as const, error: "not_found" as const };
   if (b.template_status !== "approved") return { ok: false as const, error: "template_not_approved" as const };
   if (b.status !== "draft") return { ok: false as const, error: "already_sent" as const };
+  // Nothing goes out while the plan is unpaid (the database refuses it too: WB421).
+  const entitled = await checkEntitlements(admin, businessId, "broadcast");
+  if (!entitled.ok) return { ok: false as const, error: entitled.reason };
   if (!(await wa(businessId))) return { ok: false as const, error: "whatsapp_not_connected" as const };
   const { data: count, error } = await admin.rpc("prepare_broadcast", { p_broadcast_id: broadcastId });
   if (error) {
@@ -89,6 +93,8 @@ export async function startBroadcast(admin: Admin, businessId: string, broadcast
 export async function processBroadcast(admin: Admin, businessId: string, broadcastId: string, deadline = Date.now() + 240_000, wa: WhatsAppFor = whatsappForBusiness) {
   const { data: b } = await admin.from("broadcasts").select("id, status, language, template_name, personalized, body").eq("id", broadcastId).eq("business_id", businessId).maybeSingle();
   if (!b || b.status !== "sending") return;
+  // Unpaid plan: the rest waits (recipients stay pending) and goes out once the plan is renewed.
+  if (!(await checkEntitlements(admin, businessId, "broadcast")).ok) return;
   const conn = await wa(businessId);
   if (!conn) return;
   const language = b.language as BroadcastLanguage;

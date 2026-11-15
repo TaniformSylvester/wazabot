@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { notifyTeamOfPlanRequest } from "@/lib/admin/plan-requests";
-import { EVERYONE, MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
+import { EVERYONE, MANAGERS, OWNER, requireRoleForAction } from "@/lib/auth/requireRole";
 import { WORKING_BRANCH_COOKIE, getBranchContext } from "@/lib/branches";
 import { isLocale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
@@ -89,7 +89,8 @@ const extraSchema = z.object({
 
 /** Ask WazaBolt for a number of extra branches (Business and Pro); approved once paid, like a plan change. */
 export async function requestExtraBranches(_prev: FormState, formData: FormData): Promise<FormState> {
-  const ctx = await requireRoleForAction(MANAGERS);
+  // A paid change: the owner's (the database checks it too).
+  const ctx = await requireRoleForAction(OWNER);
   if (!ctx) return denied();
   // Extra shops are priced in FCFA only.
   if (ctx.business.currency !== "XAF") return fail("not_in_currency");

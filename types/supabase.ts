@@ -4645,6 +4645,7 @@ export type Database = {
           teachers_used: number;
         }[];
       };
+      billing_standing: { Args: { p_business_id: string }; Returns: string };
       business_features: {
         Args: { p_business_id: string };
         Returns: {

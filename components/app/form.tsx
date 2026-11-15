@@ -9,6 +9,7 @@ import { FormAlert } from "@/components/auth/form-alert";
 import { useAuthText } from "@/components/auth/use-auth-text";
 import { Button } from "@/components/ui/button";
 import { UPGRADE_ERRORS, type ActionErrorKey, type FormState } from "@/lib/actions/form";
+import { usePermissions } from "@/components/auth/permissions-provider";
 import { cn } from "@/lib/utils";
 
 /*
@@ -28,13 +29,19 @@ export function ActionError({ errorKey, errors, detail, small }: { errorKey: str
   const pathname = usePathname() ?? "";
   const lang = pathname.startsWith("/fr") ? "fr" : "en";
   const message = (errors[errorKey] ?? errors.unknown ?? "").replace("{item}", detail ?? "");
+  // Only the owner is pointed to Billing; others learn the owner can change the plan.
+  const { canManageBilling } = usePermissions();
   if (UPGRADE_ERRORS.includes(errorKey as ActionErrorKey)) {
     return (
       <p role="status" className={cn("rounded-xl bg-gold-50 px-3 py-2 text-deep", small ? "text-xs" : "text-sm")} data-testid="upgrade-prompt">
         {message}{" "}
-        <Link href={`/${lang}/dashboard/billing`} className="font-semibold whitespace-nowrap text-waza-700 hover:underline">
-          {errors.see_plans ?? (lang === "fr" ? "Voir les forfaits" : "See plans")} →
-        </Link>
+        {canManageBilling ? (
+          <Link href={`/${lang}/dashboard/billing`} className="font-semibold whitespace-nowrap text-waza-700 hover:underline">
+            {errors.see_plans ?? (lang === "fr" ? "Voir les forfaits" : "See plans")} →
+          </Link>
+        ) : (
+          <span data-testid="upgrade-ask-owner">{errors.ask_owner}</span>
+        )}
       </p>
     );
   }

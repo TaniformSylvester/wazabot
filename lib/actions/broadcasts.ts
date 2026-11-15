@@ -8,6 +8,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { MANAGERS, requireRoleForAction, type RoleContext } from "@/lib/auth/requireRole";
+import { checkEntitlements } from "@/lib/billing/checkEntitlements";
 import { MAX_BROADCAST_TEXT, broadcastTemplateName, composeBroadcastBody } from "@/lib/broadcasts/compose";
 import { processBroadcast, startBroadcast, submitBroadcastTemplate, syncBroadcastTemplate } from "@/lib/broadcasts/service";
 import { isLocale } from "@/lib/i18n/config";
@@ -106,7 +107,10 @@ export async function sendBroadcast(broadcastId: string): Promise<FormState> {
   const r = await adminFor(broadcastId);
   if ("error" in r) return r.error;
   const res = await startBroadcast(r.admin, r.ctx.business.id, broadcastId);
-  if (!res.ok) return fail(res.error === "template_not_approved" ? "template_not_approved" : res.error === "whatsapp_not_connected" ? "whatsapp_not_connected" : res.error === "not_found" ? "not_found" : "broadcast_already_sent");
+  if (!res.ok) {
+    const map = { template_not_approved: "template_not_approved", whatsapp_not_connected: "whatsapp_not_connected", not_found: "not_found", payment_due: "payment_due", plan_required: "plan_required", already_sent: "broadcast_already_sent" } as const;
+    return fail(map[res.error]);
+  }
   console.info(`[broadcasts.send] business=${r.ctx.business.id} broadcast=${broadcastId} recipients=${res.recipients}`);
   const { admin, ctx } = r;
   after(() => processBroadcast(admin, ctx.business.id, broadcastId).catch((e) => logServerError("broadcasts.process", e)));
@@ -118,6 +122,8 @@ export async function resumeBroadcast(broadcastId: string): Promise<FormState> {
   const r = await adminFor(broadcastId);
   if ("error" in r) return r.error;
   const { admin, ctx } = r;
+  const entitled = await checkEntitlements(admin, ctx.business.id, "broadcast");
+  if (!entitled.ok) return fail(entitled.reason);
   after(() => processBroadcast(admin, ctx.business.id, broadcastId).catch((e) => logServerError("broadcasts.process", e)));
   revalidate();
   return ok(broadcastId);

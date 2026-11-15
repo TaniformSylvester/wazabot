@@ -9,7 +9,7 @@ import { UsageMeter } from "@/components/app/usage-meter";
 import { planFeatures, restaurantPlanFeatures, schoolPlanFeatures } from "@/components/marketing/pricing-card";
 import { addons, aiTopup, bundles, plans } from "@/config/plans";
 import { cancelPlanChange, requestAiTopup, requestPlanChange, startAiTrial } from "@/lib/actions/billing";
-import { hasRole, requireBusiness } from "@/lib/auth/dal";
+import { requireBusiness } from "@/lib/auth/dal";
 import { currentPlanId, getLimit, trialDaysLeft } from "@/lib/billing/entitlements";
 import { getUsdBankDetails } from "@/lib/billing/bank-details";
 import { getPlanAccess } from "@/lib/billing/plan-access";
@@ -27,15 +27,15 @@ export const generateMetadata = dashboardMetadata((d) => d.billing.title);
 
 /**
  * The business's plan (config/economics.ts prices), its AI add-on and how to
- * pay. Prepaid, monthly or yearly; no payment is processed here: owners and
- * admins ask for a plan, the WazaBolt team takes Mobile Money and approves it.
+ * pay. Prepaid, monthly or yearly; no payment is processed here: the owner
+ * asks for a plan, the WazaBolt team takes Mobile Money and approves it.
  * The AI assistant is "coming soon" until the WazaBolt team launches it.
  */
 export default async function BillingPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const { business } = await requireBusiness(localizePath(locale, "/dashboard/billing"));
-  // Billing is for owners and managers. Staff of a business still waiting for its plan only learn that the owner is on it.
-  if (!permissionsFor(business.role).canViewRevenue) {
+  // Billing is the owner's. Others in a business still waiting for its plan only learn that the owner is on it.
+  if (!permissionsFor(business.role).canManageBilling) {
     if (!business.awaitingPaidPlan) redirect(localizePath(locale, "/dashboard"));
     return (
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -55,7 +55,7 @@ export default async function BillingPage() {
   const b = t.dashboard.billing;
   const d = t.dashboard;
   const pt = t.pricing;
-  const canRequest = hasRole(business.role, "admin");
+  const canRequest = permissionsFor(business.role).canManageBilling;
   const formText = { errors: d.errors, saved: b.change.sent, saving: b.change.sending };
   const planId = access ? currentPlanId(access.planId) : "free";
   const noPlan = planId === "free";

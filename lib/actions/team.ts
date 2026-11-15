@@ -11,6 +11,7 @@ import { siteConfig } from "@/config/site";
 import { setActiveBusiness } from "@/lib/auth/active-business";
 import { ACTIVE_BUSINESS_COOKIE, authorize, getCurrentUser, listMyBusinesses } from "@/lib/auth/dal";
 import { MANAGERS, OWNER, requireRoleForAction } from "@/lib/auth/requireRole";
+import { checkEntitlements } from "@/lib/billing/checkEntitlements";
 import { isLocale, type Locale } from "@/lib/i18n/config";
 import { localizePath } from "@/lib/i18n/paths";
 import { logServerError } from "@/lib/log";
@@ -36,6 +37,12 @@ function newToken() {
   return { token, hash: createHash("sha256").update(token, "utf8").digest("hex") };
 }
 
+/** An unpaid plan pauses new invitations (and renewed links); the database refuses them too (WB421). */
+async function invitesBlocked(businessId: string) {
+  const entitled = await checkEntitlements(await createClient(), businessId, "invite");
+  return entitled.ok ? null : entitled.reason;
+}
+
 const inviteUrl = (locale: Locale, token: string) => `${siteConfig.url}${localizePath(locale, `/invite/${token}`)}`;
 const localeOf = (v: FormDataEntryValue | string | null | undefined): Locale => (isLocale(v) ? v : "en");
 
@@ -45,6 +52,8 @@ export async function inviteMember(_prev: FormState, formData: FormData): Promis
   const ctx = await requireRoleForAction(OWNER);
   if (!ctx) return denied();
   if (!parsed.success) return invalid(parsed.error);
+  const blocked = await invitesBlocked(ctx.business.id);
+  if (blocked) return fail(blocked);
   const { token, hash } = newToken();
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_invitation", {
@@ -66,6 +75,8 @@ export async function renewInvitation(invitationId: string, locale: string): Pro
   if (!isUuid(invitationId)) return fail("invalid");
   const ctx = await requireRoleForAction(OWNER);
   if (!ctx) return denied();
+  const blocked = await invitesBlocked(ctx.business.id);
+  if (blocked) return fail(blocked);
   const { token, hash } = newToken();
   const supabase = await createClient();
   const { error } = await supabase.rpc("renew_invitation", { p_invitation_id: invitationId, p_token_hash: hash });

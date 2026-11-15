@@ -71,6 +71,8 @@ export type ActionErrorKey =
   | "branch_closed"
   | "branch_plan"
   | "plan_required"
+  /** The paid period ended (grace days): broadcasts and new invitations wait for the renewal. */
+  | "payment_due"
   | "ai_not_launched"
   | "meta_notice_required"
   | "topup_needs_addon"
@@ -99,6 +101,7 @@ export const fail = (error: ActionErrorKey, fieldErrors?: FormState["fieldErrors
 /** Error keys shown as an upgrade prompt with a link to Billing, never as an error. */
 export const UPGRADE_ERRORS: readonly ActionErrorKey[] = [
   "plan_required",
+  "payment_due",
   "plan_limit_products",
   "plan_limit_sales",
   "plan_limit_members",
@@ -147,6 +150,8 @@ export function dbError(error: { code?: string } | null | undefined): ActionErro
       return "bill_not_paid";
     case "WB420":
       return "document_locked";
+    case "WB421":
+      return "payment_due";
     case "WB450":
       return "business_limit";
     case "WB451":

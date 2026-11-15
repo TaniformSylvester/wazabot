@@ -115,7 +115,7 @@ export const dashboardNav: { key: keyof Nav["groups"]; items: DashboardNavItem[]
       { key: "whatsapp", href: "/dashboard/whatsapp", icon: Smartphone },
       { key: "team", href: "/dashboard/team", icon: UsersRound, teacher: true, kitchen: true },
       { key: "branches", href: "/dashboard/branches", icon: Store, minRole: "admin" },
-      { key: "billing", href: "/dashboard/billing", icon: CreditCard, minRole: "admin" },
+      { key: "billing", href: "/dashboard/billing", icon: CreditCard, minRole: "owner" },
       { key: "settings", href: "/dashboard/settings", icon: Settings },
     ],
   },

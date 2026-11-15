@@ -6,6 +6,7 @@ import { ActionButton, ActionForm, SubmitButton, TextField } from "@/components/
 import { PageHeader, Panel, StatusBadge, formatMoney } from "@/components/app/ui";
 import { requestExtraBranches, saveBranch, setBranchActive } from "@/lib/actions/branches";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
+import { permissionsFor } from "@/lib/auth/permissions";
 import { listBranches } from "@/lib/branches";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
@@ -33,6 +34,8 @@ export default async function BranchesPage() {
   const d = t.dashboard;
   const br = d.branches;
   const canEdit = canManageBusiness(business.role);
+  // Paid changes (extra shops, another plan) are the owner's.
+  const canBill = permissionsFor(business.role).canManageBilling;
   const allowed = allowance.data ?? 1;
   const open = branches.filter((b) => b.active).length;
   const plan = sub.data?.plans;
@@ -71,7 +74,7 @@ export default async function BranchesPage() {
             {format(br.plan.pending, { count: formatNumber(request.data.extra_branches ?? 0, locale) })}
           </FormAlert>
         ) : null}
-        {canEdit && extraPrice !== null ? (
+        {canBill && extraPrice !== null ? (
           <ActionForm action={requestExtraBranches} text={{ ...formText, saved: br.plan.sent }} successMessage={br.plan.sent} className="mt-4 max-w-xl">
             <div className="grid gap-3 sm:grid-cols-2">
               <TextField name="extra" label={br.plan.extraLabel} type="number" min={0} max={100} defaultValue={String(Math.max(extra + 1, request.data?.extra_branches ?? 0))} hint={br.plan.extraHint} />
@@ -130,8 +133,8 @@ export default async function BranchesPage() {
             </ActionForm>
           ) : (
             <p className="text-sm text-slate" data-testid="branch-limit">
-              {extraPrice !== null ? br.limitExtra : br.limitUpgrade}
-              {extraPrice === null ? (
+              {extraPrice !== null ? (canBill ? br.limitExtra : br.limitExtraMember) : br.limitUpgrade}
+              {extraPrice === null && canBill ? (
                 <>
                   {" "}
                   <Link href={localizePath(locale, "/dashboard/billing#change-plan")} className="inline-flex items-center gap-1 font-semibold text-waza-700 hover:underline">

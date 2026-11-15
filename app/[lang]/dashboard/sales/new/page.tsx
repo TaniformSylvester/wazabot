@@ -44,7 +44,7 @@ export default async function NewSalePage({ searchParams }: PageProps<"/[lang]/d
           withReference={await businessCanUse(business.id, "payment_notes")}
         />
       ) : business.readOnly ? (
-        <PlanUpsell text={d.billingBanner.readOnly} cta={d.billingBanner.choosePlan} locale={locale} />
+        <PlanUpsell text={d.billingBanner.readOnly} memberText={d.billingBanner.readOnlyMember} cta={d.billingBanner.choosePlan} locale={locale} />
       ) : (
         <FormAlert tone="info">{d.common.readOnly}</FormAlert>
       )}
