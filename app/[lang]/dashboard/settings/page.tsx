@@ -15,7 +15,9 @@ import { siteConfig } from "@/config/site";
 import { setShopEnabled } from "@/lib/actions/shop";
 import { format } from "@/lib/i18n/format";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { RoleGuard } from "@/components/auth/role-guard";
 import { canManageBusiness, requireBusiness } from "@/lib/auth/dal";
+import { OWNER } from "@/lib/auth/requireRole";
 import { DEFAULT_OPENING_HOURS, hasOpeningHours } from "@/lib/business/hours";
 import { businessProfileText } from "@/lib/business/profile-text";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
@@ -53,6 +55,15 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <PageHeader title={s.title} />
+
+      {/* The plan is the owner's (the Billing page checks it again). */}
+      <RoleGuard allowedRoles={OWNER}>
+        <Panel id="billing" title={s.billing.title} description={s.billing.description}>
+          <Link href={localizePath(locale, "/dashboard/billing")} className={secondaryLink} data-testid="settings-billing">
+            {s.billing.open}
+          </Link>
+        </Panel>
+      </RoleGuard>
 
       <Panel id="account" title={s.account.title} description={s.account.description}>
         <DefinitionList

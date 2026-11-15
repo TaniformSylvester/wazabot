@@ -3696,6 +3696,7 @@ const fr: Messages = {
     },
     settings: {
       title: "Paramètres",
+      billing: { title: "Forfait et facturation", description: "Votre forfait, les places de l'équipe, l'utilisation de l'IA et comment payer.", open: "Ouvrir la facturation" },
       aiKnowledge: {
         title: "Connaissances et personnalité de l'IA",
         description: "Préparez dès maintenant l'assistant IA WhatsApp : les réponses qu'il donnera et le ton qu'il prendra.",

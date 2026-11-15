@@ -126,6 +126,26 @@ mkdirSync("test-results", { recursive: true });
     ok("trial: the owner sees the trial banner and Billing in the menu", (await page.getByTestId("trial-banner").count()) === 1 && (await navHasBilling(page)));
     ok("trial: the manager sees no trial banner and no Billing", (await mp.getByTestId("trial-banner").count()) === 0 && !(await navHasBilling(mp)));
     ok("trial: staff see no trial banner and no Billing", (await ap.getByTestId("trial-banner").count()) === 0 && !(await navHasBilling(ap)));
+    // The owner can hide the trial banner for a day (not in the last 3 days); Settings links to Billing for the owner only.
+    sql(`update subscriptions set current_period_end = now() + interval '10 days' where business_id = '${bizId}'`);
+    await page.goto(`${APP}/en/dashboard`);
+    await page.getByTestId("trial-banner").getByRole("button", { name: "Hide" }).click();
+    await page.getByTestId("trial-banner").waitFor({ state: "detached", timeout: 10000 });
+    await page.reload();
+    ok("trial: the owner can hide the banner, and it stays hidden", (await page.getByTestId("trial-banner").count()) === 0);
+    sql(`update subscriptions set current_period_end = now() + interval '2 days' where business_id = '${bizId}'`);
+    await page.reload();
+    ok("trial, last days: the banner is back and can't be hidden", (await page.getByTestId("trial-banner").count()) === 1 && (await page.getByTestId("trial-banner").getByRole("button", { name: "Hide" }).count()) === 0);
+    sql(`update subscriptions set current_period_end = now() + interval '14 days' where business_id = '${bizId}'`);
+    await page.goto(`${APP}/en/dashboard/settings`);
+    await mp.goto(`${APP}/en/dashboard/settings`);
+    ok("Settings: Plan and billing for the owner only", (await page.getByTestId("settings-billing").count()) === 1 && (await mp.getByTestId("settings-billing").count()) === 0);
+    await page.goto(`${APP}/en/dashboard/settings/billing`);
+    ok("/dashboard/settings/billing opens the Billing page for the owner", /\/en\/dashboard\/billing/.test(page.url()) && (await page.getByTestId("plan-usage").count()) === 1 && (await page.getByTestId("ai-panel").count()) === 1);
+    await mp.goto(`${APP}/en/dashboard/settings/billing`);
+    await mp.waitForURL(/\/en\/dashboard(\?|$)/, { timeout: 10000 }).catch(() => {});
+    ok("…and sends the manager back to the dashboard", !/\/dashboard\/(settings\/)?billing/.test(mp.url()), mp.url());
+
     await mp.goto(`${APP}/en/dashboard/billing`);
     ok("the manager is sent away from the Billing page", !/\/dashboard\/billing/.test(mp.url()) && (await mp.getByTestId("plan-card-business").count()) === 0, mp.url());
 

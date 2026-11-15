@@ -3697,6 +3697,7 @@ const en = {
     },
     settings: {
       title: "Settings",
+      billing: { title: "Plan and billing", description: "Your plan, team seats, AI usage and how to pay.", open: "Open Billing" },
       aiKnowledge: {
         title: "AI knowledge & personality",
         description: "Prepare the WhatsApp AI assistant ahead of time: the answers it will give and how it will sound.",

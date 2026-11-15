@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
 
@@ -11,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getPlanAccess } from "@/lib/billing/plan-access";
 import { catalogFor } from "@/lib/billing/price";
+import { TRIAL_BANNER_COOKIE, hideTrialBanner } from "@/lib/billing/trial-banner";
 
 import { dbError, fail, formObject, invalid, isUuid, ok, type FormState } from "./form";
 import { denied } from "./denied";
@@ -119,4 +121,20 @@ export async function startAiTrial(_prev: FormState, formData: FormData): Promis
   }
   revalidatePath("/[lang]/dashboard", "layout");
   return ok(ctx.business.id);
+}
+
+/** "Hide" on the trial banner: hidden in this browser for a day (the owner's banner; never in the trial's last days). */
+export async function dismissTrialBanner(): Promise<FormState> {
+  const ctx = await requireRoleForAction(OWNER, { access: "read", readOnlyOk: true });
+  if (!ctx) return denied();
+  const jar = await cookies();
+  jar.set(TRIAL_BANNER_COOKIE, hideTrialBanner(jar.get(TRIAL_BANNER_COOKIE)?.value, ctx.business.id), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  revalidatePath("/[lang]/dashboard", "layout");
+  return ok();
 }

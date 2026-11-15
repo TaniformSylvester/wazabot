@@ -26,6 +26,8 @@ import { permissionsFor } from "@/lib/auth/permissions";
 import { formatDate } from "@/components/app/ui";
 import { siteConfig } from "@/config/site";
 import { aiPausedByWazaBolt } from "@/lib/billing/controls";
+import { TRIAL_BANNER_COOKIE, trialBannerDismissible, trialBannerHidden } from "@/lib/billing/trial-banner";
+import { dismissTrialBanner } from "@/lib/actions/billing";
 import { currentPlanId } from "@/lib/billing/entitlements";
 import { planNameFor } from "@/lib/billing/plan-names";
 import { getUsageStatus } from "@/lib/billing/usage";
@@ -65,7 +67,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // A school sees its plan under the school name (School Standard…).
   const bannerPlan = usage ? planNameFor(currentPlanId(usage.planId), usage.planName, modules.includes("school"), locale) : "";
   const billingState = usage?.billing.state;
-  const trialLeft = usage && usage.billing.state === "trial" ? usage.billing.daysLeft : null;
+  const trialLeftRaw = usage && usage.billing.state === "trial" ? usage.billing.daysLeft : null;
+  // The owner may hide the trial banner for a day, except in the trial's last days.
+  const trialHidden = trialLeftRaw !== null && !!business && trialBannerHidden((await cookies()).get(TRIAL_BANNER_COOKIE)?.value, business.id, trialLeftRaw);
+  const trialLeft = trialHidden ? null : trialLeftRaw;
   const connected = whatsapp?.status === "connected";
   const d = t.dashboard;
   // How plans are paid: Mobile Money in Cameroon, a US dollar bank transfer everywhere else.
@@ -225,9 +230,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 </>
               ) : null}
             </p>
-            <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
-              {d.billingBanner.choosePlan}
-            </Link>
+            <span className="flex flex-wrap items-center gap-2">
+              <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
+                {d.billingBanner.choosePlan}
+              </Link>
+              {trialBannerDismissible(trialLeft) ? (
+                <ActionButton action={dismissTrialBanner} errors={d.errors} variant="ghost">
+                  {d.sampleData.dismiss}
+                </ActionButton>
+              ) : null}
+            </span>
           </div>
         ) : null}
         {sampleBanner && business ? (
