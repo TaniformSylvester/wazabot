@@ -97,3 +97,25 @@ export async function markConversationRead(conversationId: string): Promise<void
   const supabase = await createClient();
   await supabase.from("conversations").update({ unread_count: 0 }).eq("id", conversationId).eq("business_id", ctx.business.id).gt("unread_count", 0);
 }
+
+/**
+ * "Resolve & hand back to AI": the thread is resolved, the assistant answers
+ * it again, and who did it is recorded (by the database, from the session).
+ * A new customer message reopens it.
+ */
+export async function resolveAndHandBack(conversationId: string): Promise<FormState> {
+  if (!isUuid(conversationId)) return fail("invalid");
+  const ctx = await requireRoleForAction(EVERYONE);
+  if (!ctx) return denied();
+  const supabase = await createClient();
+  // Scoped to the verified business first; the function checks the member's role again.
+  const { data: conv } = await supabase.from("conversations").select("id").eq("business_id", ctx.business.id).eq("id", conversationId).maybeSingle();
+  if (!conv) return fail("not_found");
+  const { error } = await supabase.rpc("resolve_and_hand_back", { p_conversation_id: conversationId });
+  if (error) {
+    logServerError("conversations.resolveAndHandBack", error);
+    return fail(dbError(error));
+  }
+  revalidatePath("/[lang]/dashboard", "layout");
+  return ok(conversationId);
+}

@@ -1150,6 +1150,8 @@ export type Database = {
       };
       conversations: {
         Row: {
+          resolved_at: string | null;
+          resolved_by: string | null;
           is_sample: boolean;
           ai_enabled: boolean;
           ai_summary: string | null;
@@ -1169,6 +1171,8 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          resolved_at?: string | null;
+          resolved_by?: string | null;
           is_sample?: boolean;
           ai_enabled?: boolean;
           ai_summary?: string | null;
@@ -1188,6 +1192,8 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          resolved_at?: string | null;
+          resolved_by?: string | null;
           is_sample?: boolean;
           ai_enabled?: boolean;
           ai_summary?: string | null;
@@ -5182,6 +5188,10 @@ export type Database = {
       has_sample_data: {
         Args: { p_business_id: string };
         Returns: boolean;
+      };
+      resolve_and_hand_back: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
       };
       setup_workspace: {
         Args: { p_country: string; p_industry: string; p_name: string };

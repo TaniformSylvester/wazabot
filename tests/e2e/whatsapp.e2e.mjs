@@ -171,7 +171,7 @@ async function signUp(browser, user) {
   const freeUsage = async () => (await (await fetch(`${SUPABASE}/rest/v1/rpc/whatsapp_free_usage`, { method: "POST", headers: { ...rest(aTok), "content-type": "application/json" }, body: JSON.stringify({ p_business_id: bizId }) })).json())[0]?.service_sent ?? null;
   const serviceBefore = await freeUsage();
   await main.getByLabel("Reply").fill("Oui ! La livraison à Buea coûte 2 500 XAF.");
-  await main.getByRole("button", { name: "Send" }).click();
+  await main.getByRole("button", { name: "Send", exact: true }).click();
   await main.getByText("La livraison à Buea coûte 2 500 XAF.").waitFor({ timeout: 15000 });
   const sent = graph.sent().sent.at(-1);
   ok("reply sent through the Cloud API to the customer's number", sent?.to === "237670000123" && sent?.text?.body === "Oui ! La livraison à Buea coûte 2 500 XAF.", JSON.stringify(sent));
@@ -203,7 +203,7 @@ async function signUp(browser, user) {
   await page.goto(`${APP}/en/dashboard/conversations`);
   await main.getByRole("link", { name: /Blocked/ }).click();
   await main.getByLabel("Reply").fill("Hello!");
-  await main.getByRole("button", { name: "Send" }).click();
+  await main.getByRole("button", { name: "Send", exact: true }).click();
   await main.getByText("WhatsApp didn't accept the message").waitFor({ timeout: 15000 });
   // The page refreshes to show the message's status just after the error.
   await main.getByText("Not delivered").waitFor({ timeout: 15000 }).catch(() => {});

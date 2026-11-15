@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 /* eslint-disable @next/next/no-img-element -- media comes from short-lived signed URLs; next/image would cache them. */
-import { Check, CheckCheck, ChevronLeft, CircleAlert, Clock, FileText, Film, Image as ImageIcon, Lock, MapPin, Mic, UserRound } from "lucide-react";
+import { Check, CheckCheck, ChevronLeft, CircleAlert, Clock, FileText, Film, Image as ImageIcon, Lock, MapPin, Mic, UserRound, X } from "lucide-react";
 
 import { CONVERSATION_FILTERS, ConversationList, filterToQuery, type ConversationFilterKey } from "@/components/app/conversation-list";
 import { ConversationControls } from "@/components/app/conversation-controls";
-import { DefinitionList, SampleBadge, StatusBadge, conversationStatusTone, formatDate, param } from "@/components/app/ui";
+import { DefinitionList, SampleBadge, StatusBadge, conversationStatusTone, formatDate, formatMoney, param } from "@/components/app/ui";
+import { MobileMore } from "@/components/app/mobile-more";
+import { ResolveHandBack } from "@/components/app/resolve-hand-back";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { Composer } from "@/components/app/composer";
 import { ActionButton } from "@/components/app/form";
@@ -20,11 +22,15 @@ import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { followUpReady, getAiSettingsRow, getConversation, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
 import { aiConfigured } from "@/lib/ai/claude";
+import { businessCanUse } from "@/lib/billing/plan-access";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { isLanguageCode, languageName } from "@/lib/i18n/languages";
 import { localizePath } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
+import { quickReplies } from "@/lib/conversations/quick-replies";
+import { pickYear } from "@/lib/data/school";
+import { createClient } from "@/lib/supabase/server";
 import type { Messages } from "@/messages/en";
 
 export const generateMetadata = dashboardMetadata((d) => d.conversations.title);
@@ -52,12 +58,20 @@ export default async function ConversationPage({ params, searchParams }: PagePro
   const canFollowUp = canAct && connected && (await followUpReady(business.id));
   const mediaUrls = await signMedia(messages);
   const aiSettings = await getAiSettingsRow(business.id);
-  const assistantLive = aiConfigured() && connected && aiSettings?.ai_enabled !== false;
+  // The assistant really answers only once WazaBolt has launched it and this business has it (add-on or trial).
+  const assistantLive = aiConfigured() && connected && aiSettings?.ai_enabled !== false && (await businessCanUse(business.id, "ai_assistant"));
 
   const filter = (CONVERSATION_FILTERS as readonly string[]).includes(param(sp.filter) ?? "") ? (param(sp.filter) as ConversationFilterKey) : "all";
   const q = param(sp.q);
   const rows = await listConversations(business.id, { ...filterToQuery(filter), q });
   const name = customer?.name || `+${customer?.whatsapp_phone ?? ""}`;
+  const listHref = localizePath(locale, `/dashboard/conversations${filter !== "all" ? `?filter=${filter}` : ""}`);
+  // Resolve & hand back: while the thread is waiting for (or held by) the team.
+  const canHandBack = canAct && (conversation.status === "open" || conversation.status === "pending" || !conversation.ai_enabled || conversation.human_requested);
+  // 1-tap quick replies for this business type, in the conversation's language; a school's fees from its fee items.
+  const replyLang = conversation.language === "fr" ? "fr" : "en";
+  const fees = business.industry === "school" ? await currentFees(business.id, business.currency, replyLang) : undefined;
+  const replies = quickReplies(business.industry, replyLang, fees);
   const statusLabel = c.statuses[conversation.status as keyof typeof c.statuses] ?? conversation.status;
 
   const customerDetails = customer ? (
@@ -95,7 +109,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <Link href={localizePath(locale, `/dashboard/conversations${filter !== "all" ? `?filter=${filter}` : ""}`)} className="inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-waza-700 hover:underline lg:hidden">
+      <Link href={listHref} className="hidden min-h-8 items-center gap-1 text-sm font-semibold text-waza-700 hover:underline md:inline-flex lg:hidden">
         <ChevronLeft className="size-4" aria-hidden /> {c.backToList}
       </Link>
       <div className="grid overflow-hidden rounded-3xl border border-border bg-card shadow-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[20rem_1fr] xl:grid-cols-[20rem_1fr_19rem]">
@@ -103,10 +117,21 @@ export default async function ConversationPage({ params, searchParams }: PagePro
           <ConversationList rows={rows} activeId={conversation.id} filter={filter} q={q} t={c} searchLabel={d.common.search} locale={locale} sampleLabel={d.sampleData.badge} />
         </aside>
 
-        <section className="flex min-h-[70dvh] min-w-0 flex-col lg:min-h-0" aria-label={name}>
-          <header className="flex flex-col gap-3 border-b border-border p-4">
-            <div className="flex flex-wrap items-center gap-2">
+        {/* Phones (< 768 px): a full-height drawer — header on top, the reply box and quick replies at the bottom, in thumb reach. */}
+        <section
+          className="flex min-h-[70dvh] min-w-0 flex-col bg-card lg:min-h-0 max-md:fixed max-md:inset-0 max-md:z-50 max-md:h-dvh max-md:min-h-0 max-md:motion-safe:animate-sheet-up"
+          aria-label={name}
+          data-testid="conversation-drawer"
+        >
+          <header className="flex flex-col gap-3 border-b border-border p-4 max-md:gap-2 max-md:px-3 max-md:pt-[max(0.75rem,env(safe-area-inset-top))] max-md:pb-3">
+            <div className="flex items-center gap-2">
+              <Link href={listHref} aria-label={c.backToList} className="-ml-1 grid size-10 shrink-0 place-items-center rounded-full text-deep hover:bg-surface md:hidden" data-testid="drawer-close">
+                <X className="size-5" aria-hidden />
+              </Link>
               <h1 className="min-w-0 flex-1 truncate font-display text-lg font-bold text-deep">{name}</h1>
+              {canHandBack ? <ResolveHandBack id={conversation.id} label={c.handBack.button} pendingLabel={c.handBack.pending} errors={d.errors} listHref={listHref} /> : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <StatusBadge tone={conversation.ai_enabled ? "blue" : "amber"} dot>
                 {conversation.ai_enabled ? c.aiOnline : c.humanMode}
               </StatusBadge>
@@ -114,6 +139,8 @@ export default async function ConversationPage({ params, searchParams }: PagePro
               {conversation.human_requested ? <StatusBadge tone="red">{c.humanRequested}</StatusBadge> : null}
               {conversation.is_sample ? <SampleBadge label={d.sampleData.badge} /> : null}
             </div>
+            {canHandBack && !assistantLive ? <p className="text-xs text-slate" data-testid="hand-back-note">{c.handBack.notLive}</p> : null}
+            <MobileMore label={c.handBack.more}>
             <p className="text-xs text-slate">{conversation.ai_enabled ? (assistantLive ? c.aiOnlineText : c.aiNotLiveText) : c.humanModeText}</p>
             {canAct ? (
               <ConversationControls
@@ -138,9 +165,10 @@ export default async function ConversationPage({ params, searchParams }: PagePro
                 <div className="mt-3">{customerDetails}</div>
               </details>
             ) : null}
+            </MobileMore>
           </header>
 
-          <ol className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-surface/60 p-4" aria-label={c.title}>
+          <ol className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain bg-surface/60 p-4" aria-label={c.title}>
             {messages.length === 0 ? (
               <li className="m-auto max-w-sm text-center">
                 <p className="font-semibold text-deep">{c.noMessages}</p>
@@ -151,7 +179,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
             )}
           </ol>
 
-          <footer className="border-t border-border p-4">
+          <footer className="border-t border-border bg-card p-4 max-md:px-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-md:shadow-[0_-6px_16px_-12px_rgb(16_42_42/0.35)]">
             {conversation.is_sample ? (
               // A sample conversation: its customer isn't real, so there's nothing to send (the server refuses too).
               <ComposerNote text={d.errors.sample_conversation} />
@@ -176,7 +204,13 @@ export default async function ConversationPage({ params, searchParams }: PagePro
                 ) : null}
               </div>
             ) : (
-              <Composer conversationId={conversation.id} labels={c.composer} text={{ errors: d.errors, saved: d.common.saved, saving: c.composer.sending }} />
+              <Composer
+                conversationId={conversation.id}
+                labels={c.composer}
+                text={{ errors: d.errors, saved: d.common.saved, saving: c.composer.sending }}
+                quickReplies={replies}
+                quickReplyLabels={c.quickReplies}
+              />
             )}
             {connected ? (
               <div className="mt-2 text-right">
@@ -333,4 +367,13 @@ function MessageBubble({ m, c, locale, mediaUrls }: { m: Msg; c: Messages["dashb
       </div>
     </li>
   );
+}
+
+/** The school's fees for its current year, written for a message (for the fee-schedule quick reply). */
+async function currentFees(businessId: string, currency: string, lang: "en" | "fr") {
+  const { year } = await pickYear(businessId);
+  if (!year) return undefined;
+  const db = await createClient();
+  const { data } = await db.from("school_fee_items").select("name, amount, class_id").eq("business_id", businessId).eq("year_id", year.id).is("class_id", null).order("created_at").limit(10);
+  return { year: year.name, items: (data ?? []).map((f) => ({ name: f.name, amount: formatMoney(Number(f.amount), currency, lang) })) };
 }
