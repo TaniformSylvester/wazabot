@@ -101,11 +101,17 @@ export async function replyToInbound(job: AiJob, deps: PipelineDeps): Promise<Ai
     buildBusinessContext(admin, job.businessId, deps.now()),
     buildConversationContext(admin, job.businessId, job.conversationId),
     admin.from("messages").select("id, message_type, content, caption").eq("id", job.messageId).eq("business_id", job.businessId).maybeSingle(),
-    admin.from("conversations").select("ai_enabled, last_customer_message_at").eq("id", job.conversationId).eq("business_id", job.businessId).maybeSingle(),
+    admin.from("conversations").select("ai_enabled, last_customer_message_at, handoff_expires_at").eq("id", job.conversationId).eq("business_id", job.businessId).maybeSingle(),
   ]);
   if (!business || !conversation || !inbound.data || !conv.data) return { outcome: "skipped", reason: "not_found" };
   if (!business.settings.aiEnabled) return { outcome: "skipped", reason: "ai_disabled" };
-  if (!conv.data.ai_enabled) return { outcome: "skipped", reason: "human_mode" };
+  if (!conv.data.ai_enabled) {
+    // The failsafe: a chat left with the team past its 30 minutes goes back to the assistant
+    // (a note in the thread), which answers this message. Otherwise the team keeps it.
+    const expired = !!conv.data.handoff_expires_at && Date.parse(conv.data.handoff_expires_at) < deps.now().getTime();
+    const { data: resumed } = expired ? await admin.rpc("resume_ai_after_idle", { p_conversation_id: job.conversationId }) : { data: false };
+    if (!resumed) return { outcome: "skipped", reason: "human_mode" };
+  }
   // The WazaBolt team's kill switch: the assistant is silent, the team answers.
   if (await pausedByWazaBolt(admin, job.businessId)) {
     await flagForTeam(admin, job);

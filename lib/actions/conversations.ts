@@ -119,3 +119,20 @@ export async function resolveAndHandBack(conversationId: string): Promise<FormSt
   revalidatePath("/[lang]/dashboard", "layout");
   return ok(conversationId);
 }
+
+/** "Extend +30m": the team keeps the chat 30 more minutes before the assistant may take it back. */
+export async function extendHandoff(conversationId: string): Promise<FormState> {
+  if (!isUuid(conversationId)) return fail("invalid");
+  const ctx = await requireRoleForAction(EVERYONE);
+  if (!ctx) return denied();
+  const supabase = await createClient();
+  const { data: conv } = await supabase.from("conversations").select("id").eq("business_id", ctx.business.id).eq("id", conversationId).maybeSingle();
+  if (!conv) return fail("not_found");
+  const { error } = await supabase.rpc("extend_handoff", { p_conversation_id: conversationId });
+  if (error) {
+    logServerError("conversations.extendHandoff", error);
+    return fail(dbError(error));
+  }
+  revalidatePath("/[lang]/dashboard", "layout");
+  return ok(conversationId);
+}

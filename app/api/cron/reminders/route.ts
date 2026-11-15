@@ -1,5 +1,6 @@
 import { resumeBroadcasts } from "@/lib/broadcasts/service";
 import { sendDueReminders } from "@/lib/notifications/events";
+import { resumeIdleHandoffs } from "@/lib/handoffs/resume";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /*
@@ -16,8 +17,10 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   if (!admin) return Response.json({ ok: false, error: "not_configured" }, { status: 503 });
   const tally = await sendDueReminders(admin);
+  // The handoff failsafe for businesses nobody has open: idle threads past their 30 minutes.
+  const handoffsResumed = await resumeIdleHandoffs(admin, null, 500);
   // Broadcasts interrupted by a time limit carry on here.
   await resumeBroadcasts(admin, Date.now() + 200_000);
   console.info(`[cron.reminders] sent=${tally.sent} skipped=${tally.skipped} failed=${tally.failed} duplicate=${tally.duplicate}`);
-  return Response.json({ ok: true, ...tally });
+  return Response.json({ ok: true, ...tally, handoffsResumed });
 }

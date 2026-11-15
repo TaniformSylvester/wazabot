@@ -1150,6 +1150,7 @@ export type Database = {
       };
       conversations: {
         Row: {
+          handoff_expires_at: string | null;
           resolved_at: string | null;
           resolved_by: string | null;
           is_sample: boolean;
@@ -1171,6 +1172,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          handoff_expires_at?: string | null;
           resolved_at?: string | null;
           resolved_by?: string | null;
           is_sample?: boolean;
@@ -1192,6 +1194,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          handoff_expires_at?: string | null;
           resolved_at?: string | null;
           resolved_by?: string | null;
           is_sample?: boolean;
@@ -5188,6 +5191,14 @@ export type Database = {
       has_sample_data: {
         Args: { p_business_id: string };
         Returns: boolean;
+      };
+      resume_ai_after_idle: {
+        Args: { p_conversation_id: string };
+        Returns: boolean;
+      };
+      extend_handoff: {
+        Args: { p_conversation_id: string };
+        Returns: string;
       };
       resolve_and_hand_back: {
         Args: { p_conversation_id: string };

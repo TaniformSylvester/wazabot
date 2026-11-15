@@ -201,7 +201,7 @@ export async function buildConversationContext(db: Db, businessId: string, conve
       .maybeSingle(),
     db
       .from("messages")
-      .select("direction, sender_type, message_type, content, caption, created_at")
+      .select("direction, sender_type, message_type, content, caption, payload, created_at")
       .eq("business_id", businessId)
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false })
@@ -211,7 +211,10 @@ export async function buildConversationContext(db: Db, businessId: string, conve
   const c = conv.data;
   if (!c || !c.customers) return null;
   const rows = msgs.data ?? [];
+  // Notes for the team (e.g. "AI resumed after 30m idle") aren't part of the conversation.
+  const isTeamNote = (m: (typeof rows)[number]) => m.sender_type === "system" && !!m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) && "note" in m.payload;
   const history = rows
+    .filter((m) => !isTeamNote(m))
     .slice(0, HISTORY_MESSAGES)
     .reverse()
     .map((m) => ({

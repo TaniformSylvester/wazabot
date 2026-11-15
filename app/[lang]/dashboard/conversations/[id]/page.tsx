@@ -11,7 +11,9 @@ import { ResolveHandBack } from "@/components/app/resolve-hand-back";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { Composer } from "@/components/app/composer";
 import { ActionButton } from "@/components/app/form";
-import { markConversationRead } from "@/lib/actions/conversations";
+import { extendHandoff, markConversationRead } from "@/lib/actions/conversations";
+import { HandoffCountdown } from "@/components/app/handoff-countdown";
+import { assistantLiveFor } from "@/lib/handoffs/live";
 import { sendFollowUp } from "@/lib/actions/notifications";
 import { markWhatsAppRead } from "@/lib/actions/whatsapp";
 import { SIGNED_URL_TTL_SECONDS } from "@/lib/messaging/media-policy";
@@ -20,9 +22,7 @@ import { locationFromPayload, mapsUrl } from "@/lib/messaging/views";
 import { windowOpen } from "@/lib/whatsapp/service";
 import { isUuid } from "@/lib/actions/form";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
-import { followUpReady, getAiSettingsRow, getConversation, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
-import { aiConfigured } from "@/lib/ai/claude";
-import { businessCanUse } from "@/lib/billing/plan-access";
+import { followUpReady, getConversation, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { isLanguageCode, languageName } from "@/lib/i18n/languages";
@@ -57,9 +57,8 @@ export default async function ConversationPage({ params, searchParams }: PagePro
   // After the 24-hour window, an approved follow-up template lets the team reach the customer again.
   const canFollowUp = canAct && connected && (await followUpReady(business.id));
   const mediaUrls = await signMedia(messages);
-  const aiSettings = await getAiSettingsRow(business.id);
   // The assistant really answers only once WazaBolt has launched it and this business has it (add-on or trial).
-  const assistantLive = aiConfigured() && connected && aiSettings?.ai_enabled !== false && (await businessCanUse(business.id, "ai_assistant"));
+  const assistantLive = await assistantLiveFor(business.id);
 
   const filter = (CONVERSATION_FILTERS as readonly string[]).includes(param(sp.filter) ?? "") ? (param(sp.filter) as ConversationFilterKey) : "all";
   const q = param(sp.q);
@@ -67,6 +66,9 @@ export default async function ConversationPage({ params, searchParams }: PagePro
   const name = customer?.name || `+${customer?.whatsapp_phone ?? ""}`;
   const listHref = localizePath(locale, `/dashboard/conversations${filter !== "all" ? `?filter=${filter}` : ""}`);
   // Resolve & hand back: while the thread is waiting for (or held by) the team.
+  // The handoff failsafe: while the chat is with the team, when the assistant may take it back (only where it answers).
+  const withTeam = (!conversation.ai_enabled || conversation.human_requested) && (conversation.status === "open" || conversation.status === "pending");
+  const showCountdown = assistantLive && withTeam && !!conversation.handoff_expires_at && !conversation.is_sample;
   const canHandBack = canAct && (conversation.status === "open" || conversation.status === "pending" || !conversation.ai_enabled || conversation.human_requested);
   // 1-tap quick replies for this business type, in the conversation's language; a school's fees from its fee items.
   const replyLang = conversation.language === "fr" ? "fr" : "en";
@@ -114,7 +116,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
       </Link>
       <div className="grid overflow-hidden rounded-3xl border border-border bg-card shadow-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[20rem_1fr] xl:grid-cols-[20rem_1fr_19rem]">
         <aside className="hidden min-h-0 flex-col border-r border-border lg:flex" aria-label={c.title}>
-          <ConversationList rows={rows} activeId={conversation.id} filter={filter} q={q} t={c} searchLabel={d.common.search} locale={locale} sampleLabel={d.sampleData.badge} />
+          <ConversationList rows={rows} activeId={conversation.id} filter={filter} q={q} t={c} searchLabel={d.common.search} locale={locale} sampleLabel={d.sampleData.badge} handoff={assistantLive ? c.handoff : undefined} />
         </aside>
 
         {/* Phones (< 768 px): a full-height drawer — header on top, the reply box and quick replies at the bottom, in thumb reach. */}
@@ -138,6 +140,12 @@ export default async function ConversationPage({ params, searchParams }: PagePro
               <StatusBadge tone={conversationStatusTone[conversation.status]}>{statusLabel}</StatusBadge>
               {conversation.human_requested ? <StatusBadge tone="red">{c.humanRequested}</StatusBadge> : null}
               {conversation.is_sample ? <SampleBadge label={d.sampleData.badge} /> : null}
+              {showCountdown && conversation.handoff_expires_at ? <HandoffCountdown expiresAt={conversation.handoff_expires_at} labels={c.handoff} /> : null}
+              {showCountdown && canAct ? (
+                <ActionButton action={extendHandoff.bind(null, conversation.id)} pendingLabel={c.handoff.extending} errors={d.errors} variant="ghost" className="h-7 px-2.5 text-xs">
+                  {c.handoff.extend}
+                </ActionButton>
+              ) : null}
             </div>
             {canHandBack && !assistantLive ? <p className="text-xs text-slate" data-testid="hand-back-note">{c.handBack.notLive}</p> : null}
             <MobileMore label={c.handBack.more}>
@@ -286,6 +294,16 @@ function MessageBubble({ m, c, locale, mediaUrls }: { m: Msg; c: Messages["dashb
   const sentFile = !inbound && type === "document" && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) ? (m.payload as Record<string, unknown>) : null;
   const sentDocument = sentFile && typeof sentFile.document_file === "string" ? { file: sentFile.document_file, id: typeof sentFile.document_id === "string" ? sentFile.document_id : null } : null;
   const location = type === "location" && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) ? locationFromPayload(m.payload as Record<string, unknown>) : null;
+  // A note for the team (not a message): the assistant took the chat back after the team's 30 minutes.
+  if (sender === "system" && m.payload && typeof m.payload === "object" && !Array.isArray(m.payload) && (m.payload as Record<string, unknown>).note === "ai_resumed") {
+    return (
+      <li className="flex justify-center" data-testid="ai-resumed-note">
+        <span className="rounded-full bg-card px-3 py-1 text-xs font-semibold text-slate shadow-sm">
+          {c.handoff.resumedNote} · {formatDate(m.created_at, locale, true)}
+        </span>
+      </li>
+    );
+  }
   return (
     <li className={cn("flex", inbound ? "justify-start" : "justify-end")}>
       <div

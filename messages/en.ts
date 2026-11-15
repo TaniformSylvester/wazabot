@@ -2090,6 +2090,13 @@ const en = {
       statuses: { open: "Open", pending: "Pending", resolved: "Resolved", archived: "Archived" },
       takeOver: "Take Over",
       returnToAi: "Return to AI",
+      handoff: {
+        resumesIn: "AI resumes in {minutes}m",
+        resumesNext: "AI resumes at the next message",
+        extend: "Extend +30m",
+        extending: "Extending…",
+        resumedNote: "AI resumed after 30m idle",
+      },
       handBack: {
         button: "Resolve & hand back to AI",
         pending: "Handing back…",

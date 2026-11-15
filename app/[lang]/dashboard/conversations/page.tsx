@@ -5,6 +5,7 @@ import { AutoRefresh } from "@/components/app/auto-refresh";
 import { EmptyState, PageHeader, param } from "@/components/app/ui";
 import { requireBusiness } from "@/lib/auth/dal";
 import { countConversations, getWhatsAppConnection, listConversations } from "@/lib/data/queries";
+import { assistantLiveFor } from "@/lib/handoffs/live";
 import { dashboardMetadata } from "@/lib/i18n/dashboard-meta";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
@@ -17,10 +18,12 @@ export default async function ConversationsPage({ searchParams }: PageProps<"/[l
   const c = t.dashboard.conversations;
   const filter = (CONVERSATION_FILTERS as readonly string[]).includes(param(sp.filter) ?? "") ? (param(sp.filter) as ConversationFilterKey) : "all";
   const q = param(sp.q);
-  const [rows, total, connection] = await Promise.all([
+  const [rows, total, connection, aiLive] = await Promise.all([
     listConversations(business.id, { ...filterToQuery(filter), q }),
     countConversations(business.id),
     getWhatsAppConnection(business.id),
+    // The handoff countdown shows only where the AI assistant really answers.
+    assistantLiveFor(business.id),
   ]);
 
   return (
@@ -31,7 +34,7 @@ export default async function ConversationsPage({ searchParams }: PageProps<"/[l
       ) : (
         <div className="grid overflow-hidden rounded-3xl border border-border bg-card shadow-card lg:h-[calc(100dvh-12rem)] lg:grid-cols-[22rem_1fr]">
           <div className="flex min-h-0 flex-col lg:border-r lg:border-border">
-            <ConversationList rows={rows} filter={filter} q={q} t={c} searchLabel={t.dashboard.common.search} locale={locale} sampleLabel={t.dashboard.sampleData.badge} />
+            <ConversationList rows={rows} filter={filter} q={q} t={c} searchLabel={t.dashboard.common.search} locale={locale} sampleLabel={t.dashboard.sampleData.badge} handoff={aiLive ? t.dashboard.conversations.handoff : undefined} />
           </div>
           <div className="hidden flex-col items-center justify-center p-10 text-center lg:flex">
             <MessagesSquare className="size-10 text-line-strong" aria-hidden />

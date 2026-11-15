@@ -394,7 +394,7 @@ export async function listConversations(businessId: string, f: ConversationFilte
   const db = await createClient();
   let q = db
     .from("conversations")
-    .select("id, status, ai_enabled, human_requested, unread_count, language, last_message_at, created_at, is_sample, customers(id, name, whatsapp_phone)")
+    .select("id, status, ai_enabled, human_requested, unread_count, language, last_message_at, created_at, is_sample, handoff_expires_at, customers(id, name, whatsapp_phone)")
     .eq("business_id", businessId);
   if (f.status && (CONVERSATION_STATUSES as readonly string[]).includes(f.status)) q = q.eq("status", f.status);
   else q = q.neq("status", "archived");

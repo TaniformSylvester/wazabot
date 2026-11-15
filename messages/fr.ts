@@ -2088,6 +2088,13 @@ const fr: Messages = {
       filters: { all: "Toutes", open: "Ouvertes", pending: "En attente", resolved: "Résolues", archived: "Archivées", unread: "Non lues", human: "Mode humain", ai: "IA en ligne" },
       statuses: { open: "Ouverte", pending: "En attente", resolved: "Résolue", archived: "Archivée" },
       takeOver: "Reprendre la main",
+      handoff: {
+        resumesIn: "L'IA reprend dans {minutes} min",
+        resumesNext: "L'IA reprend au prochain message",
+        extend: "Prolonger de 30 min",
+        extending: "Prolongation…",
+        resumedNote: "L'IA a repris après 30 min sans réponse de l'équipe",
+      },
       handBack: {
         button: "Résoudre et rendre à l'IA",
         pending: "Transfert…",

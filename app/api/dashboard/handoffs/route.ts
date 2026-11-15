@@ -1,6 +1,8 @@
 import { EVERYONE, requireRole, roleErrorResponse } from "@/lib/auth/requireRole";
 import type { HandoffItem, HandoffState } from "@/lib/handoffs/alerts";
 import { getBusinessModules } from "@/lib/modules";
+import { resumeIdleHandoffs } from "@/lib/handoffs/resume";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /*
@@ -21,6 +23,11 @@ export async function GET() {
   const { business } = check.ctx;
   if (business.role === "teacher" || business.role === "kitchen") return Response.json({ ok: false, error: "forbidden" }, { status: 403, headers: NO_STORE });
   if (!(await getBusinessModules(business)).includes("ai")) return Response.json({ ok: true, count: 0, items: [] } satisfies HandoffState & { ok: true }, { headers: NO_STORE });
+
+  // The failsafe's light cleanup, while someone has the dashboard open: idle threads past their
+  // 30 minutes (the team spoke last) go back to the assistant — only where it really answers.
+  const admin = createAdminClient();
+  if (admin) await resumeIdleHandoffs(admin, business.id, 10);
 
   const db = await createClient();
   const { data, count, error } = await db
