@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Menu } from "lucide-react";
 
 import { WazaBoltLogo } from "@/components/brand/logo";
 import { useI18n } from "@/components/i18n/i18n-provider";
+import { WAITLIST_MODE } from "@/lib/waitlist/mode";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,7 +49,8 @@ export function SiteHeader() {
     : mainNav.map((item) => ({ href: href(item.href), label: t.common.nav[item.key], home: item.href === "/" }));
   const active = (h: string) => !school && isActive(splitLocale(h).path);
   const homeHref = school ? href("/schools") : href("/");
-  const registerHref = school ? `${href("/register")}?vertical=school` : href("/register");
+  // While sign-up is closed (beta waitlist), the button leads to the waitlist, with the vertical.
+  const registerHref = WAITLIST_MODE ? href(school ? "/waitlist?vertical=school" : "/waitlist") : school ? `${href("/register")}?vertical=school` : href("/register");
   // The way back from the school-only menu to the main site (shops, restaurants, the home page).
   const mainSite = school ? (
     <Link href={href("/")} aria-label={sn.mainSite} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-deep/80 transition-colors hover:border-waza-500 hover:text-waza-700" data-testid="school-main-site">
@@ -117,8 +119,8 @@ export function SiteHeader() {
           </Button>
           <Button asChild className="hidden sm:inline-flex sm:px-6">
             <Link href={registerHref}>
-              <span className="xl:hidden">{school ? sn.startShort : t.common.nav.startFreeShort}</span>
-              <span className="hidden xl:inline">{school ? sn.start : t.common.nav.startFree}</span>
+              <span className="xl:hidden">{WAITLIST_MODE ? t.common.nav.joinBetaShort : school ? sn.startShort : t.common.nav.startFreeShort}</span>
+              <span className="hidden xl:inline">{WAITLIST_MODE ? t.common.nav.joinBeta : school ? sn.start : t.common.nav.startFree}</span>
             </Link>
           </Button>
 
@@ -166,7 +168,7 @@ export function SiteHeader() {
                 <SheetClose asChild>
                   <Button asChild size="lg">
                     <Link href={registerHref}>
-                      {school ? sn.start : t.common.nav.startFree} <ArrowRight />
+                      {WAITLIST_MODE ? t.common.nav.joinBeta : school ? sn.start : t.common.nav.startFree} <ArrowRight />
                     </Link>
                   </Button>
                 </SheetClose>

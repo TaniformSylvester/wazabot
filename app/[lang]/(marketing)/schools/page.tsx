@@ -7,6 +7,7 @@ import { PageIntro } from "@/components/marketing/page-intro";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Button } from "@/components/ui/button";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
 import { alternatesFor, socialFor } from "@/lib/i18n/metadata";
 import { localizePath } from "@/lib/i18n/paths";
 import { breadcrumbGraph, faqGraph } from "@/lib/seo/structured-data";
@@ -33,7 +34,7 @@ export default async function SchoolsPage() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   const s = t.schoolsHome;
   const page = t.landing.pages.schools;
-  const register = `${localizePath(locale, "/register")}?vertical=school`;
+  const register = WAITLIST_MODE ? startHref(locale, "/register?vertical=school") : `${localizePath(locale, "/register")}?vertical=school`;
   const faq = [...page.faq, ...s.moreFaq];
   return (
     <>
@@ -43,7 +44,7 @@ export default async function SchoolsPage() {
         <div className="flex flex-col items-center gap-3 sm:flex-row">
           <Button asChild size="lg" className="group h-auto min-h-12 max-w-full whitespace-normal py-3 text-center leading-snug">
             <Link href={register} data-testid="schools-start">
-              {s.start}
+              {WAITLIST_MODE ? t.common.nav.joinBeta : s.start}
               <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </Button>

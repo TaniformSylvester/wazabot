@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { annualMonthsPaid, monthlyPriceIn, type Plan, type PlanCurrency } from "@/config/plans";
 import type { Locale } from "@/lib/i18n/config";
 import { format, formatNumber, formatXaf } from "@/lib/i18n/format";
-import { localizePath } from "@/lib/i18n/paths";
+import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
 import { planNameFor } from "@/lib/billing/plan-names";
 import { cn } from "@/lib/utils";
 import type { Messages } from "@/messages/en";
@@ -109,6 +109,7 @@ export function PricingCard({
   recommended,
   audience = "shop",
   currency = "XAF",
+  waitlistCta,
 }: {
   plan: Plan;
   previous?: Plan;
@@ -119,6 +120,8 @@ export function PricingCard({
   audience?: "shop" | "school" | "restaurant";
   /** The plan currency shown: FCFA (Cameroon) or US dollars (every other country). */
   currency?: PlanCurrency;
+  /** The button while sign-up is closed (beta waitlist mode). */
+  waitlistCta?: string;
 }) {
   // Marketing prices in dollars read as "$5" ("5 $US" in French), with cents only when there are some.
   const usd = (v: number) =>
@@ -185,9 +188,10 @@ export function PricingCard({
         ))}
       </ul>
       <Button asChild variant={featured ? "default" : "outline"} className="mt-6 h-auto min-h-11 w-full px-4 py-2.5 text-center leading-snug whitespace-normal">
-        <Link href={localizePath(locale, `/register?plan=${plan.id}${signUpType}`)}>{format(choose, { plan: name })}</Link>
+        <Link href={startHref(locale, `/register?plan=${plan.id}${signUpType}`)} data-testid={`plan-start-${plan.id}`}>{WAITLIST_MODE && waitlistCta ? waitlistCta : format(choose, { plan: name })}</Link>
       </Button>
-      <p className={cn("mt-2 text-center text-xs", featured ? "text-white/70" : "text-slate")}>{featured ? t.trialNote : t.trialNoteOther}</p>
+      {/* While sign-up is closed (beta waitlist), no trial to promise yet. */}
+      {WAITLIST_MODE ? null : <p className={cn("mt-2 text-center text-xs", featured ? "text-white/70" : "text-slate")}>{featured ? t.trialNote : t.trialNoteOther}</p>}
     </div>
   );
 }

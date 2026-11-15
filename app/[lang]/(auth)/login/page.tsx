@@ -7,6 +7,7 @@ import { safeRedirectPath } from "@/lib/auth/redirect";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
 import { localizePath } from "@/lib/i18n/paths";
+import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const generateMetadata = () => pageMetadata("login", "/login", { index: false });
@@ -28,8 +29,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/[lang]/log
       footer={
         <>
           {a.login.newHere}{" "}
-          <Link href={localizePath(locale, "/register")} className="font-semibold text-waza-700 hover:underline">
-            {a.login.createAccount}
+          <Link href={startHref(locale)} className="font-semibold text-waza-700 hover:underline">
+            {WAITLIST_MODE ? t.common.nav.joinBetaShort : a.login.createAccount}
           </Link>
         </>
       }

@@ -8,6 +8,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { Button } from "@/components/ui/button";
 import { COUNTRY_PAGES, COUNTRY_SLUGS, countryPageFor } from "@/config/countries";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
 import { format, formatAmount } from "@/lib/i18n/format";
 import { alternatesFor, socialFor } from "@/lib/i18n/metadata";
 import { localizePath } from "@/lib/i18n/paths";
@@ -58,8 +59,8 @@ export default async function CountryPage({ params }: PageProps<"/[lang]/countri
       <PageIntro eyebrow={format(c.eyebrow, v)} title={format(c.title, v)} description={format(c.lead, v)} />
       <div className="container-page flex justify-center pb-4">
         <Button asChild size="lg" className="group">
-          <Link href={`${localizePath(locale, "/register")}?country=${page.code}`} data-testid="country-start">
-            {format(c.start, v)}
+          <Link href={WAITLIST_MODE ? startHref(locale) : `${localizePath(locale, "/register")}?country=${page.code}`} data-testid="country-start">
+            {WAITLIST_MODE ? t.common.nav.joinBeta : format(c.start, v)}
             <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </Button>

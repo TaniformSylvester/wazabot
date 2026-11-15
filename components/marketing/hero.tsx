@@ -8,6 +8,7 @@ import { DashboardMockCompact } from "@/components/marketing/dashboard-mock";
 import { Highlight } from "@/components/marketing/section-heading";
 import { Button } from "@/components/ui/button";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
 import { format, formatXaf } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { plain, rich } from "@/lib/i18n/rich";
@@ -45,8 +46,8 @@ export async function Hero() {
 
           <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild size="lg" className="group">
-              <Link href={localizePath(locale, "/register")}>
-                {t.common.nav.startFree}
+              <Link href={startHref(locale)} data-testid="hero-start">
+                {WAITLIST_MODE ? t.common.nav.joinBeta : t.common.nav.startFree}
                 <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Button>

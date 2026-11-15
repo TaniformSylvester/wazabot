@@ -22,7 +22,7 @@ export async function Pricing() {
       <ul className="mt-10 grid gap-5 md:grid-cols-3" data-testid={`plans-${currency}-${audience}`}>
         {plans.map((plan, i) => (
           <li key={plan.id}>
-            <PricingCard plan={plan} previous={i > 0 ? plans[i - 1] : undefined} locale={locale} t={t} recommended={recommended} audience={audience} currency={currency} />
+            <PricingCard plan={plan} previous={i > 0 ? plans[i - 1] : undefined} locale={locale} t={t} recommended={recommended} audience={audience} currency={currency} waitlistCta={messages.common.nav.joinBeta} />
           </li>
         ))}
       </ul>

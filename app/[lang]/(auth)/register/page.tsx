@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { AuthCard, NotConfiguredNotice } from "@/components/auth/auth-card";
 import { RegisterForm } from "@/components/auth/register-form";
@@ -6,12 +7,15 @@ import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { pageMetadata } from "@/lib/i18n/metadata";
 import { localizePath } from "@/lib/i18n/paths";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { WAITLIST_MODE, waitlistHref } from "@/lib/waitlist/mode";
 import { SIGNUP_COUNTRIES, type SignupCountry, businessTypeFromVertical } from "@/lib/validation/auth-rules";
 
 export const generateMetadata = () => pageMetadata("register", "/register", { index: false });
 
 export default async function RegisterPage({ searchParams }: PageProps<"/[lang]/register">) {
   const [locale, t, sp] = await Promise.all([getLocale(), getMessages(), searchParams]);
+  // Beta waitlist mode: sign-up is closed; the waitlist form instead, with the same vertical.
+  if (WAITLIST_MODE) redirect(waitlistHref(locale, sp.vertical ?? sp.type));
   // ?vertical= from the home page's tabs (shop, restaurant, school); ?type= from older links and other pages.
   const vertical = businessTypeFromVertical(sp.vertical) ?? businessTypeFromVertical(sp.type);
   // ?country= from a country page (/countries/nigeria → NG): that country is chosen.

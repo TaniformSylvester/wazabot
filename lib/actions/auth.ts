@@ -13,6 +13,7 @@ import { getRequestLocale } from "@/lib/i18n/request-locale";
 import { logServerError } from "@/lib/log";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { WAITLIST_MODE } from "@/lib/waitlist/mode";
 import {
   forgotPasswordSchema,
   inviteSignUpSchema,
@@ -34,6 +35,8 @@ function confirmUrl(next: string) {
 
 export async function signUp(input: unknown, localeInput?: string): Promise<ActionResult> {
   if (!isSupabaseConfigured()) return NOT_CONFIGURED;
+  // Beta waitlist mode: sign-up is closed (invitation links still work: signUpWithInvite).
+  if (WAITLIST_MODE) return { ok: false, error: "signup_disabled" };
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   const { email, password, fullName, vertical, country } = parsed.data;

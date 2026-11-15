@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/marketing/section-heading";
 import { VerticalTabs } from "@/components/marketing/vertical-tabs";
 import { plans } from "@/config/plans";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
 import { format, formatNumber } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { cn } from "@/lib/utils";
@@ -129,8 +130,8 @@ export async function VerticalShowcase() {
           </ul>
           <p className="mt-6 text-sm text-slate">{format(v.note, vars)}</p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link href={localizePath(locale, `/register?vertical=${VERTICAL_PARAM[key]}`)} data-testid={`showcase-start-${key}`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
-              {s.start} <ArrowRight className="size-4" aria-hidden />
+            <Link href={startHref(locale, `/register?vertical=${VERTICAL_PARAM[key]}`)} data-testid={`showcase-start-${key}`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
+              {WAITLIST_MODE ? t.common.nav.joinBeta : s.start} <ArrowRight className="size-4" aria-hidden />
             </Link>
             <Link href={localizePath(locale, href)} className="inline-flex min-h-11 items-center rounded-full border border-line bg-white px-5 text-sm font-semibold text-deep hover:bg-mint">
               {v.more}

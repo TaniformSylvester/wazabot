@@ -4438,6 +4438,42 @@ export type Database = {
           },
         ];
       };
+      waitlist_leads: {
+        Row: {
+          business_name: string;
+          country_code: string | null;
+          created_at: string;
+          email: string;
+          id: string;
+          locale: string;
+          source_hash: string | null;
+          vertical: string;
+          whatsapp_number: string;
+        };
+        Insert: {
+          business_name: string;
+          country_code?: string | null;
+          created_at?: string;
+          email: string;
+          id?: string;
+          locale?: string;
+          source_hash?: string | null;
+          vertical: string;
+          whatsapp_number: string;
+        };
+        Update: {
+          business_name?: string;
+          country_code?: string | null;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          locale?: string;
+          source_hash?: string | null;
+          vertical?: string;
+          whatsapp_number?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       customer_stats: {
@@ -4920,6 +4956,10 @@ export type Database = {
       };
       is_business_member: { Args: { target_business_id: string }; Returns: boolean };
       is_business_staff: { Args: { target_business_id: string }; Returns: boolean };
+      join_waitlist: {
+        Args: { p_business_name: string; p_whatsapp_number: string; p_email: string; p_vertical: string; p_country_code?: string; p_locale?: string; p_source_hash?: string };
+        Returns: string;
+      };
       issue_document: {
         Args: { p_document_id: string };
         Returns: {

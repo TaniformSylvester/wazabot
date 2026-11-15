@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { WazaBoltIcon } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
+import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
 import { localizePath } from "@/lib/i18n/paths";
 
 /** Closing call-to-action used at the bottom of marketing pages. */
@@ -25,8 +26,8 @@ export async function CTASection({ title, text, registerHref, secondary }: { tit
           <p className="type-lead relative mx-auto mt-4 max-w-xl text-white/75">{text ?? t.cta.text}</p>
           <div className="relative mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="group">
-              <Link href={registerHref ?? localizePath(locale, "/register")}>
-                {t.common.nav.startFree}
+              <Link href={WAITLIST_MODE ? startHref(locale, registerHref ?? "/register") : (registerHref ?? localizePath(locale, "/register"))} data-testid="cta-start">
+                {WAITLIST_MODE ? t.common.nav.joinBeta : t.common.nav.startFree}
                 <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Button>
