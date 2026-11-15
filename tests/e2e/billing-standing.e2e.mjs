@@ -141,6 +141,8 @@ mkdirSync("test-results", { recursive: true });
     await mp.goto(`${APP}/en/dashboard/settings`);
     ok("Settings: Plan and billing for the owner only", (await page.getByTestId("settings-billing").count()) === 1 && (await mp.getByTestId("settings-billing").count()) === 0);
     await page.goto(`${APP}/en/dashboard/settings/billing`);
+    await page.waitForURL(/\/en\/dashboard\/billing/, { timeout: 10000 }).catch(() => {});
+    await page.getByTestId("plan-usage").waitFor({ timeout: 10000 }).catch(() => {});
     ok("/dashboard/settings/billing opens the Billing page for the owner", /\/en\/dashboard\/billing/.test(page.url()) && (await page.getByTestId("plan-usage").count()) === 1 && (await page.getByTestId("ai-panel").count()) === 1);
     await mp.goto(`${APP}/en/dashboard/settings/billing`);
     await mp.waitForURL(/\/en\/dashboard(\?|$)/, { timeout: 10000 }).catch(() => {});

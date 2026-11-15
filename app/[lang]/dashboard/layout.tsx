@@ -230,7 +230,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 </>
               ) : null}
             </p>
-            <span className="flex flex-wrap items-center gap-2">
+            <span className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 pl-7 sm:w-auto sm:pl-0">
               <Link href={`${billingHref}#change-plan`} className="font-semibold underline underline-offset-2">
                 {d.billingBanner.choosePlan}
               </Link>
@@ -249,7 +249,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               {modules.includes("school") && !modules.includes("commerce") ? d.sampleData.school : d.sampleData.text}
               {business.role !== "owner" ? ` ${d.sampleData.ownerOnly}` : null}
             </p>
-            <span className="flex flex-wrap items-center gap-2">
+            <span className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 pl-7 sm:w-auto sm:pl-0">
               {/* Owner only: the server action and the database check it again. */}
               {business.role === "owner" ? (
                 <ActionButton action={clearSampleData} confirm={d.sampleData.confirm} pendingLabel={d.sampleData.clearing} errors={d.errors} variant="dark">

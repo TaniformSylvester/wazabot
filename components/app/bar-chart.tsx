@@ -34,7 +34,8 @@ export function BarChart({
       </div>
       <div className="mt-1.5 flex gap-[3px] text-[0.625rem] text-slate" aria-hidden>
         {data.map((d, i) => (
-          <span key={d.key} className="min-w-0 flex-1 overflow-visible whitespace-nowrap">
+          // The last label ends at the chart's right edge instead of running past it (phones).
+          <span key={d.key} className={i === data.length - 1 ? "flex min-w-0 flex-1 justify-end overflow-visible whitespace-nowrap" : "min-w-0 flex-1 overflow-visible whitespace-nowrap"}>
             {label?.(i) ? d.label : ""}
           </span>
         ))}

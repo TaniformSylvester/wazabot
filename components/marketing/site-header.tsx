@@ -166,7 +166,7 @@ export function SiteHeader() {
                   </Button>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Button asChild size="lg">
+                  <Button asChild size="lg" className="h-auto min-h-13 whitespace-normal py-3 text-center leading-snug">
                     <Link href={registerHref}>
                       {WAITLIST_MODE ? t.common.nav.joinBeta : school ? sn.start : t.common.nav.startFree} <ArrowRight />
                     </Link>
