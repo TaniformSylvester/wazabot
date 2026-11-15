@@ -23,9 +23,9 @@ export async function CTASection({ title, text, registerHref, secondary }: { tit
           <h2 id="cta-title" className="type-h1 relative mx-auto mt-6 max-w-2xl text-white">
             {title ?? t.cta.title}
           </h2>
-          <p className="type-lead relative mx-auto mt-4 max-w-xl text-white/75">{text ?? t.cta.text}</p>
+          <p className="type-lead relative mx-auto mt-4 max-w-xl text-white/75">{text ?? (WAITLIST_MODE ? t.cta.textBeta : t.cta.text)}</p>
           <div className="relative mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="group">
+            <Button asChild size="lg" className="group h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
               <Link href={WAITLIST_MODE ? startHref(locale, registerHref ?? "/register") : (registerHref ?? localizePath(locale, "/register"))} data-testid="cta-start">
                 {WAITLIST_MODE ? t.common.nav.joinBeta : t.common.nav.startFree}
                 <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />

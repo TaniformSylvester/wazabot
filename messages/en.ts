@@ -732,6 +732,8 @@ const en = {
   cta: {
     title: "Ready to put the notebook away?",
     text: "Sales, stock, credit and receipts in one place, for shops, restaurants and schools. Start with 14 days free — no payment needed.",
+    /** While sign-up is closed (beta waitlist mode). */
+    textBeta: "Sales, stock, credit and receipts in one place, for shops, restaurants and schools. Join the early-access beta: we'll set up your catalogue, menu or fees for free.",
   },
 
   pages: {

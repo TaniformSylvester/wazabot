@@ -731,6 +731,8 @@ const fr: Messages = {
   cta: {
     title: "Prêt à ranger le cahier ?",
     text: "Ventes, stock, crédits et reçus au même endroit, pour les boutiques, les restaurants et les écoles. Commencez par 14 jours gratuits — sans payer.",
+    /** While sign-up is closed (beta waitlist mode). */
+    textBeta: "Ventes, stock, crédits et reçus au même endroit, pour les boutiques, les restaurants et les écoles. Rejoignez la bêta : nous installons gratuitement votre catalogue, votre menu ou vos frais.",
   },
 
   pages: {

@@ -49,7 +49,7 @@ export default async function SolutionPage({ params }: PageProps<"/[lang]/soluti
       <JsonLd graph={[faqGraph(page.faq), breadcrumbGraph(locale, t, [{ name: l.breadcrumb, path: "/solutions" }, { name: page.eyebrow, path }])]} />
       <PageIntro eyebrow={page.eyebrow} title={page.title} description={page.lead} />
       <div className="container-page flex justify-center pb-4">
-        <Button asChild size="lg" className="group">
+        <Button asChild size="lg" className="group h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
           <Link href={WAITLIST_MODE ? startHref(locale, `/register?type=${slug}`) : `${localizePath(locale, "/register")}?type=${slug}`}>
             {WAITLIST_MODE ? t.common.nav.joinBeta : l.start}
             <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />

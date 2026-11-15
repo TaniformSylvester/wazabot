@@ -45,7 +45,7 @@ export async function Hero() {
           </p>
 
           <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <Button asChild size="lg" className="group">
+            <Button asChild size="lg" className="group h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
               <Link href={startHref(locale)} data-testid="hero-start">
                 {WAITLIST_MODE ? t.common.nav.joinBeta : t.common.nav.startFree}
                 <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />

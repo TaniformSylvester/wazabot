@@ -52,7 +52,8 @@ export default async function SchoolsPage() {
             <Link href="#plans">{s.seePlans}</Link>
           </Button>
         </div>
-        <p className="text-sm text-slate">{s.startNote}</p>
+        {/* While sign-up is closed (beta waitlist), no trial to promise yet. */}
+        {WAITLIST_MODE ? null : <p className="text-sm text-slate">{s.startNote}</p>}
       </div>
 
       <section id="how" aria-labelledby="schools-how" className="container-page scroll-mt-20 py-16">
@@ -104,7 +105,7 @@ export default async function SchoolsPage() {
           ))}
         </dl>
       </section>
-      <CTASection title={s.ctaTitle} text={s.ctaText} registerHref={register} secondary={{ href: "#plans", label: s.seePlans }} />
+      <CTASection title={s.ctaTitle} text={WAITLIST_MODE ? undefined : s.ctaText} registerHref={register} secondary={{ href: "#plans", label: s.seePlans }} />
     </>
   );
 }
