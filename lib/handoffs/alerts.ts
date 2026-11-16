@@ -13,6 +13,8 @@ export type HandoffItem = {
   /** The customer's latest message (or when the thread started). */
   at: string;
   requested: boolean;
+  /** A Test AI Bot hand-over (not a real customer). */
+  test?: boolean;
 };
 
 export type HandoffState = { count: number; items: HandoffItem[] };

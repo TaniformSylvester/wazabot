@@ -11,7 +11,7 @@ import { answerWithRules } from "@/lib/ai/rules";
 import { prefetchCatalog, recentTopics } from "@/lib/ai/tools/prefetch";
 import { resolveCatalogPhoto } from "@/lib/ai/tools/registry";
 import { WHATSAPP_TEXT_LIMIT, validateAIResponse } from "@/lib/ai/service";
-import { MANAGERS, requireRoleForAction } from "@/lib/auth/requireRole";
+import { MANAGERS, requireRoleForAction, type RoleContext } from "@/lib/auth/requireRole";
 import { logClaudeCalls, type ClaudeCallUsage } from "@/lib/billing/costs";
 import { isOpenAt } from "@/lib/business/hours";
 import { isLanguageCode, type LanguageCode } from "@/lib/i18n/languages";
@@ -59,6 +59,8 @@ export type TestChatResult =
       summary: string | null;
       /** Answered by the rules layer (no Claude call), as it would be on WhatsApp. */
       ruled?: boolean;
+      /** The simulator put this hand-over in the Live Handoff Queue (TEST). */
+      queued?: boolean;
       /** The catalog photo that would be sent after the reply. */
       photo?: { url: string; caption: string } | null;
     }
@@ -66,18 +68,22 @@ export type TestChatResult =
 
 export type TestChatError = "forbidden" | "not_configured" | "invalid" | "image_invalid" | "rate_limited" | "paused" | "refusal" | "failed" | "network" | "timeout";
 
-export async function sendTestMessage(input: unknown): Promise<TestChatResult> {
+/**
+ * `ctx`: a member the caller already checked (the route lets the WazaBolt team in for demos too);
+ * without it, owners and managers only.
+ */
+export async function sendTestMessage(input: unknown, ctx?: RoleContext): Promise<TestChatResult> {
   try {
-    return await runTestMessage(input);
+    return await runTestMessage(input, ctx);
   } catch (e) {
     logServerError("ai.testChat", { code: "unexpected", message: e instanceof Error ? e.name : "error" });
     return { ok: false, error: "failed" };
   }
 }
 
-async function runTestMessage(input: unknown): Promise<TestChatResult> {
+async function runTestMessage(input: unknown, checked?: RoleContext): Promise<TestChatResult> {
   // The AI system: owners and managers only (staff use the inbox, not the assistant's test bench).
-  const ctx = await requireRoleForAction(MANAGERS);
+  const ctx = checked ?? (await requireRoleForAction(MANAGERS));
   if (!ctx) return { ok: false, error: "forbidden" };
   if (!aiConfigured()) return { ok: false, error: "not_configured" };
   const parsed = inputSchema.safeParse(input);

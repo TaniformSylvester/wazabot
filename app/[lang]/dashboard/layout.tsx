@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { defaultModules, getBusinessModules } from "@/lib/modules";
 import { UserCard, initials } from "@/components/dashboard/user-card";
+import { TestBotButton } from "@/components/dashboard/test-bot-button";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { HandoffAlerts } from "@/components/dashboard/handoff-alerts";
 import { Clock, Lock, PauseCircle, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
@@ -36,6 +37,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getWhatsAppConnection } from "@/lib/data/queries";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/paths";
+import { LANGUAGE_CODES, languageName } from "@/lib/i18n/languages";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getMessages();
@@ -147,6 +149,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {/* The live handoff queue: refreshes the page, "(n)" on the tab, chime and notifications (members who work the inbox). */}
           {business && modules.includes("ai") && business.role !== "teacher" && business.role !== "kitchen" ? (
             <HandoffAlerts labels={d.header.alerts} conversationsHref={localizePath(locale, "/dashboard/conversations")} />
+          ) : null}
+          {/* "Test AI Bot": owners, and the WazaBolt team (demos). The endpoint checks it again. */}
+          {business && modules.includes("ai") && (business.role === "owner" || platformAdmin) ? (
+            <TestBotButton t={d.aiTest} languageNames={Object.fromEntries(LANGUAGE_CODES.map((c) => [c, languageName(c, locale)]))} />
           ) : null}
           <LanguageSwitcher persist />
           <Link

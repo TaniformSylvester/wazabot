@@ -1492,6 +1492,9 @@ const fr: Messages = {
       ownerOnly: "Le propriétaire peut les effacer.",
       dismiss: "Masquer",
       badge: "Exemple",
+      /** Un transfert du « Tester le bot IA » dans la file et la boîte de réception. */
+      testBadge: "Test",
+      testComposer: "Une discussion de test du « Tester le bot IA » : les réponses ne sont envoyées nulle part. Résolvez-la pour la retirer de la file, ou utilisez « Effacer le test » dans le simulateur.",
     },
     billingBanner: {
       renewSoon: "Votre forfait {plan} se termine le {date}. Payez la période suivante pour continuer sans interruption.",
@@ -3253,6 +3256,20 @@ const fr: Messages = {
       photoHint: "Envoyez une photo de produit comme le ferait un client (« vous avez ça ? »). Elle est comparée aux photos de votre catalogue.",
       typing: "L'assistant écrit…",
       reset: "Recommencer",
+      /** Sous chaque réponse : qui garde la discussion. */
+      keptByAi: "L'IA a gardé la discussion",
+      /** Le simulateur (« Tester le bot IA » dans l'en-tête). */
+      simulator: {
+        button: "Tester le bot IA",
+        title: "Tester le bot IA",
+        description: "Écrivez comme un client. Votre vrai catalogue, vos FAQ et vos réglages sont utilisés ; rien n'est envoyé sur WhatsApp.",
+        testMode: "Rien n'est envoyé sur WhatsApp ; les commandes sont simulées. Un transfert arrive dans la file des transferts, marqué TEST.",
+        queued: "Dans la file des transferts (TEST)",
+        openQueue: "Ouvrir",
+        placeholder: "Votre message…",
+        clear: "Effacer le test",
+        cleared: "Discussion de test retirée de la file.",
+      },
       you: "Vous (en tant que client)",
       assistant: "Assistant",
       tools: "A consulté : {tools}",

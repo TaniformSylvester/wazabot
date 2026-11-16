@@ -1493,6 +1493,9 @@ const en = {
       ownerOnly: "The owner can clear it.",
       dismiss: "Hide",
       badge: "Sample",
+      /** A "Test AI Bot" hand-over in the queue and the inbox. */
+      testBadge: "Test",
+      testComposer: "A test chat from Test AI Bot: replies aren't sent anywhere. Resolve it to clear it from the queue, or use Clear test in the simulator.",
     },
     billingBanner: {
       renewSoon: "Your {plan} plan ends on {date}. Pay for the next period to keep using WazaBolt without a break.",
@@ -3254,6 +3257,20 @@ const en = {
       photoHint: "Send a product photo as a customer would (\"do you have this?\"). It is checked against your catalog photos.",
       typing: "The assistant is typing…",
       reset: "Start over",
+      /** Under each reply: who keeps the chat. */
+      keptByAi: "AI kept the chat",
+      /** The simulator ("Test AI Bot" in the header). */
+      simulator: {
+        button: "Test AI Bot",
+        title: "Test AI Bot",
+        description: "Write as a customer would. Your real catalog, FAQs and settings are used; nothing is sent on WhatsApp.",
+        testMode: "Nothing is sent on WhatsApp; orders are simulated. A hand-over goes to the Live Handoff Queue, marked TEST.",
+        queued: "Now in the Live Handoff Queue (TEST)",
+        openQueue: "Open",
+        placeholder: "Your message…",
+        clear: "Clear test",
+        cleared: "Test chat removed from the queue.",
+      },
       you: "You (as a customer)",
       assistant: "Assistant",
       tools: "Looked up: {tools}",

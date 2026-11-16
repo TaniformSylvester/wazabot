@@ -116,7 +116,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
       </Link>
       <div className="grid overflow-hidden rounded-3xl border border-border bg-card shadow-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[20rem_1fr] xl:grid-cols-[20rem_1fr_19rem]">
         <aside className="hidden min-h-0 flex-col border-r border-border lg:flex" aria-label={c.title}>
-          <ConversationList rows={rows} activeId={conversation.id} filter={filter} q={q} t={c} searchLabel={d.common.search} locale={locale} sampleLabel={d.sampleData.badge} handoff={assistantLive ? c.handoff : undefined} />
+          <ConversationList rows={rows} activeId={conversation.id} filter={filter} q={q} t={c} searchLabel={d.common.search} locale={locale} sampleLabel={d.sampleData.badge} testLabel={d.sampleData.testBadge} handoff={assistantLive ? c.handoff : undefined} />
         </aside>
 
         {/* Phones (< 768 px): a full-height drawer — header on top, the reply box and quick replies at the bottom, in thumb reach. */}
@@ -139,7 +139,7 @@ export default async function ConversationPage({ params, searchParams }: PagePro
               </StatusBadge>
               <StatusBadge tone={conversationStatusTone[conversation.status]}>{statusLabel}</StatusBadge>
               {conversation.human_requested ? <StatusBadge tone="red">{c.humanRequested}</StatusBadge> : null}
-              {conversation.is_sample ? <SampleBadge label={d.sampleData.badge} /> : null}
+              {conversation.is_sample ? <SampleBadge label={conversation.is_test ? d.sampleData.testBadge : d.sampleData.badge} /> : null}
               {showCountdown && conversation.handoff_expires_at ? <HandoffCountdown expiresAt={conversation.handoff_expires_at} labels={c.handoff} /> : null}
               {showCountdown && canAct ? (
                 <ActionButton action={extendHandoff.bind(null, conversation.id)} pendingLabel={c.handoff.extending} errors={d.errors} variant="ghost" className="h-7 px-2.5 text-xs">
@@ -189,8 +189,8 @@ export default async function ConversationPage({ params, searchParams }: PagePro
 
           <footer className="border-t border-border bg-card p-4 max-md:px-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-md:shadow-[0_-6px_16px_-12px_rgb(16_42_42/0.35)]">
             {conversation.is_sample ? (
-              // A sample conversation: its customer isn't real, so there's nothing to send (the server refuses too).
-              <ComposerNote text={d.errors.sample_conversation} />
+              // A sample (or Test AI Bot) conversation: its customer isn't real, so there's nothing to send (the server refuses too).
+              <ComposerNote text={conversation.is_test ? d.sampleData.testComposer : d.errors.sample_conversation} />
             ) : !canAct ? (
               <ComposerNote text={c.composer.readOnly} />
             ) : !connected ? (

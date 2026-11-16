@@ -281,7 +281,9 @@ export async function listCustomers(businessId: string, f: { q?: string; languag
   let q = db
     .from("customers")
     .select("id, reference, name, whatsapp_phone, preferred_language, city, tags, last_contact_at, created_at, is_sample", { count: "exact" })
-    .eq("business_id", businessId);
+    .eq("business_id", businessId)
+    // Test AI Bot chats aren't customers.
+    .eq("is_test", false);
   const pattern = customerPattern(f.q);
   if (pattern) q = q.or(`name.ilike.${pattern},whatsapp_phone.ilike.${pattern},city.ilike.${pattern},email.ilike.${pattern},reference.ilike.${pattern}`);
   if (f.language && isLanguageCode(f.language)) q = q.eq("preferred_language", f.language);
@@ -394,7 +396,7 @@ export async function listConversations(businessId: string, f: ConversationFilte
   const db = await createClient();
   let q = db
     .from("conversations")
-    .select("id, status, ai_enabled, human_requested, unread_count, language, last_message_at, created_at, is_sample, handoff_expires_at, customers(id, name, whatsapp_phone)")
+    .select("id, status, ai_enabled, human_requested, unread_count, language, last_message_at, created_at, is_sample, is_test, handoff_expires_at, customers(id, name, whatsapp_phone)")
     .eq("business_id", businessId);
   if (f.status && (CONVERSATION_STATUSES as readonly string[]).includes(f.status)) q = q.eq("status", f.status);
   else q = q.neq("status", "archived");

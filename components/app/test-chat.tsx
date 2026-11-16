@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { FlaskConical, Hand, ImagePlus, Loader2, RotateCcw, Send, TriangleAlert, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Bot, FlaskConical, Hand, ImagePlus, Loader2, RotateCcw, Send, TriangleAlert, X } from "lucide-react";
 
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Button } from "@/components/ui/button";
 import type { TestChatError, TestChatResult } from "@/lib/ai/test-chat";
 import { format } from "@/lib/i18n/format";
@@ -55,7 +56,21 @@ async function ask(payload: unknown): Promise<TestChatResult> {
 }
 
 /** The transcript lives only in this browser tab; each message is answered by /api/ai/test-chat. */
-export function TestChat({ t, languageNames }: { t: T; languageNames: Record<string, string> }) {
+export function TestChat({
+  t,
+  languageNames,
+  simulator = false,
+  className,
+}: {
+  t: T;
+  languageNames: Record<string, string>;
+  /** The header's "Test AI Bot": hand-overs go to the Live Handoff Queue (TEST), with "Clear test". */
+  simulator?: boolean;
+  className?: string;
+}) {
+  const { href } = useI18n();
+  const inputId = useId();
+  const [notice, setNotice] = useState<string | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +100,7 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
     const summary = [...turns].reverse().find((turn): turn is Extract<Turn, { role: "assistant" }> => turn.role === "assistant" && !!turn.meta.summary)?.meta.summary ?? null;
     setTurns((prev) => [...prev, { role: "customer", text: message, photo: sentPhoto?.dataUrl }]);
     setPending(true);
-    void ask({ message, history, language: lastLanguage, summary, image: sentPhoto?.base64 ?? null }).then((res) => {
+    void ask({ message, history, language: lastLanguage, summary, image: sentPhoto?.base64 ?? null, ...(simulator ? { queue: true } : {}) }).then((res) => {
       setPending(false);
       if (res.ok) setTurns((prev) => [...prev, { role: "assistant", text: res.reply, meta: res }]);
       else {
@@ -108,15 +123,38 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
   };
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-card">
+    <div className={cn("flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-card", className)}>
       <div className="flex items-start gap-3 border-b border-border bg-gold-50 px-4 py-3 text-xs text-gold-800">
         <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <p>
-          {t.testMode} {t.photoHint}
+        <p className="min-w-0 flex-1">
+          {simulator ? t.simulator.testMode : `${t.testMode} ${t.photoHint}`}
         </p>
+        {simulator ? (
+          <button
+            type="button"
+            onClick={() => {
+              setNotice(null);
+              void fetch("/api/ai/test-chat", { method: "DELETE" }).then((r) => {
+                if (r.ok) {
+                  setTurns([]);
+                  setNotice(t.simulator.cleared);
+                }
+              });
+            }}
+            className="shrink-0 rounded-full border border-gold-200 bg-white px-2.5 py-1 font-semibold text-deep hover:bg-mint"
+            data-testid="clear-test"
+          >
+            {t.simulator.clear}
+          </button>
+        ) : null}
       </div>
+      {notice ? (
+        <p role="status" className="border-b border-border bg-mint px-4 py-2 text-xs text-deep">
+          {notice}
+        </p>
+      ) : null}
 
-      <div className="flex max-h-[60dvh] min-h-80 flex-col gap-3 overflow-y-auto bg-surface/60 p-4" aria-live="polite">
+      <div className={cn("flex min-h-80 flex-col gap-3 overflow-y-auto bg-surface/60 p-4", simulator ? "flex-1" : "max-h-[60dvh]")} aria-live="polite">
         {turns.length === 0 ? (
           <div className="m-auto max-w-md text-center">
             <p className="text-sm text-slate">{t.empty}</p>
@@ -170,10 +208,24 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
                   {turn.meta.tools.length ? (
                     <span>{format(t.tools, { tools: [...new Set(turn.meta.tools)].map((n) => t.toolNames[n as keyof T["toolNames"]] ?? n).join(", ") })}</span>
                   ) : null}
+                  {/* Who keeps the chat: the assistant (it would stay with the AI), or the team (a hand-over, with the reason). */}
                   {turn.meta.needsHuman ? (
-                    <span className="inline-flex items-center gap-1 font-semibold text-gold-800">
-                      <Hand className="size-3" aria-hidden /> {t.handover}
+                    <span className="font-semibold text-gold-800" data-testid="decision-escalate">
+                      <Hand className="mr-1 inline size-3 align-[-1px]" aria-hidden />
+                      {t.handover}
                       {turn.meta.handoffReason ? ` — ${format(t.handoverReason, { reason: turn.meta.handoffReason })}` : null}
+                    </span>
+                  ) : !turn.meta.blocked ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-mint px-2 py-0.5 font-semibold text-waza-800" data-testid="decision-ai">
+                      <Bot className="size-3" aria-hidden /> {t.keptByAi}
+                    </span>
+                  ) : null}
+                  {turn.meta.queued ? (
+                    <span className="inline-flex items-center gap-1 font-semibold text-deep" data-testid="decision-queued">
+                      {t.simulator.queued} ·{" "}
+                      <a href={href("/dashboard/conversations")} className="text-waza-700 underline">
+                        {t.simulator.openQueue}
+                      </a>
                     </span>
                   ) : null}
                   {turn.meta.blocked ? (
@@ -235,15 +287,15 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
         <Button type="button" variant="outline" size="icon" className="size-11 shrink-0" aria-label={t.attach} title={t.attach} disabled={pending} onClick={() => fileRef.current?.click()}>
           <ImagePlus aria-hidden />
         </Button>
-        <label htmlFor="test-chat-input" className="sr-only">
+        <label htmlFor={inputId} className="sr-only">
           {t.placeholder}
         </label>
         <textarea
-          id="test-chat-input"
+          id={inputId}
           rows={1}
           maxLength={1000}
           value={draft}
-          placeholder={t.placeholder}
+          placeholder={simulator ? t.simulator.placeholder : t.placeholder}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -253,12 +305,12 @@ export function TestChat({ t, languageNames }: { t: T; languageNames: Record<str
           }}
           className="max-h-32 min-h-11 min-w-0 flex-1 resize-y rounded-2xl border border-input bg-card px-3.5 py-2.5 text-[0.9375rem] text-deep outline-none focus-visible:border-waza-500 focus-visible:ring-4 focus-visible:ring-waza-500/15"
         />
-        <Button type="submit" disabled={pending || (!draft.trim() && !photo)} className="h-11 shrink-0">
+        <Button type="submit" disabled={pending || (!draft.trim() && !photo)} className="h-11 shrink-0 max-sm:w-11 max-sm:px-0" aria-label={t.send}>
           {/* Both icons stay mounted and text sits in its own span: translation/extension tools that rewrite
               text nodes then can't break React's DOM updates when the button switches state. */}
           <Loader2 className={cn("animate-spin", !pending && "hidden")} aria-hidden />
           <Send className={cn(pending && "hidden")} aria-hidden />
-          <span>{t.send}</span>
+          <span className="max-sm:sr-only">{t.send}</span>
         </Button>
         {turns.length ? (
           <Button type="button" variant="ghost" size="icon" aria-label={t.reset} title={t.reset} disabled={pending} onClick={() => { setTurns([]); setError(null); }}>

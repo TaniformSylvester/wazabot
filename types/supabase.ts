@@ -1150,10 +1150,6 @@ export type Database = {
       };
       conversations: {
         Row: {
-          handoff_expires_at: string | null;
-          resolved_at: string | null;
-          resolved_by: string | null;
-          is_sample: boolean;
           ai_enabled: boolean;
           ai_summary: string | null;
           ai_summary_updated_at: string | null;
@@ -1162,20 +1158,21 @@ export type Database = {
           channel: string;
           created_at: string;
           customer_id: string;
+          handoff_expires_at: string | null;
           human_requested: boolean;
           id: string;
+          is_sample: boolean;
+          is_test: boolean;
           language: string | null;
           last_customer_message_at: string | null;
           last_message_at: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
           status: string;
           unread_count: number;
           updated_at: string;
         };
         Insert: {
-          handoff_expires_at?: string | null;
-          resolved_at?: string | null;
-          resolved_by?: string | null;
-          is_sample?: boolean;
           ai_enabled?: boolean;
           ai_summary?: string | null;
           ai_summary_updated_at?: string | null;
@@ -1184,20 +1181,21 @@ export type Database = {
           channel?: string;
           created_at?: string;
           customer_id: string;
+          handoff_expires_at?: string | null;
           human_requested?: boolean;
           id?: string;
+          is_sample?: boolean;
+          is_test?: boolean;
           language?: string | null;
           last_customer_message_at?: string | null;
           last_message_at?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
           status?: string;
           unread_count?: number;
           updated_at?: string;
         };
         Update: {
-          handoff_expires_at?: string | null;
-          resolved_at?: string | null;
-          resolved_by?: string | null;
-          is_sample?: boolean;
           ai_enabled?: boolean;
           ai_summary?: string | null;
           ai_summary_updated_at?: string | null;
@@ -1206,11 +1204,16 @@ export type Database = {
           channel?: string;
           created_at?: string;
           customer_id?: string;
+          handoff_expires_at?: string | null;
           human_requested?: boolean;
           id?: string;
+          is_sample?: boolean;
+          is_test?: boolean;
           language?: string | null;
           last_customer_message_at?: string | null;
           last_message_at?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
           status?: string;
           unread_count?: number;
           updated_at?: string;
@@ -1319,13 +1322,14 @@ export type Database = {
       };
       customers: {
         Row: {
-          is_sample: boolean;
           business_id: string;
           city: string | null;
           created_at: string;
           email: string | null;
           first_contact_at: string | null;
           id: string;
+          is_sample: boolean;
+          is_test: boolean;
           last_contact_at: string | null;
           last_detected_language: string | null;
           marketing_opt_in: boolean;
@@ -1342,13 +1346,14 @@ export type Database = {
           whatsapp_phone: string;
         };
         Insert: {
-          is_sample?: boolean;
           business_id: string;
           city?: string | null;
           created_at?: string;
           email?: string | null;
           first_contact_at?: string | null;
           id?: string;
+          is_sample?: boolean;
+          is_test?: boolean;
           last_contact_at?: string | null;
           last_detected_language?: string | null;
           marketing_opt_in?: boolean;
@@ -1365,13 +1370,14 @@ export type Database = {
           whatsapp_phone: string;
         };
         Update: {
-          is_sample?: boolean;
           business_id?: string;
           city?: string | null;
           created_at?: string;
           email?: string | null;
           first_contact_at?: string | null;
           id?: string;
+          is_sample?: boolean;
+          is_test?: boolean;
           last_contact_at?: string | null;
           last_detected_language?: string | null;
           marketing_opt_in?: boolean;

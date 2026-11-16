@@ -31,6 +31,7 @@ export function ConversationList({
   searchLabel,
   locale,
   sampleLabel,
+  testLabel,
   handoff,
 }: {
   rows: Row[];
@@ -42,6 +43,8 @@ export function ConversationList({
   locale: Locale;
   /** "Sample": marks the sample conversations a new workspace starts with. */
   sampleLabel?: string;
+  /** "Test": a Test AI Bot hand-over. */
+  testLabel?: string;
   /** The failsafe countdown on chats with the team — only passed where the AI assistant really answers. */
   handoff?: { resumesIn: string; resumesNext: string };
 }) {
@@ -101,7 +104,7 @@ export function ConversationList({
                     <StatusBadge tone={r.ai_enabled ? "blue" : "amber"}>{r.ai_enabled ? t.aiOnline : t.humanMode}</StatusBadge>
                     {r.status !== "open" ? <StatusBadge>{t.statuses[r.status as keyof C["statuses"]] ?? r.status}</StatusBadge> : null}
                     {r.human_requested ? <StatusBadge tone="red">{t.humanRequested}</StatusBadge> : null}
-                    {r.is_sample && sampleLabel ? <SampleBadge label={sampleLabel} /> : null}
+                    {r.is_sample && sampleLabel ? <SampleBadge label={r.is_test && testLabel ? testLabel : sampleLabel} /> : null}
                     {handoff && !r.is_sample && r.handoff_expires_at && (!r.ai_enabled || r.human_requested) && (r.status === "open" || r.status === "pending") ? (
                       <HandoffCountdown expiresAt={r.handoff_expires_at} labels={handoff} compact />
                     ) : null}

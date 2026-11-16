@@ -32,11 +32,11 @@ export async function GET() {
   const db = await createClient();
   const { data, count, error } = await db
     .from("conversations")
-    .select("id, created_at, last_customer_message_at, human_requested, customers(name, whatsapp_phone)", { count: "exact" })
+    .select("id, created_at, last_customer_message_at, human_requested, is_test, customers(name, whatsapp_phone)", { count: "exact" })
     .eq("business_id", business.id)
-    .eq("is_sample", false)
     .in("status", ["open", "pending"])
-    .or("human_requested.eq.true,ai_enabled.eq.false")
+    // Real chats waiting for a person, and "Test AI Bot" hand-overs (TEST); never the sample chats.
+    .or("and(is_sample.eq.false,or(human_requested.eq.true,ai_enabled.eq.false)),and(is_test.eq.true,or(human_requested.eq.true,ai_enabled.eq.false))")
     .order("last_customer_message_at", { ascending: false, nullsFirst: false })
     .limit(MAX_ITEMS);
   if (error) return Response.json({ ok: false, error: "failed" }, { status: 500, headers: NO_STORE });
@@ -46,6 +46,7 @@ export async function GET() {
     name: c.customers?.name || (c.customers?.whatsapp_phone ? `+${c.customers.whatsapp_phone}` : ""),
     at: c.last_customer_message_at ?? c.created_at,
     requested: c.human_requested,
+    ...(c.is_test ? { test: true } : {}),
   }));
   return Response.json({ ok: true, count: count ?? items.length, items } satisfies HandoffState & { ok: true }, { headers: NO_STORE });
 }
