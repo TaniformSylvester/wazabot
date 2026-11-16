@@ -23,12 +23,15 @@ export function LanguageSwitcher({
   tone = "light",
   persist = false,
   compact = false,
+  singleOnPhone = false,
   className,
 }: {
   tone?: "light" | "dark";
   persist?: boolean;
   /** Hide the globe icon (tight headers). */
   compact?: boolean;
+  /** On phones (under 640px), only the other language's button: one tap switches (the dashboard's crowded header). */
+  singleOnPhone?: boolean;
   className?: string;
 }) {
   const { locale, t } = useI18n();
@@ -73,6 +76,7 @@ export function LanguageSwitcher({
             title={t.common.language.names[l]}
             className={cn(
               "inline-flex h-8 min-w-9 items-center justify-center rounded-full px-2.5 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-waza-500/50",
+              singleOnPhone && active && "max-sm:hidden",
               active
                 ? tone === "dark"
                   ? "bg-waza-500 text-deep"

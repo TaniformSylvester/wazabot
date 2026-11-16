@@ -24,7 +24,8 @@ export function TestBotButton({ t, languageNames }: { t: Messages["dashboard"]["
           data-testid="test-bot-button"
         >
           <FlaskConical className="size-4" aria-hidden />
-          <span className="hidden lg:inline">{t.simulator.button}</span>
+          {/* The label only where the header has room for it beside the business name. */}
+          <span className="hidden xl:inline">{t.simulator.button}</span>
         </button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full max-w-full gap-3 p-0 sm:max-w-lg" data-testid="test-bot-panel">

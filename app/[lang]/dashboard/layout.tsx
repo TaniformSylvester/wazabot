@@ -110,7 +110,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-cream/90 px-4 backdrop-blur-md sm:px-6 print:hidden">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-cream/90 px-4 backdrop-blur-md sm:gap-3 sm:px-6 print:hidden">
           <MobileNav footer={userCard} labels={d.nav} role={business?.role ?? null} modules={modules} />
           <div className="min-w-0 flex-1">
             {business && businesses.length > 1 ? (
@@ -154,11 +154,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {business && modules.includes("ai") && (business.role === "owner" || platformAdmin) ? (
             <TestBotButton t={d.aiTest} languageNames={Object.fromEntries(LANGUAGE_CODES.map((c) => [c, languageName(c, locale)]))} />
           ) : null}
-          <LanguageSwitcher persist />
+          <LanguageSwitcher persist singleOnPhone />
           <Link
             href={localizePath(locale, "/dashboard/settings")}
             aria-label={d.header.accountSettings}
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-gold text-xs font-bold text-deep"
+            // Phones: hidden to leave room for the business name (Settings is in the menu).
+            className="hidden size-9 shrink-0 place-items-center rounded-full bg-gold text-xs font-bold text-deep sm:grid"
           >
             {initials(user.fullName, user.email)}
           </Link>

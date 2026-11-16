@@ -124,7 +124,10 @@ mkdirSync("test-results", { recursive: true });
 
     // Tap targets in the top bar.
     await page.goto(`${APP}/en/dashboard`, { waitUntil: "networkidle" });
-    const sizes = await page.evaluate(() => [...document.querySelectorAll('header [role="group"] button, header button[aria-label], header a[aria-label]')].map((b) => Math.round(b.getBoundingClientRect().height)));
+    // Visible ones only: on phones the avatar and the current language's button are hidden (not tap targets).
+    const sizes = await page.evaluate(() =>
+      [...document.querySelectorAll('header [role="group"] button, header button[aria-label], header a[aria-label]')].filter((b) => b.getClientRects().length > 0).map((b) => Math.round(b.getBoundingClientRect().height)),
+    );
     ok("top bar buttons are at least 32px tall", sizes.length >= 3 && sizes.every((h) => h >= 32), sizes.join(","));
     await page.screenshot({ path: "test-results/mobile-orders.png" });
     ok("no browser errors", errors.length === 0, errors.join(" | "));

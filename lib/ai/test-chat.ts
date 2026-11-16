@@ -66,7 +66,31 @@ export type TestChatResult =
     }
   | { ok: false; error: TestChatError };
 
-export type TestChatError = "forbidden" | "not_configured" | "invalid" | "image_invalid" | "rate_limited" | "paused" | "refusal" | "failed" | "network" | "timeout";
+export type TestChatError =
+  | "forbidden"
+  | "not_configured"
+  | "invalid"
+  | "image_invalid"
+  | "rate_limited"
+  | "paused"
+  | "refusal"
+  | "failed"
+  | "network"
+  | "timeout"
+  /** The AI service turned the API key down (401/403). */
+  | "key_invalid"
+  /** The AI account is out of credit. */
+  | "no_credit"
+  /** Rate-limited or overloaded on the AI service's side (429/5xx). */
+  | "busy";
+
+/** What the owner can do about a failed AI call: fix the key, add credit, wait — or just retry. */
+export function apiErrorKind(e: { code: string; message: string }): TestChatError {
+  if (e.code === "api_401" || e.code === "api_403") return "key_invalid";
+  if (e.code === "api_400" && /credit balance/i.test(e.message)) return "no_credit";
+  if (e.code === "api_429" || e.code === "api_529" || e.code === "api_503" || e.code === "api_500") return "busy";
+  return "failed";
+}
 
 /**
  * `ctx`: a member the caller already checked (the route lets the WazaBolt team in for demos too);
@@ -195,9 +219,10 @@ async function runTestMessage(input: unknown, checked?: RoleContext): Promise<Te
     };
   } catch (e) {
     const reason = e instanceof AiRefusalError ? "refusal" : e instanceof AiNoReplyError ? e.reason : "api_error";
-    logServerError("ai.testChat", describeAiError(e));
+    const described = describeAiError(e);
+    logServerError("ai.testChat", described);
     await admin?.from("ai_usage").insert({ business_id: businessId, model: "none", outcome: "failed", reason: "test_chat", duration_ms: Date.now() - started });
     if (admin) await logClaudeCalls(admin, businessId, calls, { source: "test_chat" });
-    return { ok: false, error: reason === "refusal" ? "refusal" : "failed" };
+    return { ok: false, error: reason === "refusal" ? "refusal" : apiErrorKind(described) };
   }
 }
