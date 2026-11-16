@@ -11,6 +11,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
+import { startFakeResend } from "./fake-resend.mjs";
 import { chromium } from "./playwright.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
@@ -61,6 +62,9 @@ mkdirSync("test-results", { recursive: true });
     return p;
   };
   const page = await open();
+  // The app's emails (RESEND_API_URL=http://localhost:4030 in the test app).
+  const resend = await startFakeResend(4030);
+  const teamMails = (s) => resend.emails.filter((m) => m.subject.includes("New beta waitlist lead") && m.subject.includes(s));
 
   try {
     if (EXPECT === "off") {
@@ -118,6 +122,20 @@ mkdirSync("test-results", { recursive: true });
       ok("bad input: 400 with the fields", bad.status === 400 && ["businessName", "whatsappNumber", "email", "vertical"].every((k) => k in (badBody.fieldErrors ?? {})), JSON.stringify(badBody));
       const bot = await post({ businessName: "Bot Shop", whatsappNumber: "+237699000111", email: `bot+${stamp}@example.com`, vertical: "shop", website: "http://spam.example" });
       ok("a bot filling the hidden field: told it worked, nothing kept", bot.status === 200 && sql(`select count(*) from waitlist_leads where email = 'bot+${stamp}@example.com'`) === "0");
+      // The team is emailed once per new lead: not for repeats, not for bots.
+      for (let i = 0; i < 20 && teamMails("Mama Ngozi Kitchen").length === 0; i++) await new Promise((r) => setTimeout(r, 250));
+      const mail = teamMails("Mama Ngozi Kitchen")[0];
+      ok(
+        "the team inbox gets an email for the new lead: business, type, WhatsApp link, email, a link to the waitlist",
+        !!mail &&
+          mail.to.includes("contact@wazabolt.com") &&
+          mail.subject.includes("(Restaurant)") &&
+          mail.html.includes(`https://wa.me/${number}`) &&
+          mail.html.includes(`ngozi+${stamp}@example.com`) &&
+          mail.html.includes("/en/admin/waitlist?vertical=restaurant"),
+        mail ? mail.subject : `${resend.emails.length} emails`,
+      );
+      ok("…once only: no email for the repeats or the bot", teamMails("Mama Ngozi").length === 1 && teamMails("Other").length === 0 && teamMails("Bot Shop").length === 0);
 
       // Rate limit: 5 new leads an hour from one address.
       const ip = `10.${tail.slice(0, 2) % 250}.${tail.slice(2, 4) % 250}.${tail.slice(4) % 250}`;
@@ -226,6 +244,7 @@ mkdirSync("test-results", { recursive: true });
   } finally {
     ok("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
     await browser.close();
+    resend.close();
     console.log(results.join("\n"));
     console.log(`\n${results.filter((r) => r.startsWith("PASS")).length}/${results.length} passed`);
   }

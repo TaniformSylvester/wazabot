@@ -1,5 +1,7 @@
 import "server-only";
 
+import { siteConfig } from "@/config/site";
+import { emailLayout, esc, sendEmail } from "@/lib/email/send";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { SIGNUP_VERTICALS, type SignupVertical } from "@/lib/validation/auth-rules";
 
@@ -41,4 +43,36 @@ export async function waitlistCounts(admin: Admin): Promise<Record<SignupVertica
     SIGNUP_VERTICALS.map(async (v) => [v, (await admin.from("waitlist_leads").select("id", { count: "exact", head: true }).eq("vertical", v)).count ?? 0] as const),
   );
   return Object.fromEntries(counts) as Record<SignupVertical, number>;
+}
+
+const VERTICAL_LABEL: Record<string, string> = { shop: "Shop", restaurant: "Restaurant", school: "School" };
+
+/**
+ * Email to the WazaBolt team inbox when a new lead joins the beta waitlist
+ * (not for repeats or bots): who they are, and a link to the waitlist page to
+ * send their beta invite. Skipped quietly when email isn't set up.
+ */
+export async function notifyTeamOfWaitlistLead(lead: { businessName: string; whatsappNumber: string; email: string; vertical: string; country?: string | null; locale?: string | null }) {
+  const link = `${siteConfig.url.replace(/\/$/, "")}/en/admin/waitlist?vertical=${encodeURIComponent(lead.vertical)}`;
+  const type = VERTICAL_LABEL[lead.vertical] ?? lead.vertical;
+  const rows: [string, string][] = [
+    ["Business", esc(lead.businessName)],
+    ["Type", esc(type)],
+    ["WhatsApp", `<a href="https://wa.me/${esc(lead.whatsappNumber)}">+${esc(lead.whatsappNumber)}</a>`],
+    ["Email", esc(lead.email)],
+    ["Country", esc(lead.country ?? "—")],
+    ["Language", lead.locale === "fr" ? "French" : "English"],
+  ];
+  await sendEmail({
+    to: siteConfig.email.teamInbox,
+    subject: `[WazaBolt] New beta waitlist lead – ${lead.businessName} (${type})`,
+    html: emailLayout({
+      title: "New beta waitlist lead",
+      intro: `<b>${esc(lead.businessName)}</b> joined the early-access beta waitlist. Send their beta invite from the waitlist page (it opens WhatsApp with their personal sign-up link).`,
+      rows,
+      button: { label: "Open the waitlist", href: link },
+      footer: "You receive this because you are on the WazaBolt team.",
+    }),
+    text: `New beta waitlist lead\n\n${lead.businessName} (${type})\nWhatsApp: +${lead.whatsappNumber}\nEmail: ${lead.email}\nCountry: ${lead.country ?? "—"}\n\nSend their beta invite: ${link}`,
+  });
 }

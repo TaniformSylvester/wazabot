@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 
+import { after } from "next/server";
 import { z } from "zod";
 
+import { notifyTeamOfWaitlistLead } from "@/lib/admin/waitlist";
 import { logServerError } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { waitlistSchema } from "@/lib/validation/waitlist";
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
   if (!admin) return json({ ok: false, error: "failed" }, 503);
-  const { error } = await admin.rpc("join_waitlist", {
+  const { data: outcome, error } = await admin.rpc("join_waitlist", {
     p_business_name: lead.businessName,
     p_whatsapp_number: lead.whatsappNumber,
     p_email: lead.email,
@@ -56,6 +58,14 @@ export async function POST(request: Request) {
     if (error.code === "WB496") return json({ ok: false, error: "rate_limited" }, 429);
     logServerError("waitlist.join", error);
     return json({ ok: false, error: "failed" }, 500);
+  }
+  // A new lead (not a repeat): the team gets an email, after the answer is sent.
+  if (outcome === "joined") {
+    after(() =>
+      notifyTeamOfWaitlistLead({ businessName: lead.businessName, whatsappNumber: lead.whatsappNumber, email: lead.email, vertical: lead.vertical, country: lead.country, locale: lead.locale }).catch((e) =>
+        logServerError("waitlist.notify", e),
+      ),
+    );
   }
   // Already on the list or just added: the same answer, so the list can't be probed.
   return json({ ok: true, number: lead.whatsappNumber });
