@@ -4445,6 +4445,10 @@ export type Database = {
           created_at: string;
           email: string;
           id: string;
+          invite_expires_at: string | null;
+          invite_token_hash: string | null;
+          invited_at: string | null;
+          joined_at: string | null;
           locale: string;
           source_hash: string | null;
           vertical: string;
@@ -4456,6 +4460,10 @@ export type Database = {
           created_at?: string;
           email: string;
           id?: string;
+          invite_expires_at?: string | null;
+          invite_token_hash?: string | null;
+          invited_at?: string | null;
+          joined_at?: string | null;
           locale?: string;
           source_hash?: string | null;
           vertical: string;
@@ -4467,6 +4475,10 @@ export type Database = {
           created_at?: string;
           email?: string;
           id?: string;
+          invite_expires_at?: string | null;
+          invite_token_hash?: string | null;
+          invited_at?: string | null;
+          joined_at?: string | null;
           locale?: string;
           source_hash?: string | null;
           vertical?: string;

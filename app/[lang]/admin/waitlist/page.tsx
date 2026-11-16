@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AdminNav } from "@/components/admin/admin-nav";
-import { PageHeader, Panel, TableWrap, td, th } from "@/components/app/ui";
+import { BetaInviteButton } from "@/components/admin/beta-invite-button";
+import { PageHeader, Panel, StatusBadge, TableWrap, td, th } from "@/components/app/ui";
 import { requirePlatformAdmin } from "@/lib/admin/access";
 import { pendingPlanRequestCount } from "@/lib/admin/plan-requests";
 import {
@@ -63,7 +64,7 @@ export default async function WaitlistAdminPage({
       />
       <PageHeader
         title="Beta waitlist"
-        description={`${WAITLIST_MODE ? "Waitlist mode is on: sign-up is closed and the site's buttons lead to the waitlist." : "Waitlist mode is off: sign-up is open."} Message each lead on WhatsApp with their beta access and set up their catalogue, menu or fees.`}
+        description={`${WAITLIST_MODE ? "Waitlist mode is on: sign-up is closed and the site's buttons lead to the waitlist." : "Waitlist mode is off: sign-up is open."} "Send beta invite" opens WhatsApp with a personal sign-up link (14 days, that lead's email only) ready to send; then set up their catalogue, menu or fees.`}
       />
       <ul
         className="grid grid-cols-2 gap-4 lg:grid-cols-4"
@@ -157,6 +158,21 @@ export default async function WaitlistAdminPage({
                     </td>
                     <td className={td}>{l.email}</td>
                     <td className={td}>{l.country_code ?? "—"}</td>
+                    <td className={td} data-testid="beta-status">
+                      {l.joined_at ? (
+                        <StatusBadge tone="green">Account created {l.joined_at.slice(0, 10)}</StatusBadge>
+                      ) : (
+                        <div className="flex flex-col items-start gap-1">
+                          {l.invited_at ? (
+                            <span className="text-xs text-slate">
+                              Invited {l.invited_at.slice(0, 10)}
+                              {l.invite_expired ? " · link expired" : ""}
+                            </span>
+                          ) : null}
+                          <BetaInviteButton leadId={l.id} invited={!!l.invited_at} />
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

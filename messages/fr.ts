@@ -520,6 +520,15 @@ const fr: Messages = {
       text: "Merci. L'équipe WazaBolt vous enverra un message WhatsApp au +{number} avec votre accès bêta, et installera gratuitement votre {setup}.",
       setup: { shop: "catalogue de produits", restaurant: "menu", school: "grille des frais de scolarité" },
     },
+    /** Le message WhatsApp que l'équipe WazaBolt envoie avec un lien bêta (/admin/waitlist), et la page d'inscription qu'il ouvre. */
+    invite: {
+      message:
+        "Bonjour ! Ici l'équipe WazaBolt 👋 Votre accès bêta pour {business} est prêt ✅\n\nCréez votre compte ici (ce lien est personnel, valable {days} jours) :\n{link}\n\nEnsuite, envoyez-nous {sendUs} dans cette discussion et nous installons gratuitement votre {setup}.",
+      sendUs: { shop: "vos produits et prix (une photo de votre liste suffit)", restaurant: "votre menu (une photo suffit)", school: "vos classes et frais (une photo de votre grille suffit)" },
+      registerNote: "Accès bêta pour {business} : créez votre compte avec l'e-mail que vous nous avez donné.",
+      used: "Votre compte pour {business} est créé. Ouvrez l'e-mail envoyé à {email} et touchez le lien pour le confirmer, puis connectez-vous.",
+      invalid: "Ce lien bêta n'est plus valable : il a été remplacé par un plus récent ou a expiré. Demandez un nouveau lien à l'équipe WazaBolt sur WhatsApp.",
+    },
     errors: {
       invalid: "Vérifiez les champs signalés.",
       business_name: "Saisissez le nom de votre entreprise (2 à 120 caractères).",

@@ -22,13 +22,24 @@ const TYPE_ICONS = { retail: Store, school: GraduationCap, restaurant: UtensilsC
  * confirmed; vertical / country (from the page the visitor came from) travel
  * with the sign-up so that screen opens with them chosen.
  */
-export function RegisterForm({ disabled = false, vertical, country }: { disabled?: boolean; vertical?: SignupBusinessType; country?: SignupCountry }) {
+export function RegisterForm({
+  disabled = false,
+  vertical,
+  country,
+  beta,
+}: {
+  disabled?: boolean;
+  vertical?: SignupBusinessType;
+  country?: SignupCountry;
+  /** A personal beta link: the lead's email, fixed, and the link's token (checked again on the server). */
+  beta?: { token: string; email: string };
+}) {
   const { a, locale, href, fieldError, errorText } = useAuthText();
   const form = useForm<RegisterInput>({
     resolver: rulesResolver<RegisterInput>(authRules.register),
-    defaultValues: { fullName: "", email: "", password: "" },
+    defaultValues: { fullName: "", email: beta?.email ?? "", password: "" },
   });
-  const { onSubmit, pending, result } = useServerForm(form, (values) => signUp({ ...values, vertical, country }, locale));
+  const { onSubmit, pending, result } = useServerForm(form, (values) => signUp({ ...values, vertical, country, ...(beta ? { email: beta.email, betaToken: beta.token } : {}) }, locale));
   const errors = form.formState.errors;
   const link = "font-semibold text-waza-700 hover:underline";
   const Icon = vertical ? TYPE_ICONS[vertical] : null;
@@ -74,6 +85,7 @@ export function RegisterForm({ disabled = false, vertical, country }: { disabled
         autoComplete="email"
         inputMode="email"
         error={fieldError(errors.email?.message)}
+        readOnly={!!beta}
         registration={form.register("email")}
       />
       <FormField

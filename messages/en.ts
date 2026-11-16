@@ -522,6 +522,15 @@ const en = {
       text: "Thank you. The WazaBolt team will send you a WhatsApp message on +{number} with your early beta access, and set up your {setup} for free.",
       setup: { shop: "product catalogue", restaurant: "menu", school: "school fees" },
     },
+    /** The WhatsApp message the WazaBolt team sends with a beta link (/admin/waitlist), and the sign-up page it opens. */
+    invite: {
+      message:
+        "Hello! This is the WazaBolt team 👋 Your early-access beta for {business} is ready ✅\n\nCreate your account here (this link is just for you, valid {days} days):\n{link}\n\nThen send us your {sendUs} on this chat and we'll set up your {setup} for free.",
+      sendUs: { shop: "products and prices (a photo of your list is fine)", restaurant: "menu (a photo is fine)", school: "classes and fees (a photo of your fee schedule is fine)" },
+      registerNote: "Early-access beta for {business}: create your account with the email you gave us.",
+      used: "Your account for {business} has been created. Check your email ({email}) and tap the link to confirm it, then log in.",
+      invalid: "This beta link isn't valid any more: it was replaced by a newer one or has expired. Ask the WazaBolt team for a new link on WhatsApp.",
+    },
     errors: {
       invalid: "Please check the highlighted fields.",
       business_name: "Enter your business name (2 to 120 characters).",

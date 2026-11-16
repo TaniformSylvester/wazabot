@@ -11,8 +11,10 @@ import { DEFAULT_COUNTRY } from "@/lib/i18n/country-packs";
 import { localizePath } from "@/lib/i18n/paths";
 import { getRequestLocale } from "@/lib/i18n/request-locale";
 import { logServerError } from "@/lib/log";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { findBetaInvite } from "@/lib/waitlist/invite";
 import { WAITLIST_MODE } from "@/lib/waitlist/mode";
 import {
   forgotPasswordSchema,
@@ -35,11 +37,16 @@ function confirmUrl(next: string) {
 
 export async function signUp(input: unknown, localeInput?: string): Promise<ActionResult> {
   if (!isSupabaseConfigured()) return NOT_CONFIGURED;
-  // Beta waitlist mode: sign-up is closed (invitation links still work: signUpWithInvite).
-  if (WAITLIST_MODE) return { ok: false, error: "signup_disabled" };
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   const { email, password, fullName, vertical, country } = parsed.data;
+  // A personal beta link from the WazaBolt team: valid, and for this very email (checked here, not just on the page).
+  const betaToken = typeof input === "object" && input !== null && "betaToken" in input ? (input as { betaToken: unknown }).betaToken : undefined;
+  const admin = betaToken !== undefined ? createAdminClient() : null;
+  const beta = admin ? await findBetaInvite(admin, betaToken) : null;
+  if (betaToken !== undefined && (!beta || beta.email !== email)) return { ok: false, error: "invite_invalid" };
+  // Beta waitlist mode: sign-up is closed except with a beta link (team invitation links still work: signUpWithInvite).
+  if (WAITLIST_MODE && !beta) return { ok: false, error: "signup_disabled" };
   const locale = await getRequestLocale(localeInput);
 
   const supabase = await createClient();
@@ -57,6 +64,11 @@ export async function signUp(input: unknown, localeInput?: string): Promise<Acti
   if (error) {
     logServerError("auth.signUp", error);
     return { ok: false, error: authErrorKey(error) };
+  }
+  // The beta link is used up (an account exists for this email now, or did already).
+  if (admin && beta) {
+    const { error: used } = await admin.from("waitlist_leads").update({ joined_at: new Date().toISOString() }).eq("id", beta.id);
+    if (used) logServerError("auth.signUp.beta", used);
   }
   // Same response whether or not the email was already registered.
   return { ok: true, email };

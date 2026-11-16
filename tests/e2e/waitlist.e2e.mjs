@@ -157,6 +157,67 @@ mkdirSync("test-results", { recursive: true });
       const all = await (await ap.request.get(`${APP}/en/admin/waitlist/export`)).text();
       ok("admin: CSV of all leads", all.includes("Mama Ngozi Kitchen") && all.includes("Burst 0"));
       await ap.screenshot({ path: "test-results/waitlist-admin.png", fullPage: true });
+
+      // ---------------------------------------------------------------- beta invites: one tap, WhatsApp ready, sign-up for that lead only
+      const row = ap.getByTestId("waitlist-table").getByRole("row").filter({ hasText: "Mama Ngozi Kitchen" });
+      const popupP = ap.waitForEvent("popup", { timeout: 10000 }).catch(() => null);
+      await row.getByTestId("beta-invite").click();
+      await row.getByTestId("beta-invite-ready").waitFor({ timeout: 10000 });
+      const popup = await popupP;
+      const waHref = await row.getByTestId("beta-invite-ready").getByRole("link", { name: "Open WhatsApp" }).getAttribute("href");
+      const firstLink = await row.getByTestId("beta-invite-link").innerText();
+      const waText = decodeURIComponent(waHref.split("?text=")[1] ?? "");
+      ok("one tap opens WhatsApp to the lead's number", !!popup && waHref.startsWith(`https://wa.me/${number}?text=`), waHref.slice(0, 60));
+      ok("…with the invite message ready: the business, a personal link, 14 days, the free menu setup", waText.includes("Mama Ngozi Kitchen") && waText.includes(firstLink) && waText.includes("14 days") && waText.includes("set up your menu for free") && /\/en\/register\?beta=[A-Za-z0-9_-]{30,}$/.test(firstLink), waText);
+      ok("the link itself isn't stored, only its hash; invite date recorded", sql(`select (invite_token_hash ~ '^[0-9a-f]{64}$') || ' ' || (invited_at is not null) || ' ' || ((invite_expires_at - now()) > interval '13 days') from waitlist_leads where whatsapp_number = '${number}'`) === "true true true" && !sql(`select invite_token_hash from waitlist_leads where whatsapp_number = '${number}'`).includes(firstLink.split("beta=")[1]));
+      await popup?.close().catch(() => {});
+
+      // Sending again replaces the link.
+      ap.once("dialog", (d) => d.accept());
+      const popup2P = ap.waitForEvent("popup", { timeout: 10000 }).catch(() => null);
+      await ap.reload();
+      await row.getByTestId("beta-invite").click();
+      await row.getByTestId("beta-invite-link").waitFor({ timeout: 10000 });
+      (await popup2P)?.close().catch(() => {});
+      const link = await row.getByTestId("beta-invite-link").innerText();
+      ok("a resend gives a new link", link !== firstLink && (await row.getByText(/Invited \d{4}-\d{2}-\d{2}/).count()) === 1);
+      const old = await open();
+      await old.goto(firstLink.replace(/^https?:\/\/[^/]+/, APP));
+      ok("…and the old link stops working", (await old.getByTestId("beta-invalid").count()) === 1);
+
+      // The lead signs up with their link while the waitlist is on.
+      const lp = await open();
+      await lp.goto(link.replace(/^https?:\/\/[^/]+/, APP));
+      const emailBox = lp.getByLabel("Email", { exact: true });
+      ok("the beta link opens sign-up (waitlist on), for their business, email fixed", (await lp.getByTestId("beta-note").innerText()).includes("Mama Ngozi Kitchen") && (await emailBox.inputValue()) === `ngozi+${stamp}@example.com` && (await emailBox.getAttribute("readonly")) !== null);
+      ok("…with their business type chosen", (await lp.getByTestId("signup-vertical").getAttribute("data-vertical")) === "restaurant");
+      await lp.getByLabel("Your name").fill("Ngozi Mbah");
+      await lp.getByLabel("Password", { exact: true }).fill("Wazabolt2026");
+      await lp.getByRole("button", { name: "Create account" }).click();
+      // The form's "check your email", or the page refreshed into "account created" (the link is used): either way, done.
+      await lp.getByTestId("beta-used").or(lp.getByRole("heading", { name: "Check your email" })).first().waitFor({ timeout: 15000 });
+      ok(
+        "the account is created and the link is used up",
+        sql(`select count(*) from auth.users where email = 'ngozi+${stamp}@example.com'`) === "1" && sql(`select (joined_at is not null) from waitlist_leads where whatsapp_number = '${number}'`) === "t",
+        sql(`select count(*) || ' ' || (select (joined_at is not null)::text from waitlist_leads where whatsapp_number = '${number}') from auth.users where email = 'ngozi+${stamp}@example.com'`),
+      );
+      await lp.goto(link.replace(/^https?:\/\/[^/]+/, APP));
+      ok("the same link can't be used twice: it says the account exists, no form", (await lp.getByTestId("beta-used").count()) === 1 && (await lp.getByRole("button", { name: "Create account" }).count()) === 0);
+      await ap.reload();
+      ok("admin: the lead shows Account created, no more invite button", (await row.getByTestId("beta-status").innerText()).includes("Account created") && (await row.getByTestId("beta-invite").count()) === 0);
+      const joinedCsv = await (await ap.request.get(`${APP}/en/admin/waitlist/export?vertical=restaurant`)).text();
+      ok("admin: the CSV has the invite and account dates", /Beta invite sent \(UTC\),Account created \(UTC\)/.test(joinedCsv) && new RegExp(`${number},[^\n]*,\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2},\\d{4}-`).test(joinedCsv));
+
+      // Without a link, sign-up stays closed; a made-up link is refused.
+      const np = await open();
+      await np.goto(`${APP}/en/register?beta=madeUpTokenThatIsLongEnough123`);
+      ok("a made-up beta link is refused", (await np.getByTestId("beta-invalid").count()) === 1 && (await np.getByRole("button", { name: "Create account" }).count()) === 0);
+      // Another lead's link can't be used with a different email (the server checks the email too).
+      const nr = await (await np.request.get(`${APP}/en/register`)).url();
+      ok("without a link, sign-up is still closed", /\/en\/waitlist/.test(nr), nr);
+      // Only the WazaBolt team can create invites.
+      const leadId = sql(`select id from waitlist_leads where email = 'burst0+${stamp}@example.com'`);
+      ok("the invite button is only on the admin page (guest gets 404 there)", (await (await guest.request.get(`${APP}/en/admin/waitlist`)).status()) === 404 && sql(`select invited_at is null from waitlist_leads where id = '${leadId}'`) === "t");
       sql(`delete from platform_admins where user_id = '${adminId}'`);
     }
   } catch (e) {
