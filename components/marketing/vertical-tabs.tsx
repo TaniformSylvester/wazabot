@@ -43,12 +43,15 @@ export function VerticalTabs({ label, tabs, panels }: { label: string; tabs: { k
               e.preventDefault();
             }}
             className={cn(
-              "inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-colors",
+              // Narrow phones (under 400px): no icons and less padding, so the three tabs fit in any language.
+              "inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-1.5 text-xs font-semibold transition-colors min-[360px]:text-[0.8125rem] min-[400px]:px-3 min-[400px]:text-sm",
               active === i ? "bg-deep text-white" : "text-deep hover:bg-mint",
             )}
           >
-            {t.icon}
-            {t.label}
+            <span className="hidden min-[400px]:contents" aria-hidden>
+              {t.icon}
+            </span>
+            <span className="truncate">{t.label}</span>
           </button>
         ))}
       </div>

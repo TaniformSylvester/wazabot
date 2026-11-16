@@ -77,7 +77,7 @@ export function SiteHeader() {
           : "border-b border-transparent bg-transparent",
       )}
     >
-      <div className="container-page flex h-16 items-center justify-between gap-6 lg:h-20">
+      <div className="container-page flex h-16 items-center justify-between gap-3 sm:gap-6 lg:h-20">
         <Link href={homeHref} aria-label={school ? sn.home : t.common.brand.home} className="flex shrink-0 items-center gap-2 rounded-lg">
           {school ? (
             <WazaBoltLogo size="md" />
@@ -120,7 +120,8 @@ export function SiteHeader() {
           <Button asChild className="hidden sm:inline-flex sm:px-6">
             <Link href={registerHref}>
               <span className="xl:hidden">{WAITLIST_MODE ? t.common.nav.joinBetaShort : school ? sn.startShort : t.common.nav.startFreeShort}</span>
-              <span className="hidden xl:inline">{WAITLIST_MODE ? t.common.nav.joinBeta : school ? sn.start : t.common.nav.startFree}</span>
+              {/* The header keeps the short beta label at every width: the full one ("… (Free Setup)") is too wide beside the menu, in French above all. */}
+              <span className="hidden xl:inline">{WAITLIST_MODE ? t.common.nav.joinBetaShort : school ? sn.start : t.common.nav.startFree}</span>
             </Link>
           </Button>
 
