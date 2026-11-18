@@ -43,7 +43,8 @@ const planned = [
   { key: "morePacks", icon: Globe },
 ] as const;
 
-export async function Features() {
+/** comingSoon={false} (home page): only what works today; the AI assistant and the planned list are in the Coming next section. */
+export async function Features({ comingSoon = true }: { comingSoon?: boolean } = {}) {
   const [common, t] = await getMessages().then((m) => [m.common, m.features] as const);
   return (
     <section id="features" aria-labelledby="features-title" className="py-20 sm:py-28">
@@ -56,20 +57,20 @@ export async function Features() {
         />
         {/* Ten capabilities: 4 + 4 + 2, last row centred. */}
         <ul className="mt-14 grid gap-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-center">
-          {features.map(({ key, icon, tone }, i) => (
+          {features.filter((f) => comingSoon || f.key !== "answer").map(({ key, icon, tone }, i) => (
             <Reveal as="li" key={key} delay={(i % 4) * 70} className="lg:w-[calc((100%-3rem)/4)]">
               <FeatureCard icon={icon} tone={tone} title={t.items[key].title} text={t.items[key].text} />
             </Reveal>
           ))}
         </ul>
-        <div className="mt-8 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line-strong bg-white/60 p-5 sm:flex-row sm:flex-wrap sm:justify-center">
+        {comingSoon ? <div className="mt-8 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line-strong bg-white/60 p-5 sm:flex-row sm:flex-wrap sm:justify-center">
           <WazaBoltBadge tone="gold" icon={false} className="uppercase tracking-wider">{common.badges.planned}</WazaBoltBadge>
           {planned.map(({ key, icon: Icon }) => (
             <span key={key} className="inline-flex items-center gap-2 text-sm text-slate">
               <Icon className="size-4 text-slate" aria-hidden /> {t.planned[key]}
             </span>
           ))}
-        </div>
+        </div> : null}
       </div>
     </section>
   );

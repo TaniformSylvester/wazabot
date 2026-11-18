@@ -1,11 +1,13 @@
+import { siteConfig } from "@/config/site";
 import { localizePath } from "@/lib/i18n/paths";
 import type { Locale } from "@/lib/i18n/config";
 import { SIGNUP_VERTICALS, businessTypeFromVertical, verticalOfType, type SignupVertical } from "@/lib/validation/auth-rules";
 
 /*
- * Beta waitlist mode: while NEXT_PUBLIC_WAITLIST_MODE is "true", sign-up is
- * closed and every "Start free trial" button becomes "Join the early-access
- * beta", leading to /waitlist (the vertical the visitor picked comes along).
+ * Assisted onboarding mode: while NEXT_PUBLIC_WAITLIST_MODE is "true",
+ * sign-up is closed and every "Start free trial" button opens a WhatsApp chat
+ * with the WazaBolt team (message prefilled), who set the business up for its
+ * 14-day free trial. The /waitlist form still works for anyone who has the link.
  * Set it to "false" (or remove it) and redeploy: sign-up and the 14-day trial
  * are back, no code change. NEXT_PUBLIC_ values are fixed when the site is
  * built, so a change takes effect with the next deployment.
@@ -26,12 +28,17 @@ export function waitlistHref(locale: Locale, vertical?: unknown): string {
   return localizePath(locale, v ? `/waitlist?vertical=${v}` : "/waitlist");
 }
 
+/** A WhatsApp chat with the WazaBolt team, with the free-trial setup message prefilled in the visitor's language. */
+export function whatsappOnboardingHref(locale: Locale): string {
+  const c = siteConfig.contact;
+  return `https://wa.me/${c.whatsappNumber}?text=${encodeURIComponent(c.whatsappOnboardingMessage[locale])}`;
+}
+
 /**
  * Where a "start" button leads: the sign-up page as given (path with its
- * query), or the waitlist while it's on — keeping the vertical.
+ * query), or, while sign-up is closed, the WhatsApp onboarding chat.
  */
 export function startHref(locale: Locale, registerPathWithQuery = "/register"): string {
   if (!WAITLIST_MODE) return localizePath(locale, registerPathWithQuery);
-  const q = new URLSearchParams(registerPathWithQuery.split("?")[1] ?? "");
-  return waitlistHref(locale, q.get("vertical") ?? q.get("type") ?? undefined);
+  return whatsappOnboardingHref(locale);
 }

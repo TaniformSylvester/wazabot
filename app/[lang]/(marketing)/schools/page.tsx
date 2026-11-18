@@ -44,7 +44,7 @@ export default async function SchoolsPage() {
         <div className="flex flex-col items-center gap-3 sm:flex-row">
           <Button asChild size="lg" className="group h-auto min-h-12 max-w-full whitespace-normal py-3 text-center leading-snug">
             <Link href={register} data-testid="schools-start">
-              {WAITLIST_MODE ? t.common.nav.joinBeta : s.start}
+              {WAITLIST_MODE ? t.common.nav.trialCta : s.start}
               <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </Button>
@@ -105,7 +105,7 @@ export default async function SchoolsPage() {
           ))}
         </dl>
       </section>
-      <CTASection title={s.ctaTitle} text={WAITLIST_MODE ? undefined : s.ctaText} registerHref={register} secondary={{ href: "#plans", label: s.seePlans }} />
+      <CTASection title={s.ctaTitle} text={s.ctaText} registerHref={register} secondary={{ href: "#plans", label: s.seePlans }} />
     </>
   );
 }

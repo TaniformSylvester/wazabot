@@ -50,6 +50,9 @@ async function login(page, email) {
 
 mkdirSync("test-results", { recursive: true });
 
+/** The WhatsApp onboarding chat with the WazaBolt team, free-trial message prefilled (English). */
+const WA = /^https:\/\/wa\.me\/237651575933\?text=Hello%20WazaBolt%2C%20I%20want%20to%20set%20up%20my%20business%20for%20the%2014-day%20free%20trial\.$/;
+
 (async () => {
   const stamp = Date.now();
   const tail = String(stamp).slice(-6);
@@ -70,7 +73,7 @@ mkdirSync("test-results", { recursive: true });
     if (EXPECT === "off") {
       // ---------------------------------------------------------------- waitlist off: the usual sign-up
       await page.goto(`${APP}/en`);
-      ok("off: the hero says Start free trial and leads to sign-up", (await page.getByTestId("hero-start").innerText()).includes("Start free trial") && /\/en\/register$/.test(await page.getByTestId("hero-start").getAttribute("href")));
+      ok("off: the hero says Start 14-Day Free Trial and leads to sign-up; the WhatsApp setup chat beside it", (await page.getByTestId("hero-start").innerText()).includes("Start 14-Day Free Trial") && /\/en\/register$/.test(await page.getByTestId("hero-start").getAttribute("href")) && WA.test(await page.getByTestId("hero-whatsapp").getAttribute("href")));
       ok("off: the showcase keeps its vertical on sign-up", /\/en\/register\?vertical=restaurant$/.test(await page.getByTestId("showcase-start-restaurants").getAttribute("href")));
       await page.goto(`${APP}/en/waitlist?vertical=school`);
       ok("off: /waitlist sends to sign-up, vertical kept", /\/en\/register\?vertical=school$/.test(page.url()) && (await page.getByTestId("signup-vertical").count()) === 1, page.url());
@@ -80,14 +83,14 @@ mkdirSync("test-results", { recursive: true });
       // ---------------------------------------------------------------- the buttons
       await page.goto(`${APP}/en`);
       const hero = page.getByTestId("hero-start");
-      ok("the hero button says Join Early-Access Beta (Free Setup) and leads to the waitlist", (await hero.innerText()).includes("Join Early-Access Beta (Free Setup)") && /\/en\/waitlist$/.test(await hero.getAttribute("href")));
-      ok("the vertical showcase keeps the vertical", /\/en\/waitlist\?vertical=restaurant$/.test(await page.getByTestId("showcase-start-restaurants").getAttribute("href")) && /\/en\/waitlist\?vertical=school$/.test(await page.getByTestId("showcase-start-schools").getAttribute("href")));
-      ok("the header button too", (await page.locator("header").getByRole("link", { name: /Join (Early-Access Beta|the beta)/ }).count()) >= 1);
+      ok("the hero button says Start 14-Day Free Trial and opens the WhatsApp setup chat (message prefilled), as does the button beside it", (await hero.innerText()).includes("Start 14-Day Free Trial") && WA.test(await hero.getAttribute("href")) && WA.test(await page.getByTestId("hero-whatsapp").getAttribute("href")) && (await page.getByTestId("hero-whatsapp").innerText()).includes("Chat on WhatsApp (Free Setup)"));
+      ok("the vertical showcase and the closing section open the WhatsApp setup chat too", WA.test(await page.getByTestId("showcase-start-restaurants").getAttribute("href")) && WA.test(await page.getByTestId("cta-start").getAttribute("href")) && WA.test(await page.getByTestId("cta-whatsapp").getAttribute("href")));
+      ok("the header button too", (await page.locator("header").getByRole("link", { name: /Free trial/ }).count()) >= 1 && WA.test(await page.locator("header").getByRole("link", { name: /Free trial/ }).first().getAttribute("href")));
       await page.goto(`${APP}/en/pricing`);
       const card = page.getByTestId("plan-start-business").first();
-      ok("pricing cards: the beta button, no trial promise under it", (await card.innerText()).includes("Join Early-Access Beta (Free Setup)") && /\/en\/waitlist/.test(await card.getAttribute("href")));
+      ok("pricing cards: the free trial button, to the WhatsApp setup chat", (await card.innerText()).includes("Start 14-Day Free Trial") && WA.test(await card.getAttribute("href")));
       await page.goto(`${APP}/en/schools`);
-      ok("the schools page leads to the waitlist as a school", /\/en\/waitlist\?vertical=school$/.test(await page.getByTestId("schools-start").getAttribute("href")));
+      ok("the schools page opens the WhatsApp setup chat", WA.test(await page.getByTestId("schools-start").getAttribute("href")));
 
       // ---------------------------------------------------------------- sign-up closed
       await page.goto(`${APP}/en/register?vertical=restaurant`);

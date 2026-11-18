@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Bot, Check, CreditCard, GraduationCap, Info, UtensilsCrossed } from "lucide-react";
 
-import { BillingToggle } from "@/components/marketing/billing-toggle";
 import { PricingCard } from "@/components/marketing/pricing-card";
 import { PricingSwitch } from "@/components/marketing/pricing-switch";
 import { SectionHeading } from "@/components/marketing/section-heading";
@@ -12,7 +11,8 @@ import { format, formatAmount, formatNumber, formatXaf } from "@/lib/i18n/format
 import { localizePath } from "@/lib/i18n/paths";
 import { usdPlans } from "@/lib/marketing/country-copy";
 
-export async function Pricing() {
+/** withAiAddon={false} (home page): the coming-soon AI add-on is left to the pricing page and the Coming next section. */
+export async function Pricing({ withAiAddon = true }: { withAiAddon?: boolean } = {}) {
   const [locale, messages, aiLaunched] = await Promise.all([getLocale(), getMessages(), aiLaunchedForPublicPages()]);
   const t = messages.pricing;
   const ai = t.ai;
@@ -22,7 +22,7 @@ export async function Pricing() {
       <ul className="mt-10 grid gap-5 md:grid-cols-3" data-testid={`plans-${currency}-${audience}`}>
         {plans.map((plan, i) => (
           <li key={plan.id}>
-            <PricingCard plan={plan} previous={i > 0 ? plans[i - 1] : undefined} locale={locale} t={t} recommended={recommended} audience={audience} currency={currency} waitlistCta={messages.common.nav.joinBeta} />
+            <PricingCard plan={plan} previous={i > 0 ? plans[i - 1] : undefined} locale={locale} t={t} recommended={recommended} audience={audience} currency={currency} waitlistCta={messages.common.nav.trialCta} />
           </li>
         ))}
       </ul>
@@ -47,8 +47,12 @@ export async function Pricing() {
         <SectionHeading id="pricing-title" eyebrow={t.eyebrow} title={t.title} description={t.description} />
 
         <div className="mt-10">
-          <BillingToggle labels={{ choice: t.billingChoice, monthly: t.monthly, annual: t.annual, badge: t.annualBadge }}>
-          <PricingSwitch labels={t.switch} panels={panels} />
+          <PricingSwitch
+            labels={t.switch}
+            billing={{ choice: t.billingChoice, monthly: t.monthly, annual: t.annual, badge: t.annualBadge }}
+            panels={panels}
+            anchors={{ XAF: format(t.anchor, { price: formatXaf(plans[0].monthlyPrice, locale) }), USD: format(t.anchorUsd, { price: formatAmount(usdPlans()[0].monthlyPrice, "USD", locale) }) }}
+          />
           <ul className="mx-auto mt-6 flex max-w-3xl flex-col gap-2 text-sm text-slate" data-testid="pricing-notes">
             <li className="flex items-start gap-2">
               <Check className="mt-0.5 size-4 shrink-0 text-waza-600" aria-hidden />
@@ -71,10 +75,9 @@ export async function Pricing() {
               {t.restaurant.link} →
             </Link>
           </p>
-          </BillingToggle>
         </div>
 
-        <section aria-labelledby="ai-addon-title" className="mt-12 rounded-2xl border border-line bg-white p-6 shadow-card" data-testid="ai-addon">
+        {withAiAddon ? <section aria-labelledby="ai-addon-title" className="mt-12 rounded-2xl border border-line bg-white p-6 shadow-card" data-testid="ai-addon">
           <div className="flex flex-wrap items-center gap-3">
             <Bot className="size-6 text-waza-600" aria-hidden />
             <h3 id="ai-addon-title" className="type-h3 text-xl">
@@ -130,7 +133,7 @@ export async function Pricing() {
               <b>{ai.meteredTitle}.</b> {ai.meteredText}
             </span>
           </p>
-        </section>
+        </section> : null}
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <div className="rounded-2xl border border-line bg-white p-6 shadow-card">

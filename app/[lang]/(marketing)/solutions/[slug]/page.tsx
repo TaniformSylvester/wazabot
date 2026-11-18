@@ -51,7 +51,7 @@ export default async function SolutionPage({ params }: PageProps<"/[lang]/soluti
       <div className="container-page flex justify-center pb-4">
         <Button asChild size="lg" className="group h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
           <Link href={WAITLIST_MODE ? startHref(locale, `/register?type=${slug}`) : `${localizePath(locale, "/register")}?type=${slug}`}>
-            {WAITLIST_MODE ? t.common.nav.joinBeta : l.start}
+            {WAITLIST_MODE ? t.common.nav.trialCta : l.start}
             <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </Button>

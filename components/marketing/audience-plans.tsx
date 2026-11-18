@@ -22,7 +22,7 @@ export async function AudiencePlans({ audience }: { audience: "school" | "restau
           <ul className="mt-10 grid gap-5 md:grid-cols-3">
             {plans.map((plan, i) => (
               <li key={plan.id}>
-                <PricingCard plan={plan} previous={i > 0 ? plans[i - 1] : undefined} locale={locale} t={t} recommended={messages.common.badges.recommended} audience={audience} waitlistCta={messages.common.nav.joinBeta} />
+                <PricingCard plan={plan} previous={i > 0 ? plans[i - 1] : undefined} locale={locale} t={t} recommended={messages.common.badges.recommended} audience={audience} waitlistCta={messages.common.nav.trialCta} />
               </li>
             ))}
           </ul>

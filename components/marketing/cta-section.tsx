@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageCircle } from "lucide-react";
 
 import { WazaBoltIcon } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
+import { WAITLIST_MODE, startHref, whatsappOnboardingHref } from "@/lib/waitlist/mode";
 import { localizePath } from "@/lib/i18n/paths";
 
-/** Closing call-to-action used at the bottom of marketing pages. */
-export async function CTASection({ title, text, registerHref, secondary }: { title?: string; text?: string; /** Sign-up link (default /register). */ registerHref?: string; /** The second button (default: How it works). */ secondary?: { href: string; label: string } }) {
+/** Closing call-to-action used at the bottom of marketing pages: the free trial, the WhatsApp setup chat, and a quieter link (default: How it works). */
+export async function CTASection({ title, text, registerHref, secondary }: { title?: string; text?: string; /** Sign-up link (default /register). */ registerHref?: string; /** The link under the buttons (default: How it works). */ secondary?: { href: string; label: string } }) {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
   return (
     <section aria-labelledby="cta-title" className="py-20 sm:py-28">
@@ -23,18 +23,25 @@ export async function CTASection({ title, text, registerHref, secondary }: { tit
           <h2 id="cta-title" className="type-h1 relative mx-auto mt-6 max-w-2xl text-white">
             {title ?? t.cta.title}
           </h2>
-          <p className="type-lead relative mx-auto mt-4 max-w-xl text-white/75">{text ?? (WAITLIST_MODE ? t.cta.textBeta : t.cta.text)}</p>
-          <div className="relative mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+          <p className="type-lead relative mx-auto mt-4 max-w-xl text-white/75">{text ?? t.cta.text}</p>
+          <div className="relative mt-9 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
             <Button asChild size="lg" className="group h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
               <Link href={WAITLIST_MODE ? startHref(locale, registerHref ?? "/register") : (registerHref ?? localizePath(locale, "/register"))} data-testid="cta-start">
-                {WAITLIST_MODE ? t.common.nav.joinBeta : t.common.nav.startFree}
+                {t.common.nav.trialCta}
                 <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline-light">
-              <Link href={secondary?.href ?? localizePath(locale, "/how-it-works")}>{secondary?.label ?? t.common.nav.seeHowItWorks}</Link>
+            <Button asChild size="lg" variant="outline-light" className="h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
+              <a href={whatsappOnboardingHref(locale)} target="_blank" rel="noopener noreferrer" data-testid="cta-whatsapp">
+                <MessageCircle className="size-5" aria-hidden />
+                {t.common.nav.whatsappSetup}
+              </a>
             </Button>
           </div>
+          <p className="relative mt-4 text-sm text-white/70">{t.common.nav.trialHelper}</p>
+          <Link href={secondary?.href ?? localizePath(locale, "/how-it-works")} className="relative mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-white underline-offset-4 hover:underline">
+            {secondary?.label ?? t.common.nav.seeHowItWorks} →
+          </Link>
         </div>
       </div>
     </section>

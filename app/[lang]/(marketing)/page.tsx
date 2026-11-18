@@ -1,11 +1,10 @@
+import { ComingNext } from "@/components/marketing/coming-next";
 import { CTASection } from "@/components/marketing/cta-section";
 import { DashboardPreview } from "@/components/marketing/dashboard-preview";
 import { Faq } from "@/components/marketing/faq";
 import { Features } from "@/components/marketing/features";
 import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
-import { LanguagesSection } from "@/components/marketing/languages-section";
-import { LiveDemo } from "@/components/marketing/live-demo";
 import { Pricing } from "@/components/marketing/pricing";
 import { Problem } from "@/components/marketing/problem";
 import { SolutionsStrip } from "@/components/marketing/solutions-strip";
@@ -24,11 +23,10 @@ export default async function HomePage() {
       <SolutionsStrip />
       <Problem />
       <HowItWorks />
-      <Features />
+      <Features comingSoon={false} />
       <DashboardPreview />
-      <LiveDemo />
-      <LanguagesSection />
-      <Pricing />
+      <Pricing withAiAddon={false} />
+      <ComingNext />
       <Faq />
       <CTASection />
     </>

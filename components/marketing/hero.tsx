@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Languages, MonitorSmartphone, PlayCircle, Share2, ShoppingBag, Store } from "lucide-react";
+import { ArrowRight, BadgeCheck, MapPin, MessageCircle, ShoppingBag, Smartphone } from "lucide-react";
 
 import { WazaBoltBadge } from "@/components/brand/wazabolt-badge";
 import { WhatsAppChatMockup } from "@/components/conversations/whatsapp-chat-mockup";
@@ -8,17 +8,13 @@ import { DashboardMockCompact } from "@/components/marketing/dashboard-mock";
 import { Highlight } from "@/components/marketing/section-heading";
 import { Button } from "@/components/ui/button";
 import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
-import { WAITLIST_MODE, startHref } from "@/lib/waitlist/mode";
+import { startHref, whatsappOnboardingHref } from "@/lib/waitlist/mode";
 import { format, formatXaf } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { plain, rich } from "@/lib/i18n/rich";
 
-const trust = [
-  { key: "browser", icon: MonitorSmartphone, tone: "text-gold-600" },
-  { key: "verticals", icon: Store, tone: "text-waza-600" },
-  { key: "whatsapp", icon: Share2, tone: "text-waza-600" },
-  { key: "languages", icon: Languages, tone: "text-waza-600" },
-] as const;
+/** Icons for the three trust-bar facts, in order: made in Cameroon, any Android phone, free setup. */
+const TRUST_ICONS = [MapPin, Smartphone, BadgeCheck];
 
 export async function Hero() {
   const [locale, t] = await Promise.all([getLocale(), getMessages()]);
@@ -33,43 +29,45 @@ export async function Hero() {
         <div className="flex flex-col items-start">
           <WazaBoltBadge className="py-1.5 text-sm">{h.badge}</WazaBoltBadge>
 
-          <h1 id="hero-title" className="type-display mt-6 max-w-3xl">
+          <h1 id="hero-title" className="type-display mt-6 max-w-3xl text-balance">
             {rich(h.title, { hl: (c) => <Highlight>{c}</Highlight> })}
           </h1>
-          <p className="mt-4 font-display text-xl font-bold text-deep sm:text-2xl">
-            {rich(h.subtitle, { u: (c) => <span className="underline decoration-gold decoration-4 underline-offset-[6px]">{c}</span> })}
-          </p>
 
-          <p className="type-lead mt-5 max-w-xl text-slate">
-            {rich(h.lead, { b: (c) => <strong className="font-semibold text-deep">{c}</strong> })}
-          </p>
+          <p className="type-lead mt-5 max-w-xl text-slate">{h.lead}</p>
 
-          <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             <Button asChild size="lg" className="group h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
               <Link href={startHref(locale)} data-testid="hero-start">
-                {WAITLIST_MODE ? t.common.nav.joinBeta : t.common.nav.startFree}
+                {t.common.nav.trialCta}
                 <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href={localizePath(locale, "/#showcase")} data-testid="hero-showcase">
-                <PlayCircle className="size-5 text-waza-600" />
-                {h.seeShowcase}
-              </Link>
+            <Button asChild size="lg" variant="outline" className="h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
+              <a href={whatsappOnboardingHref(locale)} target="_blank" rel="noopener noreferrer" data-testid="hero-whatsapp">
+                <MessageCircle className="size-5 text-waza-600" aria-hidden />
+                {t.common.nav.whatsappSetup}
+              </a>
             </Button>
           </div>
+          <p className="mt-3 text-sm font-medium text-slate" data-testid="hero-helper">
+            {t.common.nav.trialHelper}
+          </p>
 
-          <ul className="mt-10 grid w-full grid-cols-2 gap-5 sm:grid-cols-4 sm:gap-4 xl:grid-cols-2 xl:gap-x-8">
-            {trust.map(({ key, icon: Icon, tone }) => (
-              <li key={key} className="flex items-start gap-2.5">
-                <Icon className={`mt-0.5 size-5 shrink-0 ${tone}`} aria-hidden />
-                <div>
-                  <p className="text-sm font-semibold text-deep">{h.trust[key].title}</p>
-                  <p className="text-xs text-slate">{h.trust[key].text}</p>
-                </div>
-              </li>
-            ))}
+          <ul className="mt-8 flex w-full flex-col gap-3 border-y border-line py-4 sm:flex-row sm:flex-wrap sm:gap-x-6" data-testid="hero-trust">
+            {h.trustBar.map((text, i) => {
+              const Icon = TRUST_ICONS[i] ?? BadgeCheck;
+              return (
+                <li key={text} className="flex items-center gap-2 text-sm font-semibold text-deep">
+                  <Icon className="size-4 shrink-0 text-waza-600" aria-hidden />
+                  {text}
+                </li>
+              );
+            })}
           </ul>
+
+          <Link href={localizePath(locale, "/#showcase")} className="mt-5 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-waza-700 hover:underline" data-testid="hero-showcase">
+            {h.seeShowcase} <ArrowRight className="size-4" aria-hidden />
+          </Link>
         </div>
 
         <HeroVisual photoAlt={plain(h.photoAlt)} orderCaptured={h.orderCaptured} orderItem={format(h.orderItem, { price: formatXaf(15_000, locale) })} />
@@ -79,9 +77,9 @@ export async function Hero() {
 }
 
 /**
- * UI MOCKUP — business owner, a preview of the coming-soon WhatsApp AI
- * assistant (labelled as such under the chat), and a compact WazaBolt dashboard. Stacks on mobile, overlaps
- * from sm. Illustrative data only.
+ * UI MOCKUP — business owner, a receipt shared on WhatsApp by the shop's
+ * team (works today), and a compact WazaBolt dashboard. Stacks on mobile,
+ * overlaps from sm. Illustrative data only.
  */
 function HeroVisual({ photoAlt, orderCaptured, orderItem }: { photoAlt: string; orderCaptured: string; orderItem: string }) {
   return (
@@ -109,7 +107,7 @@ function HeroVisual({ photoAlt, orderCaptured, orderItem }: { photoAlt: string; 
         </div>
       </div>
 
-      {/* customer's WhatsApp chat (demo) */}
+      {/* the customer's WhatsApp chat: the shop sends the receipt (demo) */}
       <div className="relative z-20 -mt-40 w-[78%] self-end sm:absolute sm:right-0 sm:top-0 sm:mt-0 sm:w-[300px]">
         <WhatsAppChatMockup />
       </div>

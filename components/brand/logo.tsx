@@ -123,7 +123,8 @@ export function WazaBoltLogo({
     >
       <WazaBoltIcon tone={tone} className={s.icon} />
       <span className={cn("flex flex-col leading-none", layout === "compact" && "items-center")}>
-        <span className={cn("font-display font-extrabold tracking-[-0.035em]", s.word)} aria-label="WazaBolt">
+        {/* nowrap: the "o" with the bolt is an inline-block, which browsers may otherwise break after ("WazaBo" / "lt"). */}
+        <span className={cn("whitespace-nowrap font-display font-extrabold tracking-[-0.035em]", s.word)} aria-label="WazaBolt">
           <span aria-hidden className={tone === "dark" ? "text-white" : "text-deep"}>
             Waza
           </span>

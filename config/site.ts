@@ -23,6 +23,11 @@ export const siteConfig = {
     phoneHref: "tel:+237651575933",
     /** The same number on WhatsApp (wa.me takes digits only, with the country code). */
     whatsappNumber: "237651575933",
+    /** The message prefilled when a visitor taps "Chat on WhatsApp (Free Setup)" or starts the free trial while sign-up is closed. */
+    whatsappOnboardingMessage: {
+      en: "Hello WazaBolt, I want to set up my business for the 14-day free trial.",
+      fr: "Bonjour WazaBolt, je souhaite configurer mon activité pour l'essai gratuit de 14 jours.",
+    },
     email: "contact@wazabolt.com",
     /** As on the RCCM registration form: Mile 6 Nkwen, Bamenda III, Mawa Hotel Junction, opposite Mawa Hotel. */
     address: "Mawa Hotel Junction, opposite Mawa Hotel, Mile 6 Nkwen, Bamenda III, Cameroon",

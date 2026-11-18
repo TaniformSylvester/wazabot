@@ -98,9 +98,12 @@ const fr: Messages = {
       login: "Connexion",
       startFree: "Essai gratuit",
       startFreeShort: "Commencer",
-      /** While sign-up is closed (beta waitlist mode). */
-      joinBeta: "Rejoindre la bêta (installation offerte)",
-      joinBetaShort: "Rejoindre la bêta",
+      /** The main call to action (while sign-up is closed, it opens the WhatsApp onboarding chat). */
+      trialCta: "Essai gratuit de 14 jours",
+      trialCtaShort: "Essai gratuit",
+      trialHelper: "Configuration gratuite incluse · Sans carte bancaire",
+      /** Second button next to the trial: a WhatsApp chat with the team, message prefilled. */
+      whatsappSetup: "Discuter sur WhatsApp (Installation gratuite)",
       seeHowItWorks: "Voir comment ça marche",
       backToHome: "Retour à l'accueil",
       openMenu: "Ouvrir le menu",
@@ -139,15 +142,12 @@ const fr: Messages = {
 
   hero: {
     badge: "Conçu pour les entreprises africaines",
-    title: "Gérez votre boutique, votre restaurant ou votre école <hl>au même endroit.</hl>",
-    subtitle: "Ventes, stock, crédits et reçus, <u>sur n'importe quel téléphone.</u>",
-    lead: "<b>WazaBolt</b> est un logiciel de gestion qui fonctionne dans votre navigateur : enregistrez vos ventes à la caisse, suivez votre stock et les crédits clients, faites vos factures et reçus, partagez-les en PDF sur WhatsApp, et offrez à vos clients votre propre page boutique en ligne. Les restaurants ont les tables et un écran cuisine ; les écoles, les notes, les bulletins et les frais. Un assistant IA WhatsApp arrive bientôt.",
-    trust: {
-      browser: { title: "Rien à installer", text: "Téléphone, tablette ou ordinateur" },
-      verticals: { title: "Boutiques, restaurants, écoles", text: "Adapté à votre activité" },
-      whatsapp: { title: "Partage sur WhatsApp", text: "Reçus, factures, bulletins en PDF" },
-      languages: { title: "Français et anglais", text: "Tableau de bord et documents" },
-    },
+    title: "Arrêtez de perdre de l'argent à cause des <hl>cahiers mal tenus, des crédits oubliés et des ruptures de stock.</hl>",
+    lead: "Gérez votre boutique, restaurant ou école depuis n'importe quel téléphone. Enregistrez vos ventes, suivez les crédits clients, envoyez des reçus PDF sur WhatsApp et partagez votre catalogue en ligne.",
+    /** The headline on the link-preview image (opengraph-image.tsx), kept as it was. */
+    socialHeadline: "Gérez votre boutique, votre restaurant ou votre école <hl>au même endroit.</hl>",
+    /** Three short facts right under the hero buttons. */
+    trustBar: ["Conçu au Cameroun (Bamenda & Douala)", "Fonctionne sur tout téléphone Android", "Configuration gratuite de votre catalogue, menu ou frais scolaires"],
     photoAlt: "Une commerçante souriante, coiffée d'un foulard coloré, consulte son activité sur son téléphone",
     orderCaptured: "Nouvelle vente enregistrée",
     seeShowcase: "Voir pour votre activité",
@@ -156,15 +156,18 @@ const fr: Messages = {
 
   chatMockup: {
     business: "MJ Fashion",
-    customer1: "Bonjour, vous avez cette robe en taille L ?",
-    bot1: "Oui ! Nous l'avons en taille L. Elle coûte 15 000 FCFA. Voulez-vous passer commande ?",
+    customer1: "Bonjour, pouvez-vous m'envoyer le reçu de ma robe ?",
+    team1: "Bien sûr ! Voici votre reçu. Merci pour votre achat 🙏",
     product: "Robe en wax",
-    productMeta: "15 000 FCFA · Taille L",
     productAlt: "Robe en wax",
+    receipt: "Reçu RCT-00142 · PDF",
+    receiptMeta: "15 000 FCFA · Payé · MTN MoMo",
+    open: "Ouvrir le reçu",
+    customer2: "Merci beaucoup ! 🙏",
+    team: "Marie · MJ Fashion",
+    /** Link-preview image (opengraph-image.tsx) only. */
+    productMeta: "15 000 FCFA · Taille L",
     orderNow: "Commander",
-    customer2: "Oui, s'il vous plaît ! 🙏",
-    bot2: "Parfait ! Je m'occupe de votre commande.",
-    caption: "Aperçu de l'assistant IA · bientôt disponible",
   },
 
   solutionsStrip: {
@@ -174,91 +177,48 @@ const fr: Messages = {
 
   showcase: {
     eyebrow: "Boutiques · Restaurants · Écoles",
-    title: "De la discussion WhatsApp à la commande payée, sans recruter",
-    description: "Choisissez votre activité et voyez comment le message d'un client devient une vente, un plat en cuisine ou un nouvel élève.",
+    title: "Ce que WazaBolt fait pour votre activité, dès aujourd'hui",
+    description: "Choisissez votre activité et voyez les écrans que vous utiliserez chaque jour : la caisse, la cuisine, les frais de scolarité.",
     tabsLabel: "Type d'activité",
-    soon: "Bientôt disponible",
-    start: "Essai gratuit de 14 jours",
-    online: "En ligne",
-    assistant: "Assistant WazaBolt",
-    read: "Lu",
-    previewLabel: "Exemple de conversation",
-    previewNote: "Exemple de conversation. L'assistant IA arrive bientôt ; le partage et la messagerie d'équipe fonctionnent déjà.",
+    /** Under each screenshot. */
+    screenCaption: "Vrai écran WazaBolt · données d'exemple",
     verticals: {
       shops: {
         tab: "Boutiques",
-        headline: "Transformez « C'est combien ? » en commande payée, sans renfort au comptoir.",
+        headline: "Enregistrez chaque vente, maîtrisez votre stock et récupérez ce qu'on vous doit.",
         bullets: [
-          { title: "Réponses automatiques", text: "Prix, tailles et stock : réponses tirées de votre catalogue, jour et nuit.", soon: true },
-          { title: "Votre catalogue en un geste", text: "Envoyez votre page boutique : produits, prix et stock, avec le bouton « Commander sur WhatsApp ».", soon: false },
-          { title: "Reprise en un geste", text: "Chaque discussion arrive dans une messagerie d'équipe. Appuyez sur « Reprendre » pour répondre vous-même.", soon: false },
+          { title: "Une vente en quelques secondes", text: "Espèces, MTN MoMo, Orange Money ou à crédit : le stock baisse tout seul." },
+          { title: "Alertes de stock bas immédiates", text: "Voyez ce qui va manquer avant qu'un client ne le demande." },
+          { title: "Reçu PDF sur WhatsApp en 1 geste", text: "Imprimez le reçu ou envoyez-le au client en PDF sur WhatsApp." },
+          { title: "Le lien de votre boutique en ligne", text: "Partagez votre page boutique : produits, prix et un bouton Commander sur WhatsApp." },
         ],
-        note: "Ventes, stock et crédits clients sont enregistrés au même endroit.",
+        note: "Les crédits clients et les paiements en plusieurs fois sont suivis au même endroit.",
         more: "WazaBolt pour les boutiques",
-        chat: {
-          business: "MJ Fashion",
-          initials: "MJ",
-          team: "Marie · MJ Fashion",
-          teamInitial: "M",
-          messages: [
-            { kind: "out", text: "Bonsoir, la robe wax en L est disponible ? C'est combien ?", time: "21:04" },
-            { kind: "ai", text: "Bonsoir ! Oui, il en reste 3 en taille L. Elle coûte 15 000 FCFA. Je vous en réserve une ?", time: "21:04" },
-            { kind: "card", text: "Robe en wax · taille L", meta: "15 000 FCFA · en stock", cta: "Commander sur WhatsApp" },
-            { kind: "out", text: "Oui svp. Vous livrez à Bonamoussadi demain ?", time: "21:05" },
-            { kind: "event", text: "Transmis à Marie · commande n° 1042 créée" },
-            { kind: "team", text: "Oui, demain avant 12 h. Livraison 1 000 FCFA, soit 16 000 FCFA en tout. Paiement à la livraison ou par MTN MoMo.", time: "21:07" },
-          ],
-        },
+        screenAlt: "La caisse WazaBolt sur un téléphone : trois produits dans le panier et le total, prêts à être enregistrés",
       },
       restaurants: {
         tab: "Restaurants",
-        headline: "Les commandes WhatsApp vont droit en cuisine, sans téléphone ni serveur en plus.",
+        headline: "De la commande à la cuisine jusqu'à l'addition payée, sans bon perdu.",
         bullets: [
-          { title: "Réponses automatiques", text: "« Vous êtes ouverts ? » et « Qu'est-ce qu'il y a aujourd'hui ? » : réponses tirées de votre menu.", soon: true },
-          { title: "Votre menu en un geste", text: "Envoyez votre page menu : plats, prix et suppléments payants. Votre équipe envoie la commande à l'écran cuisine.", soon: false },
-          { title: "Reprise en un geste", text: "Une demande spéciale ou une question de livraison ? Appuyez sur « Reprendre » et répondez vous-même.", soon: false },
+          { title: "Prenez la commande", text: "Sur place, à emporter ou en livraison, depuis votre menu avec options et suppléments payants." },
+          { title: "Directement sur l'écran cuisine", text: "La cuisine voit chaque commande, la passe en préparation, puis prête." },
+          { title: "Additions ouvertes par table", text: "Voyez ce que doit chaque table, ajoutez les plats au fil des commandes, encaissez en espèces ou Mobile Money." },
         ],
-        note: "Tables, additions ouvertes et écran cuisine, avec jusqu'à {kitchen} comptes cuisine gratuits.",
+        note: "Tables, additions ouvertes et un écran cuisine avec jusqu'à {kitchen} comptes cuisine gratuits.",
         more: "WazaBolt pour les restaurants",
-        chat: {
-          business: "Chez Tabi",
-          initials: "CT",
-          team: "Paul · Chez Tabi",
-          teamInitial: "P",
-          messages: [
-            { kind: "out", text: "Vous êtes ouverts ce soir ? Je veux 2 ndolé avec plantains.", time: "19:12" },
-            { kind: "ai", text: "Oui, ouvert jusqu'à 22 h ! Le ndolé avec plantains mûrs coûte 3 500 FCFA. 2 portions : 7 000 FCFA. À emporter ou en livraison ?", time: "19:12" },
-            { kind: "card", text: "Le menu du jour", meta: "12 plats · suppléments : œuf, plantain", cta: "Voir le menu" },
-            { kind: "out", text: "Livraison à Bonapriso svp, un sans piment.", time: "19:13" },
-            { kind: "event", text: "Transmis à Paul · envoyé à l'écran cuisine" },
-            { kind: "team", text: "C'est noté : 2 ndolé, un sans piment. Prêt dans 30 min environ, livraison 500 FCFA.", time: "19:14" },
-          ],
-        },
+        screenAlt: "L'écran cuisine WazaBolt sur un téléphone : commandes des tables nouvelles, en préparation et prêtes",
       },
       schools: {
         tab: "Écoles",
-        headline: "Répondez aux parents et remplissez vos classes, sans renfort au secrétariat.",
+        headline: "Facturez les frais, suivez chaque solde et publiez les bulletins.",
         bullets: [
-          { title: "Réponses automatiques", text: "Frais, dates d'inscription et pièces à fournir : réponses tirées de vos FAQ.", soon: true },
-          { title: "Les frais en un geste", text: "Envoyez factures et reçus de frais en PDF sur WhatsApp ; les soldes se mettent à jour tout seuls.", soon: false },
-          { title: "Reprise en un geste", text: "Un parent veut parler au directeur ? Le secrétariat reprend la discussion en un geste.", soon: false },
+          { title: "Factures et reçus de scolarité sur WhatsApp", text: "Facturez les frais de chaque classe aux parents ; un reçu pour chaque paiement, envoyé en PDF sur WhatsApp." },
+          { title: "Les soldes impayés d'un coup d'œil", text: "Voyez ce qui est facturé, payé et dû, par classe et par élève." },
+          { title: "Bulletins en PDF", text: "Moyennes, mentions et rangs calculés pour vous ; publiez et imprimez les bulletins de toute une classe." },
         ],
         note: "Notes, bulletins et jusqu'à {teachers} comptes enseignants gratuits, qui ne voient jamais les frais.",
-        more: "WazaBolt Écoles",
-        chat: {
-          business: "Collège La Réussite",
-          initials: "LR",
-          team: "Secrétariat",
-          teamInitial: "S",
-          messages: [
-            { kind: "out", text: "Bonjour, c'est combien l'inscription en 6e, et quels documents faut-il ?", time: "08:31" },
-            { kind: "ai", text: "Bonjour ! En 6e : inscription 15 000 FCFA, scolarité 90 000 FCFA par an en 3 tranches. Documents : acte de naissance, dernier bulletin, 4 photos.", time: "08:31" },
-            { kind: "card", text: "Facture · inscription en 6e", meta: "15 000 FCFA · PDF", cta: "Ouvrir la facture" },
-            { kind: "out", text: "Merci. Je peux parler au directeur pour une bourse ?", time: "08:33" },
-            { kind: "event", text: "Transmis au secrétariat" },
-            { kind: "team", text: "Bien sûr. Le directeur peut vous recevoir demain à 10 h. Apportez le dernier bulletin.", time: "08:40" },
-          ],
-        },
+        more: "WazaBolt Schools",
+        screenAlt: "Les frais de scolarité WazaBolt sur un téléphone : frais du premier trimestre d'une classe, facturés, payés et dus",
       },
     },
   },
@@ -305,7 +265,7 @@ const fr: Messages = {
       },
       takeover: {
         title: "Connectez WhatsApp (facultatif)",
-        text: "Connectez votre numéro WhatsApp Business pour répondre à chaque client depuis une messagerie d'équipe. L'assistant IA arrive bientôt.",
+        text: "Connectez votre numéro WhatsApp Business pour répondre à chaque client depuis une messagerie d'équipe.",
       },
     },
     flowTitle: "Une fois votre numéro WhatsApp connecté : le parcours d'un message jusqu'à votre équipe",
@@ -540,6 +500,21 @@ const fr: Messages = {
       failed: "Une erreur est survenue. Veuillez réessayer.",
     },
   },
+  comingNext: {
+    eyebrow: "Bientôt",
+    title: "Votre assistant IA sur WhatsApp",
+    description: "Tout ce qui précède fonctionne dès aujourd'hui. Prochaine étape : un assistant IA qui répondra à vos clients sur WhatsApp à votre place.",
+    points: [
+      { title: "Réponses en français, anglais et pidgin", text: "Il détectera la langue de chaque client, même quand il les mélange dans un message." },
+      { title: "Uniquement à partir de vos informations", text: "Prix, stock, menu, frais et FAQ que vous avez ajoutés : jamais d'approximation." },
+      { title: "Passe la main à votre équipe", text: "Quand il ne peut pas confirmer une information, la discussion passe à une personne en un geste." },
+    ],
+    sample: { pidgin: "How much una di take for deliver for Bonamoussadi?", reply: "Delivery to Bonamoussadi na 1,000 FCFA. You wan make I keep the dress for you?" },
+    sampleLabel: "Exemple d'une future réponse",
+    status: "Pas encore disponible : aucune conversation client n'est envoyée à un fournisseur d'IA aujourd'hui. Ce sera une option sur tous les forfaits.",
+    alsoPlanned: "Également prévu",
+  },
+
   pricing: {
     eyebrow: "Tarifs",
     title: "Des forfaits simples, en FCFA ou en dollars US",
@@ -547,7 +522,7 @@ const fr: Messages = {
     switch: {
       currency: "Où se trouve votre entreprise ?",
       xaf: "Cameroun (FCFA)",
-      usd: "Autres pays ($ US)",
+      usd: "International (USD)",
       usdHint: "Nigéria, Afrique du Sud, Ghana, Kenya et Zimbabwe : votre boutique vend dans sa propre monnaie (naira, rand, cedi, shillings ou dollars US) ; le forfait se paie en dollars US par virement bancaire.",
       audience: "Type d'entreprise",
       shop: "Boutiques et restaurants",
@@ -565,6 +540,9 @@ const fr: Messages = {
     annualBadge: "2 mois offerts",
     annualNote: "Payez 10 mois, profitez de 12.",
     billingChoice: "Fréquence de paiement",
+    /** Above the price cards: the starting price, in FCFA (Cameroon) or US dollars (other countries). */
+    anchor: "À partir de {price}/mois — environ 100 FCFA par jour pour sécuriser toute votre activité.",
+    anchorUsd: "À partir de {price}/mois, payable en dollars US.",
     notIncluded: "Non inclus :",
     features: {
       members: "{count} utilisateur",
@@ -647,7 +625,7 @@ const fr: Messages = {
       link: "Vous dirigez une école ? Voyez ce que chaque forfait comprend pour une école",
     },
     paymentTitle: "Payer est simple",
-    paymentText: "Au Cameroun, payez par MTN Mobile Money ou Orange Money ; dans les autres pays, par virement bancaire en dollars US. Choisissez votre forfait sur la page Facturation et payez : l'équipe WazaBolt vérifie le paiement et active votre forfait à la main, en général le jour même.",
+    paymentText: "Payez facilement par MTN Mobile Money ou Orange Money. Votre essai gratuit de 14 jours démarre immédiatement et les activations payantes sont confirmées en quelques minutes par notre équipe à Bamenda.",
     tillNote: "Les paiements à votre caisse (espèces, MTN MoMo, Orange Money, virement, carte ou crédit) sont enregistrés par votre équipe : WazaBolt ne les vérifie pas auprès de MTN, d'Orange ou de la banque.",
     outsideTitle: "Hors du Cameroun",
     outsideText: "Au Nigéria, en Afrique du Sud, au Ghana, au Kenya et au Zimbabwe, les forfaits coûtent {p1}, {p2} et {p3} par mois, payés en dollars US par virement bancaire.",
@@ -699,6 +677,10 @@ const fr: Messages = {
     title: "Vos questions, nos réponses",
     items: [
       {
+        q: "Pouvez-vous configurer mon activité pour moi sur WhatsApp ?",
+        a: "Touchez Essai gratuit de 14 jours ou Discuter sur WhatsApp (Installation gratuite), ou écrivez à l'équipe WazaBolt sur WhatsApp au +237 651 57 59 33. Nous configurons avec vous, gratuitement, votre catalogue, votre menu ou vos frais de scolarité, et votre essai gratuit de 14 jours démarre : sans carte bancaire.",
+      },
+      {
         q: "WazaBolt fait-il partie de WhatsApp ?",
         a: "Non. WazaBolt est un logiciel de gestion indépendant. Vous pouvez partager reçus et factures sur WhatsApp depuis votre propre téléphone, et connecter votre numéro WhatsApp professionnel via la plateforme officielle WhatsApp Business de Meta pour une messagerie d'équipe partagée. WazaBolt n'est pas affilié à WhatsApp ni à Meta.",
       },
@@ -716,7 +698,7 @@ const fr: Messages = {
       },
       {
         q: "Comment payer mon forfait ?",
-        a: "Au Cameroun, par MTN Mobile Money ou Orange Money ; dans les autres pays, par virement bancaire en dollars US. Choisissez votre forfait sur la page Facturation et payez : l'équipe WazaBolt vérifie le paiement et active votre forfait à la main, en général le jour même.",
+        a: "Au Cameroun, par MTN Mobile Money ou Orange Money ; dans les autres pays, par virement bancaire en dollars US. Choisissez votre forfait sur la page Facturation et payez : les activations par Mobile Money sont confirmées en quelques minutes par notre équipe à Bamenda (les virements, dès leur arrivée). Une question : WhatsApp +237 651 57 59 33.",
       },
       {
         q: "Que se passe-t-il à la fin de l'essai gratuit ?",
@@ -738,10 +720,8 @@ const fr: Messages = {
   },
 
   cta: {
-    title: "Prêt à ranger le cahier ?",
-    text: "Ventes, stock, crédits et reçus au même endroit, pour les boutiques, les restaurants et les écoles. Commencez par 14 jours gratuits — sans payer.",
-    /** While sign-up is closed (beta waitlist mode). */
-    textBeta: "Ventes, stock, crédits et reçus au même endroit, pour les boutiques, les restaurants et les écoles. Rejoignez la bêta : nous installons gratuitement votre catalogue, votre menu ou vos frais.",
+    title: "Prêt à ranger le cahier ?",
+    text: "Ventes, stock, crédits et reçus au même endroit, pour les boutiques, les restaurants et les écoles. Commencez votre essai gratuit de 14 jours : nous configurons avec vous votre catalogue, votre menu ou vos frais, gratuitement.",
   },
 
   pages: {

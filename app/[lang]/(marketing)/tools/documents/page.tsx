@@ -43,7 +43,7 @@ export default async function GuestDocumentsPage() {
           </div>
           <div className="flex flex-col items-start gap-2 md:items-end">
             <Link href={startHref(locale)} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
-              {WAITLIST_MODE ? t.common.nav.joinBeta : g.banner.cta} <ArrowRight className="size-4" aria-hidden />
+              {WAITLIST_MODE ? t.common.nav.trialCta : g.banner.cta} <ArrowRight className="size-4" aria-hidden />
             </Link>
             <p className="text-xs text-slate">{g.banner.note}</p>
           </div>

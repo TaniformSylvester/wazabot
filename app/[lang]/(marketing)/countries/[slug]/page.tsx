@@ -60,7 +60,7 @@ export default async function CountryPage({ params }: PageProps<"/[lang]/countri
       <div className="container-page flex justify-center pb-4">
         <Button asChild size="lg" className="group h-auto min-h-13 max-w-full whitespace-normal py-3 text-center leading-snug">
           <Link href={WAITLIST_MODE ? startHref(locale) : `${localizePath(locale, "/register")}?country=${page.code}`} data-testid="country-start">
-            {WAITLIST_MODE ? t.common.nav.joinBeta : format(c.start, v)}
+            {WAITLIST_MODE ? t.common.nav.trialCta : format(c.start, v)}
             <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </Button>

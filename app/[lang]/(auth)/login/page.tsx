@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/[lang]/log
         <>
           {a.login.newHere}{" "}
           <Link href={startHref(locale)} className="font-semibold text-waza-700 hover:underline">
-            {WAITLIST_MODE ? t.common.nav.joinBetaShort : a.login.createAccount}
+            {WAITLIST_MODE ? t.common.nav.trialCtaShort : a.login.createAccount}
           </Link>
         </>
       }

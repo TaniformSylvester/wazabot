@@ -14,7 +14,7 @@ export default async function OpengraphImage({ params }: { params: Promise<{ lan
   const t = await getDictionary(isLocale(lang) ? lang : "en");
   return renderSocialImage("og", {
     tagline: t.common.brand.tagline,
-    headline: t.hero.title,
+    headline: t.hero.socialHeadline,
     supporting: t.common.brand.supporting,
     positioning: t.common.brand.positioning,
     productMeta: t.chatMockup.productMeta,
