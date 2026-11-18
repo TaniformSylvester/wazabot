@@ -107,6 +107,13 @@ mkdirSync("test-results", { recursive: true });
       ok(`${p.replace(/[0-9a-f-]{36}/, ":id")}: fits a 360px phone`, m.over <= 0 && m.wide.length === 0, `+${m.over}px ${m.wide.join(", ")}`);
     }
 
+    // The till with something in the cart (the cart's content once widened the page).
+    await page.goto(`${APP}/en/dashboard/sales/new`, { waitUntil: "networkidle" });
+    await page.getByTestId("pos-product").first().click();
+    await page.getByTestId("pos-cart").waitFor({ timeout: 5000 });
+    const till = await page.evaluate(measure);
+    ok("/en/dashboard/sales/new with an item in the cart: fits a 360px phone", till.over <= 0 && till.wide.length === 0, `+${till.over}px ${till.wide.join(", ")}`);
+
     // Lists are cards on a phone: no table to scroll sideways, labels shown.
     for (const p of ["/en/dashboard/orders", "/en/dashboard/customers", "/en/admin/businesses"]) {
       await page.goto(`${APP}${p}`, { waitUntil: "networkidle" });

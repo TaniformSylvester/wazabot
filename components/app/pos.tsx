@@ -153,8 +153,9 @@ export function Pos({
     );
   }
 
+  // grid-cols-1 (minmax(0, 1fr)): on phones the cart's content can't widen the page.
   return (
-    <div className="grid gap-6 pb-28 lg:grid-cols-[minmax(0,1fr)_24rem] lg:pb-0">
+    <div className="grid grid-cols-1 gap-6 pb-28 lg:grid-cols-[minmax(0,1fr)_24rem] lg:pb-0">
       {/* Products */}
       <section aria-label={p.search} className="min-w-0">
         <label className="relative block">
