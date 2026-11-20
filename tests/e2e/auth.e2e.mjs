@@ -166,6 +166,26 @@ mkdirSync("test-results", { recursive: true });
   ok("settings shows the Cameroon language pack", (await page.getByText("English, French, Cameroonian Pidgin English").count()) === 1);
   await page.screenshot({ path: "test-results/e2e-settings.png", fullPage: true });
 
+  // Settings → Account: the user changes their own name; the dashboard greets them with it.
+  const nameField = page.getByTestId("account-name");
+  ok("account: the name is editable, prefilled; the email is shown read-only", (await nameField.inputValue()) === A.name && (await page.locator('#account input[name="email"]').isDisabled()));
+  await nameField.fill(" ");
+  await nameField.evaluate((el) => el.removeAttribute("required"));
+  await nameField.evaluate((el) => el.removeAttribute("minlength"));
+  await page.locator("#account").getByRole("button", { name: "Save" }).click();
+  await page.locator("#account").getByText("Enter your name.").waitFor({ timeout: 10000 });
+  ok("account: an empty name is refused (checked on the server too)", true);
+  await nameField.fill("WazaBolt Tutorial");
+  await page.locator("#account").getByRole("button", { name: "Save" }).click();
+  await page.locator("#account").getByText("Saved", { exact: false }).first().waitFor({ timeout: 10000 });
+  await page.goto(`${APP}/en/dashboard`);
+  ok("account: the dashboard now greets the new name", (await page.getByRole("heading", { name: "Welcome, WazaBolt" }).count()) === 1);
+  // Back to the original name for the rest of the suite.
+  await page.goto(`${APP}/en/dashboard/settings`);
+  await page.getByTestId("account-name").fill(A.name);
+  await page.locator("#account").getByRole("button", { name: "Save" }).click();
+  await page.locator("#account").getByText("Saved", { exact: false }).first().waitFor({ timeout: 10000 });
+
   // Languages & AI style (functional)
   await page.goto(`${APP}/en/dashboard/ai/languages`);
   const preview = page.locator("aside").filter({ hasText: "Try language detection" });

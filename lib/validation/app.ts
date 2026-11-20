@@ -91,6 +91,11 @@ const enumOrNull = <T extends readonly [string, ...string[]]>(values: T) =>
 
 // ---------------------------------------------------------------------------
 
+/** Settings → Account: your own name (the same rule as at sign-up). */
+export const accountNameSchema = z.object({
+  full_name: z.string().trim().min(2, "name_required").max(120, "too_long"),
+});
+
 export const businessProfileSchema = z.object({
   name: requiredText(120, 2),
   industry: enumOrNull(INDUSTRIES),

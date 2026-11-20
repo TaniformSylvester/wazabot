@@ -3806,7 +3806,7 @@ const fr: Messages = {
         statusImage: "Image pour le Statut WhatsApp",
         extrasHint: "L'affiche est une page A4 avec un QR code, pour votre comptoir ou vos prospectus. L'image est pour votre Statut WhatsApp : téléchargez-la, puis publiez-la.",
       },
-      account: { title: "Compte", description: "Vos informations de connexion personnelles.", name: "Nom", email: "E-mail" },
+      account: { title: "Compte", description: "Vos informations de connexion personnelles.", name: "Nom", nameHint: "Votre propre nom, pas celui de l'entreprise : le tableau de bord vous accueille avec, et votre équipe le voit.", email: "E-mail", emailHint: "L'e-mail avec lequel vous vous connectez." },
       interface: {
         title: "Langue du tableau de bord",
         description: "La langue du tableau de bord WazaBolt et des e-mails que nous vous envoyons.",

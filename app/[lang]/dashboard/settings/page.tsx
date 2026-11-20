@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 
 import { FormAlert } from "@/components/auth/form-alert";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
+import { AccountNameForm } from "@/components/app/account-form";
 import { BusinessProfileForm, OpeningHoursForm, ReceiptSettingsForm } from "@/components/app/business-forms";
 import { ActionButton } from "@/components/app/form";
 import { CopyText } from "@/components/app/copy-button";
@@ -66,12 +67,7 @@ export default async function SettingsPage() {
       </RoleGuard>
 
       <Panel id="account" title={s.account.title} description={s.account.description}>
-        <DefinitionList
-          rows={[
-            { label: s.account.name, value: user.fullName || "—" },
-            { label: s.account.email, value: user.email },
-          ]}
-        />
+        <AccountNameForm name={user.fullName} email={user.email} labels={s.account} submitLabel={d.common.save} text={text} />
       </Panel>
 
       <Panel id="interface" title={s.interface.title} description={s.interface.description}>

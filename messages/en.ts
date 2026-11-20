@@ -3807,7 +3807,7 @@ const en = {
         statusImage: "Image for WhatsApp Status",
         extrasHint: "The poster is an A4 page with a QR code, for your counter or flyers. The image is for your WhatsApp Status: download it, then post it.",
       },
-      account: { title: "Account", description: "Your personal login details.", name: "Name", email: "Email" },
+      account: { title: "Account", description: "Your personal login details.", name: "Name", nameHint: "Your own name, not the business name: the dashboard greets you with it, and your team sees it.", email: "Email", emailHint: "The email you log in with." },
       interface: {
         title: "Dashboard language",
         description: "The language of the WazaBolt dashboard and the emails we send you.",

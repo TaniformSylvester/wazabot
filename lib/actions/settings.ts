@@ -8,7 +8,10 @@ import { requireUser } from "@/lib/auth/dal";
 import { isLocale } from "@/lib/i18n/config";
 import { logServerError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
+import { accountNameSchema } from "@/lib/validation/app";
 import { languageSettingsSchema, type SettingsActionResult } from "@/lib/validation/settings";
+
+import { dbError, fail, formObject, invalid, ok, type FormState } from "./form";
 
 /** Save reply languages + response style in one transaction (update_business_language_settings). */
 export async function saveLanguageSettings(input: unknown): Promise<SettingsActionResult> {
@@ -61,4 +64,27 @@ export async function setUiLocale(locale: string): Promise<{ ok: boolean }> {
     return { ok: false };
   }
   return { ok: true };
+}
+
+/**
+ * Settings → Account: the signed-in user changes their own name (the dashboard
+ * greets them with its first word; teammates see it in Team). Only their own
+ * row: the "update own profile" policy and the column grant allow nothing else.
+ */
+export async function saveAccountName(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const parsed = accountNameSchema.safeParse(formObject(formData));
+  if (!parsed.success) return invalid(parsed.error);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("users").update({ full_name: parsed.data.full_name }).eq("id", user.id);
+  if (error) {
+    logServerError("settings.saveAccountName", error);
+    return fail(dbError(error));
+  }
+  // Keep the sign-in metadata in step (it is the fallback when the profile has no name).
+  const { error: metaError } = await supabase.auth.updateUser({ data: { full_name: parsed.data.full_name } });
+  if (metaError) logServerError("settings.saveAccountName.meta", metaError);
+  revalidatePath("/[lang]/dashboard", "layout");
+  return ok(user.id);
 }
