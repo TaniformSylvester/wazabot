@@ -559,7 +559,10 @@ export function shortAssessment(name: string): string {
   return `${name.slice(0, 4)}.`;
 }
 
-function ReportCardPage({ d, st, logo, branding }: { d: ReportCardsData; st: ReportStudent; logo: PdfLogo; branding: boolean }) {
+/** The principal's signature and the school stamp, drawn on every report card (School settings → Signature and stamp). */
+export type ReportSeals = { signature: PdfLogo; stamp: PdfLogo };
+
+function ReportCardPage({ d, st, logo, seals, branding }: { d: ReportCardsData; st: ReportStudent; logo: PdfLogo; seals: ReportSeals; branding: boolean }) {
   const th = THEMES[d.template];
   const s = styles(th, d.template);
   const L = REPORT_LABELS[d.language];
@@ -703,10 +706,17 @@ function ReportCardPage({ d, st, logo, branding }: { d: ReportCardsData; st: Rep
           </View>
         ))}
         <View style={{ flex: 1, alignItems: "center" }}>
-          <View style={{ width: 110, height: 54, borderWidth: 0.75, borderColor: th.line, borderStyle: "dashed", alignItems: "center", justifyContent: "flex-end", paddingBottom: 3 }}>
-            <Text style={s.small}>{L.signatures.stamp}</Text>
-          </View>
-          <View style={{ alignSelf: "stretch", borderTopWidth: 0.75, borderTopColor: th.ink, paddingTop: 3, marginTop: 4, alignItems: "center" }}>
+          {seals.stamp ? (
+            // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt
+            <Image src={seals.stamp} style={{ width: 70, height: 70, objectFit: "contain" }} />
+          ) : (
+            <View style={{ width: 110, height: 54, borderWidth: 0.75, borderColor: th.line, borderStyle: "dashed", alignItems: "center", justifyContent: "flex-end", paddingBottom: 3 }}>
+              <Text style={s.small}>{L.signatures.stamp}</Text>
+            </View>
+          )}
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt */}
+          {seals.signature ? <Image src={seals.signature} style={{ width: 120, height: 34, objectFit: "contain", marginTop: 2 }} /> : null}
+          <View style={{ alignSelf: "stretch", borderTopWidth: 0.75, borderTopColor: th.ink, paddingTop: 3, marginTop: seals.signature ? 0 : 4, alignItems: "center" }}>
             <Text style={s.small}>{d.school.principal ? `${L.signatures.principal} — ${d.school.principal}` : L.signatures.principal}</Text>
           </View>
         </View>
@@ -722,14 +732,14 @@ function ReportCardPage({ d, st, logo, branding }: { d: ReportCardsData; st: Rep
 }
 
 /** Report cards as one PDF: one page per student (all of them, or the ones given). */
-export async function renderReportCardsPdf(d: ReportCardsData, opts: PdfOptions & { studentIds?: string[] } = {}): Promise<Buffer> {
+export async function renderReportCardsPdf(d: ReportCardsData, opts: PdfOptions & { studentIds?: string[]; seals?: ReportSeals } = {}): Promise<Buffer> {
   await registerFonts();
   const students = opts.studentIds ? d.students.filter((x) => opts.studentIds!.includes(x.id)) : d.students;
   const L = REPORT_LABELS[d.language];
   return renderToBuffer(
     <Document title={`${L.title} · ${d.className} · ${d.term}`} author={d.school.name} creator="WazaBolt" producer="WazaBolt" language={d.language}>
       {students.map((st) => (
-        <ReportCardPage key={st.id} d={d} st={st} logo={opts.logo ?? null} branding={opts.branding ?? true} />
+        <ReportCardPage key={st.id} d={d} st={st} logo={opts.logo ?? null} seals={opts.seals ?? { signature: null, stamp: null }} branding={opts.branding ?? true} />
       ))}
     </Document>,
   );

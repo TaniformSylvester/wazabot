@@ -3620,6 +3620,8 @@ export type Database = {
           motto: string | null;
           pass_mark: number;
           principal_name: string | null;
+          principal_signature_path: string | null;
+          school_stamp_path: string | null;
           rank_students: boolean;
           registration_number: string | null;
           report_language: string | null;
@@ -3639,6 +3641,8 @@ export type Database = {
           motto?: string | null;
           pass_mark?: number;
           principal_name?: string | null;
+          principal_signature_path?: string | null;
+          school_stamp_path?: string | null;
           rank_students?: boolean;
           registration_number?: string | null;
           report_language?: string | null;
@@ -3658,6 +3662,8 @@ export type Database = {
           motto?: string | null;
           pass_mark?: number;
           principal_name?: string | null;
+          principal_signature_path?: string | null;
+          school_stamp_path?: string | null;
           rank_students?: boolean;
           registration_number?: string | null;
           report_language?: string | null;

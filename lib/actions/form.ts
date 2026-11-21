@@ -12,6 +12,7 @@ export type ActionErrorKey =
   | "duplicate"
   | "storage_unavailable"
   | "image_invalid"
+  | "seal_image_invalid"
   | "unknown"
   // WhatsApp (Stage 2)
   | "whatsapp_not_configured"

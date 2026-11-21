@@ -17,6 +17,8 @@ import { logServerError } from "@/lib/log";
 import { MODULES } from "@/lib/modules";
 import { boundariesProblem, gradingPreset, parseBoundaries, GRADING_PRESETS } from "@/lib/school/presets";
 import { REPORT_LABELS } from "@/lib/school/report-card";
+import { MAX_SEAL_BYTES, SEAL_BUCKET, SEAL_COLUMN, SEAL_TYPES, isSealKind, loadSchoolSeals, normalizeSeal, sealPathOk } from "@/lib/school/seals";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { checkbox, money, normalizeWhatsAppNumber, optionalText, requiredText } from "@/lib/validation/app";
 
@@ -91,6 +93,61 @@ export async function saveSchoolSettings(_prev: FormState, formData: FormData): 
     .from("school_settings")
     .upsert({ business_id: ctx.business.id, ...d, grade_boundaries: boundaries, updated_at: new Date().toISOString() }, { onConflict: "business_id" });
   if (error) return failed("settings", error);
+  return done();
+}
+
+/**
+ * School settings → Signature and stamp: the principal's signature or the
+ * school stamp, printed on every PDF report card. Owners and managers only.
+ * The image is re-encoded as PNG and kept in the private school-seals bucket
+ * (server only); the path is saved by the server (the database refuses it
+ * from the app), and the previous file is deleted.
+ */
+export async function saveSchoolSeal(kind: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const ctx = await requireRoleForAction(MANAGERS);
+  if (!ctx) return denied();
+  if (!isSealKind(kind)) return fail("invalid");
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return fail("seal_image_invalid");
+  if (!SEAL_TYPES.includes(file.type) || file.size > MAX_SEAL_BYTES) return fail("seal_image_invalid");
+  const png = await normalizeSeal(new Uint8Array(await file.arrayBuffer()), kind);
+  if (!png) return fail("seal_image_invalid");
+  const admin = createAdminClient();
+  if (!admin) return fail("storage_unavailable");
+  const column = SEAL_COLUMN[kind];
+  const { data: before } = await admin.from("school_settings").select(column).eq("business_id", ctx.business.id).maybeSingle();
+  const path = `${ctx.business.id}/${kind}/${crypto.randomUUID()}.png`;
+  const { error: upError } = await admin.storage.from(SEAL_BUCKET).upload(path, png, { contentType: "image/png", upsert: false });
+  if (upError) {
+    logServerError("school.seal.upload", upError);
+    return fail("storage_unavailable");
+  }
+  const set = kind === "signature" ? { principal_signature_path: path } : { school_stamp_path: path };
+  const { error } = await admin.from("school_settings").upsert({ business_id: ctx.business.id, ...set }, { onConflict: "business_id" });
+  if (error) {
+    await admin.storage.from(SEAL_BUCKET).remove([path]);
+    return failed("seal.save", error);
+  }
+  const old = (before as Record<string, string | null> | null)?.[column];
+  if (sealPathOk(old, ctx.business.id, kind)) await admin.storage.from(SEAL_BUCKET).remove([old]);
+  return done();
+}
+
+/** Removes the signature or the stamp from report cards (owners and managers). */
+export async function removeSchoolSeal(kind: string): Promise<FormState> {
+  const ctx = await requireRoleForAction(MANAGERS);
+  if (!ctx) return denied();
+  if (!isSealKind(kind)) return fail("invalid");
+  const admin = createAdminClient();
+  if (!admin) return fail("storage_unavailable");
+  const column = SEAL_COLUMN[kind];
+  const { data: before } = await admin.from("school_settings").select(column).eq("business_id", ctx.business.id).maybeSingle();
+  const old = (before as Record<string, string | null> | null)?.[column];
+  if (!old) return done();
+  const clear = kind === "signature" ? { principal_signature_path: null } : { school_stamp_path: null };
+  const { error } = await admin.from("school_settings").update(clear).eq("business_id", ctx.business.id);
+  if (error) return failed("seal.remove", error);
+  if (sealPathOk(old, ctx.business.id, kind)) await admin.storage.from(SEAL_BUCKET).remove([old]);
   return done();
 }
 
@@ -499,7 +556,8 @@ export async function sendReportCard(classId: string, termId: string, studentId:
   if (!student?.guardian_customer_id) return fail("not_found");
   let pdf: Buffer;
   try {
-    pdf = await renderReportCardsPdf(pub.data, { studentIds: [studentId], logo: await logoFromStorageUrl(ctx.business.logoUrl), branding: false });
+    const [logo, seals] = await Promise.all([logoFromStorageUrl(ctx.business.logoUrl), loadSchoolSeals(ctx.business.id)]);
+    pdf = await renderReportCardsPdf(pub.data, { studentIds: [studentId], logo, seals, branding: false });
   } catch (e) {
     logServerError("school.reportCard.pdf", e);
     return fail("unknown");

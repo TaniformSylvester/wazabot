@@ -1,6 +1,7 @@
 import { FormAlert } from "@/components/auth/form-alert";
 import { ActionButton, ActionForm, CheckboxField, SelectField, SubmitButton, TextArea, TextField } from "@/components/app/form";
 import { PageHeader, Panel, StatusBadge, TableWrap, td, th } from "@/components/app/ui";
+import { SchoolSeals } from "@/components/app/school-seals";
 import { addAssessment, addTerm, applyGradingPreset, createYear, removeAssessment, saveSchoolSettings, setCurrentYear } from "@/lib/actions/school";
 import { hasRole, requireBusiness } from "@/lib/auth/dal";
 import { getSchoolSettings, listTerms, listYears } from "@/lib/data/school";
@@ -9,6 +10,7 @@ import { getLocale, getMessages } from "@/lib/i18n/dictionaries";
 import { format } from "@/lib/i18n/format";
 import { localizePath } from "@/lib/i18n/paths";
 import { boundariesProblem, boundariesText, GRADING_PRESETS } from "@/lib/school/presets";
+import { schoolSealPreviews } from "@/lib/school/seals";
 
 export const generateMetadata = dashboardMetadata((d) => d.school.settings.title);
 
@@ -20,7 +22,7 @@ export default async function SchoolSettingsPage() {
   const s = d.school.settings;
   const y = d.school.years;
   const canEdit = hasRole(business.role, "admin");
-  const [settings, years] = await Promise.all([getSchoolSettings(business.id), listYears(business.id)]);
+  const [settings, years, sealPreviews] = await Promise.all([getSchoolSettings(business.id), listYears(business.id), canEdit ? schoolSealPreviews(business.id) : null]);
   const termsByYear = await Promise.all(years.map((yr) => listTerms(business.id, yr.id)));
   const text = { errors: d.errors, saved: s.saved, saving: d.common.saving };
   const example = `${settings.student_prefix}-000001`;
@@ -98,6 +100,13 @@ export default async function SchoolSettingsPage() {
           </div>
         ) : null}
       </ActionForm>
+
+      {sealPreviews ? (
+        <Panel id="seals" title={s.seals.title} description={s.seals.description}>
+          <SchoolSeals t={s.seals} text={text} previews={sealPreviews} />
+          <p className="mt-4 text-xs text-slate">{s.seals.private}</p>
+        </Panel>
+      ) : null}
 
       <Panel id="years" title={y.title} description={y.description}>
         <div className="flex flex-col gap-6" data-testid="school-years">

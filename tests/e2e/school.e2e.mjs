@@ -387,6 +387,56 @@ mkdirSync("test-results", { recursive: true });
     await settle(tp);
     ok("teachers see no fees or balances", (await tmain.getByTestId("fee-rows").count()) === 0 && (await tmain.getByTestId("balance-rows").count()) === 0);
 
+    // ---------------------------------------------------------------- Signature and stamp on report cards
+    const pdfUrl = `${APP}/en/dashboard/school/results/pdf?class=${classId}&term=${termId}&student=${amina}`;
+    // Pictures in the PDF: a PNG with transparency is two image objects (the picture and its /SMask), counted once.
+    const images = (buf) => {
+      const pdf = buf.toString("latin1");
+      return (pdf.match(/\/Subtype\s*\/Image/g) ?? []).length - (pdf.match(/\/SMask/g) ?? []).length;
+    };
+    const before = images(Buffer.from(await (await page.request.get(pdfUrl)).body()));
+    await tp.goto(`${APP}/en/dashboard/school/settings`);
+    await settle(tp);
+    ok("teachers don't see the signature and stamp", (await tp.getByTestId("seal-signature").count()) === 0);
+    const sharp = (await import("sharp")).default;
+    const png = (w, h, colour) => sharp({ create: { width: w, height: h, channels: 4, background: colour } }).png().toBuffer();
+    writeFileSync("test-results/seal-signature.png", await png(600, 200, "#1d3d8f"));
+    writeFileSync("test-results/seal-stamp.png", await png(300, 300, "#7a1f9c"));
+    writeFileSync("test-results/seal-fake.png", "not an image");
+    await page.goto(`${APP}/en/dashboard/school/settings`);
+    await settle();
+    const sig = main.getByTestId("seal-signature");
+    const stampBox = main.getByTestId("seal-stamp");
+    await sig.locator('input[type="file"]').setInputFiles("test-results/seal-fake.png");
+    await sig.getByRole("button", { name: "Upload" }).click();
+    await sig.getByText("That image couldn't be used", { exact: false }).waitFor({ timeout: 10000 });
+    ok("a file that isn't an image is refused", sql(`select principal_signature_path is null from school_settings where business_id = '${biz}'`) === "t");
+    await sig.locator('input[type="file"]').setInputFiles("test-results/seal-signature.png");
+    await sig.getByRole("button", { name: "Upload" }).click();
+    await sig.getByTestId("seal-signature-preview").waitFor({ timeout: 10000 });
+    await stampBox.locator('input[type="file"]').setInputFiles("test-results/seal-stamp.png");
+    await stampBox.getByRole("button", { name: "Upload" }).click();
+    await stampBox.getByTestId("seal-stamp-preview").waitFor({ timeout: 10000 });
+    const paths = sql(`select principal_signature_path || ' ' || school_stamp_path from school_settings where business_id = '${biz}'`);
+    ok("owner uploads the signature and the stamp: saved in the school's own folder, previews shown", paths.startsWith(`${biz}/signature/`) && paths.includes(` ${biz}/stamp/`), paths);
+    const preview = await stampBox.getByTestId("seal-stamp-preview").getAttribute("src");
+    ok("the preview is a private, signed link (never a public one)", /\/storage\/v1\/object\/sign\//.test(preview) && !/\/object\/public\//.test(preview), preview);
+    const signed = Buffer.from(await (await page.request.get(pdfUrl)).body());
+    writeFileSync("test-results/school-report-card-signed.pdf", signed);
+    ok("the report card PDF now carries the signature and the stamp", images(signed) === before + 2, `${before} → ${images(signed)}`);
+    ok("…also when a teacher downloads it", images(Buffer.from(await (await tp.request.get(pdfUrl)).body())) === before + 2);
+    const owner = sql(`select user_id from business_members where business_id = '${biz}' and role = 'owner'`);
+    let refused = false;
+    try {
+      execFileSync("psql", [DB, "-v", "ON_ERROR_STOP=1", "-qtA", "-f", "-"], { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], input: `begin;\nset local role authenticated;\nselect set_config('request.jwt.claims', '{"sub":"${owner}","role":"authenticated"}', true);\nupdate public.school_settings set school_stamp_path = '${biz}/stamp/other.png' where business_id = '${biz}';\ncommit;\n` });
+    } catch {
+      refused = true;
+    }
+    ok("the paths can't be changed from the app, even by the owner (only the server sets them)", refused && sql(`select school_stamp_path from school_settings where business_id = '${biz}'`) === paths.split(" ")[1]);
+    await stampBox.getByRole("button", { name: "Remove" }).click();
+    await until(() => sql(`select school_stamp_path is null from school_settings where business_id = '${biz}'`) === "t");
+    ok("removing the stamp takes it off report cards (the signature stays)", images(Buffer.from(await (await page.request.get(pdfUrl)).body())) === before + 1);
+
     // ---------------------------------------------------------------- Modules
     await page.goto(`${APP}/en/dashboard/settings`);
     await main.getByTestId("modules").locator("li").filter({ hasText: "Sales and stock" }).getByRole("button", { name: "Turn on" }).click();

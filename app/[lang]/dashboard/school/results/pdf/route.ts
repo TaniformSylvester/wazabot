@@ -7,6 +7,7 @@ import { computeReportCards, getPublication } from "@/lib/data/school";
 import { renderReportCardsPdf, reportCardFileName } from "@/lib/documents/pdf/render";
 import { logoFromStorageUrl } from "@/lib/documents/server";
 import { logServerError } from "@/lib/log";
+import { loadSchoolSeals } from "@/lib/school/seals";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest) {
   const data = pub?.data ?? (await computeReportCards(business, classId, termId));
   if (!data || (studentId && !data.students.some((s) => s.id === studentId))) return new NextResponse("Not found", { status: 404 });
   try {
-    const pdf = await renderReportCardsPdf(data, { studentIds: studentId ? [studentId] : undefined, logo: await logoFromStorageUrl(business.logoUrl), branding: false });
+    const [logo, seals] = await Promise.all([logoFromStorageUrl(business.logoUrl), loadSchoolSeals(business.id)]);
+    const pdf = await renderReportCardsPdf(data, { studentIds: studentId ? [studentId] : undefined, logo, seals, branding: false });
     const student = studentId ? data.students.find((s) => s.id === studentId) : undefined;
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
